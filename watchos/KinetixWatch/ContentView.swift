@@ -139,7 +139,7 @@ struct RunView: View {
             Text("Efficiency dropping. Rec Pace: \(locationManager.recommendedPaceString(unit: unitSystem))")
         }
         // WINNING LOGIC (ROUNDED)
-        .onChange(of: locationManager.liveNPI) { newValue in
+        .onChange(of: locationManager.liveNPI) { _, newValue in
             // Check rounded value to match UI (Visual Win)
             if round(newValue) >= targetNPI && !hasCelebrated {
                 hasCelebrated = true
@@ -153,7 +153,7 @@ struct RunView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 4) { showFireworks = false }
             }
         }
-        .onChange(of: locationManager.heartRate) { newHR in
+        .onChange(of: locationManager.heartRate) { _, newHR in
             if physioMode && newHR > 175 && !showPhysioAlert { showPhysioAlert = true }
         }
         .onAppear {
@@ -219,7 +219,15 @@ struct SettingsView: View {
     @Binding var targetNPI: Double; @Binding var unitSystem: String; @Binding var physioMode: Bool
     var body: some View {
         List {
-            Section(header: Text("GOALS")) { Stepper("Target: \(Int(targetNPI))", value: $targetNPI, step: 5); Toggle("Physio-Pacer", isOn: $physioMode) }
+            Section(header: Text("GOALS")) {
+                VStack(alignment: .leading) {
+                    Text("TARGET NPI").font(.caption).foregroundColor(.gray)
+                    Stepper(value: $targetNPI, in: 50...200, step: 5) {
+                        Text("\(Int(targetNPI))").font(.title3).bold().foregroundColor(.cyan)
+                    }
+                }
+                Toggle("Physio-Pacer", isOn: $physioMode)
+            }
             Section(header: Text("SYSTEM")) { Picker("Units", selection: $unitSystem) { Text("Metric").tag("metric"); Text("Imperial").tag("imperial") } }
         }
     }
@@ -272,6 +280,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var duration: TimeInterval = 0
     private var activeTargetNPI: Double = 135.0
     
+    // Rolling Pace Buffer
+    private var rollingDistances: [(Date, Double)] = [] // (Timestamp, DistanceDelta)
+    @Published var currentPaceSeconds: Double = 0.0
+    
     override init() {
         super.init()
         manager.delegate = self
@@ -298,21 +310,53 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let loc = locations.last, isRunning else { return }
+        
+        // Filter poor GPS data
+        if loc.horizontalAccuracy < 0 || loc.horizontalAccuracy > 50 { return }
+        
         if let last = lastLocation {
-            totalDistance += loc.distance(from: last)
+            let dist = loc.distance(from: last)
+            let timeDiff = loc.timestamp.timeIntervalSince(last.timestamp)
+            
+            // Filter unrealistic jumps (e.g. > 12m/s)
+            if timeDiff > 0 && (dist / timeDiff) < 12.0 { 
+                totalDistance += dist
+                
+                // Add to rolling buffer
+                rollingDistances.append((Date(), dist))
+            }
         }
         lastLocation = loc
+        
+        // Prune buffer to keep last 10 seconds
+        let now = Date()
+        rollingDistances = rollingDistances.filter { now.timeIntervalSince($0.0) < 10 }
     }
     
     func updateCalculations() {
         if totalDistance > 0 {
-            // Avg Pace
+            // Overall Avg Pace (for NPI)
             paceSeconds = duration / (totalDistance / 1000.0)
             
-            // Rec Pace (Current + 30s)
-            recommendedPace = paceSeconds + 30.0
+            // Calculate Rolling Pace (Last 10s) for Display
+            let rollingDist = rollingDistances.map { $0.1 }.reduce(0, +)
+            if !rollingDistances.isEmpty && rollingDist > 0 {
+                // Time window is roughly from oldest point to now
+                if let first = rollingDistances.first {
+                    let window = Date().timeIntervalSince(first.0)
+                    if window > 0 {
+                        currentPaceSeconds = window / (rollingDist / 1000.0)
+                    }
+                }
+            } else {
+                currentPaceSeconds = paceSeconds // Fallback to avg
+            }
             
-            if totalDistance > 50 {
+            // Rec Pace (Current + 30s)
+            recommendedPace = currentPaceSeconds + 30.0
+            
+            // Require at least 100m distance and 30s duration for NPI to stabilize
+            if totalDistance > 100 && duration > 30 {
                 // NPI Formula
                 let speedKmH = (1000/paceSeconds) * 3.6
                 let factor = pow((totalDistance/1000.0), 0.06)
@@ -347,12 +391,17 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     func formattedPace(unit: String) -> String {
-        let pace = unit == "metric" ? paceSeconds : paceSeconds * 1.60934
+        // Use currentPaceSeconds (Rolling) for display instead of Avg
+        if currentPaceSeconds.isInfinite || currentPaceSeconds.isNaN { return "0:00" }
+        let pace = unit == "metric" ? currentPaceSeconds : currentPaceSeconds * 1.60934
+        if pace.isInfinite || pace.isNaN || pace > 359999 { return "0:00" } // Guard against huge values
         return String(format: "%d:%02d", Int(pace/60), Int(pace.truncatingRemainder(dividingBy: 60)))
     }
     
     func recommendedPaceString(unit: String) -> String {
+        if recommendedPace.isInfinite || recommendedPace.isNaN { return "0:00" }
         let pace = unit == "metric" ? recommendedPace : recommendedPace * 1.60934
+        if pace.isInfinite || pace.isNaN || pace > 359999 { return "0:00" }
         return String(format: "%d:%02d", Int(pace/60), Int(pace.truncatingRemainder(dividingBy: 60)))
     }
     
@@ -380,6 +429,3 @@ class AICoach: ObservableObject {
     }
 }
 struct GeminiResponse: Codable { let candidates: [Candidate] }; struct Candidate: Codable { let content: Content }; struct Content: Codable { let parts: [Part] }; struct Part: Codable { let text: String }
-
-
-

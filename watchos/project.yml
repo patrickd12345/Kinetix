@@ -8,7 +8,7 @@ options:
 
 targets:
   KinetixWatch:
-    type: com.apple.product-type.application
+    type: application
     platform: watchOS
     sources:
       - path: KinetixWatch
@@ -22,6 +22,6 @@ targets:
       DEVELOPMENT_TEAM: ""
       SUPPORTED_PLATFORMS: watchos
       CODE_SIGN_CONTEXT_CLASS: XCWatchOSCodeSignContext
-    # capabilities:
-    #   - Location Services  # Temporarily disabled to fix signing
+    capabilities:
+      - Location Services
 

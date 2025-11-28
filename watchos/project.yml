@@ -12,6 +12,9 @@ targets:
     platform: watchOS
     sources:
       - path: KinetixWatch
+        excludes:
+          - "**/*.app"
+          - "**/*.ipa"
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixWatchOS
       INFOPLIST_FILE: KinetixWatch/Info.plist
@@ -23,5 +26,5 @@ targets:
       SUPPORTED_PLATFORMS: watchos
       CODE_SIGN_CONTEXT_CLASS: XCWatchOSCodeSignContext
     capabilities:
-      - Location Services
+      - Background Modes
 

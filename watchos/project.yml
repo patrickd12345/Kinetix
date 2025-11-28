@@ -1,0 +1,27 @@
+name: KinetixWatch
+options:
+  bundleIdPrefix: com.kinetix
+  deploymentTarget:
+    watchOS: "11.0"
+  developmentLanguage: en
+  xcodeVersion: "15.0"
+
+targets:
+  KinetixWatch:
+    type: com.apple.product-type.application
+    platform: watchOS
+    sources:
+      - path: KinetixWatch
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixWatchOS
+      INFOPLIST_FILE: KinetixWatch/Info.plist
+      CODE_SIGN_ENTITLEMENTS: KinetixWatch/KinetixWatch.entitlements
+      SWIFT_VERSION: "5.0"
+      TARGETED_DEVICE_FAMILY: "4" # watchOS
+      WATCHOS_DEPLOYMENT_TARGET: "11.0"
+      DEVELOPMENT_TEAM: ""
+      SUPPORTED_PLATFORMS: watchos
+      CODE_SIGN_CONTEXT_CLASS: XCWatchOSCodeSignContext
+    # capabilities:
+    #   - Location Services  # Temporarily disabled to fix signing
+

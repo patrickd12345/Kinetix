@@ -134,13 +134,14 @@ Kinetix/
    open watchos/KinetixWatch.xcodeproj
    ```
 
-2. **Configure capabilities**
-   - Enable "Location When In Use" in Info.plist
-   - Add usage description: "Kinetix needs location access to track your runs"
-   - Enable "Background Modes" → "Location Updates"
+2. **Configure signing** (if needed)
+   - Select the project in Xcode
+   - Go to "Signing & Capabilities"
+   - Select your development team
+   - Location Services capability is already configured
 
 3. **Build and run**
-   - Select your Apple Watch as the target
+   - Select your Apple Watch as the target (simulator or device)
    - Build and run (⌘R)
 
 ---

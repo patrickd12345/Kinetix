@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct KinetixWatchApp: App {
@@ -6,6 +7,7 @@ struct KinetixWatchApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: Run.self)
     }
 }
 

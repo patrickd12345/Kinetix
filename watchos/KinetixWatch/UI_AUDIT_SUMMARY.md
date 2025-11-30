@@ -150,3 +150,4 @@ Compare your UI to:
 
 **Note**: The audit system is extensible - you can add more checks as needed. It's designed to grow with your app's needs.
 
+

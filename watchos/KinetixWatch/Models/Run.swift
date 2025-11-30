@@ -10,9 +10,14 @@ final class Run {
     var avgPace: Double // seconds per km
     var avgNPI: Double
     var avgHeartRate: Double
+    var avgCadence: Double?
+    var avgVerticalOscillation: Double?
+    var avgGroundContactTime: Double?
+    var avgStrideLength: Double?
+    var formScore: Double?
     var routeData: [RoutePoint] = []
     
-    init(date: Date = Date(), distance: Double, duration: TimeInterval, avgPace: Double, avgNPI: Double, avgHeartRate: Double, routeData: [RoutePoint] = []) {
+    init(date: Date = Date(), distance: Double, duration: TimeInterval, avgPace: Double, avgNPI: Double, avgHeartRate: Double, avgCadence: Double? = nil, avgVerticalOscillation: Double? = nil, avgGroundContactTime: Double? = nil, avgStrideLength: Double? = nil, formScore: Double? = nil, routeData: [RoutePoint] = []) {
         self.id = UUID()
         self.date = date
         self.distance = distance
@@ -20,6 +25,11 @@ final class Run {
         self.avgPace = avgPace
         self.avgNPI = avgNPI
         self.avgHeartRate = avgHeartRate
+        self.avgCadence = avgCadence
+        self.avgVerticalOscillation = avgVerticalOscillation
+        self.avgGroundContactTime = avgGroundContactTime
+        self.avgStrideLength = avgStrideLength
+        self.formScore = formScore
         self.routeData = routeData
     }
 }

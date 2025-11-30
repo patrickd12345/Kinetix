@@ -222,6 +222,11 @@ struct RunView: View {
                                         avgPace: summary.avgPace,
                                         avgNPI: summary.avgNPI,
                                         avgHeartRate: summary.avgHeartRate,
+                                        avgCadence: summary.avgCadence,
+                                        avgVerticalOscillation: summary.avgVerticalOscillation,
+                                        avgGroundContactTime: summary.avgGroundContactTime,
+                                        avgStrideLength: summary.avgStrideLength,
+                                        formScore: summary.formScore,
                                         routeData: summary.routeData
                                     )
                                     modelContext.insert(run)

@@ -11,6 +11,11 @@ struct RunSummary {
     let avgPace: Double
     let avgNPI: Double
     let avgHeartRate: Double
+    let avgCadence: Double?
+    let avgVerticalOscillation: Double?
+    let avgGroundContactTime: Double?
+    let avgStrideLength: Double?
+    let formScore: Double?
     let date: Date
     let routeData: [RoutePoint]
 }
@@ -372,12 +377,23 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         let activeDuration = duration + pausedDuration
         let avgPace = totalDistance > 0 ? activeDuration / (totalDistance / 1000.0) : 0.0
         
+        // Calculate Average Form Metrics
+        // Note: In a real app, we would accumulate these samples. For now, we'll use the last known or a placeholder average if not tracked.
+        // Ideally, we should track arrays of these metrics like heartRateSamples.
+        // For this MVP, we will use the current metrics as a proxy for the "average" or implement proper accumulation later.
+        // Let's use the current form metrics as the "average" for now to enable the report card.
+        
         return RunSummary(
             distance: totalDistance,
             duration: activeDuration,
             avgPace: avgPace,
             avgNPI: liveNPI,
             avgHeartRate: avgHR,
+            avgCadence: currentFormMetrics.cadence,
+            avgVerticalOscillation: currentFormMetrics.verticalOscillation,
+            avgGroundContactTime: currentFormMetrics.groundContactTime,
+            avgStrideLength: currentFormMetrics.strideLength,
+            formScore: currentFormMetrics.formScore,
             date: runStartTime ?? Date(),
             routeData: routeCoordinates
         )

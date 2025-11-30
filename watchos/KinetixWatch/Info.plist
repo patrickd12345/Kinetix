@@ -20,23 +20,22 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Kinetix needs location access to track your runs</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Kinetix needs location access to track your runs</string>
+	<key>GEMINI_API_KEY</key>
+	<string>AIzaSyBo5iWSR6yGbWU8EzoOEU7JusjciFVATSE</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Kinetix uses HealthKit to track your heart rate and workouts.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Kinetix saves your workouts to HealthKit.</string>
-	<key>GEMINI_API_KEY</key>
-	<string>AIzaSyBo5iWSR6yGbWU8EzoOEU7JusjciFVATSE</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Kinetix needs location access to track your runs</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Kinetix needs location access to track your runs</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>WKApplication</key>
 	<true/>
-	<!-- Removed WKCompanionAppBundleIdentifier since this is a standalone app -->
 	<key>WKWatchOnly</key>
 	<true/>
 </dict>

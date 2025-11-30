@@ -39,3 +39,4 @@ struct StatBox: View {
     var body: some View { VStack { Text(title).font(.system(size: 8, weight: .bold)).foregroundColor(.gray); Text(value).font(.system(size: 14, design: .monospaced)).foregroundColor(color) }.frame(maxWidth: .infinity).background(Color.gray.opacity(0.1)).cornerRadius(5) }
 }
 
+

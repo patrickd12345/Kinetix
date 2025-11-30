@@ -3,55 +3,60 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		24237AF9DF08A65AE157B492 /* KinetixWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7BACB210DA8807301FEBC /* KinetixWatchApp.swift */; };
+		36CF1E98FB698C68B7B9AB14 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09182A156E2A3A213758CA3F /* HistoryView.swift */; };
+		3AD094771226714784FE8E7D /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630B26361C0079B001F8B7EB /* Components.swift */; };
+		847900CB5797EF7F9901058F /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */; };
+		879EAC246134A83548BBC9DF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BB59C1319B3536A8992F1F /* SettingsView.swift */; };
+		87A7679DBECBCE339723FD16 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */; };
 		8C0906F9AB39DBF79523F15D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A1919E19F634A123F4EDE1 /* ContentView.swift */; };
+		CCF5EA3E88DE6D84C787376D /* ManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88A6625E1273DD7333057CC8 /* ManualView.swift */; };
+		D8DC006573C6AB83934A7429 /* RunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3DA4C0B64FB7E52B19005 /* RunView.swift */; };
+		E5A29C73DF8A5332744F1C39 /* Run.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D583739706F3A5D76F29E9 /* Run.swift */; };
+		EDC7C25BA982A686B56885F8 /* AICoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7553B244B0DCAC9F367580 /* AICoach.swift */; };
+		FC7582C201CA944A4F9638DF /* RunDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		09182A156E2A3A213758CA3F /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		4AE3DA4C0B64FB7E52B19005 /* RunView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunView.swift; sourceTree = "<group>"; };
 		59A1919E19F634A123F4EDE1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		630B26361C0079B001F8B7EB /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		6EB7BACB210DA8807301FEBC /* KinetixWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinetixWatchApp.swift; sourceTree = "<group>"; };
+		88A6625E1273DD7333057CC8 /* ManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualView.swift; sourceTree = "<group>"; };
+		89BB59C1319B3536A8992F1F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		938F108DBA35FB7322DE372C /* KinetixWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KinetixWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunDetailView.swift; sourceTree = "<group>"; };
+		AA7553B244B0DCAC9F367580 /* AICoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoach.swift; sourceTree = "<group>"; };
 		AAD2450347A4522C72F2993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		B15F22C22EDA615600AA5E09 /* KinetixHostTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KinetixHostTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		B15F22CC2EDA615600AA5E09 /* KinetixHostUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KinetixHostUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		C9DEC93895E3171BE4D215AC /* KinetixWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KinetixWatch.entitlements; sourceTree = "<group>"; };
+		F6D583739706F3A5D76F29E9 /* Run.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Run.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		B15F22B72EDA615400AA5E09 /* KinetixHost */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = KinetixHost; sourceTree = "<group>"; };
-		B15F22C52EDA615600AA5E09 /* KinetixHostTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = KinetixHostTests; sourceTree = "<group>"; };
-		B15F22CF2EDA615600AA5E09 /* KinetixHostUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = KinetixHostUITests; sourceTree = "<group>"; };
-/* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		B15F22BF2EDA615600AA5E09 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B15F22C92EDA615600AA5E09 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		263B52B5E2DDCC4D94A1584B /* KinetixWatch */ = {
 			isa = PBXGroup;
 			children = (
+				AA7553B244B0DCAC9F367580 /* AICoach.swift */,
+				630B26361C0079B001F8B7EB /* Components.swift */,
 				59A1919E19F634A123F4EDE1 /* ContentView.swift */,
+				09182A156E2A3A213758CA3F /* HistoryView.swift */,
 				AAD2450347A4522C72F2993F /* Info.plist */,
 				C9DEC93895E3171BE4D215AC /* KinetixWatch.entitlements */,
 				6EB7BACB210DA8807301FEBC /* KinetixWatchApp.swift */,
+				BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */,
+				88A6625E1273DD7333057CC8 /* ManualView.swift */,
+				986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */,
+				9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */,
+				4AE3DA4C0B64FB7E52B19005 /* RunView.swift */,
+				89BB59C1319B3536A8992F1F /* SettingsView.swift */,
+				A988286F9354E58D28287238 /* Models */,
 			);
 			path = KinetixWatch;
 			sourceTree = "<group>";
@@ -60,19 +65,22 @@
 			isa = PBXGroup;
 			children = (
 				263B52B5E2DDCC4D94A1584B /* KinetixWatch */,
-				B15F22B72EDA615400AA5E09 /* KinetixHost */,
-				B15F22C52EDA615600AA5E09 /* KinetixHostTests */,
-				B15F22CF2EDA615600AA5E09 /* KinetixHostUITests */,
 				F8B7DFCB790439E712D42B90 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		A988286F9354E58D28287238 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				F6D583739706F3A5D76F29E9 /* Run.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		F8B7DFCB790439E712D42B90 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				938F108DBA35FB7322DE372C /* KinetixWatch.app */,
-				B15F22C22EDA615600AA5E09 /* KinetixHostTests.xctest */,
-				B15F22CC2EDA615600AA5E09 /* KinetixHostUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -85,6 +93,7 @@
 			buildConfigurationList = 774E828AF8A60560081F7D1E /* Build configuration list for PBXNativeTarget "KinetixWatch" */;
 			buildPhases = (
 				50BC36C0E65510CAAC2F0B66 /* Sources */,
+				3624A97865B295C699FFBF15 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -97,50 +106,6 @@
 			productReference = 938F108DBA35FB7322DE372C /* KinetixWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
-		B15F22C12EDA615600AA5E09 /* KinetixHostTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = B15F22D72EDA615600AA5E09 /* Build configuration list for PBXNativeTarget "KinetixHostTests" */;
-			buildPhases = (
-				B15F22BE2EDA615600AA5E09 /* Sources */,
-				B15F22BF2EDA615600AA5E09 /* Frameworks */,
-				B15F22C02EDA615600AA5E09 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				B15F22C52EDA615600AA5E09 /* KinetixHostTests */,
-			);
-			name = KinetixHostTests;
-			packageProductDependencies = (
-			);
-			productName = KinetixHostTests;
-			productReference = B15F22C22EDA615600AA5E09 /* KinetixHostTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		B15F22CB2EDA615600AA5E09 /* KinetixHostUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = B15F22DA2EDA615600AA5E09 /* Build configuration list for PBXNativeTarget "KinetixHostUITests" */;
-			buildPhases = (
-				B15F22C82EDA615600AA5E09 /* Sources */,
-				B15F22C92EDA615600AA5E09 /* Frameworks */,
-				B15F22CA2EDA615600AA5E09 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				B15F22CF2EDA615600AA5E09 /* KinetixHostUITests */,
-			);
-			name = KinetixHostUITests;
-			packageProductDependencies = (
-			);
-			productName = KinetixHostUITests;
-			productReference = B15F22CC2EDA615600AA5E09 /* KinetixHostUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -148,18 +113,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 1500;
-				TargetAttributes = {
-					B15F22C12EDA615600AA5E09 = {
-						CreatedOnToolsVersion = 26.1.1;
-						TestTargetID = B15F22B52EDA615400AA5E09;
-					};
-					B15F22CB2EDA615600AA5E09 = {
-						CreatedOnToolsVersion = 26.1.1;
-						TestTargetID = B15F22B52EDA615400AA5E09;
-					};
-				};
 			};
 			buildConfigurationList = 399FEC40E683499CC85ECB38 /* Build configuration list for PBXProject "KinetixWatch" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -175,24 +129,16 @@
 			projectRoot = "";
 			targets = (
 				42B3645BC2638DE55F8DB975 /* KinetixWatch */,
-				B15F22C12EDA615600AA5E09 /* KinetixHostTests */,
-				B15F22CB2EDA615600AA5E09 /* KinetixHostUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		B15F22C02EDA615600AA5E09 /* Resources */ = {
+		3624A97865B295C699FFBF15 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B15F22CA2EDA615600AA5E09 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+				87A7679DBECBCE339723FD16 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -203,22 +149,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EDC7C25BA982A686B56885F8 /* AICoach.swift in Sources */,
+				3AD094771226714784FE8E7D /* Components.swift in Sources */,
 				8C0906F9AB39DBF79523F15D /* ContentView.swift in Sources */,
+				36CF1E98FB698C68B7B9AB14 /* HistoryView.swift in Sources */,
 				24237AF9DF08A65AE157B492 /* KinetixWatchApp.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B15F22BE2EDA615600AA5E09 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B15F22C82EDA615600AA5E09 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+				847900CB5797EF7F9901058F /* LocationManager.swift in Sources */,
+				CCF5EA3E88DE6D84C787376D /* ManualView.swift in Sources */,
+				E5A29C73DF8A5332744F1C39 /* Run.swift in Sources */,
+				FC7582C201CA944A4F9638DF /* RunDetailView.swift in Sources */,
+				D8DC006573C6AB83934A7429 /* RunView.swift in Sources */,
+				879EAC246134A83548BBC9DF /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -229,7 +170,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_CONTEXT_CLASS = XCWatchOSCodeSignContext;
 				CODE_SIGN_ENTITLEMENTS = KinetixWatch/KinetixWatch.entitlements;
 				DEVELOPMENT_TEAM = AWJBX83Y4X;
@@ -300,124 +240,6 @@
 			};
 			name = Release;
 		};
-		B15F22D82EDA615600AA5E09 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = bookiji.KinetixHostTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KinetixHost.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KinetixHost";
-			};
-			name = Debug;
-		};
-		B15F22D92EDA615600AA5E09 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = bookiji.KinetixHostTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KinetixHost.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KinetixHost";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		B15F22DB2EDA615600AA5E09 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = bookiji.KinetixHostUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = KinetixHost;
-			};
-			name = Debug;
-		};
-		B15F22DC2EDA615600AA5E09 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = bookiji.KinetixHostUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = KinetixHost;
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
 		B3678879FE56E42E8822704D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -485,7 +307,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_CONTEXT_CLASS = XCWatchOSCodeSignContext;
 				CODE_SIGN_ENTITLEMENTS = KinetixWatch/KinetixWatch.entitlements;
 				DEVELOPMENT_TEAM = AWJBX83Y4X;
@@ -517,24 +338,6 @@
 			buildConfigurations = (
 				3007B9F4BE1F137B083497B4 /* Debug */,
 				C13140A243B98191D7A41071 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
-		B15F22D72EDA615600AA5E09 /* Build configuration list for PBXNativeTarget "KinetixHostTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				B15F22D82EDA615600AA5E09 /* Debug */,
-				B15F22D92EDA615600AA5E09 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
-		B15F22DA2EDA615600AA5E09 /* Build configuration list for PBXNativeTarget "KinetixHostUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				B15F22DB2EDA615600AA5E09 /* Debug */,
-				B15F22DC2EDA615600AA5E09 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

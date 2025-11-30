@@ -12,26 +12,28 @@ struct HistoryView: View {
                 Text("No runs recorded.").foregroundColor(.gray)
             } else {
                 ForEach(runs) { run in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(run.date.formatted(date: .abbreviated, time: .shortened))
-                                .font(.caption2)
-                                .foregroundColor(.gray)
-                            Spacer()
-                            Text("NPI \(Int(run.avgNPI))")
-                                .font(.system(size: 12, weight: .black))
-                                .foregroundColor(.cyan)
+                    NavigationLink(destination: RunDetailView(run: run, unitSystem: unitSystem)) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(run.date.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Text("NPI \(Int(run.avgNPI))")
+                                    .font(.system(size: 12, weight: .black))
+                                    .foregroundColor(.cyan)
+                            }
+                            
+                            HStack {
+                                ValueLabel(value: formattedDistance(run.distance), label: unitSystem == "metric" ? "km" : "mi")
+                                Spacer()
+                                ValueLabel(value: formattedDuration(run.duration), label: "time")
+                                Spacer()
+                                ValueLabel(value: "\(Int(run.avgHeartRate))", label: "bpm")
+                            }
                         }
-                        
-                        HStack {
-                            ValueLabel(value: formattedDistance(run.distance), label: unitSystem == "metric" ? "km" : "mi")
-                            Spacer()
-                            ValueLabel(value: formattedDuration(run.duration), label: "time")
-                            Spacer()
-                            ValueLabel(value: "\(Int(run.avgHeartRate))", label: "bpm")
-                        }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
                 }
                 .onDelete(perform: deleteItems)
             }

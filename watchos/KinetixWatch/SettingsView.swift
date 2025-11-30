@@ -3,6 +3,8 @@ import SwiftUI
 // MARK: - PAGE 2: SETTINGS
 struct SettingsView: View {
     @Binding var targetNPI: Double; @Binding var unitSystem: String; @Binding var physioMode: Bool
+    @ObservedObject var formCoach: FormCoach
+    
     var body: some View {
         List {
             Section(header: Text("GOALS")) {
@@ -47,7 +49,51 @@ struct SettingsView: View {
                 
                 Toggle("Physio-Pacer", isOn: $physioMode)
             }
-            Section(header: Text("SYSTEM")) { Picker("Units", selection: $unitSystem) { Text("Metric").tag("metric"); Text("Imperial").tag("imperial") } }
+            
+            Section(header: Text("FORM COACH")) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Coach Mode").font(.system(size: 12, weight: .bold))
+                    Text(formCoach.modeDescription)
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                }
+                
+                Picker("Mode", selection: Binding(
+                    get: { formCoach.currentMode },
+                    set: { formCoach.setMode($0) }
+                )) {
+                    Text("Auto").tag(CoachMode.auto)
+                    Text("Rule-Based").tag(CoachMode.ruleBased)
+                    Text("Core ML").tag(CoachMode.coreML)
+                }
+                
+                // Show learning status in auto mode
+                if formCoach.currentMode == .auto {
+                    let sampleCount = formCoach.getTrainingSampleCount()
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Learning Status").font(.system(size: 10, weight: .bold))
+                        Text("\(sampleCount) samples collected")
+                            .font(.system(size: 9))
+                            .foregroundColor(.gray)
+                        Text("Model adapts as you run")
+                            .font(.system(size: 8))
+                            .foregroundColor(.gray.opacity(0.7))
+                    }
+                }
+            }
+            
+            Section(header: Text("SYSTEM")) { 
+                Picker("Units", selection: $unitSystem) { 
+                    Text("Metric").tag("metric")
+                    Text("Imperial").tag("imperial") 
+                }
+                
+                #if DEBUG
+                NavigationLink("UI Audit") {
+                    UIAuditView()
+                }
+                #endif
+            }
         }
     }
 }

@@ -101,7 +101,15 @@ class AICoach: ObservableObject {
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // Use a robust URLSession configuration for WatchOS connectivity
+        let config = URLSessionConfiguration.default
+        config.waitsForConnectivity = true
+        config.timeoutIntervalForResource = 60 // Give it more time to find a network
+        config.allowsCellularAccess = true
+        
+        let session = URLSession(configuration: config)
+        
+        let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             let errMsg = String(data: data, encoding: .utf8) ?? "Unknown Error"

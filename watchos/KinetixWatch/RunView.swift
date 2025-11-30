@@ -26,6 +26,9 @@ struct RunView: View {
     @State private var showRecoveryPrompt = false
     @State private var showInvalidRunAlert = false
     
+    // Voice Coach
+    @StateObject private var voiceCoach = VoiceCoach()
+    
     var body: some View {
         mainContentView
             .attachPhysioAlert(showPhysioAlert: $showPhysioAlert, locationManager: locationManager, unitSystem: unitSystem)
@@ -48,6 +51,7 @@ struct RunView: View {
                 if locationManager.checkForRecovery() != nil {
                     showRecoveryPrompt = true
                 }
+                voiceCoach.requestPermissions()
             }
             .onChange(of: locationManager.isRunning) { _, isRunning in
                 if isRunning {
@@ -240,6 +244,34 @@ struct RunView: View {
                         .accessibilityLabel("Stop and Save Run")
                         .background(Color.red)
                         .clipShape(Circle())
+                        
+                        // Voice Assistant Button
+                        Button(action: {
+                            if voiceCoach.isListening {
+                                voiceCoach.stopListening()
+                            } else {
+                                voiceCoach.startListening { text in
+                                    Task {
+                                        let response = await aiCoach.ask(question: text, metrics: locationManager.currentFormMetrics)
+                                        voiceCoach.speak(response)
+                                    }
+                                }
+                            }
+                            #if os(watchOS)
+                            WKInterfaceDevice.current().play(.click)
+                            #endif
+                        }) {
+                            Image(systemName: voiceCoach.isListening ? "mic.fill" : "mic")
+                                .foregroundColor(voiceCoach.isListening ? .red : .white)
+                        }
+                        .accessibilityLabel("Ask Coach")
+                        .background(Color.blue)
+                        .clipShape(Circle())
+                        .overlay(
+                            voiceCoach.isListening ? 
+                                Circle().stroke(Color.red, lineWidth: 2).scaleEffect(1.2).opacity(0.5) 
+                                : nil
+                        )
                     }
                     .padding(.bottom, 5)
                 } else {

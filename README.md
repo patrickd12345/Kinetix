@@ -25,6 +25,13 @@ A standalone, intelligent running coach for Apple Watch that focuses on biomecha
 - **Haptic Feedback**: Subtle taps for form corrections (e.g., "Run Flatter", "Increase Cadence").
 - **Always-On Display**: Optimized for quick glances.
 
+### 📱 iPhone Companion (new)
+- **Pre-Run Checklists**: Confirm permissions, pairing, and battery before workouts.
+- **Offloaded Setup**: Build routes, warmups, and training blocks on the phone, then push them to the Watch.
+- **Coach Tuning**: Adjust cue timing, intensity, and priorities (cadence vs. stride length) without crowding the Watch UI.
+- **Lab Report Access**: Browse post-run summaries captured on Apple Watch and share a concise report.
+- **Bring-Your-Own Icon**: Add a marketing icon locally in `watchos/KinetixCompanion/Assets.xcassets/AppIcon.appiconset` to avoid binary assets in the repo and keep PR tooling happy.
+
 ## 🛠 Technical Stack
 - **SwiftUI & SwiftData**: Modern UI and persistence.
 - **Core ML**: On-device machine learning for form classification.

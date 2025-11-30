@@ -83,7 +83,8 @@ class AICoach: ObservableObject {
             return text.replacingOccurrences(of: "*", with: "") // Clean markdown
         } catch {
             print("Ask Error: \(error)")
-            return "I couldn't connect to the coach. Please try again."
+            // Return the actual error for debugging
+            return "Connection error: \(error.localizedDescription)"
         }
     }
     

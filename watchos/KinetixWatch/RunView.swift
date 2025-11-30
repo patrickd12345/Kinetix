@@ -60,6 +60,11 @@ struct RunView: View {
                     stopFormEvaluation()
                 }
             }
+            .onChange(of: formCoach.currentRecommendation?.id) { _, _ in
+                if let rec = formCoach.currentRecommendation, formCoach.useVoiceAlerts {
+                    voiceCoach.speak(rec.message + ". " + rec.detail)
+                }
+            }
             // AI Overlay
             .sheet(isPresented: Binding<Bool>(
                 get: { aiCoach.isAnalyzing || aiCoach.result != nil },
@@ -171,8 +176,8 @@ struct RunView: View {
                 }
                 .padding(.horizontal)
                 
-                // FORM RECOMMENDATION BANNER
-                if locationManager.isRunning, let rec = formCoach.currentRecommendation {
+                // FORM RECOMMENDATION BANNER (Only if voice alerts are OFF)
+                if locationManager.isRunning, let rec = formCoach.currentRecommendation, !formCoach.useVoiceAlerts {
                     HStack(spacing: 6) {
                         Image(systemName: iconForType(rec.type))
                             .font(.system(size: 10))

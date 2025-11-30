@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D27F49F3FC7C41F4864A8D83 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F446B5BA5064439DBAC7F4B9 /* Assets.xcassets */; };
 		24237AF9DF08A65AE157B492 /* KinetixWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7BACB210DA8807301FEBC /* KinetixWatchApp.swift */; };
 		36CF1E98FB698C68B7B9AB14 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09182A156E2A3A213758CA3F /* HistoryView.swift */; };
 		3AD094771226714784FE8E7D /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630B26361C0079B001F8B7EB /* Components.swift */; };
@@ -29,6 +30,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		F446B5BA5064439DBAC7F4B9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		09182A156E2A3A213758CA3F /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		4AE3DA4C0B64FB7E52B19005 /* RunView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunView.swift; sourceTree = "<group>"; };
 		59A1919E19F634A123F4EDE1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -57,7 +59,7 @@
 		263B52B5E2DDCC4D94A1584B /* KinetixWatch */ = {
 			isa = PBXGroup;
 			children = (
-				AA7553B244B0DCAC9F367580 /* AICoach.swift */,
+				F446B5BA5064439DBAC7F4B9 /* Assets.xcassets */,				AA7553B244B0DCAC9F367580 /* AICoach.swift */,
 				630B26361C0079B001F8B7EB /* Components.swift */,
 				59A1919E19F634A123F4EDE1 /* ContentView.swift */,
 				09182A156E2A3A213758CA3F /* HistoryView.swift */,
@@ -159,7 +161,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				87A7679DBECBCE339723FD16 /* PrivacyInfo.xcprivacy in Resources */,
+				D27F49F3FC7C41F4864A8D83 /* Assets.xcassets in Resources */,				87A7679DBECBCE339723FD16 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

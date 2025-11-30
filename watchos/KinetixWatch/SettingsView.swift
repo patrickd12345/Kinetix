@@ -58,7 +58,7 @@ struct SettingsView: View {
                         .foregroundColor(.gray)
                 }
                 
-                Picker("Mode", selection: Binding(
+                Picker("Mode", selection: Binding<CoachMode>(
                     get: { formCoach.currentMode },
                     set: { formCoach.setMode($0) }
                 )) {
@@ -91,6 +91,9 @@ struct SettingsView: View {
                 #if DEBUG
                 NavigationLink("UI Audit") {
                     UIAuditView()
+                }
+                NavigationLink("Self-Test") {
+                    TestRunnerView()
                 }
                 #endif
             }

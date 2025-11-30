@@ -1,30 +1,18 @@
 import Foundation
 import CoreML
 
+// MARK: - Types
+public enum RecommendationType {
+    case good
+    case warning
+    case alert
+}
+
 // MARK: - Coach Mode
-enum CoachMode: String, Codable {
+public enum CoachMode: String, Codable {
     case ruleBased = "rule_based"
     case coreML = "core_ml"
     case auto = "auto" // Automatically switch when ready
-}
-
-struct FormMetrics {
-    // Core Metrics (from HealthKit)
-    var verticalOscillation: Double? // cm - vertical bounce (should be < 10cm optimal)
-    var strideLength: Double? // meters - distance between footfalls
-    var groundContactTime: Double? // ms - time foot spends on ground (optimal: 180-250ms)
-    var cadence: Double? // spm - steps per minute (optimal: 170-190 spm)
-    var heartRate: Double? // bpm - for context and fatigue detection
-    
-    // Derived Metrics (calculated for comprehensive analysis)
-    var stepLength: Double? // meters - single step (stride/2)
-    var runningEfficiency: Double? // 0-100 score combining all metrics
-    var legStiffness: Double? // estimated spring efficiency
-    var formScore: Double? // overall form quality 0-100
-    
-    // Context for pace-dependent analysis
-    var pace: Double? // seconds per km
-    var distance: Double? // meters - for form degradation tracking
 }
 
 struct FormRecommendation: Identifiable {
@@ -33,12 +21,6 @@ struct FormRecommendation: Identifiable {
     let detail: String
     let type: RecommendationType
     let timestamp: Date
-}
-
-enum RecommendationType {
-    case good
-    case warning
-    case alert
 }
 
 class FormCoach: ObservableObject {
@@ -403,94 +385,26 @@ class FormCoach: ObservableObject {
         let gctValues = history.compactMap(\.groundContactTime)
         let cadValues = history.compactMap(\.cadence)
         
-        return FormMetrics(
-            verticalOscillation: oscValues.isEmpty ? nil : weightedOsc / totalWeight,
-            strideLength: strideValues.isEmpty ? nil : weightedStride / totalWeight,
-            groundContactTime: gctValues.isEmpty ? nil : weightedGCT / totalWeight,
-            cadence: cadValues.isEmpty ? nil : weightedCad / totalWeight,
-            heartRate: history.last?.heartRate,
-            stepLength: strideValues.isEmpty ? nil : (weightedStride / totalWeight) / 2.0,
-            runningEfficiency: nil, // Calculated in enrichMetrics
-            legStiffness: nil,
-            formScore: nil,
-            pace: history.last?.pace,
-            distance: history.last?.distance
-        )
+        var metrics = FormMetrics()
+        metrics.verticalOscillation = oscValues.isEmpty ? nil : weightedOsc / totalWeight
+        metrics.strideLength = strideValues.isEmpty ? nil : weightedStride / totalWeight
+        metrics.groundContactTime = gctValues.isEmpty ? nil : weightedGCT / totalWeight
+        metrics.cadence = cadValues.isEmpty ? nil : weightedCad / totalWeight
+        metrics.heartRate = history.last?.heartRate
+        metrics.pace = history.last?.pace
+        metrics.distance = history.last?.distance
+        return metrics
     }
     
     // MARK: - Comprehensive Form Analysis
     
     /// Enrich metrics with derived calculations based on running biomechanics
+    /// Note: Computed properties (stepLength, runningEfficiency, legStiffness, formScore) are automatically calculated
     private func enrichMetrics(_ metrics: FormMetrics) -> FormMetrics {
-        var enriched = metrics
-        
-        // Calculate step length (half of stride)
-        if let stride = metrics.strideLength {
-            enriched.stepLength = stride / 2.0
-        }
-        
-        // Calculate running efficiency score (0-100)
-        // Based on: cadence, vertical oscillation, ground contact time
-        var efficiencyScore: Double = 50.0 // Base score
-        
-        if let cad = metrics.cadence {
-            // Optimal cadence: 170-180 spm
-            if cad >= 170 && cad <= 180 {
-                efficiencyScore += 20
-            } else if cad >= 160 && cad < 170 {
-                efficiencyScore += 10
-            } else if cad < 160 {
-                efficiencyScore -= 15
-            } else if cad > 180 {
-                efficiencyScore += 5 // Very high cadence is okay but not always optimal
-            }
-        }
-        
-        if let osc = metrics.verticalOscillation {
-            // Optimal: < 10cm
-            if osc < 10 {
-                efficiencyScore += 15
-            } else if osc < 12 {
-                efficiencyScore += 5
-            } else {
-                efficiencyScore -= 10
-            }
-        }
-        
-        if let gct = metrics.groundContactTime {
-            // Optimal: 180-250ms
-            if gct >= 180 && gct <= 250 {
-                efficiencyScore += 15
-            } else if gct < 180 {
-                efficiencyScore += 5 // Very short is okay
-            } else {
-                efficiencyScore -= 10
-            }
-        }
-        
-        // Penalize overstriding (long stride + low cadence)
-        if let stride = metrics.strideLength, let cad = metrics.cadence {
-            let stepLen = stride / 2.0
-            if stepLen > 0.7 && cad < 165 {
-                efficiencyScore -= 20 // Significant penalty for overstriding
-            }
-        }
-        
-        enriched.runningEfficiency = max(0, min(100, efficiencyScore))
-        
-        // Estimate leg stiffness (spring efficiency)
-        // Higher stiffness = better elastic return
-        if let gct = metrics.groundContactTime, let osc = metrics.verticalOscillation, gct > 0, osc > 0 {
-            // Simplified: lower GCT and lower oscillation = higher stiffness
-            let stiffness = 100.0 / (gct / 200.0 + osc / 10.0)
-            enriched.legStiffness = stiffness
-        }
-        
-        // Overall form score (combination of all factors)
-        enriched.formScore = enriched.runningEfficiency
-        
-        return enriched
+        // Computed properties are automatically available, no need to assign
+        return metrics
     }
+    
     
     /// Analyze form trend over time to detect degradation
     private func analyzeFormTrend(_ history: [FormMetrics]) -> (isDegrading: Bool, reason: String) {

@@ -3,6 +3,7 @@ import CoreLocation
 import Combine
 import HealthKit
 import SwiftData
+import SwiftUI
 
 struct RunSummary {
     let distance: Double
@@ -492,23 +493,19 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     
     // MARK: - HKWorkoutSessionDelegate
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
-        // Handle state changes if needed
-    }
-    
-    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
-        DispatchQueue.main.async {
-            self.workoutError = "Workout session error: \(error.localizedDescription)"
-            print("Workout session failed: \(error)")
-        }
-    }
-    
-    func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
         // Handle state changes
         if toState == .ended && isRunning {
             // Workout ended unexpectedly
             DispatchQueue.main.async {
                 self.workoutError = "Workout session ended unexpectedly"
             }
+        }
+    }
+    
+    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+        DispatchQueue.main.async {
+            self.workoutError = "Workout session error: \(error.localizedDescription)"
+            print("Workout session failed: \(error)")
         }
     }
     

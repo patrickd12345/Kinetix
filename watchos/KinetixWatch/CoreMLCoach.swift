@@ -23,7 +23,13 @@ class CoreMLCoach {
     }
     
     init() {
-        loadAdaptiveThresholds()
+        // Initialize adaptiveThresholds first
+        if let data = userDefaults.data(forKey: thresholdsKey),
+           let decoded = try? JSONDecoder().decode(AdaptiveThresholds.self, from: data) {
+            adaptiveThresholds = decoded
+        } else {
+            adaptiveThresholds = AdaptiveThresholds()
+        }
         loadModel()
     }
     
@@ -186,9 +192,10 @@ class CoreMLCoach {
             var bestConfidence: Double = 0.0
             
             for (key, value) in classProbs {
-                if let prob = value.doubleValue, prob > bestConfidence {
+                let prob = value.doubleValue
+                if prob > bestConfidence, let keyString = key as? String {
                     bestConfidence = prob
-                    bestClass = key
+                    bestClass = keyString
                 }
             }
             

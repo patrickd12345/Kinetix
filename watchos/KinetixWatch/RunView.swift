@@ -28,6 +28,7 @@ struct RunView: View {
     
     // Voice Coach
     @StateObject private var voiceCoach = VoiceCoach()
+    @State private var lastSpokenRecommendationID: UUID?
     
     var body: some View {
         mainContentView
@@ -60,10 +61,14 @@ struct RunView: View {
                     stopFormEvaluation()
                 }
             }
-            .onChange(of: formCoach.currentRecommendation?.id) { _, _ in
-                if let rec = formCoach.currentRecommendation, formCoach.useVoiceAlerts {
-                    voiceCoach.speak(rec.message + ". " + rec.detail)
-                }
+            .onChange(of: formCoach.currentRecommendation?.id) { _, newID in
+                guard let rec = formCoach.currentRecommendation, 
+                      let newID = newID,
+                      newID != lastSpokenRecommendationID,
+                      formCoach.useVoiceAlerts else { return }
+                
+                lastSpokenRecommendationID = newID
+                voiceCoach.speak(rec.message + ". " + rec.detail)
             }
             // AI Overlay
             .sheet(isPresented: Binding<Bool>(

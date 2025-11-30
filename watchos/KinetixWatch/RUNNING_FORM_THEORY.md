@@ -175,3 +175,4 @@ Unlike simple rule-based systems, this implementation:
 - Cavanagh, P. R., & Lafortune, M. A. (1980). Ground reaction forces in distance running.
 - Various biomechanics research on running efficiency and injury prevention.
 
+

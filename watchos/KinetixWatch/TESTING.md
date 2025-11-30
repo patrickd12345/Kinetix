@@ -36,3 +36,4 @@ The project now compiles cleanly (`BUILD SUCCEEDED`) with zero critical warnings
 - Fixed `RunView` complex expression errors by refactoring alerts into extensions.
 - Fixed missing file references in Xcode project.
 
+

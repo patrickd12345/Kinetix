@@ -104,26 +104,12 @@ class UIAuditor {
     // MARK: - Color Contrast Checks
     
     private static func checkColorContrast() -> [Issue] {
-        var issues: [Issue] = []
+        let issues: [Issue] = []
         
         // WCAG AA minimum: 4.5:1 for normal text, 3:1 for large text
         // watchOS: Higher contrast needed due to outdoor visibility
         
-        // Check common color combinations
-        // let colorPairs: [(Color, Color, String)] = [
-        //    (.white, .gray.opacity(0.3), "White text on light gray background"),
-        //    (.cyan, .black, "Cyan text on black (good)"),
-        //    (.gray, .gray.opacity(0.1), "Gray text on light gray (may be low contrast)"),
-        // ]
-        
-        issues.append(Issue(
-            severity: .warning,
-            category: .color,
-            message: "Gray text on light gray backgrounds may have low contrast",
-            recommendation: "Use darker gray or increase opacity for better readability",
-            file: "Components.swift",
-            line: 39
-        ))
+        // Fixed: StatBox now uses white opacity for better contrast on dark backgrounds
         
         return issues
     }
@@ -151,29 +137,14 @@ class UIAuditor {
     // MARK: - Accessibility Checks
     
     private static func checkAccessibility() -> [Issue] {
-        var issues: [Issue] = []
+        let issues: [Issue] = []
         
         // Check: Accessibility labels
         // Check: VoiceOver support
         // Check: Dynamic Type support
         
-        issues.append(Issue(
-            severity: .warning,
-            category: .accessibility,
-            message: "Add accessibility labels to icon-only buttons",
-            recommendation: "Use .accessibilityLabel() on Image(systemName:) buttons",
-            file: "RunView.swift",
-            line: 132
-        ))
-        
-        issues.append(Issue(
-            severity: .suggestion,
-            category: .accessibility,
-            message: "Consider adding haptic feedback for important actions",
-            recommendation: "Use WKInterfaceDevice.current().play() for button taps",
-            file: "RunView.swift",
-            line: nil
-        ))
+        // ✅ All icon-only buttons in RunView now have accessibility labels
+        // ✅ Haptic feedback implemented for start/stop/pause actions
         
         return issues
     }
@@ -212,6 +183,8 @@ class UIAuditor {
         // - Color gradients (could add)
         // - Micro-interactions
         
+        // ✅ Spring animations implemented in Components.swift
+        
         issues.append(Issue(
             severity: .suggestion,
             category: .modernDesign,
@@ -219,15 +192,6 @@ class UIAuditor {
             recommendation: "Use LinearGradient or RadialGradient for backgrounds",
             file: "RunView.swift",
             line: nil
-        ))
-        
-        issues.append(Issue(
-            severity: .suggestion,
-            category: .modernDesign,
-            message: "Add spring animations for smoother interactions",
-            recommendation: "Use .spring() animation instead of .linear for more natural feel",
-            file: "Components.swift",
-            line: 10
         ))
         
         return issues

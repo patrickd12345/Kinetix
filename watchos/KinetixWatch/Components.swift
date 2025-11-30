@@ -36,7 +36,7 @@ struct FireworksView: View {
 
 struct StatBox: View {
     let title: String; let value: String; let color: Color
-    var body: some View { VStack { Text(title).font(.system(size: 8, weight: .bold)).foregroundColor(.gray); Text(value).font(.system(size: 14, design: .monospaced)).foregroundColor(color) }.frame(maxWidth: .infinity).background(Color.gray.opacity(0.1)).cornerRadius(5) }
+    var body: some View { VStack { Text(title).font(.system(size: 8, weight: .bold)).foregroundColor(Color.white.opacity(0.7)); Text(value).font(.system(size: 14, design: .monospaced)).foregroundColor(color) }.frame(maxWidth: .infinity).background(Color.gray.opacity(0.15)).cornerRadius(5) }
 }
 
 

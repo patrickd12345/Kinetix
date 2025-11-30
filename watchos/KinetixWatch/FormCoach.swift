@@ -90,7 +90,7 @@ class FormCoach: ObservableObject {
         }
         
         // Update Core ML adaptive learning from outcomes
-        if _ newRec, let type = recommendationType, let before = metricsBeforeRecommendation {
+        if newRec != nil, let type = recommendationType, let before = metricsBeforeRecommendation {
             // Track outcome for adaptive learning
             let improved = didRecommendationImproveForm(before: before, after: smoothed, type: type)
             coreMLCoach.updateFromOutcome(
@@ -102,7 +102,7 @@ class FormCoach: ObservableObject {
         }
         
         // Record recommendation for learning
-        if _ newRec, let type = recommendationType {
+        if newRec != nil, let type = recommendationType {
             metricsBeforeRecommendation = smoothed
             learner.recordRecommendation(type: type, metrics: smoothed)
         }
@@ -355,7 +355,7 @@ class FormCoach: ObservableObject {
         guard !history.isEmpty else { return FormMetrics() }
         
         // Weighted average (more recent = higher weight)
-        _Weight: Double = 0
+        var totalWeight: Double = 0
         var weightedOsc: Double = 0
         var weightedStride: Double = 0
         var weightedGCT: Double = 0

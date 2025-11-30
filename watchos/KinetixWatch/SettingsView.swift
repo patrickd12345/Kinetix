@@ -80,6 +80,8 @@ struct SettingsView: View {
                             .foregroundColor(.gray.opacity(0.7))
                     }
                 }
+                
+                Toggle("Voice Alerts", isOn: $formCoach.useVoiceAlerts)
             }
             
             Section(header: Text("SYSTEM")) { 

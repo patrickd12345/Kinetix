@@ -3,85 +3,153 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AEBA415887DD4F6AB9F7B951 /* VoiceCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37956BC4E5042C1A19FF9D9 /* VoiceCoach.swift */; };
-		D27F49F3FC7C41F4864A8D83 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F446B5BA5064439DBAC7F4B9 /* Assets.xcassets */; };
+		064286FE5A8D113FF50CF3CA /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1EC689F4A254D7AE8814BA /* DashboardView.swift */; };
+		10496351D3EF4EEDB7C13DA5 /* FormMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D19BC530096CBBDAFF4C74D /* FormMetrics.swift */; };
 		24237AF9DF08A65AE157B492 /* KinetixWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7BACB210DA8807301FEBC /* KinetixWatchApp.swift */; };
+		2AA15B978B46B84298676E53 /* DOCUMENTATION_INDEX.md in Resources */ = {isa = PBXBuildFile; fileRef = FFBA2E0057B0B97CD5C94F31 /* DOCUMENTATION_INDEX.md */; };
+		2BC81BBC7A9C0A1628790142 /* VoiceCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 140654E2278A00ABF053C0E1 /* VoiceCoach.swift */; };
+		3125922439CF62FFAB604F08 /* BootstrapModelGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21C48FA6314FAC5561CAA3D /* BootstrapModelGenerator.swift */; };
 		36CF1E98FB698C68B7B9AB14 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09182A156E2A3A213758CA3F /* HistoryView.swift */; };
 		3AD094771226714784FE8E7D /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630B26361C0079B001F8B7EB /* Components.swift */; };
+		42A7D7A1F75F96BABFDBADC4 /* ConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6F0132AF8F52774A2098339 /* ConnectivityManager.swift */; };
+		49EE007185C137F510F76351 /* RUNNING_FORM_THEORY.md in Resources */ = {isa = PBXBuildFile; fileRef = EF512D262834B941AAB91EC3 /* RUNNING_FORM_THEORY.md */; };
+		4C57FB5C715043627994BD9A /* AUDIT_REPORT.md in Resources */ = {isa = PBXBuildFile; fileRef = 4FC699FE028BB4E94506BD1D /* AUDIT_REPORT.md */; };
+		55A0B70226B9111063BA04E3 /* FormCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE12469BF9D744AF83E83323 /* FormCoach.swift */; };
+		55A6801F408E87BE92C55919 /* AICoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7553B244B0DCAC9F367580 /* AICoach.swift */; };
+		5EF3111B85E8AEA2F203CFD5 /* TESTING.md in Resources */ = {isa = PBXBuildFile; fileRef = 1F04F4E2475279941FB785DC /* TESTING.md */; };
 		847900CB5797EF7F9901058F /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */; };
 		879EAC246134A83548BBC9DF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BB59C1319B3536A8992F1F /* SettingsView.swift */; };
 		87A7679DBECBCE339723FD16 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */; };
 		8C0906F9AB39DBF79523F15D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A1919E19F634A123F4EDE1 /* ContentView.swift */; };
-		D9FD6EF495654228BDF25C3E /* UnitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74DCC03B0AF4DD59675458B /* UnitTests.swift */; };
-		5A40D83A533A4DE7902307EC /* UIAuditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A5447AB711A4B72B7999B8B /* UIAuditor.swift */; };
-		796DC3786ED94C4299E95D34 /* AdaptiveLearner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14CAB58264664E91BD09C7F1 /* AdaptiveLearner.swift */; };
-		5C108A5527154ABD8BA9FA98 /* CoreMLCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 640F6D94B92A4F4C86EBE7F5 /* CoreMLCoach.swift */; };
-		3568166675C94B949C888CA6 /* RunViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F80AB912BAA4433B78F1AB2 /* RunViewExtensions.swift */; };
-		11962426C4904D72B7194348 /* FormCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11962426C4904D72B7194349 /* FormCoach.swift */; };
-		B1779E2D2EDC919D005EFB76 /* FormMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1779E2C2EDC919D005EFB76 /* FormMetrics.swift */; };
+		941A27EBF82EAA248D26532C /* FORM_MODEL_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 3475476A74F52E3075EB3DC8 /* FORM_MODEL_GUIDE.md */; };
+		9DB182E84D2DD1FBB31C8616 /* RunViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05843DB2F03BB1D0489F714D /* RunViewExtensions.swift */; };
+		A05AD02CF20EE35E6323FB1A /* ADAPTIVE_LEARNING.md in Resources */ = {isa = PBXBuildFile; fileRef = 6A88CEA35A39CA9479F329F0 /* ADAPTIVE_LEARNING.md */; };
+		A569A500CB5F3CDA085811A8 /* HYBRID_COACH_SYSTEM.md in Resources */ = {isa = PBXBuildFile; fileRef = 34484F4C19E3E2712A7179C1 /* HYBRID_COACH_SYSTEM.md */; };
+		AA91E430B768C70352009C52 /* UI_AUDIT_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 9C63D91A26A6AE87CC482BD0 /* UI_AUDIT_SUMMARY.md */; };
+		AB3C47E82B173EA3367C902D /* ConversationalCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF4421816DBAD9973071281 /* ConversationalCoach.swift */; };
+		B6196FBADA5E67DD710771F1 /* CoreMLCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5302557ACA0EA7AD3A02BCA3 /* CoreMLCoach.swift */; };
+		C3AFCD64EF631D9890FB9595 /* AdaptiveLearner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681BD462BA0A566EA3925997 /* AdaptiveLearner.swift */; };
+		C40F56C0FD54860C968D0AD1 /* MISSING_FEATURES.md in Resources */ = {isa = PBXBuildFile; fileRef = D835B5FE21FA27FECFD53CEB /* MISSING_FEATURES.md */; };
+		C71BA428C859FFEAE1B6AEFA /* UI_AUDIT_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = C87D5C2E0ED67057387A27EB /* UI_AUDIT_GUIDE.md */; };
+		CB1F234BAECEAA90D312546E /* VoiceCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 140654E2278A00ABF053C0E1 /* VoiceCoach.swift */; };
 		CCF5EA3E88DE6D84C787376D /* ManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88A6625E1273DD7333057CC8 /* ManualView.swift */; };
+		D8717A58DBBD93589FBC090B /* UnitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07D661928CB58228F18D536E /* UnitTests.swift */; };
 		D8DC006573C6AB83934A7429 /* RunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3DA4C0B64FB7E52B19005 /* RunView.swift */; };
+		D9026187A7D29509EC723D05 /* AdaptiveLearner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681BD462BA0A566EA3925997 /* AdaptiveLearner.swift */; };
+		E10FA39E0525E5C2D787FF6B /* FEATURES_IMPLEMENTED.md in Resources */ = {isa = PBXBuildFile; fileRef = DC2414D54C9E54F21358F27F /* FEATURES_IMPLEMENTED.md */; };
+		E11D4652FDA7674724B450BB /* BOOTSTRAP_MODEL_SETUP.md in Resources */ = {isa = PBXBuildFile; fileRef = D5CB4D80649044E40F39B9B3 /* BOOTSTRAP_MODEL_SETUP.md */; };
 		E5A29C73DF8A5332744F1C39 /* Run.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D583739706F3A5D76F29E9 /* Run.swift */; };
+		E7C8138486E487B8AAF105CB /* KinetixPhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C3460D8B71F01B27AF32DA7 /* KinetixPhoneApp.swift */; };
 		EDC7C25BA982A686B56885F8 /* AICoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7553B244B0DCAC9F367580 /* AICoach.swift */; };
+		F3CB3E77E62B1B59883A4C91 /* FormMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D19BC530096CBBDAFF4C74D /* FormMetrics.swift */; };
+		F709AA617E6B0B0CE611D285 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ED3CD3155DBDE8B424D4F7E9 /* Assets.xcassets */; };
+		FA540A34A8C8C91CFF95DF75 /* UIAuditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D73BF37704B718A9EED5BC21 /* UIAuditor.swift */; };
 		FC7582C201CA944A4F9638DF /* RunDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		B37956BC4E5042C1A19FF9D9 /* VoiceCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCoach.swift; sourceTree = "<group>"; };
-		F446B5BA5064439DBAC7F4B9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		05843DB2F03BB1D0489F714D /* RunViewExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunViewExtensions.swift; sourceTree = "<group>"; };
+		07D661928CB58228F18D536E /* UnitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitTests.swift; sourceTree = "<group>"; };
 		09182A156E2A3A213758CA3F /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		140654E2278A00ABF053C0E1 /* VoiceCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCoach.swift; sourceTree = "<group>"; };
+		1A1EC689F4A254D7AE8814BA /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		1D19BC530096CBBDAFF4C74D /* FormMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormMetrics.swift; sourceTree = "<group>"; };
+		1F04F4E2475279941FB785DC /* TESTING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TESTING.md; sourceTree = "<group>"; };
+		34484F4C19E3E2712A7179C1 /* HYBRID_COACH_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HYBRID_COACH_SYSTEM.md; sourceTree = "<group>"; };
+		3475476A74F52E3075EB3DC8 /* FORM_MODEL_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FORM_MODEL_GUIDE.md; sourceTree = "<group>"; };
+		37DEB1FE1B2F1869BB5A02F1 /* KinetixPhone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = KinetixPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4AE3DA4C0B64FB7E52B19005 /* RunView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunView.swift; sourceTree = "<group>"; };
+		4FC699FE028BB4E94506BD1D /* AUDIT_REPORT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AUDIT_REPORT.md; sourceTree = "<group>"; };
+		5302557ACA0EA7AD3A02BCA3 /* CoreMLCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreMLCoach.swift; sourceTree = "<group>"; };
 		59A1919E19F634A123F4EDE1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		5CF4421816DBAD9973071281 /* ConversationalCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationalCoach.swift; sourceTree = "<group>"; };
 		630B26361C0079B001F8B7EB /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		681BD462BA0A566EA3925997 /* AdaptiveLearner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLearner.swift; sourceTree = "<group>"; };
+		6A88CEA35A39CA9479F329F0 /* ADAPTIVE_LEARNING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ADAPTIVE_LEARNING.md; sourceTree = "<group>"; };
 		6EB7BACB210DA8807301FEBC /* KinetixWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinetixWatchApp.swift; sourceTree = "<group>"; };
+		7C3460D8B71F01B27AF32DA7 /* KinetixPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinetixPhoneApp.swift; sourceTree = "<group>"; };
 		88A6625E1273DD7333057CC8 /* ManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualView.swift; sourceTree = "<group>"; };
 		89BB59C1319B3536A8992F1F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		938F108DBA35FB7322DE372C /* KinetixWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KinetixWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunDetailView.swift; sourceTree = "<group>"; };
+		9C63D91A26A6AE87CC482BD0 /* UI_AUDIT_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_AUDIT_SUMMARY.md; sourceTree = "<group>"; };
+		A4B4CB2C23DDD8A29841CA1E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA7553B244B0DCAC9F367580 /* AICoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoach.swift; sourceTree = "<group>"; };
 		AAD2450347A4522C72F2993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		B74DCC03B0AF4DD59675458B /* UnitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitTests.swift; sourceTree = "<group>"; };
-		3A5447AB711A4B72B7999B8B /* UIAuditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAuditor.swift; sourceTree = "<group>"; };
-		14CAB58264664E91BD09C7F1 /* AdaptiveLearner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLearner.swift; sourceTree = "<group>"; };
-		640F6D94B92A4F4C86EBE7F5 /* CoreMLCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreMLCoach.swift; sourceTree = "<group>"; };
-		8F80AB912BAA4433B78F1AB2 /* RunViewExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunViewExtensions.swift; sourceTree = "<group>"; };
-		11962426C4904D72B7194349 /* FormCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormCoach.swift; sourceTree = "<group>"; };
-		B1779E2C2EDC919D005EFB76 /* FormMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormMetrics.swift; sourceTree = "<group>"; };
+		B21C48FA6314FAC5561CAA3D /* BootstrapModelGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootstrapModelGenerator.swift; sourceTree = "<group>"; };
 		BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		C87D5C2E0ED67057387A27EB /* UI_AUDIT_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_AUDIT_GUIDE.md; sourceTree = "<group>"; };
 		C9DEC93895E3171BE4D215AC /* KinetixWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KinetixWatch.entitlements; sourceTree = "<group>"; };
+		CE12469BF9D744AF83E83323 /* FormCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormCoach.swift; sourceTree = "<group>"; };
+		D5CB4D80649044E40F39B9B3 /* BOOTSTRAP_MODEL_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = BOOTSTRAP_MODEL_SETUP.md; sourceTree = "<group>"; };
+		D73BF37704B718A9EED5BC21 /* UIAuditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAuditor.swift; sourceTree = "<group>"; };
+		D835B5FE21FA27FECFD53CEB /* MISSING_FEATURES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MISSING_FEATURES.md; sourceTree = "<group>"; };
+		DC2414D54C9E54F21358F27F /* FEATURES_IMPLEMENTED.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FEATURES_IMPLEMENTED.md; sourceTree = "<group>"; };
+		ED3CD3155DBDE8B424D4F7E9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EF512D262834B941AAB91EC3 /* RUNNING_FORM_THEORY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = RUNNING_FORM_THEORY.md; sourceTree = "<group>"; };
 		F6D583739706F3A5D76F29E9 /* Run.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Run.swift; sourceTree = "<group>"; };
+		F6F0132AF8F52774A2098339 /* ConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityManager.swift; sourceTree = "<group>"; };
+		FFBA2E0057B0B97CD5C94F31 /* DOCUMENTATION_INDEX.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DOCUMENTATION_INDEX.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		02D4928CDA819E7A1380D1CA /* KinetixPhone */ = {
+			isa = PBXGroup;
+			children = (
+				F6F0132AF8F52774A2098339 /* ConnectivityManager.swift */,
+				5CF4421816DBAD9973071281 /* ConversationalCoach.swift */,
+				1A1EC689F4A254D7AE8814BA /* DashboardView.swift */,
+				A4B4CB2C23DDD8A29841CA1E /* Info.plist */,
+				7C3460D8B71F01B27AF32DA7 /* KinetixPhoneApp.swift */,
+			);
+			name = KinetixPhone;
+			path = ../ios/KinetixPhone;
+			sourceTree = "<group>";
+		};
 		263B52B5E2DDCC4D94A1584B /* KinetixWatch */ = {
 			isa = PBXGroup;
 			children = (
-				B0E360BBE1604F3DB358837C /* Speech.framework */,				B37956BC4E5042C1A19FF9D9 /* VoiceCoach.swift */,				F446B5BA5064439DBAC7F4B9 /* Assets.xcassets */,				AA7553B244B0DCAC9F367580 /* AICoach.swift */,
+				6A88CEA35A39CA9479F329F0 /* ADAPTIVE_LEARNING.md */,
+				681BD462BA0A566EA3925997 /* AdaptiveLearner.swift */,
+				AA7553B244B0DCAC9F367580 /* AICoach.swift */,
+				ED3CD3155DBDE8B424D4F7E9 /* Assets.xcassets */,
+				4FC699FE028BB4E94506BD1D /* AUDIT_REPORT.md */,
+				D5CB4D80649044E40F39B9B3 /* BOOTSTRAP_MODEL_SETUP.md */,
+				B21C48FA6314FAC5561CAA3D /* BootstrapModelGenerator.swift */,
 				630B26361C0079B001F8B7EB /* Components.swift */,
 				59A1919E19F634A123F4EDE1 /* ContentView.swift */,
+				5302557ACA0EA7AD3A02BCA3 /* CoreMLCoach.swift */,
+				FFBA2E0057B0B97CD5C94F31 /* DOCUMENTATION_INDEX.md */,
+				DC2414D54C9E54F21358F27F /* FEATURES_IMPLEMENTED.md */,
+				3475476A74F52E3075EB3DC8 /* FORM_MODEL_GUIDE.md */,
+				CE12469BF9D744AF83E83323 /* FormCoach.swift */,
+				1D19BC530096CBBDAFF4C74D /* FormMetrics.swift */,
 				09182A156E2A3A213758CA3F /* HistoryView.swift */,
+				34484F4C19E3E2712A7179C1 /* HYBRID_COACH_SYSTEM.md */,
 				AAD2450347A4522C72F2993F /* Info.plist */,
 				C9DEC93895E3171BE4D215AC /* KinetixWatch.entitlements */,
 				6EB7BACB210DA8807301FEBC /* KinetixWatchApp.swift */,
 				BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */,
 				88A6625E1273DD7333057CC8 /* ManualView.swift */,
+				D835B5FE21FA27FECFD53CEB /* MISSING_FEATURES.md */,
 				986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */,
 				9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */,
+				EF512D262834B941AAB91EC3 /* RUNNING_FORM_THEORY.md */,
 				4AE3DA4C0B64FB7E52B19005 /* RunView.swift */,
+				05843DB2F03BB1D0489F714D /* RunViewExtensions.swift */,
 				89BB59C1319B3536A8992F1F /* SettingsView.swift */,
+				1F04F4E2475279941FB785DC /* TESTING.md */,
+				C87D5C2E0ED67057387A27EB /* UI_AUDIT_GUIDE.md */,
+				9C63D91A26A6AE87CC482BD0 /* UI_AUDIT_SUMMARY.md */,
+				D73BF37704B718A9EED5BC21 /* UIAuditor.swift */,
+				07D661928CB58228F18D536E /* UnitTests.swift */,
+				140654E2278A00ABF053C0E1 /* VoiceCoach.swift */,
 				A988286F9354E58D28287238 /* Models */,
-				B74DCC03B0AF4DD59675458B /* UnitTests.swift */,
-				3A5447AB711A4B72B7999B8B /* UIAuditor.swift */,
-				14CAB58264664E91BD09C7F1 /* AdaptiveLearner.swift */,
-				640F6D94B92A4F4C86EBE7F5 /* CoreMLCoach.swift */,
-				11962426C4904D72B7194349 /* FormCoach.swift */,
-				8F80AB912BAA4433B78F1AB2 /* RunViewExtensions.swift */,
-				B1779E2C2EDC919D005EFB76 /* FormMetrics.swift */,
 			);
 			path = KinetixWatch;
 			sourceTree = "<group>";
@@ -89,6 +157,7 @@
 		2FF47699315FF3F633DB3F0C = {
 			isa = PBXGroup;
 			children = (
+				02D4928CDA819E7A1380D1CA /* KinetixPhone */,
 				263B52B5E2DDCC4D94A1584B /* KinetixWatch */,
 				F8B7DFCB790439E712D42B90 /* Products */,
 			);
@@ -105,6 +174,7 @@
 		F8B7DFCB790439E712D42B90 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				37DEB1FE1B2F1869BB5A02F1 /* KinetixPhone.app */,
 				938F108DBA35FB7322DE372C /* KinetixWatch.app */,
 			);
 			name = Products;
@@ -117,7 +187,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 774E828AF8A60560081F7D1E /* Build configuration list for PBXNativeTarget "KinetixWatch" */;
 			buildPhases = (
-				1DC35865E21E422B8FAF4BB7 /* Frameworks */,				50BC36C0E65510CAAC2F0B66 /* Sources */,
+				50BC36C0E65510CAAC2F0B66 /* Sources */,
 				3624A97865B295C699FFBF15 /* Resources */,
 			);
 			buildRules = (
@@ -131,6 +201,23 @@
 			productReference = 938F108DBA35FB7322DE372C /* KinetixWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
+		67DB05E72D659C6495C2D341 /* KinetixPhone */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ACCB1F952E5DC2FC4DB266C6 /* Build configuration list for PBXNativeTarget "KinetixPhone" */;
+			buildPhases = (
+				061ABD2CDC67DF480ACD0254 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KinetixPhone;
+			packageProductDependencies = (
+			);
+			productName = KinetixPhone;
+			productReference = 37DEB1FE1B2F1869BB5A02F1 /* KinetixPhone.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -138,7 +225,16 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2610;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					42B3645BC2638DE55F8DB975 = {
+						DevelopmentTeam = AWJBX83Y4X;
+					};
+					67DB05E72D659C6495C2D341 = {
+						DevelopmentTeam = AWJBX83Y4X;
+						ProvisioningStyle = Automatic;
+					};
+				};
 			};
 			buildConfigurationList = 399FEC40E683499CC85ECB38 /* Build configuration list for PBXProject "KinetixWatch" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -150,9 +246,11 @@
 			);
 			mainGroup = 2FF47699315FF3F633DB3F0C;
 			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				67DB05E72D659C6495C2D341 /* KinetixPhone */,
 				42B3645BC2638DE55F8DB975 /* KinetixWatch */,
 			);
 		};
@@ -163,45 +261,65 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D27F49F3FC7C41F4864A8D83 /* Assets.xcassets in Resources */,				87A7679DBECBCE339723FD16 /* PrivacyInfo.xcprivacy in Resources */,
+				A05AD02CF20EE35E6323FB1A /* ADAPTIVE_LEARNING.md in Resources */,
+				4C57FB5C715043627994BD9A /* AUDIT_REPORT.md in Resources */,
+				F709AA617E6B0B0CE611D285 /* Assets.xcassets in Resources */,
+				E11D4652FDA7674724B450BB /* BOOTSTRAP_MODEL_SETUP.md in Resources */,
+				2AA15B978B46B84298676E53 /* DOCUMENTATION_INDEX.md in Resources */,
+				E10FA39E0525E5C2D787FF6B /* FEATURES_IMPLEMENTED.md in Resources */,
+				941A27EBF82EAA248D26532C /* FORM_MODEL_GUIDE.md in Resources */,
+				A569A500CB5F3CDA085811A8 /* HYBRID_COACH_SYSTEM.md in Resources */,
+				C40F56C0FD54860C968D0AD1 /* MISSING_FEATURES.md in Resources */,
+				87A7679DBECBCE339723FD16 /* PrivacyInfo.xcprivacy in Resources */,
+				49EE007185C137F510F76351 /* RUNNING_FORM_THEORY.md in Resources */,
+				5EF3111B85E8AEA2F203CFD5 /* TESTING.md in Resources */,
+				C71BA428C859FFEAE1B6AEFA /* UI_AUDIT_GUIDE.md in Resources */,
+				AA91E430B768C70352009C52 /* UI_AUDIT_SUMMARY.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXFrameworksBuildPhase section */
-		1DC35865E21E422B8FAF4BB7 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
+/* Begin PBXSourcesBuildPhase section */
+		061ABD2CDC67DF480ACD0254 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				55A6801F408E87BE92C55919 /* AICoach.swift in Sources */,
+				D9026187A7D29509EC723D05 /* AdaptiveLearner.swift in Sources */,
+				42A7D7A1F75F96BABFDBADC4 /* ConnectivityManager.swift in Sources */,
+				AB3C47E82B173EA3367C902D /* ConversationalCoach.swift in Sources */,
+				064286FE5A8D113FF50CF3CA /* DashboardView.swift in Sources */,
+				F3CB3E77E62B1B59883A4C91 /* FormMetrics.swift in Sources */,
+				E7C8138486E487B8AAF105CB /* KinetixPhoneApp.swift in Sources */,
+				2BC81BBC7A9C0A1628790142 /* VoiceCoach.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-/* End PBXFrameworksBuildPhase section */
-
-/* Begin PBXSourcesBuildPhase section */
 		50BC36C0E65510CAAC2F0B66 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AEBA415887DD4F6AB9F7B951 /* VoiceCoach.swift in Sources */,				D9FD6EF495654228BDF25C3E /* UnitTests.swift in Sources */,
-				5A40D83A533A4DE7902307EC /* UIAuditor.swift in Sources */,
-				796DC3786ED94C4299E95D34 /* AdaptiveLearner.swift in Sources */,
-				5C108A5527154ABD8BA9FA98 /* CoreMLCoach.swift in Sources */,
 				EDC7C25BA982A686B56885F8 /* AICoach.swift in Sources */,
+				C3AFCD64EF631D9890FB9595 /* AdaptiveLearner.swift in Sources */,
+				3125922439CF62FFAB604F08 /* BootstrapModelGenerator.swift in Sources */,
 				3AD094771226714784FE8E7D /* Components.swift in Sources */,
 				8C0906F9AB39DBF79523F15D /* ContentView.swift in Sources */,
+				B6196FBADA5E67DD710771F1 /* CoreMLCoach.swift in Sources */,
+				55A0B70226B9111063BA04E3 /* FormCoach.swift in Sources */,
+				10496351D3EF4EEDB7C13DA5 /* FormMetrics.swift in Sources */,
 				36CF1E98FB698C68B7B9AB14 /* HistoryView.swift in Sources */,
 				24237AF9DF08A65AE157B492 /* KinetixWatchApp.swift in Sources */,
 				847900CB5797EF7F9901058F /* LocationManager.swift in Sources */,
 				CCF5EA3E88DE6D84C787376D /* ManualView.swift in Sources */,
-				11962426C4904D72B7194348 /* FormCoach.swift in Sources */,
-				3568166675C94B949C888CA6 /* RunViewExtensions.swift in Sources */,
-				B1779E2D2EDC919D005EFB76 /* FormMetrics.swift in Sources */,
 				E5A29C73DF8A5332744F1C39 /* Run.swift in Sources */,
 				FC7582C201CA944A4F9638DF /* RunDetailView.swift in Sources */,
 				D8DC006573C6AB83934A7429 /* RunView.swift in Sources */,
+				9DB182E84D2DD1FBB31C8616 /* RunViewExtensions.swift in Sources */,
 				879EAC246134A83548BBC9DF /* SettingsView.swift in Sources */,
+				FA540A34A8C8C91CFF95DF75 /* UIAuditor.swift in Sources */,
+				D8717A58DBBD93589FBC090B /* UnitTests.swift in Sources */,
+				CB1F234BAECEAA90D312546E /* VoiceCoach.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -214,6 +332,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_CONTEXT_CLASS = XCWatchOSCodeSignContext;
 				CODE_SIGN_ENTITLEMENTS = KinetixWatch/KinetixWatch.entitlements;
+				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				INFOPLIST_FILE = KinetixWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickduchesneau.KinetixWatchOS;
 				SDKROOT = watchos;
@@ -260,10 +379,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -272,11 +389,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -319,10 +435,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -337,12 +451,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -350,12 +463,34 @@
 			};
 			name = Debug;
 		};
+		C0203757E7F41087EB3D9A89 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = AWJBX83Y4X;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = ../ios/KinetixPhone/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickduchesneau.KinetixPhone;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 		C13140A243B98191D7A41071 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_CONTEXT_CLASS = XCWatchOSCodeSignContext;
 				CODE_SIGN_ENTITLEMENTS = KinetixWatch/KinetixWatch.entitlements;
+				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				INFOPLIST_FILE = KinetixWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickduchesneau.KinetixWatchOS;
 				SDKROOT = watchos;
@@ -366,6 +501,27 @@
 				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
+		};
+		E8F7A80366AF0F945C6103FF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = AWJBX83Y4X;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = ../ios/KinetixPhone/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickduchesneau.KinetixPhone;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -384,6 +540,15 @@
 			buildConfigurations = (
 				3007B9F4BE1F137B083497B4 /* Debug */,
 				C13140A243B98191D7A41071 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		ACCB1F952E5DC2FC4DB266C6 /* Build configuration list for PBXNativeTarget "KinetixPhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E8F7A80366AF0F945C6103FF /* Debug */,
+				C0203757E7F41087EB3D9A89 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

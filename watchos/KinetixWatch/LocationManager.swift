@@ -4,6 +4,7 @@ import Combine
 import HealthKit
 import SwiftData
 import SwiftUI
+import WatchConnectivity
 
 struct RunSummary {
     let distance: Double
@@ -60,11 +61,12 @@ struct RunRecoveryData: Codable {
     let targetNPI: Double
 }
 
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate, WCSessionDelegate {
     private let manager = CLLocationManager()
     private let healthStore = HKHealthStore()
     private var workoutSession: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
+    private var session: WCSession?
     
     @Published var isRunning = false
     @Published var isPaused = false
@@ -116,6 +118,43 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         requestHealthAuthorization()
         checkGPSAuthorization()
         _ = checkForRecovery()
+        setupConnectivity()
+    }
+    
+    // MARK: - Watch Connectivity
+    private func setupConnectivity() {
+        if WCSession.isSupported() {
+            session = WCSession.default
+            session?.delegate = self
+            session?.activate()
+        }
+    }
+    
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        // Session activated
+    }
+    
+    #if os(iOS)
+    func sessionDidBecomeInactive(_ session: WCSession) {}
+    func sessionDidDeactivate(_ session: WCSession) { session.activate() }
+    #endif
+    
+    private func sendMetricsToPhone() {
+        guard let session = session, session.isReachable else { return }
+        
+        let data: [String: Any] = [
+            "heartRate": heartRate,
+            "cadence": currentFormMetrics.cadence ?? 0,
+            "verticalOscillation": currentFormMetrics.verticalOscillation ?? 0,
+            "groundContactTime": currentFormMetrics.groundContactTime ?? 0,
+            "pace": currentPaceSeconds,
+            "distance": totalDistance
+        ]
+        
+        // Use sendMessage for immediate delivery if reachable
+        session.sendMessage(data, replyHandler: nil) { error in
+            print("Error sending metrics: \(error.localizedDescription)")
+        }
     }
     
     // MARK: - GPS Authorization
@@ -242,6 +281,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
             if !self.isPaused {
                 self.duration += 1.0
                 self.updateCalculations()
+                self.sendMetricsToPhone() // Stream to iPhone
             }
         }
         

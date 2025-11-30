@@ -14,6 +14,13 @@
 		879EAC246134A83548BBC9DF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BB59C1319B3536A8992F1F /* SettingsView.swift */; };
 		87A7679DBECBCE339723FD16 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */; };
 		8C0906F9AB39DBF79523F15D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A1919E19F634A123F4EDE1 /* ContentView.swift */; };
+		D9FD6EF495654228BDF25C3E /* UnitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74DCC03B0AF4DD59675458B /* UnitTests.swift */; };
+		5A40D83A533A4DE7902307EC /* UIAuditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A5447AB711A4B72B7999B8B /* UIAuditor.swift */; };
+		796DC3786ED94C4299E95D34 /* AdaptiveLearner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14CAB58264664E91BD09C7F1 /* AdaptiveLearner.swift */; };
+		5C108A5527154ABD8BA9FA98 /* CoreMLCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 640F6D94B92A4F4C86EBE7F5 /* CoreMLCoach.swift */; };
+		3568166675C94B949C888CA6 /* RunViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F80AB912BAA4433B78F1AB2 /* RunViewExtensions.swift */; };
+		11962426C4904D72B7194348 /* FormCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11962426C4904D72B7194349 /* FormCoach.swift */; };
+		B1779E2D2EDC919D005EFB76 /* FormMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1779E2C2EDC919D005EFB76 /* FormMetrics.swift */; };
 		CCF5EA3E88DE6D84C787376D /* ManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88A6625E1273DD7333057CC8 /* ManualView.swift */; };
 		D8DC006573C6AB83934A7429 /* RunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3DA4C0B64FB7E52B19005 /* RunView.swift */; };
 		E5A29C73DF8A5332744F1C39 /* Run.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D583739706F3A5D76F29E9 /* Run.swift */; };
@@ -34,6 +41,13 @@
 		9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunDetailView.swift; sourceTree = "<group>"; };
 		AA7553B244B0DCAC9F367580 /* AICoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoach.swift; sourceTree = "<group>"; };
 		AAD2450347A4522C72F2993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		B74DCC03B0AF4DD59675458B /* UnitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitTests.swift; sourceTree = "<group>"; };
+		3A5447AB711A4B72B7999B8B /* UIAuditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAuditor.swift; sourceTree = "<group>"; };
+		14CAB58264664E91BD09C7F1 /* AdaptiveLearner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLearner.swift; sourceTree = "<group>"; };
+		640F6D94B92A4F4C86EBE7F5 /* CoreMLCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreMLCoach.swift; sourceTree = "<group>"; };
+		8F80AB912BAA4433B78F1AB2 /* RunViewExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunViewExtensions.swift; sourceTree = "<group>"; };
+		11962426C4904D72B7194349 /* FormCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormCoach.swift; sourceTree = "<group>"; };
+		B1779E2C2EDC919D005EFB76 /* FormMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormMetrics.swift; sourceTree = "<group>"; };
 		BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		C9DEC93895E3171BE4D215AC /* KinetixWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KinetixWatch.entitlements; sourceTree = "<group>"; };
 		F6D583739706F3A5D76F29E9 /* Run.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Run.swift; sourceTree = "<group>"; };
@@ -57,6 +71,13 @@
 				4AE3DA4C0B64FB7E52B19005 /* RunView.swift */,
 				89BB59C1319B3536A8992F1F /* SettingsView.swift */,
 				A988286F9354E58D28287238 /* Models */,
+				B74DCC03B0AF4DD59675458B /* UnitTests.swift */,
+				3A5447AB711A4B72B7999B8B /* UIAuditor.swift */,
+				14CAB58264664E91BD09C7F1 /* AdaptiveLearner.swift */,
+				640F6D94B92A4F4C86EBE7F5 /* CoreMLCoach.swift */,
+				11962426C4904D72B7194349 /* FormCoach.swift */,
+				8F80AB912BAA4433B78F1AB2 /* RunViewExtensions.swift */,
+				B1779E2C2EDC919D005EFB76 /* FormMetrics.swift */,
 			);
 			path = KinetixWatch;
 			sourceTree = "<group>";
@@ -113,7 +134,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2610;
 			};
 			buildConfigurationList = 399FEC40E683499CC85ECB38 /* Build configuration list for PBXProject "KinetixWatch" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -149,6 +170,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D9FD6EF495654228BDF25C3E /* UnitTests.swift in Sources */,
+				5A40D83A533A4DE7902307EC /* UIAuditor.swift in Sources */,
+				796DC3786ED94C4299E95D34 /* AdaptiveLearner.swift in Sources */,
+				5C108A5527154ABD8BA9FA98 /* CoreMLCoach.swift in Sources */,
 				EDC7C25BA982A686B56885F8 /* AICoach.swift in Sources */,
 				3AD094771226714784FE8E7D /* Components.swift in Sources */,
 				8C0906F9AB39DBF79523F15D /* ContentView.swift in Sources */,
@@ -156,6 +181,9 @@
 				24237AF9DF08A65AE157B492 /* KinetixWatchApp.swift in Sources */,
 				847900CB5797EF7F9901058F /* LocationManager.swift in Sources */,
 				CCF5EA3E88DE6D84C787376D /* ManualView.swift in Sources */,
+				11962426C4904D72B7194348 /* FormCoach.swift in Sources */,
+				3568166675C94B949C888CA6 /* RunViewExtensions.swift in Sources */,
+				B1779E2D2EDC919D005EFB76 /* FormMetrics.swift in Sources */,
 				E5A29C73DF8A5332744F1C39 /* Run.swift in Sources */,
 				FC7582C201CA944A4F9638DF /* RunDetailView.swift in Sources */,
 				D8DC006573C6AB83934A7429 /* RunView.swift in Sources */,
@@ -172,7 +200,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_CONTEXT_CLASS = XCWatchOSCodeSignContext;
 				CODE_SIGN_ENTITLEMENTS = KinetixWatch/KinetixWatch.entitlements;
-				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				INFOPLIST_FILE = KinetixWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickduchesneau.KinetixWatchOS;
 				SDKROOT = watchos;
@@ -219,8 +246,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -233,6 +262,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -275,8 +305,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -296,6 +328,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -309,7 +342,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_CONTEXT_CLASS = XCWatchOSCodeSignContext;
 				CODE_SIGN_ENTITLEMENTS = KinetixWatch/KinetixWatch.entitlements;
-				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				INFOPLIST_FILE = KinetixWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickduchesneau.KinetixWatchOS;
 				SDKROOT = watchos;

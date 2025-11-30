@@ -28,7 +28,8 @@ struct RunView: View {
     
     // Voice Coach
     @StateObject private var voiceCoach = VoiceCoach()
-    @State private var lastSpokenRecommendationID: UUID?
+    @State private var lastSpokenMessage: String?
+    @State private var lastSpokenTime: Date = Date.distantPast
     
     var body: some View {
         mainContentView
@@ -61,14 +62,18 @@ struct RunView: View {
                     stopFormEvaluation()
                 }
             }
-            .onChange(of: formCoach.currentRecommendation?.id) { _, newID in
-                guard let rec = formCoach.currentRecommendation, 
-                      let newID = newID,
-                      newID != lastSpokenRecommendationID,
-                      formCoach.useVoiceAlerts else { return }
+            .onChange(of: formCoach.currentRecommendation?.id) { _, _ in
+                guard let rec = formCoach.currentRecommendation, formCoach.useVoiceAlerts else { return }
                 
-                lastSpokenRecommendationID = newID
-                voiceCoach.speak(rec.message + ". " + rec.detail)
+                let isNewMessage = rec.message != lastSpokenMessage
+                let timeSinceLast = Date().timeIntervalSince(lastSpokenTime)
+                
+                // Speak if it's a new message OR if it's been more than 60 seconds since the last identical message
+                if isNewMessage || timeSinceLast > 60 {
+                    voiceCoach.speak(rec.message + ". " + rec.detail)
+                    lastSpokenMessage = rec.message
+                    lastSpokenTime = Date()
+                }
             }
             // AI Overlay
             .sheet(isPresented: Binding<Bool>(

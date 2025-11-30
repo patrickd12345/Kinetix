@@ -95,7 +95,8 @@ struct RunView: View {
                             duration: summary.duration,
                             avgPace: summary.avgPace,
                             avgNPI: summary.avgNPI,
-                            avgHeartRate: summary.avgHeartRate
+                            avgHeartRate: summary.avgHeartRate,
+                            routeData: summary.routeData
                         )
                         modelContext.insert(run)
                         

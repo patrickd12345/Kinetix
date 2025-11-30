@@ -25,8 +25,10 @@ struct ContentView: View {
                 .tag(1)
             
             // PAGE 3: HISTORY
-            HistoryView(unitSystem: unitSystem)
-                .tag(2)
+            NavigationStack {
+                HistoryView(unitSystem: unitSystem)
+            }
+            .tag(2)
             
             // PAGE 4: USER MANUAL
             ManualView()

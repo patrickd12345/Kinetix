@@ -2,6 +2,7 @@ import Foundation
 import CoreLocation
 import Combine
 import HealthKit
+import SwiftData
 
 struct RunSummary {
     let distance: Double
@@ -10,6 +11,7 @@ struct RunSummary {
     let avgNPI: Double
     let avgHeartRate: Double
     let date: Date
+    let routeData: [RoutePoint]
 }
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
@@ -31,10 +33,11 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     private var duration: TimeInterval = 0
     private var activeTargetNPI: Double = 135.0
     
-    // Rolling Pace Buffer
-    private var rollingDistances: [(Date, Double)] = [] // (Timestamp, DistanceDelta)
+    // Data buffering
+    private var rollingDistances: [(Date, Double)] = []
     @Published var currentPaceSeconds: Double = 0.0
     private var heartRateSamples: [Double] = []
+    private var routeCoordinates: [RoutePoint] = []
     
     override init() {
         super.init()
@@ -78,6 +81,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         duration = 0
         rollingDistances.removeAll()
         heartRateSamples.removeAll()
+        routeCoordinates.removeAll()
         currentPaceSeconds = 0
         lastLocation = nil
         timeToBeat = nil
@@ -89,7 +93,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             self.duration += 1.0
-            // HR is now updated via HealthKit delegate
             self.updateCalculations()
         }
     }
@@ -113,7 +116,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
             avgPace: avgPace,
             avgNPI: liveNPI,
             avgHeartRate: avgHR,
-            date: Date()
+            date: Date(),
+            routeData: routeCoordinates
         )
     }
     
@@ -160,6 +164,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         
         // Filter poor GPS data
         if loc.horizontalAccuracy < 0 || loc.horizontalAccuracy > 50 { return }
+        
+        // Store coordinate for mapping
+        routeCoordinates.append(RoutePoint(lat: loc.coordinate.latitude, lon: loc.coordinate.longitude))
         
         if let last = lastLocation {
             let dist = loc.distance(from: last)

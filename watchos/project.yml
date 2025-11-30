@@ -28,3 +28,18 @@ targets:
     capabilities:
       - Background Modes
 
+schemes:
+  KinetixWatch:
+    build:
+      targets:
+        KinetixWatch: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

@@ -110,11 +110,11 @@ class UIAuditor {
         // watchOS: Higher contrast needed due to outdoor visibility
         
         // Check common color combinations
-        let colorPairs: [(Color, Color, String)] = [
-            (.white, .gray.opacity(0.3), "White text on light gray background"),
-            (.cyan, .black, "Cyan text on black (good)"),
-            (.gray, .gray.opacity(0.1), "Gray text on light gray (may be low contrast)"),
-        ]
+        // let colorPairs: [(Color, Color, String)] = [
+        //    (.white, .gray.opacity(0.3), "White text on light gray background"),
+        //    (.cyan, .black, "Cyan text on black (good)"),
+        //    (.gray, .gray.opacity(0.1), "Gray text on light gray (may be low contrast)"),
+        // ]
         
         issues.append(Issue(
             severity: .warning,

@@ -110,7 +110,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         manager.requestWhenInUseAuthorization()
         requestHealthAuthorization()
         checkGPSAuthorization()
-        checkForRecovery()
+        _ = checkForRecovery()
     }
     
     // MARK: - GPS Authorization

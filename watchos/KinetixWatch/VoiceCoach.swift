@@ -139,9 +139,18 @@ class VoiceCoach: NSObject, ObservableObject {
         }
         
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = 0.5 // Slightly slower for clarity while running
+        
+        // Upgrade to best available voice
+        // 1. Try to find a premium/enhanced English voice
+        let voices = AVSpeechSynthesisVoice.speechVoices()
+        let bestVoice = voices.first(where: { $0.language == "en-US" && $0.quality == .premium }) 
+                     ?? voices.first(where: { $0.language == "en-US" && $0.quality == .enhanced })
+                     ?? AVSpeechSynthesisVoice(language: "en-US")
+        
+        utterance.voice = bestVoice
+        utterance.rate = 0.52 // A bit faster, more natural
         utterance.pitchMultiplier = 1.0
+        utterance.volume = 1.0
         
         isSpeaking = true
         synthesizer.speak(utterance)

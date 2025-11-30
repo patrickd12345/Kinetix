@@ -7,7 +7,7 @@ struct ScreenOutline: View {
             let p = min(max(current/target, 0), 1.0)
             ZStack {
                 RoundedRectangle(cornerRadius: 40, style: .continuous).stroke(Color.gray.opacity(0.3), lineWidth: 6)
-                RoundedRectangle(cornerRadius: 40, style: .continuous).trim(from: 0, to: CGFloat(p)).stroke(p >= 1.0 ? Color.green : Color.cyan, style: StrokeStyle(lineWidth: 6, lineCap: .round)).rotationEffect(.degrees(-90)).animation(.linear, value: p)
+                RoundedRectangle(cornerRadius: 40, style: .continuous).trim(from: 0, to: CGFloat(p)).stroke(p >= 1.0 ? Color.green : Color.cyan, style: StrokeStyle(lineWidth: 6, lineCap: .round)).rotationEffect(.degrees(-90)).animation(.spring(response: 0.6, dampingFraction: 0.8), value: p)
             }.edgesIgnoringSafeArea(.all)
         }
     }
@@ -23,7 +23,7 @@ struct RunnerTrack: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.gray.opacity(0.3)).frame(height: 4)
                 Capsule().fill(Color.cyan).frame(width: x, height: 4)
-                Text("🏃").font(.system(size: 16)).position(x: x, y: geo.size.height/2).animation(.linear, value: x).scaleEffect(x: -1, y: 1)
+                Text("🏃").font(.system(size: 16)).position(x: x, y: geo.size.height/2).animation(.spring(response: 0.5, dampingFraction: 0.7), value: x).scaleEffect(x: -1, y: 1)
                 Text("🏁").font(.system(size: 12)).position(x: w, y: geo.size.height/2)
             }
         }

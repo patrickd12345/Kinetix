@@ -5,6 +5,7 @@ import CoreLocation
 struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var aiCoach = AICoach()
+    @StateObject private var formCoach = FormCoach()
     
     // Persistent Settings
     @AppStorage("targetNPI") private var targetNPI: Double = 135.0
@@ -17,11 +18,11 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             
             // PAGE 1: RUN DASHBOARD
-            RunView(locationManager: locationManager, aiCoach: aiCoach, targetNPI: targetNPI, unitSystem: unitSystem, physioMode: physioMode)
+            RunView(locationManager: locationManager, aiCoach: aiCoach, formCoach: formCoach, targetNPI: targetNPI, unitSystem: unitSystem, physioMode: physioMode)
                 .tag(0)
             
             // PAGE 2: SETTINGS
-            SettingsView(targetNPI: $targetNPI, unitSystem: $unitSystem, physioMode: $physioMode)
+            SettingsView(targetNPI: $targetNPI, unitSystem: $unitSystem, physioMode: $physioMode, formCoach: formCoach)
                 .tag(1)
             
             // PAGE 3: HISTORY

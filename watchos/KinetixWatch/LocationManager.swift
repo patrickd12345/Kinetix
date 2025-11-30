@@ -14,6 +14,46 @@ struct RunSummary {
     let routeData: [RoutePoint]
 }
 
+enum GPSStatus {
+    case unknown
+    case searching
+    case poor
+    case good
+    case excellent
+    case denied
+    case failed
+    
+    var displayText: String {
+        switch self {
+        case .unknown: return "WAITING"
+        case .searching: return "SEARCHING"
+        case .poor: return "POOR GPS"
+        case .good: return "READY"
+        case .excellent: return "READY"
+        case .denied: return "GPS DENIED"
+        case .failed: return "GPS FAILED"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .unknown, .searching: return .gray
+        case .poor: return .orange
+        case .good, .excellent: return .green
+        case .denied, .failed: return .red
+        }
+    }
+}
+
+struct RunRecoveryData: Codable {
+    let startTime: Date
+    let distance: Double
+    let duration: TimeInterval
+    let routeData: [RoutePoint]
+    let heartRateSamples: [Double]
+    let targetNPI: Double
+}
+
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
     private let manager = CLLocationManager()
     private let healthStore = HKHealthStore()
@@ -21,6 +61,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     private var builder: HKLiveWorkoutBuilder?
     
     @Published var isRunning = false
+    @Published var isPaused = false
     @Published var liveNPI: Double = 0.0
     @Published var totalDistance: Double = 0.0
     @Published var paceSeconds: Double = 0.0
@@ -28,10 +69,32 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     @Published var heartRate: Double = 0.0
     @Published var recommendedPace: Double = 0.0
     
+    // GPS Status
+    @Published var gpsStatus: GPSStatus = .unknown
+    @Published var gpsAccuracy: Double? = nil
+    @Published var lastGPSUpdate: Date? = nil
+    
+    // Error Handling
+    @Published var gpsError: String? = nil
+    @Published var healthKitError: String? = nil
+    @Published var workoutError: String? = nil
+    
+    // Form Metrics
+    @Published var currentFormMetrics = FormMetrics()
+    
     private var lastLocation: CLLocation?
     private var timer: Timer?
+    private var saveTimer: Timer? // For periodic saves
+    private var gpsMonitorTimer: Timer? // Monitor GPS signal
     private var duration: TimeInterval = 0
+    private var pausedDuration: TimeInterval = 0 // Time spent paused
+    private var pauseStartTime: Date? = nil
     private var activeTargetNPI: Double = 135.0
+    private var runStartTime: Date? = nil
+    
+    // Crash Recovery
+    private let userDefaults = UserDefaults.standard
+    private let recoveryKey = "KinetixRunRecovery"
     
     // Data buffering
     private var rollingDistances: [(Date, Double)] = []
@@ -45,6 +108,24 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.requestWhenInUseAuthorization()
         requestHealthAuthorization()
+        checkGPSAuthorization()
+        checkForRecovery()
+    }
+    
+    // MARK: - GPS Authorization
+    private func checkGPSAuthorization() {
+        let status = manager.authorizationStatus
+        switch status {
+        case .notDetermined:
+            gpsStatus = .unknown
+        case .denied, .restricted:
+            gpsStatus = .denied
+            gpsError = "Location access denied. Enable in Settings > Privacy & Security > Location Services"
+        case .authorizedWhenInUse, .authorizedAlways:
+            gpsStatus = .searching
+        @unknown default:
+            gpsStatus = .unknown
+        }
     }
     
     func requestHealthAuthorization() {
@@ -52,14 +133,31 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
             HKQuantityType.workoutType()
         ]
         
-        let typesToRead: Set = [
+        var typesToRead: Set<HKQuantityType> = [
             HKQuantityType.quantityType(forIdentifier: .heartRate)!,
             HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!
         ]
         
-        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { (success, error) in
-            if !success {
-                print("HealthKit authorization failed: \(String(describing: error))")
+        // Add running form metrics if available (watchOS 7+)
+        if let verticalOsc = HKQuantityType.quantityType(forIdentifier: .runningVerticalOscillation) {
+            typesToRead.insert(verticalOsc)
+        }
+        if let strideLen = HKQuantityType.quantityType(forIdentifier: .runningStrideLength) {
+            typesToRead.insert(strideLen)
+        }
+        if let gct = HKQuantityType.quantityType(forIdentifier: .runningGroundContactTime) {
+            typesToRead.insert(gct)
+        }
+        
+        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { [weak self] (success, error) in
+            DispatchQueue.main.async {
+                if !success {
+                    let errorMsg = error?.localizedDescription ?? "Unknown error"
+                    self?.healthKitError = "HealthKit access denied: \(errorMsg). Enable in Settings > Privacy & Security > Health"
+                    print("HealthKit authorization failed: \(errorMsg)")
+                } else {
+                    self?.healthKitError = nil
+                }
             }
         }
     }
@@ -67,18 +165,48 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     func toggleTracking(targetNPI: Double) -> RunSummary? {
         self.activeTargetNPI = targetNPI
         if isRunning {
-            return stop()
+            if isPaused {
+                resume()
+                return nil
+            } else {
+                return stop()
+            }
         } else {
             start()
             return nil
         }
     }
     
+    func pause() {
+        guard isRunning && !isPaused else { return }
+        isPaused = true
+        pauseStartTime = Date()
+        timer?.invalidate()
+        saveCurrentRun() // Save before pausing
+    }
+    
+    func resume() {
+        guard isRunning && isPaused else { return }
+        isPaused = false
+        if let pauseStart = pauseStartTime {
+            pausedDuration += Date().timeIntervalSince(pauseStart)
+            pauseStartTime = nil
+        }
+        
+        // Resume timer
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            self.duration += 1.0
+            self.updateCalculations()
+        }
+    }
+    
     private func start() {
         isRunning = true
+        isPaused = false
         totalDistance = 0
         liveNPI = 0
         duration = 0
+        pausedDuration = 0
         rollingDistances.removeAll()
         heartRateSamples.removeAll()
         routeCoordinates.removeAll()
@@ -87,38 +215,177 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         timeToBeat = nil
         recommendedPace = 0
         heartRate = 0
+        runStartTime = Date()
+        
+        // Clear errors
+        gpsError = nil
+        workoutError = nil
+        
+        // Check GPS before starting
+        checkGPSAuthorization()
+        if gpsStatus == .denied {
+            gpsError = "Location access required to track runs"
+            isRunning = false
+            return
+        }
         
         startWorkout()
         manager.startUpdatingLocation()
         
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            self.duration += 1.0
-            self.updateCalculations()
+            if !self.isPaused {
+                self.duration += 1.0
+                self.updateCalculations()
+            }
         }
+        
+        // Periodic saves for crash recovery (every 30 seconds)
+        saveTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+            if self.isRunning && !self.isPaused {
+                self.saveCurrentRun()
+            }
+        }
+        
+        // Monitor GPS signal (check every 10 seconds)
+        gpsMonitorTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
+            if self.isRunning && !self.isPaused {
+                self.checkGPSSignal()
+            }
+        }
+        
+        // Initial save
+        saveCurrentRun()
     }
     
     private func stop() -> RunSummary {
         let summary = createRunSummary()
         isRunning = false
+        isPaused = false
         manager.stopUpdatingLocation()
         timer?.invalidate()
+        saveTimer?.invalidate()
+        gpsMonitorTimer?.invalidate()
         stopWorkout()
+        clearRecoveryData()
         return summary
+    }
+    
+    private func checkGPSSignal() {
+        // Check if GPS hasn't updated in 30 seconds
+        if let lastUpdate = lastGPSUpdate {
+            let timeSinceUpdate = Date().timeIntervalSince(lastUpdate)
+            if timeSinceUpdate > 30 {
+                DispatchQueue.main.async {
+                    self.gpsStatus = .failed
+                    self.gpsError = "GPS signal lost. Distance tracking may be inaccurate."
+                }
+            }
+        } else if isRunning {
+            // No GPS updates at all
+            DispatchQueue.main.async {
+                self.gpsStatus = .searching
+            }
+        }
+    }
+    
+    // MARK: - Crash Recovery
+    private func saveCurrentRun() {
+        guard isRunning, let startTime = runStartTime else { return }
+        
+        let recovery = RunRecoveryData(
+            startTime: startTime,
+            distance: totalDistance,
+            duration: duration + pausedDuration,
+            routeData: routeCoordinates,
+            heartRateSamples: heartRateSamples,
+            targetNPI: activeTargetNPI
+        )
+        
+        if let encoded = try? JSONEncoder().encode(recovery) {
+            userDefaults.set(encoded, forKey: recoveryKey)
+        }
+    }
+    
+    func clearRecoveryData() {
+        userDefaults.removeObject(forKey: recoveryKey)
+    }
+    
+    func checkForRecovery() -> RunRecoveryData? {
+        guard let data = userDefaults.data(forKey: recoveryKey),
+              let recovery = try? JSONDecoder().decode(RunRecoveryData.self, from: data) else {
+            return nil
+        }
+        
+        // Check if recovery data is recent (within last hour)
+        let timeSinceStart = Date().timeIntervalSince(recovery.startTime)
+        if timeSinceStart > 3600 { // Older than 1 hour, discard
+            clearRecoveryData()
+            return nil
+        }
+        
+        return recovery
+    }
+    
+    func recoverRun(_ recovery: RunRecoveryData) {
+        totalDistance = recovery.distance
+        duration = recovery.duration
+        routeCoordinates = recovery.routeData
+        heartRateSamples = recovery.heartRateSamples
+        activeTargetNPI = recovery.targetNPI
+        runStartTime = recovery.startTime
+        
+        // Restore last location if we have route data
+        if let lastPoint = recovery.routeData.last {
+            lastLocation = CLLocation(latitude: lastPoint.lat, longitude: lastPoint.lon)
+        }
+        
+        // Resume running state
+        isRunning = true
+        isPaused = false
+        manager.startUpdatingLocation()
+        
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            if !self.isPaused {
+                self.duration += 1.0
+                self.updateCalculations()
+            }
+        }
+        
+        saveTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+            if self.isRunning && !self.isPaused {
+                self.saveCurrentRun()
+            }
+        }
+        
+        gpsMonitorTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
+            if self.isRunning && !self.isPaused {
+                self.checkGPSSignal()
+            }
+        }
+        
+        startWorkout()
     }
     
     private func createRunSummary() -> RunSummary {
         let avgHR = heartRateSamples.isEmpty ? 0.0 : heartRateSamples.reduce(0, +) / Double(heartRateSamples.count)
-        let avgPace = totalDistance > 0 ? duration / (totalDistance / 1000.0) : 0.0
+        let activeDuration = duration + pausedDuration
+        let avgPace = totalDistance > 0 ? activeDuration / (totalDistance / 1000.0) : 0.0
         
         return RunSummary(
             distance: totalDistance,
-            duration: duration,
+            duration: activeDuration,
             avgPace: avgPace,
             avgNPI: liveNPI,
             avgHeartRate: avgHR,
-            date: Date(),
+            date: runStartTime ?? Date(),
             routeData: routeCoordinates
         )
+    }
+    
+    // MARK: - Run Validation
+    func shouldSaveRun() -> Bool {
+        // Minimum thresholds: 100m distance and 10 seconds
+        return totalDistance >= 100 && (duration + pausedDuration) >= 10
     }
     
     private func startWorkout() {
@@ -160,10 +427,22 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     
     // MARK: - CLLocationManagerDelegate
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let loc = locations.last, isRunning else { return }
+        guard let loc = locations.last else { return }
+        
+        // Update GPS status based on accuracy
+        updateGPSStatus(accuracy: loc.horizontalAccuracy)
+        lastGPSUpdate = Date()
+        gpsAccuracy = loc.horizontalAccuracy
+        
+        guard isRunning && !isPaused else { return }
         
         // Filter poor GPS data
-        if loc.horizontalAccuracy < 0 || loc.horizontalAccuracy > 50 { return }
+        if loc.horizontalAccuracy < 0 || loc.horizontalAccuracy > 50 {
+            if gpsStatus != .poor {
+                gpsStatus = .poor
+            }
+            return
+        }
         
         // Store coordinate for mapping
         routeCoordinates.append(RoutePoint(lat: loc.coordinate.latitude, lon: loc.coordinate.longitude))
@@ -187,13 +466,50 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         rollingDistances = rollingDistances.filter { now.timeIntervalSince($0.0) < 10 }
     }
     
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        DispatchQueue.main.async {
+            self.gpsStatus = .failed
+            self.gpsError = "GPS error: \(error.localizedDescription)"
+            print("Location manager error: \(error)")
+        }
+    }
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        checkGPSAuthorization()
+    }
+    
+    private func updateGPSStatus(accuracy: Double) {
+        if accuracy < 0 {
+            gpsStatus = .failed
+        } else if accuracy > 20 {
+            gpsStatus = .poor
+        } else if accuracy > 10 {
+            gpsStatus = .good
+        } else {
+            gpsStatus = .excellent
+        }
+    }
+    
     // MARK: - HKWorkoutSessionDelegate
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
         // Handle state changes if needed
     }
     
     func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
-        print("Workout session failed: \(error)")
+        DispatchQueue.main.async {
+            self.workoutError = "Workout session error: \(error.localizedDescription)"
+            print("Workout session failed: \(error)")
+        }
+    }
+    
+    func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
+        // Handle state changes
+        if toState == .ended && isRunning {
+            // Workout ended unexpectedly
+            DispatchQueue.main.async {
+                self.workoutError = "Workout session ended unexpectedly"
+            }
+        }
     }
     
     // MARK: - HKLiveWorkoutBuilderDelegate
@@ -203,11 +519,39 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
             guard let statistics = workoutBuilder.statistics(for: quantityType) else { continue }
             
             DispatchQueue.main.async {
+                // Heart Rate
                 if quantityType == HKQuantityType.quantityType(forIdentifier: .heartRate) {
                     let heartRateUnit = HKUnit.count().unitDivided(by: HKUnit.minute())
                     let hr = statistics.mostRecentQuantity()?.doubleValue(for: heartRateUnit) ?? 0
                     self.heartRate = hr
+                    self.currentFormMetrics.heartRate = hr
                     if hr > 0 { self.heartRateSamples.append(hr) }
+                }
+                
+                // Vertical Oscillation
+                if quantityType == HKQuantityType.quantityType(forIdentifier: .runningVerticalOscillation) {
+                    let osc = statistics.mostRecentQuantity()?.doubleValue(for: HKUnit(from: "cm"))
+                    self.currentFormMetrics.verticalOscillation = osc
+                }
+                
+                // Stride Length & Cadence Calculation
+                if quantityType == HKQuantityType.quantityType(forIdentifier: .runningStrideLength) {
+                    let stride = statistics.mostRecentQuantity()?.doubleValue(for: HKUnit.meter())
+                    self.currentFormMetrics.strideLength = stride
+                    
+                    // Calculate Cadence: (Speed m/s / Stride m) * 60
+                    // Speed = 1000 / paceSeconds (s/km) -> m/s
+                    if let s = stride, s > 0, self.currentPaceSeconds > 0 {
+                        let speedMS = 1000.0 / self.currentPaceSeconds
+                        let cadence = (speedMS / s) * 60.0
+                        self.currentFormMetrics.cadence = cadence
+                    }
+                }
+                
+                // Ground Contact Time
+                if quantityType == HKQuantityType.quantityType(forIdentifier: .runningGroundContactTime) {
+                    let gct = statistics.mostRecentQuantity()?.doubleValue(for: HKUnit(from: "ms"))
+                    self.currentFormMetrics.groundContactTime = gct
                 }
             }
         }
@@ -237,6 +581,19 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
             
             // Rec Pace (Current + 30s)
             recommendedPace = currentPaceSeconds + 30.0
+            
+            // Fallback cadence calculation if not available from HealthKit
+            // Estimate cadence from pace using typical stride length (1.2m average)
+            if currentFormMetrics.cadence == nil && currentPaceSeconds > 0 {
+                let estimatedStride = 1.2 // meters (typical for average runner)
+                let speedMS = 1000.0 / currentPaceSeconds
+                let estimatedCadence = (speedMS / estimatedStride) * 60.0
+                currentFormMetrics.cadence = estimatedCadence
+            }
+            
+            // Update context metrics for comprehensive form analysis
+            currentFormMetrics.pace = currentPaceSeconds
+            currentFormMetrics.distance = totalDistance
             
             // Require at least 100m distance and 30s duration for NPI to stabilize
             if totalDistance > 100 && duration > 30 {

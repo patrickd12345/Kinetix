@@ -4,17 +4,4 @@
    <FileRef
       location = "self:">
    </FileRef>
-   <FileRef
-      location = "group:Run.swift">
-   </FileRef>
-   <FileRef
-      location = "group:SettingsView.swift">
-   </FileRef>
-   <FileRef
-      location = "group:HistoryView.swift">
-   </FileRef>
-   <FileRef
-      location = "group:ManualView.swift">
-   </FileRef>
 </Workspace>
-

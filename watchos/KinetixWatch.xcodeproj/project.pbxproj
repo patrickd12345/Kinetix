@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AEBA415887DD4F6AB9F7B951 /* VoiceCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37956BC4E5042C1A19FF9D9 /* VoiceCoach.swift */; };
 		D27F49F3FC7C41F4864A8D83 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F446B5BA5064439DBAC7F4B9 /* Assets.xcassets */; };
 		24237AF9DF08A65AE157B492 /* KinetixWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7BACB210DA8807301FEBC /* KinetixWatchApp.swift */; };
 		36CF1E98FB698C68B7B9AB14 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09182A156E2A3A213758CA3F /* HistoryView.swift */; };
@@ -30,6 +31,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B37956BC4E5042C1A19FF9D9 /* VoiceCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCoach.swift; sourceTree = "<group>"; };
 		F446B5BA5064439DBAC7F4B9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		09182A156E2A3A213758CA3F /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		4AE3DA4C0B64FB7E52B19005 /* RunView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunView.swift; sourceTree = "<group>"; };
@@ -59,7 +61,7 @@
 		263B52B5E2DDCC4D94A1584B /* KinetixWatch */ = {
 			isa = PBXGroup;
 			children = (
-				F446B5BA5064439DBAC7F4B9 /* Assets.xcassets */,				AA7553B244B0DCAC9F367580 /* AICoach.swift */,
+				B0E360BBE1604F3DB358837C /* Speech.framework */,				B37956BC4E5042C1A19FF9D9 /* VoiceCoach.swift */,				F446B5BA5064439DBAC7F4B9 /* Assets.xcassets */,				AA7553B244B0DCAC9F367580 /* AICoach.swift */,
 				630B26361C0079B001F8B7EB /* Components.swift */,
 				59A1919E19F634A123F4EDE1 /* ContentView.swift */,
 				09182A156E2A3A213758CA3F /* HistoryView.swift */,
@@ -115,7 +117,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 774E828AF8A60560081F7D1E /* Build configuration list for PBXNativeTarget "KinetixWatch" */;
 			buildPhases = (
-				50BC36C0E65510CAAC2F0B66 /* Sources */,
+				1DC35865E21E422B8FAF4BB7 /* Frameworks */,				50BC36C0E65510CAAC2F0B66 /* Sources */,
 				3624A97865B295C699FFBF15 /* Resources */,
 			);
 			buildRules = (
@@ -167,12 +169,22 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		1DC35865E21E422B8FAF4BB7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		50BC36C0E65510CAAC2F0B66 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9FD6EF495654228BDF25C3E /* UnitTests.swift in Sources */,
+				AEBA415887DD4F6AB9F7B951 /* VoiceCoach.swift in Sources */,				D9FD6EF495654228BDF25C3E /* UnitTests.swift in Sources */,
 				5A40D83A533A4DE7902307EC /* UIAuditor.swift in Sources */,
 				796DC3786ED94C4299E95D34 /* AdaptiveLearner.swift in Sources */,
 				5C108A5527154ABD8BA9FA98 /* CoreMLCoach.swift in Sources */,

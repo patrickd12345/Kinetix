@@ -37,32 +37,14 @@ class AICoach: ObservableObject {
         Task {
             do {
                 let prompt = "You are Kinetix AI. Analyze: Dist \(distance)km, Pace \(pace), NPI \(Int(npi)), Target \(Int(pb)). Provide JSON with keys: title (Scientific Title), insight (Feedback)."
+                let responseText = try await fetchGeminiResponse(prompt: prompt)
                 
-                let urlString = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(GEMINI_API_KEY)"
-                guard let url = URL(string: urlString) else { throw URLError(.badURL) }
-                
-                var request = URLRequest(url: url)
-                request.httpMethod = "POST"
-                request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-                
-                let body: [String: Any] = [
-                    "contents": [["parts": [["text": prompt]]]],
-                    "generationConfig": ["responseMimeType": "application/json"]
-                ]
-                request.httpBody = try JSONSerialization.data(withJSONObject: body)
-                
-                let (data, response) = try await URLSession.shared.data(for: request)
-                
-                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                    let errMsg = String(data: data, encoding: .utf8) ?? "Unknown Error"
-                    throw URLError(.badServerResponse, userInfo: [NSLocalizedDescriptionKey: errMsg])
-                }
-                
-                let geminiResp = try JSONDecoder().decode(GeminiResponse.self, from: data)
-                
-                if let text = geminiResp.candidates.first?.content.parts.first?.text,
-                   let data = text.data(using: .utf8) {
-                    let aiResult = try JSONDecoder().decode(AIResult.self, from: data)
+                if let data = responseText.data(using: .utf8) {
+                    // Attempt to clean JSON markdown if present
+                    let cleanText = responseText.replacingOccurrences(of: "```json", with: "").replacingOccurrences(of: "```", with: "")
+                    let cleanData = cleanText.data(using: .utf8) ?? data
+                    
+                    let aiResult = try JSONDecoder().decode(AIResult.self, from: cleanData)
                     self.result = aiResult
                 } else {
                     throw URLError(.cannotParseResponse)
@@ -75,6 +57,58 @@ class AICoach: ObservableObject {
             
             self.isAnalyzing = false
         }
+    }
+    
+    // MARK: - Voice Interaction
+    func ask(question: String, metrics: FormMetrics) async -> String {
+        guard !GEMINI_API_KEY.contains("PASTE") && !GEMINI_API_KEY.isEmpty else {
+            return "Please configure your Gemini API Key in settings."
+        }
+        
+        let context = """
+        Current Run Metrics:
+        - Cadence: \(Int(metrics.cadence ?? 0)) spm
+        - Vertical Oscillation: \(Int(metrics.verticalOscillation ?? 0)) cm
+        - Ground Contact: \(Int(metrics.groundContactTime ?? 0)) ms
+        - Heart Rate: \(Int(metrics.heartRate ?? 0)) bpm
+        - Pace: \(metrics.pace ?? 0) sec/km
+        
+        User Question: "\(question)"
+        
+        Answer as a running coach. Keep it brief (under 20 words) for voice output.
+        """
+        
+        do {
+            let text = try await fetchGeminiResponse(prompt: context)
+            return text.replacingOccurrences(of: "*", with: "") // Clean markdown
+        } catch {
+            print("Ask Error: \(error)")
+            return "I couldn't connect to the coach. Please try again."
+        }
+    }
+    
+    private func fetchGeminiResponse(prompt: String) async throws -> String {
+        let urlString = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(GEMINI_API_KEY)"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = [
+            "contents": [["parts": [["text": prompt]]]]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            let errMsg = String(data: data, encoding: .utf8) ?? "Unknown Error"
+            throw URLError(.badServerResponse, userInfo: [NSLocalizedDescriptionKey: errMsg])
+        }
+        
+        let geminiResp = try JSONDecoder().decode(GeminiResponse.self, from: data)
+        return geminiResp.candidates.first?.content.parts.first?.text ?? ""
     }
 }
 

@@ -11,6 +11,9 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var heartRateHistory: [(Date, Double)] = []
     @Published var cadenceHistory: [(Date, Double)] = []
     
+    // Alerts
+    let alertSubject = PassthroughSubject<String, Never>()
+    
     static let shared = ConnectivityManager()
     
     override private init() {
@@ -56,6 +59,12 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     }
     
     private func parseMetrics(_ data: [String: Any]) {
+        // Check for alerts first
+        if let alert = data["alert"] as? String {
+            alertSubject.send(alert)
+            return
+        }
+        
         // Map dictionary back to FormMetrics
         if let cad = data["cadence"] as? Double { 
             currentMetrics.cadence = cad 

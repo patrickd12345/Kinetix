@@ -2,11 +2,31 @@ import SwiftUI
 
 // MARK: - PAGE 2: SETTINGS
 struct SettingsView: View {
+    @ObservedObject var locationManager: LocationManager
     @Binding var targetNPI: Double; @Binding var unitSystem: String; @Binding var physioMode: Bool
     @ObservedObject var formCoach: FormCoach
+    @Binding var navigationPath: [String]
     
     var body: some View {
         List {
+            Section {
+                Button(action: {
+                    // Stop tracking if active
+                    if locationManager.isTracking {
+                        locationManager.stop()
+                    }
+                    // Navigate back
+                    navigationPath.removeAll()
+                }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                            .font(.caption)
+                        Text("Back to Activities")
+                            .font(.headline)
+                    }
+                    .foregroundColor(.cyan)
+                }
+            }
             Section(header: Text("GOALS")) {
                 VStack(spacing: 8) {
                     Text("TARGET NPI").font(.system(size: 12, weight: .bold)).foregroundColor(.gray)
@@ -83,6 +103,7 @@ struct SettingsView: View {
                 
                 Toggle("Voice Alerts", isOn: $formCoach.useVoiceAlerts)
             }
+            
             
             Section(header: Text("SYSTEM")) { 
                 Picker("Units", selection: $unitSystem) { 

@@ -1,9 +1,22 @@
 import Foundation
+#if os(watchOS)
 import WatchKit
+#endif
+
+#if os(watchOS)
+public typealias PlatformBatteryState = WKInterfaceDeviceBatteryState
+#else
+public enum PlatformBatteryState: Int {
+    case unknown = 0
+    case unplugged = 1
+    case charging = 2
+    case full = 3
+}
+#endif
 
 class BatteryManager: ObservableObject {
     @Published var currentLevel: Float = 1.0
-    @Published var currentState: WKInterfaceDeviceBatteryState = .unknown
+    @Published var currentState: PlatformBatteryState = .unknown
     @Published var activeProfile: BatteryProfileType = .balanced
     @Published var activeSettings: BatterySettings = BatterySettings.settings(for: .balanced)
     
@@ -12,13 +25,17 @@ class BatteryManager: ObservableObject {
     private var lastSwitchLevel: Float = 1.0
     
     init() {
+        #if os(watchOS)
         WKInterfaceDevice.current().isBatteryMonitoringEnabled = true
+        #endif
         updateBatteryStatus()
         
+        #if os(watchOS)
         // Monitor periodically
         Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { _ in
             self.updateBatteryStatus()
         }
+        #endif
     }
     
     func setProfile(_ profile: BatteryProfileType) {
@@ -28,10 +45,15 @@ class BatteryManager: ObservableObject {
     }
     
     private func updateBatteryStatus() {
+        #if os(watchOS)
         let device = WKInterfaceDevice.current()
         self.currentLevel = device.batteryLevel
         self.currentState = device.batteryState
-        
+        #else
+        // Fallbacks for non-watchOS builds to avoid missing WatchKit
+        self.currentLevel = 1.0
+        self.currentState = .unknown
+        #endif
         checkAutoSwitch()
     }
     

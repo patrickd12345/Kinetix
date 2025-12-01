@@ -1,14 +1,15 @@
 import SwiftUI
 import SwiftData
+import Foundation
 
 struct HistoryView: View {
-    @Query(sort: \Run.date, order: .reverse) private var runs: [Run]
+    @Query(sort: [SortDescriptor<Run>(\.date, order: .reverse)]) private var runs: [Run]
     
     var body: some View {
         NavigationStack {
             List {
                 if runs.isEmpty {
-                    ContentUnavailableView("No Runs Yet", systemImage: "figure.run", description: "Start a run on your Watch to see it here.")
+                    ContentUnavailableView("No Runs Yet", systemImage: "figure.run", description: Text("Start a run on your Watch to see it here."))
                 } else {
                     ForEach(runs) { run in
                         NavigationLink(destination: RunDetailView(run: run)) {
@@ -27,7 +28,7 @@ struct RunRow: View {
     
     var body: some View {
         VStack(alignment: .leading) {
-            Text(run.date.formatted(date: .abbreviated, time: .shortened))
+            Text(run.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened)))
                 .font(.headline)
             
             HStack {
@@ -96,7 +97,7 @@ struct RunDetailView: View {
             }
             .padding()
         }
-        .navigationTitle(run.date.formatted(date: .abbreviated, time: .omitted))
+        .navigationTitle(run.date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted)))
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {
@@ -128,4 +129,3 @@ struct MetricDetailCard: View {
         .cornerRadius(10)
     }
 }
-

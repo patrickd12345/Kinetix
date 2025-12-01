@@ -6,6 +6,9 @@ struct SettingsView: View {
     @Binding var targetNPI: Double; @Binding var unitSystem: String; @Binding var physioMode: Bool
     @ObservedObject var formCoach: FormCoach
     @Binding var navigationPath: [String]
+    @AppStorage("globalHapticsEnabled") private var globalHapticsEnabled = true
+    @AppStorage("globalSonicFeedbackEnabled") private var globalSonicFeedbackEnabled = true
+    @AppStorage("skipHomeScreen") private var skipHomeScreen = false
     
     var body: some View {
         List {
@@ -13,7 +16,7 @@ struct SettingsView: View {
                 Button(action: {
                     // Stop tracking if active
                     if locationManager.isRunning {
-                        _ = locationManager.stop()
+                        _ = locationManager.toggleTracking(targetNPI: targetNPI)
                     }
                     // Navigate back
                     navigationPath.removeAll()
@@ -70,6 +73,11 @@ struct SettingsView: View {
                 Toggle("Physio-Pacer", isOn: $physioMode)
             }
             
+            Section(header: Text("FEEDBACK")) {
+                Toggle("Sonic Audio Feedback", isOn: $globalSonicFeedbackEnabled)
+                Toggle("Haptics Feedback", isOn: $globalHapticsEnabled)
+            }
+            
             Section(header: Text("FORM COACH")) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Coach Mode").font(.system(size: 12, weight: .bold))
@@ -111,6 +119,8 @@ struct SettingsView: View {
                     Text("Imperial").tag("imperial") 
                 }
                 
+                Toggle("Skip Home on Launch", isOn: $skipHomeScreen)
+                
                 #if DEBUG
                 NavigationLink("UI Audit") {
                     UIAuditView()
@@ -123,5 +133,3 @@ struct SettingsView: View {
         }
     }
 }
-
-

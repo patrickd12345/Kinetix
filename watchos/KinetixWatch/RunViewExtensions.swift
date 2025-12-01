@@ -69,6 +69,7 @@ extension View {
                 if let summary = locationManager.toggleTracking(targetNPI: targetNPI) {
                     let run = Run(
                         date: summary.date,
+                        source: "recorded",
                         distance: summary.distance,
                         duration: summary.duration,
                         avgPace: summary.avgPace,
@@ -110,4 +111,3 @@ extension View {
             }
     }
 }
-

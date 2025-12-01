@@ -7,6 +7,7 @@ class ConversationalCoach: ObservableObject {
     @Published var isListening = false
     @Published var isSpeaking = false
     @Published var conversationHistory: [ChatMessage] = []
+    private let logger = DiagnosticLogManager.shared
     
     // Use shared AI logic
     private let aiEngine = AICoach()
@@ -48,15 +49,18 @@ class ConversationalCoach: ObservableObject {
         
         // 3. Ask AI
         Task {
-            // Show thinking state? (Optional)
-            
             let response = await aiEngine.ask(question: text, metrics: metrics)
+            if response.lowercased().contains("error") {
+                logger.log("AI response error: \(response)", category: "chat")
+            }
             
             // 4. Add response to UI
-            conversationHistory.append(ChatMessage(sender: .coach, text: response))
+            let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
+            let safeResponse = trimmed.isEmpty ? "Coach is offline right now. Try again in a moment." : trimmed
+            conversationHistory.append(ChatMessage(sender: .coach, text: safeResponse))
             
             // 5. Speak it! (Basic iOS TTS for now)
-            speak(response)
+            speak(safeResponse)
         }
     }
     
@@ -69,4 +73,3 @@ class ConversationalCoach: ObservableObject {
         synthesizer.speak(utterance)
     }
 }
-

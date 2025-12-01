@@ -5,6 +5,7 @@ import SwiftData
 final class Run {
     var id: UUID
     var date: Date
+    var source: String
     var distance: Double // in meters
     var duration: TimeInterval // in seconds
     var avgPace: Double // seconds per km
@@ -20,6 +21,7 @@ final class Run {
     
     init(
         date: Date = Date(),
+        source: String = "recorded",
         distance: Double,
         duration: TimeInterval,
         avgPace: Double,
@@ -35,6 +37,7 @@ final class Run {
     ) {
         self.id = UUID()
         self.date = date
+        self.source = source
         self.distance = distance
         self.duration = duration
         self.avgPace = avgPace

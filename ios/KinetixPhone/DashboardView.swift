@@ -66,7 +66,7 @@ struct DashboardView: View {
                     }
                     .padding()
                 }
-                .onChange(of: coach.conversationHistory.count) { _ in
+                .onChange(of: coach.conversationHistory.count) { _, _ in
                     if let lastId = coach.conversationHistory.last?.id {
                         withAnimation {
                             proxy.scrollTo(lastId, anchor: .bottom)
@@ -154,4 +154,3 @@ struct ChatBubble: View {
         }
     }
 }
-

@@ -311,7 +311,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         manager.startUpdatingLocation()
         
         // Get sampling interval from battery profile
-        let gpsInterval = batteryManager.activeSettings.gpsInterval
+        _ = batteryManager.activeSettings.gpsInterval
         
         // Main Loop
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in

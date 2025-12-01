@@ -73,3 +73,4 @@ class BatteryManager: ObservableObject {
     }
 }
 
+

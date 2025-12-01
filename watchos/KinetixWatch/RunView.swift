@@ -138,33 +138,71 @@ struct RunView: View {
                 
                 Spacer()
                 
-                // MAIN GAUGE
-                VStack(spacing: 5) {
-                    HStack(spacing: 4) {
-                        Text("TARGET").font(.system(size: 8, weight: .bold)).foregroundColor(.gray)
-                        Text("\(Int(targetNPI))").font(.system(size: 12, weight: .bold)).foregroundColor(.cyan)
-                    }
-                    .padding(4).background(Capsule().stroke(Color.gray.opacity(0.5), lineWidth: 1))
-                    
-                    Text("\(Int(locationManager.liveNPI))")
-                        .font(.system(size: 56, weight: .black, design: .rounded))
-                        .italic()
-                        .foregroundColor(locationManager.liveNPI >= targetNPI ? .green : .white)
-                        .contentTransition(.numericText())
-                    
-                    Text("INDEX").font(.system(size: 8, weight: .bold)).tracking(2).foregroundColor(.gray).offset(y: -5)
-                    
-                    // DYNAMIC PROJECTION
-                    if locationManager.isRunning, let proj = locationManager.timeToBeat {
-                        HStack(spacing: 4) {
-                            Image(systemName: "flag.fill").font(.system(size: 8)).foregroundColor(.orange)
-                            Text(proj)
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundColor(proj.contains("GO") ? .green : .orange)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
+                // MAIN GAUGE OR PROGRESS GAUGE
+                if locationManager.currentPreset?.type == .meBeatMe {
+                    // PROGRESS GAUGE FOR MEBEATME
+                    ZStack {
+                        Circle()
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 15)
+                        
+                        Circle()
+                            .trim(from: 0.0, to: CGFloat(min(locationManager.runProgress, 1.0)))
+                            .stroke(
+                                AngularGradient(gradient: Gradient(colors: [.blue, .cyan, .green]), center: .center),
+                                style: StrokeStyle(lineWidth: 15, lineCap: .round)
+                            )
+                            .rotationEffect(Angle(degrees: -90))
+                            .animation(.linear, value: locationManager.runProgress)
+                        
+                        VStack(spacing: 0) {
+                            Text("\(Int(locationManager.liveNPI))")
+                                .font(.system(size: 40, weight: .black, design: .rounded))
+                                .italic()
+                                .foregroundColor(locationManager.liveNPI >= targetNPI ? .green : .white)
+                            
+                            Text("NPI")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.gray)
+                            
+                            if let proj = locationManager.timeToBeat {
+                                Text(proj)
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(proj.contains("GO") ? .green : .orange)
+                                    .padding(.top, 4)
+                            }
                         }
-                        .padding(4).background(Color.gray.opacity(0.2)).cornerRadius(4)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 5)
+                } else {
+                    // STANDARD NPI DISPLAY
+                    VStack(spacing: 5) {
+                        HStack(spacing: 4) {
+                            Text("TARGET").font(.system(size: 8, weight: .bold)).foregroundColor(.gray)
+                            Text("\(Int(targetNPI))").font(.system(size: 12, weight: .bold)).foregroundColor(.cyan)
+                        }
+                        .padding(4).background(Capsule().stroke(Color.gray.opacity(0.5), lineWidth: 1))
+                        
+                        Text("\(Int(locationManager.liveNPI))")
+                            .font(.system(size: 56, weight: .black, design: .rounded))
+                            .italic()
+                            .foregroundColor(locationManager.liveNPI >= targetNPI ? .green : .white)
+                            .contentTransition(.numericText())
+                        
+                        Text("INDEX").font(.system(size: 8, weight: .bold)).tracking(2).foregroundColor(.gray).offset(y: -5)
+                        
+                        // DYNAMIC PROJECTION
+                        if locationManager.isRunning, let proj = locationManager.timeToBeat {
+                            HStack(spacing: 4) {
+                                Image(systemName: "flag.fill").font(.system(size: 8)).foregroundColor(.orange)
+                                Text(proj)
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundColor(proj.contains("GO") ? .green : .orange)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                            }
+                            .padding(4).background(Color.gray.opacity(0.2)).cornerRadius(4)
+                        }
                     }
                 }
                 

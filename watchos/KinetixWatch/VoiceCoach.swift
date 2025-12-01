@@ -29,22 +29,39 @@ class VoiceCoach: NSObject, ObservableObject {
     override init() {
         super.init()
         #if canImport(Speech)
-        // Manually set delegate if possible, but since we removed conformance from class decl to simplify...
-        // actually SFSpeechRecognizerDelegate is needed for callbacks
         // speechRecognizer?.delegate = self 
         #endif
-        setupAudioSession()
+        // Don't activate session init; wait for demand
     }
     
-    private func setupAudioSession() {
+    private func configureSessionForPlayback() {
         do {
-            let audioSession = AVAudioSession.sharedInstance()
-            // PlayAndRecord allows input (mic) and output (speaker)
-            // watchOS handles routing automatically
-            try audioSession.setCategory(.playAndRecord, mode: .default)
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            let session = AVAudioSession.sharedInstance()
+            // Playback with DuckOthers allows music to continue but lower volume
+            try session.setCategory(.playback, mode: .voicePrompt, options: [.duckOthers, .mixWithOthers])
+            try session.setActive(true)
         } catch {
-            print("VoiceCoach: Audio session setup failed: \(error)")
+            print("Audio Session Playback Error: \(error)")
+        }
+    }
+    
+    private func configureSessionForRecording() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            // Record requires interrupting or specific handling
+            #if os(watchOS)
+            if #available(watchOS 11.0, *) {
+                try session.setCategory(.playAndRecord, mode: .measurement, options: [.allowBluetooth, .mixWithOthers])
+            } else {
+                // Fallback: omit .allowBluetooth on older watchOS versions
+                try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers])
+            }
+            #else
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.allowBluetooth, .mixWithOthers])
+            #endif
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("Audio Session Record Error: \(error)")
         }
     }
     
@@ -64,10 +81,7 @@ class VoiceCoach: NSObject, ObservableObject {
         recognitionTask = nil
         
         do {
-            // Reset audio session for recording
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.record, mode: .measurement)
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            configureSessionForRecording()
             
             recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
             guard let recognitionRequest = recognitionRequest else { return }
@@ -130,13 +144,7 @@ class VoiceCoach: NSObject, ObservableObject {
         guard !text.isEmpty else { return }
         
         // Ensure audio session is ready for playback
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .voicePrompt, options: .duckOthers)
-            try session.setActive(true)
-        } catch {
-            print("VoiceCoach: Audio session for playback failed: \(error)")
-        }
+        configureSessionForPlayback()
         
         let utterance = AVSpeechUtterance(string: text)
         

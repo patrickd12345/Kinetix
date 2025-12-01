@@ -90,6 +90,15 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     // Form Metrics
     @Published var currentFormMetrics = FormMetrics()
     
+    // NEW: Presets & Battery
+    @Published var currentPreset: WorkoutPreset?
+    @Published var batteryManager = BatteryManager()
+    
+    // NEW: Progress Gauge
+    @Published var runProgress: Double = 0.0 // 0.0 to 1.0
+    private var rolling5SecPace: Double = 0.0 // For prediction
+    private var rollingPaceBuffer: [(Date, Double)] = [] // 5-sec window
+    
     private var lastLocation: CLLocation?
     private var timer: Timer?
     private var saveTimer: Timer? // For periodic saves
@@ -114,6 +123,11 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
+        
+        // Load default preset if none
+        // (In real app, would load from storage or set in UI)
+        currentPreset = WorkoutPreset.builtInPresets().first
+        
         manager.requestWhenInUseAuthorization()
         requestHealthAuthorization()
         checkGPSAuthorization()
@@ -207,8 +221,16 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         }
     }
     
+    // MARK: - Preset Selection
+    func setPreset(_ preset: WorkoutPreset) {
+        self.currentPreset = preset
+        self.activeTargetNPI = preset.targetNPI
+        self.batteryManager.setProfile(preset.defaultBatteryProfile)
+    }
+    
     func toggleTracking(targetNPI: Double) -> RunSummary? {
-        self.activeTargetNPI = targetNPI
+        // Ignore passed targetNPI, use preset or active
+        // (Or update active if preset is meBeatMe)
         if isRunning {
             if isPaused {
                 resume()
@@ -256,6 +278,11 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         heartRateSamples.removeAll()
         routeCoordinates.removeAll()
         currentPaceSeconds = 0
+        
+        // Reset Progress
+        runProgress = 0.0
+        rollingPaceBuffer.removeAll()
+        
         lastLocation = nil
         timeToBeat = nil
         recommendedPace = 0
@@ -277,16 +304,27 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         startWorkout()
         manager.startUpdatingLocation()
         
+        // Get sampling interval from battery profile
+        let gpsInterval = batteryManager.activeSettings.gpsInterval
+        
+        // Main Loop
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             if !self.isPaused {
                 self.duration += 1.0
+                // Only update calculations/UI based on battery profile? 
+                // Actually UI needs 1s updates for timer, but heavy calc can be throttled.
                 self.updateCalculations()
-                self.sendMetricsToPhone() // Stream to iPhone
+                
+                // Send to phone only if enabled and profile allows live charts?
+                if self.batteryManager.activeSettings.allowLiveCharts {
+                    self.sendMetricsToPhone()
+                }
             }
         }
         
-        // Periodic saves for crash recovery (every 30 seconds)
-        saveTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+        // Autosave Loop
+        let saveInterval = batteryManager.activeSettings.saveInterval
+        saveTimer = Timer.scheduledTimer(withTimeInterval: saveInterval, repeats: true) { _ in
             if self.isRunning && !self.isPaused {
                 self.saveCurrentRun()
             }
@@ -647,6 +685,34 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
             // Update context metrics for comprehensive form analysis
             currentFormMetrics.pace = currentPaceSeconds
             currentFormMetrics.distance = totalDistance
+            
+            // Update 5-sec rolling buffer for Progress
+            let now = Date()
+            rollingPaceBuffer.append((now, currentPaceSeconds))
+            rollingPaceBuffer = rollingPaceBuffer.filter { now.timeIntervalSince($0.0) <= 5.0 }
+            
+            let avg5SecPace = rollingPaceBuffer.isEmpty ? paceSeconds : rollingPaceBuffer.map(\.1).reduce(0, +) / Double(rollingPaceBuffer.count)
+            rolling5SecPace = avg5SecPace
+            
+            // Calculate Progress (MeBeatMe)
+            // Progress = elapsedTime / predictedTotalTime
+            // Predicted Time = elapsedTime + (RemainingDist / CurrentPace)
+            // Assume standard 5k if no distance set, or user's goal
+            let targetDistance = 5000.0 // Default 5k for gauge
+            let remainingDist = max(0, targetDistance - totalDistance)
+            
+            if avg5SecPace > 0 && remainingDist > 0 {
+                // Pace is s/km -> s/m = pace/1000
+                let pacePerMeter = avg5SecPace / 1000.0
+                let timeRemaining = remainingDist * pacePerMeter
+                let predictedTotal = (duration + pausedDuration) + timeRemaining
+                
+                if predictedTotal > 0 {
+                    runProgress = (duration + pausedDuration) / predictedTotal
+                }
+            } else if remainingDist <= 0 {
+                runProgress = 1.0 // Finished
+            }
             
             // Require at least 100m distance and 30s duration for NPI to stabilize
             if totalDistance > 100 && duration > 30 {

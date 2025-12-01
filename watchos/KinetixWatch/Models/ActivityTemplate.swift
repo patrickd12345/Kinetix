@@ -103,7 +103,7 @@ final class ActivityTemplate {
     var icon: String
     private var primaryScreenRaw: String
     private var secondaryScreensRaw: [String]
-    @Attribute(.transformable) private var feedbackData: Data
+    private var feedbackJSON: String
     private var goalRaw: String
     private var batteryProfileRaw: String
     var lastModified: Date
@@ -111,14 +111,16 @@ final class ActivityTemplate {
     
     var feedback: FeedbackSettings {
         get {
-            if let decoded = try? JSONDecoder().decode(FeedbackSettings.self, from: feedbackData) {
-                return decoded
+            guard let data = feedbackJSON.data(using: .utf8),
+                  let decoded = try? JSONDecoder().decode(FeedbackSettings.self, from: data) else {
+                return FeedbackSettings()
             }
-            return FeedbackSettings()
+            return decoded
         }
         set {
-            if let encoded = try? JSONEncoder().encode(newValue) {
-                feedbackData = encoded
+            if let encoded = try? JSONEncoder().encode(newValue),
+               let jsonString = String(data: encoded, encoding: .utf8) {
+                feedbackJSON = jsonString
             }
         }
     }
@@ -140,7 +142,12 @@ final class ActivityTemplate {
         self.icon = icon
         self.primaryScreenRaw = primaryScreen.rawValue
         self.secondaryScreensRaw = secondaryScreens.map { $0.rawValue }
-        self.feedbackData = (try? JSONEncoder().encode(feedback)) ?? Data()
+        if let encoded = try? JSONEncoder().encode(feedback),
+           let jsonString = String(data: encoded, encoding: .utf8) {
+            self.feedbackJSON = jsonString
+        } else {
+            self.feedbackJSON = "{}"
+        }
         self.goalRaw = goal.rawValue
         self.batteryProfileRaw = defaultBatteryProfile.rawValue
         self.lastModified = lastModified

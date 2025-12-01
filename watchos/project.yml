@@ -13,10 +13,14 @@ targets:
     platform: iOS
     sources:
       - path: ../ios/KinetixPhone
+      - path: KinetixWatch/Models/Run.swift
+      - path: KinetixWatch/Models/WorkoutConfig.swift
+      - path: KinetixWatch/Services/BatteryManager.swift
       - path: KinetixWatch/FormMetrics.swift
       - path: KinetixWatch/AICoach.swift
       - path: KinetixWatch/VoiceCoach.swift
       - path: KinetixWatch/AdaptiveLearner.swift
+      - path: KinetixWatch/CoreMLCoach.swift
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone
       INFOPLIST_FILE: ../ios/KinetixPhone/Info.plist

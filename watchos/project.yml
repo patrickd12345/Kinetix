@@ -21,6 +21,7 @@ targets:
       - path: KinetixWatch/VoiceCoach.swift
       - path: KinetixWatch/AdaptiveLearner.swift
       - path: KinetixWatch/CoreMLCoach.swift
+      - path: KinetixWatch/FormCoach.swift
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone
       INFOPLIST_FILE: ../ios/KinetixPhone/Info.plist

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		064286FE5A8D113FF50CF3CA /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1EC689F4A254D7AE8814BA /* DashboardView.swift */; };
+		08FA3ED733E9389434EE1F76 /* PresetSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3A9C8B28C6363D594CEFF6 /* PresetSelectionView.swift */; };
 		10496351D3EF4EEDB7C13DA5 /* FormMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D19BC530096CBBDAFF4C74D /* FormMetrics.swift */; };
 		24237AF9DF08A65AE157B492 /* KinetixWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7BACB210DA8807301FEBC /* KinetixWatchApp.swift */; };
 		2AA15B978B46B84298676E53 /* DOCUMENTATION_INDEX.md in Resources */ = {isa = PBXBuildFile; fileRef = FFBA2E0057B0B97CD5C94F31 /* DOCUMENTATION_INDEX.md */; };
@@ -25,6 +26,7 @@
 		879EAC246134A83548BBC9DF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BB59C1319B3536A8992F1F /* SettingsView.swift */; };
 		87A7679DBECBCE339723FD16 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */; };
 		8C0906F9AB39DBF79523F15D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A1919E19F634A123F4EDE1 /* ContentView.swift */; };
+		8F58AE3F06B74EFF78A4318E /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F78A546B983E88DBA026390 /* MainTabView.swift */; };
 		941A27EBF82EAA248D26532C /* FORM_MODEL_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 3475476A74F52E3075EB3DC8 /* FORM_MODEL_GUIDE.md */; };
 		9DB182E84D2DD1FBB31C8616 /* RunViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05843DB2F03BB1D0489F714D /* RunViewExtensions.swift */; };
 		A05AD02CF20EE35E6323FB1A /* ADAPTIVE_LEARNING.md in Resources */ = {isa = PBXBuildFile; fileRef = 6A88CEA35A39CA9479F329F0 /* ADAPTIVE_LEARNING.md */; };
@@ -34,17 +36,21 @@
 		B6196FBADA5E67DD710771F1 /* CoreMLCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5302557ACA0EA7AD3A02BCA3 /* CoreMLCoach.swift */; };
 		C3AFCD64EF631D9890FB9595 /* AdaptiveLearner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681BD462BA0A566EA3925997 /* AdaptiveLearner.swift */; };
 		C40F56C0FD54860C968D0AD1 /* MISSING_FEATURES.md in Resources */ = {isa = PBXBuildFile; fileRef = D835B5FE21FA27FECFD53CEB /* MISSING_FEATURES.md */; };
+		C52B776482DB331135581C70 /* BatteryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3703426350E8A941BE01CEDE /* BatteryManager.swift */; };
 		C71BA428C859FFEAE1B6AEFA /* UI_AUDIT_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = C87D5C2E0ED67057387A27EB /* UI_AUDIT_GUIDE.md */; };
 		CB1F234BAECEAA90D312546E /* VoiceCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 140654E2278A00ABF053C0E1 /* VoiceCoach.swift */; };
+		CC50472692F34FA2282A64FB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD3DEAACA5A3422A37BE8F4 /* SettingsView.swift */; };
 		CCF5EA3E88DE6D84C787376D /* ManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88A6625E1273DD7333057CC8 /* ManualView.swift */; };
 		D8717A58DBBD93589FBC090B /* UnitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07D661928CB58228F18D536E /* UnitTests.swift */; };
 		D8DC006573C6AB83934A7429 /* RunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3DA4C0B64FB7E52B19005 /* RunView.swift */; };
 		D9026187A7D29509EC723D05 /* AdaptiveLearner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681BD462BA0A566EA3925997 /* AdaptiveLearner.swift */; };
+		DBA24D7B6A916CE6454D1F3A /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4D122E4CDA7464253635F7 /* HistoryView.swift */; };
 		E10FA39E0525E5C2D787FF6B /* FEATURES_IMPLEMENTED.md in Resources */ = {isa = PBXBuildFile; fileRef = DC2414D54C9E54F21358F27F /* FEATURES_IMPLEMENTED.md */; };
 		E11D4652FDA7674724B450BB /* BOOTSTRAP_MODEL_SETUP.md in Resources */ = {isa = PBXBuildFile; fileRef = D5CB4D80649044E40F39B9B3 /* BOOTSTRAP_MODEL_SETUP.md */; };
 		E5A29C73DF8A5332744F1C39 /* Run.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D583739706F3A5D76F29E9 /* Run.swift */; };
 		E7C8138486E487B8AAF105CB /* KinetixPhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C3460D8B71F01B27AF32DA7 /* KinetixPhoneApp.swift */; };
 		EDC7C25BA982A686B56885F8 /* AICoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7553B244B0DCAC9F367580 /* AICoach.swift */; };
+		F30401B5CB4B5CEDF0900D67 /* WorkoutConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309F4DC7F05D8FFC1B4842BD /* WorkoutConfig.swift */; };
 		F3CB3E77E62B1B59883A4C91 /* FormMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D19BC530096CBBDAFF4C74D /* FormMetrics.swift */; };
 		F709AA617E6B0B0CE611D285 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ED3CD3155DBDE8B424D4F7E9 /* Assets.xcassets */; };
 		FA540A34A8C8C91CFF95DF75 /* UIAuditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D73BF37704B718A9EED5BC21 /* UIAuditor.swift */; };
@@ -59,8 +65,10 @@
 		1A1EC689F4A254D7AE8814BA /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		1D19BC530096CBBDAFF4C74D /* FormMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormMetrics.swift; sourceTree = "<group>"; };
 		1F04F4E2475279941FB785DC /* TESTING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TESTING.md; sourceTree = "<group>"; };
+		309F4DC7F05D8FFC1B4842BD /* WorkoutConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutConfig.swift; sourceTree = "<group>"; };
 		34484F4C19E3E2712A7179C1 /* HYBRID_COACH_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HYBRID_COACH_SYSTEM.md; sourceTree = "<group>"; };
 		3475476A74F52E3075EB3DC8 /* FORM_MODEL_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FORM_MODEL_GUIDE.md; sourceTree = "<group>"; };
+		3703426350E8A941BE01CEDE /* BatteryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryManager.swift; sourceTree = "<group>"; };
 		37DEB1FE1B2F1869BB5A02F1 /* KinetixPhone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = KinetixPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4AE3DA4C0B64FB7E52B19005 /* RunView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunView.swift; sourceTree = "<group>"; };
 		4FC699FE028BB4E94506BD1D /* AUDIT_REPORT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AUDIT_REPORT.md; sourceTree = "<group>"; };
@@ -70,6 +78,8 @@
 		630B26361C0079B001F8B7EB /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		681BD462BA0A566EA3925997 /* AdaptiveLearner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLearner.swift; sourceTree = "<group>"; };
 		6A88CEA35A39CA9479F329F0 /* ADAPTIVE_LEARNING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ADAPTIVE_LEARNING.md; sourceTree = "<group>"; };
+		6C3A9C8B28C6363D594CEFF6 /* PresetSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetSelectionView.swift; sourceTree = "<group>"; };
+		6E4D122E4CDA7464253635F7 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		6EB7BACB210DA8807301FEBC /* KinetixWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinetixWatchApp.swift; sourceTree = "<group>"; };
 		7C3460D8B71F01B27AF32DA7 /* KinetixPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinetixPhoneApp.swift; sourceTree = "<group>"; };
 		88A6625E1273DD7333057CC8 /* ManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualView.swift; sourceTree = "<group>"; };
@@ -78,6 +88,7 @@
 		986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunDetailView.swift; sourceTree = "<group>"; };
 		9C63D91A26A6AE87CC482BD0 /* UI_AUDIT_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_AUDIT_SUMMARY.md; sourceTree = "<group>"; };
+		9F78A546B983E88DBA026390 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		A4B4CB2C23DDD8A29841CA1E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA7553B244B0DCAC9F367580 /* AICoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoach.swift; sourceTree = "<group>"; };
 		AAD2450347A4522C72F2993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -85,6 +96,7 @@
 		BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		C87D5C2E0ED67057387A27EB /* UI_AUDIT_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_AUDIT_GUIDE.md; sourceTree = "<group>"; };
 		C9DEC93895E3171BE4D215AC /* KinetixWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KinetixWatch.entitlements; sourceTree = "<group>"; };
+		CAD3DEAACA5A3422A37BE8F4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CE12469BF9D744AF83E83323 /* FormCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormCoach.swift; sourceTree = "<group>"; };
 		D5CB4D80649044E40F39B9B3 /* BOOTSTRAP_MODEL_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = BOOTSTRAP_MODEL_SETUP.md; sourceTree = "<group>"; };
 		D73BF37704B718A9EED5BC21 /* UIAuditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAuditor.swift; sourceTree = "<group>"; };
@@ -104,8 +116,11 @@
 				F6F0132AF8F52774A2098339 /* ConnectivityManager.swift */,
 				5CF4421816DBAD9973071281 /* ConversationalCoach.swift */,
 				1A1EC689F4A254D7AE8814BA /* DashboardView.swift */,
+				6E4D122E4CDA7464253635F7 /* HistoryView.swift */,
 				A4B4CB2C23DDD8A29841CA1E /* Info.plist */,
 				7C3460D8B71F01B27AF32DA7 /* KinetixPhoneApp.swift */,
+				9F78A546B983E88DBA026390 /* MainTabView.swift */,
+				CAD3DEAACA5A3422A37BE8F4 /* SettingsView.swift */,
 			);
 			name = KinetixPhone;
 			path = ../ios/KinetixPhone;
@@ -137,6 +152,7 @@
 				BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */,
 				88A6625E1273DD7333057CC8 /* ManualView.swift */,
 				D835B5FE21FA27FECFD53CEB /* MISSING_FEATURES.md */,
+				6C3A9C8B28C6363D594CEFF6 /* PresetSelectionView.swift */,
 				986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */,
 				9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */,
 				EF512D262834B941AAB91EC3 /* RUNNING_FORM_THEORY.md */,
@@ -150,6 +166,7 @@
 				07D661928CB58228F18D536E /* UnitTests.swift */,
 				140654E2278A00ABF053C0E1 /* VoiceCoach.swift */,
 				A988286F9354E58D28287238 /* Models */,
+				BB55E304CC478E9C0D0AF901 /* Services */,
 			);
 			path = KinetixWatch;
 			sourceTree = "<group>";
@@ -167,8 +184,17 @@
 			isa = PBXGroup;
 			children = (
 				F6D583739706F3A5D76F29E9 /* Run.swift */,
+				309F4DC7F05D8FFC1B4842BD /* WorkoutConfig.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		BB55E304CC478E9C0D0AF901 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				3703426350E8A941BE01CEDE /* BatteryManager.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		F8B7DFCB790439E712D42B90 /* Products */ = {
@@ -291,7 +317,10 @@
 				AB3C47E82B173EA3367C902D /* ConversationalCoach.swift in Sources */,
 				064286FE5A8D113FF50CF3CA /* DashboardView.swift in Sources */,
 				F3CB3E77E62B1B59883A4C91 /* FormMetrics.swift in Sources */,
+				DBA24D7B6A916CE6454D1F3A /* HistoryView.swift in Sources */,
 				E7C8138486E487B8AAF105CB /* KinetixPhoneApp.swift in Sources */,
+				8F58AE3F06B74EFF78A4318E /* MainTabView.swift in Sources */,
+				CC50472692F34FA2282A64FB /* SettingsView.swift in Sources */,
 				2BC81BBC7A9C0A1628790142 /* VoiceCoach.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -302,6 +331,7 @@
 			files = (
 				EDC7C25BA982A686B56885F8 /* AICoach.swift in Sources */,
 				C3AFCD64EF631D9890FB9595 /* AdaptiveLearner.swift in Sources */,
+				C52B776482DB331135581C70 /* BatteryManager.swift in Sources */,
 				3125922439CF62FFAB604F08 /* BootstrapModelGenerator.swift in Sources */,
 				3AD094771226714784FE8E7D /* Components.swift in Sources */,
 				8C0906F9AB39DBF79523F15D /* ContentView.swift in Sources */,
@@ -312,6 +342,7 @@
 				24237AF9DF08A65AE157B492 /* KinetixWatchApp.swift in Sources */,
 				847900CB5797EF7F9901058F /* LocationManager.swift in Sources */,
 				CCF5EA3E88DE6D84C787376D /* ManualView.swift in Sources */,
+				08FA3ED733E9389434EE1F76 /* PresetSelectionView.swift in Sources */,
 				E5A29C73DF8A5332744F1C39 /* Run.swift in Sources */,
 				FC7582C201CA944A4F9638DF /* RunDetailView.swift in Sources */,
 				D8DC006573C6AB83934A7429 /* RunView.swift in Sources */,
@@ -320,6 +351,7 @@
 				FA540A34A8C8C91CFF95DF75 /* UIAuditor.swift in Sources */,
 				D8717A58DBBD93589FBC090B /* UnitTests.swift in Sources */,
 				CB1F234BAECEAA90D312546E /* VoiceCoach.swift in Sources */,
+				F30401B5CB4B5CEDF0900D67 /* WorkoutConfig.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

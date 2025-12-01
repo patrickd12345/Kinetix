@@ -16,7 +16,7 @@ final class Run {
     var avgStrideLength: Double?
     var formScore: Double?
     var routeData: [RoutePoint] = []
-    var formSessionId: UUID? // Link to Form Monitor samples when applicable
+    var formSessionId: UUID?
     
     init(
         date: Date = Date(),

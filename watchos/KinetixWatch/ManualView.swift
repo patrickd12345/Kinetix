@@ -28,3 +28,4 @@ struct ManualCard: View {
 
 
 
+

@@ -7,7 +7,6 @@ struct KinetixPhoneApp: App {
         WindowGroup {
             MainTabView()
         }
-        .modelContainer(for: Run.self)
+        .modelContainer(for: [Run.self, ActivityTemplate.self, FormMonitorSample.self])
     }
 }
-

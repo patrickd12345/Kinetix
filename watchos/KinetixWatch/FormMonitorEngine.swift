@@ -171,9 +171,9 @@ final class FormMonitorEngine: ObservableObject {
         }
         
         if feedback.symmetryHaptics && state.normalized.x > driftThreshold {
-            playOnce("drift_right", pattern: .directionRight)
+            playOnce("drift_right", pattern: .click)
         } else if feedback.symmetryHaptics && state.normalized.x < -driftThreshold {
-            playOnce("drift_left", pattern: .directionLeft)
+            playOnce("drift_left", pattern: .click)
         } else if state.normalized.y > bounceThreshold {
             playOnce("bounce", pattern: .retry)
         } else if state.normalized.y < -bounceThreshold {

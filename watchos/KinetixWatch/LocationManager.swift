@@ -462,7 +462,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         saveCurrentRun()
     }
     
-    func stop() -> RunSummary {
+    public func stop() -> RunSummary {
         let summary = createRunSummary()
         isRunning = false
         isPaused = false

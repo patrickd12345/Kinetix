@@ -4,10 +4,24 @@ import SwiftData
 // MARK: - PAGE 3: HISTORY
 struct HistoryView: View {
     let unitSystem: String
+    @Binding var navigationPath: [String]
     @Query(sort: \Run.date, order: .reverse) private var runs: [Run]
     
     var body: some View {
         List {
+            Section {
+                Button(action: {
+                    navigationPath.removeAll()
+                }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                            .font(.caption)
+                        Text("Back to Activities")
+                            .font(.headline)
+                    }
+                    .foregroundColor(.cyan)
+                }
+            }
             if runs.isEmpty {
                 Text("No runs recorded.").foregroundColor(.gray)
             } else {

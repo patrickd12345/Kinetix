@@ -25,6 +25,8 @@ struct RunView: View {
     @State private var showWorkoutError = false
     @State private var showRecoveryPrompt = false
     @State private var showInvalidRunAlert = false
+    @StateObject private var formMonitorEngine = FormMonitorEngine()
+    @State private var bubbleState = FormBubbleState()
     
     // Voice Coach
     @StateObject private var voiceCoach = VoiceCoach()
@@ -61,6 +63,16 @@ struct RunView: View {
                 } else {
                     stopFormEvaluation()
                 }
+                
+                if isRunning && isFormMonitorMode, let sessionId = locationManager.formSessionId {
+                    var feedback = locationManager.activeFeedbackSettings
+                    if !locationManager.batteryManager.activeSettings.allowVoice {
+                        feedback.sonicEnabled = false
+                    }
+                    formMonitorEngine.start(sessionId: sessionId, feedback: feedback)
+                } else {
+                    formMonitorEngine.endSession()
+                }
             }
             .onChange(of: formCoach.currentRecommendation?.id) { _, _ in
                 guard let rec = formCoach.currentRecommendation, formCoach.useVoiceAlerts else { return }
@@ -92,6 +104,25 @@ struct RunView: View {
                         }.padding()
                     }
                 }
+            }
+            .onReceive(locationManager.$currentFormMetrics) { metrics in
+                guard locationManager.isRunning, isFormMonitorMode, let sessionId = locationManager.formSessionId else { return }
+                formMonitorEngine.bind(context: modelContext)
+                let newState = formMonitorEngine.ingest(
+                    metrics: metrics,
+                    pace: locationManager.currentPaceSeconds,
+                    rollingPace: locationManager.paceSeconds,
+                    balance: metrics.leftRightBalance,
+                    hapticsAllowed: locationManager.batteryManager.activeSettings.allowHaptics
+                )
+                bubbleState = newState
+                // Ensure session id stays attached
+                if locationManager.formSessionId == nil {
+                    locationManager.formSessionId = sessionId
+                }
+            }
+            .onAppear {
+                formMonitorEngine.bind(context: modelContext)
             }
     }
     
@@ -139,7 +170,11 @@ struct RunView: View {
                 Spacer()
                 
                 // MAIN GAUGE OR PROGRESS GAUGE
-                if locationManager.currentPreset?.type == .meBeatMe {
+                if isFormMonitorMode {
+                    formMonitorContent
+                        .frame(height: 200)
+                        .padding(.horizontal, 8)
+                } else if locationManager.currentPreset?.type == .meBeatMe {
                     // PROGRESS GAUGE FOR MEBEATME
                     ZStack {
                         Circle()
@@ -208,7 +243,7 @@ struct RunView: View {
                 
                 Spacer()
                 
-                if locationManager.isRunning {
+                if locationManager.isRunning && !isFormMonitorMode {
                     RunnerTrack(current: locationManager.liveNPI, target: targetNPI)
                         .frame(height: 20)
                         .padding(.horizontal)
@@ -284,7 +319,8 @@ struct RunView: View {
                                         avgGroundContactTime: summary.avgGroundContactTime,
                                         avgStrideLength: summary.avgStrideLength,
                                         formScore: summary.formScore,
-                                        routeData: summary.routeData
+                                        routeData: summary.routeData,
+                                        formSessionId: summary.formSessionId
                                     )
                                     modelContext.insert(run)
                                 } else {
@@ -386,5 +422,40 @@ struct RunView: View {
         case .alert: return Color.red.opacity(0.15)
         }
     }
+    
+    private var isFormMonitorMode: Bool {
+        locationManager.isFormMonitorActivity
+    }
+    
+    private var formMonitorContent: some View {
+        TabView {
+            ForEach(formMonitorScreens, id: \.self) { screen in
+                switch screen {
+                case .bubble:
+                    FormMonitorPrimaryView(state: bubbleState)
+                case .metrics:
+                    FormMonitorSecondaryMetricsView(metrics: locationManager.currentFormMetrics, state: bubbleState)
+                case .pace:
+                    FormMonitorPaceView(metrics: locationManager.currentFormMetrics, state: bubbleState, distance: locationManager.totalDistance)
+                case .npi:
+                    FormMonitorNPIView(npi: locationManager.liveNPI, symmetry: bubbleState.symmetry, instability: bubbleState.instability)
+                default:
+                    FormMonitorSecondaryMetricsView(metrics: locationManager.currentFormMetrics, state: bubbleState)
+                }
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+    }
+    
+    private var formMonitorScreens: [ActivityScreenType] {
+        if let template = locationManager.activeActivityTemplate {
+            var screens: [ActivityScreenType] = [template.primaryScreen]
+            for screen in template.secondaryScreens where !screens.contains(screen) {
+                screens.append(screen)
+            }
+            return screens
+        }
+        // Default stack for built-in Form Monitor
+        return [.bubble, .metrics, .pace, .npi]
+    }
 }
-

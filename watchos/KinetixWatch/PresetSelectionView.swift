@@ -1,8 +1,11 @@
 import SwiftUI
+import SwiftData
 
 struct PresetSelectionView: View {
     @ObservedObject var locationManager: LocationManager
     @Binding var navigationPath: [String] // Or simple boolean state
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: [SortDescriptor<ActivityTemplate>(\.lastModified, order: .reverse)]) private var activities: [ActivityTemplate]
     
     let presets = WorkoutPreset.builtInPresets()
     
@@ -40,7 +43,9 @@ struct PresetSelectionView: View {
             }
             
             // Sync Placeholder
-            Button(action: {}) {
+            Button(action: {
+                locationManager.requestActivitySync()
+            }) {
                 HStack {
                     Image(systemName: "arrow.triangle.2.circlepath")
                     Text("Sync from iPhone")
@@ -49,8 +54,40 @@ struct PresetSelectionView: View {
                 .foregroundColor(.gray)
             }
             .listRowBackground(Color.clear)
+            
+            if !activities.isEmpty {
+                Section(header: Text("Custom").font(.caption).foregroundColor(.gray)) {
+                    ForEach(activities) { activity in
+                        Button {
+                            locationManager.setActivityTemplate(activity)
+                            withAnimation {
+                                navigationPath.append("RunView")
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: activity.icon)
+                                VStack(alignment: .leading) {
+                                    Text(activity.name).font(.headline)
+                                    Text(activity.goal.displayName)
+                                        .font(.caption2)
+                                        .foregroundColor(.gray)
+                                }
+                                Spacer()
+                                Text(activity.primaryScreen.label)
+                                    .font(.caption2)
+                                    .foregroundColor(.cyan)
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                }
+                .listRowBackground(Color.clear)
+            }
+        }
+        .onAppear {
+            // Pull latest activities pushed from phone (already persisted)
+            _ = modelContext // touch context to ensure SwiftData is loaded
         }
     }
 }
-
 

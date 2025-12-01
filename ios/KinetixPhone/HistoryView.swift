@@ -94,6 +94,11 @@ struct RunDetailView: View {
                     .padding()
                     .background(Color.blue.opacity(0.1))
                     .cornerRadius(8)
+                
+                if let sessionId = run.formSessionId {
+                    FormMonitorReportView(sessionId: sessionId)
+                        .padding(.top)
+                }
             }
             .padding()
         }

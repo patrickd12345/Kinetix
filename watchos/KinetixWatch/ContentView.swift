@@ -3,6 +3,7 @@ import CoreLocation
 
 // MARK: - MAIN CONTENT VIEW
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var locationManager = LocationManager()
     @StateObject private var aiCoach = AICoach()
     @StateObject private var formCoach = FormCoach()
@@ -23,6 +24,9 @@ struct ContentView: View {
                             .navigationBarBackButtonHidden(true)
                     }
                 }
+        }
+        .onAppear {
+            locationManager.bind(modelContext: modelContext)
         }
     }
 }

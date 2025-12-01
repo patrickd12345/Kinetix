@@ -56,6 +56,7 @@ public enum PresetType: String, Codable, CaseIterable, Identifiable {
     case meBeatMe = "MeBeatMe"
     case race = "Race Mode"
     case burner = "Burner"
+    case formMonitor = "Form Monitor"
     case custom = "Custom"
     
     public var id: String { rawValue }
@@ -87,7 +88,8 @@ final class WorkoutPreset {
         return [
             WorkoutPreset(id: "preset_mebeatme", name: "MeBeatMe", type: .meBeatMe, targetNPI: 135, batteryProfile: .aggressive, metrics: ["npi", "pace", "projected_time"], audio: true),
             WorkoutPreset(id: "preset_race", name: "Race Mode", type: .race, targetNPI: 150, batteryProfile: .balanced, metrics: ["pace", "dist", "time"], audio: true),
-            WorkoutPreset(id: "preset_burner", name: "Burner", type: .burner, targetNPI: 120, batteryProfile: .eco, metrics: ["hr", "cal", "time"], audio: false)
+            WorkoutPreset(id: "preset_burner", name: "Burner", type: .burner, targetNPI: 120, batteryProfile: .eco, metrics: ["hr", "cal", "time"], audio: false),
+            WorkoutPreset(id: "preset_form_monitor", name: "Form Monitor", type: .formMonitor, targetNPI: 0, batteryProfile: .balanced, metrics: ["form", "symmetry", "instability"], audio: true)
         ]
     }
 }

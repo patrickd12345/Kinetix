@@ -19,6 +19,7 @@ struct RunSummary {
     let formScore: Double?
     let date: Date
     let routeData: [RoutePoint]
+    let formSessionId: UUID?
 }
 
 enum GPSStatus {
@@ -67,6 +68,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     private var workoutSession: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
     private var session: WCSession?
+    private weak var modelContext: ModelContext?
     
     @Published var isRunning = false
     @Published var isPaused = false
@@ -89,6 +91,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     
     // Form Metrics
     @Published var currentFormMetrics = FormMetrics()
+    @Published var formSessionId: UUID? = nil
+    @Published var activeActivityTemplate: ActivityTemplate?
+    @Published var activeFeedbackSettings: FeedbackSettings = FeedbackSettings()
     
     // NEW: Presets & Battery
     @Published var currentPreset: WorkoutPreset?
@@ -108,6 +113,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     private var pauseStartTime: Date? = nil
     private var activeTargetNPI: Double = 135.0
     private var runStartTime: Date? = nil
+    
+    var isFormMonitorActivity: Bool {
+        currentPreset?.type == .formMonitor || activeActivityTemplate?.goal == .formMonitor
+    }
     
     // Crash Recovery
     private let userDefaults = UserDefaults.standard
@@ -135,6 +144,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         setupConnectivity()
     }
     
+    func bind(modelContext: ModelContext) {
+        self.modelContext = modelContext
+    }
+    
     // MARK: - Watch Connectivity
     private func setupConnectivity() {
         if WCSession.isSupported() {
@@ -148,6 +161,18 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         // Session activated
     }
     
+    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+        if let data = message["activities"] as? Data {
+            handleIncomingActivities(data)
+        }
+    }
+    
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
+        if let data = applicationContext["activities"] as? Data {
+            handleIncomingActivities(data)
+        }
+    }
+    
     #if os(iOS)
     func sessionDidBecomeInactive(_ session: WCSession) {}
     func sessionDidDeactivate(_ session: WCSession) { session.activate() }
@@ -157,6 +182,52 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         guard let session = session, session.isReachable else { return }
         let data: [String: Any] = ["alert": message]
         session.sendMessage(data, replyHandler: nil)
+    }
+    
+    func requestActivitySync() {
+        guard let session = session, session.isReachable else { return }
+        session.sendMessage(["requestActivities": true], replyHandler: nil)
+    }
+    
+    private func handleIncomingActivities(_ data: Data) {
+        guard let modelContext else { return }
+        do {
+            let payloads = try JSONDecoder().decode([ActivityPayload].self, from: data)
+            for payload in payloads {
+                upsertActivity(from: payload, context: modelContext)
+            }
+        } catch {
+            print("Failed to decode activities: \(error.localizedDescription)")
+        }
+    }
+    
+    private func upsertActivity(from payload: ActivityPayload, context: ModelContext) {
+        let descriptor = FetchDescriptor<ActivityTemplate>(predicate: #Predicate { $0.id == payload.id })
+        if let existing = try? context.fetch(descriptor).first {
+            existing.name = payload.name
+            existing.icon = payload.icon
+            existing.primaryScreen = payload.primaryScreen
+            existing.secondaryScreens = payload.secondaryScreens
+            existing.feedback = payload.feedback
+            existing.goal = payload.goal
+            existing.defaultBatteryProfile = payload.defaultBatteryProfile
+            existing.lastModified = payload.lastModified
+            existing.isCustom = payload.isCustom
+        } else {
+            let template = ActivityTemplate(
+                id: payload.id,
+                name: payload.name,
+                icon: payload.icon,
+                primaryScreen: payload.primaryScreen,
+                secondaryScreens: payload.secondaryScreens,
+                feedback: payload.feedback,
+                goal: payload.goal,
+                defaultBatteryProfile: payload.defaultBatteryProfile,
+                lastModified: payload.lastModified,
+                isCustom: payload.isCustom
+            )
+            context.insert(template)
+        }
     }
     
     private func sendMetricsToPhone() {
@@ -174,6 +245,33 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         // Use sendMessage for immediate delivery if reachable
         session.sendMessage(data, replyHandler: nil) { error in
             print("Error sending metrics: \(error.localizedDescription)")
+        }
+    }
+    
+    private func syncFormMonitorSamplesIfNeeded() {
+        guard let sessionId = formSessionId, let modelContext else { return }
+        let descriptor = FetchDescriptor<FormMonitorSample>(
+            predicate: #Predicate { $0.sessionId == sessionId },
+            sortBy: [SortDescriptor(\.timestamp, order: .forward)]
+        )
+        
+        guard let samples = try? modelContext.fetch(descriptor), !samples.isEmpty else { return }
+        let payloads = samples.map { FormMonitorSamplePayload(sample: $0) }
+        guard let data = try? JSONEncoder().encode(payloads) else { return }
+        
+        if let wcSession = session, wcSession.isReachable {
+            wcSession.sendMessage(["formSamples": data], replyHandler: nil)
+        }
+        
+        do {
+            if var context = session?.applicationContext {
+                context["formSamples"] = data
+                try session?.updateApplicationContext(context)
+            } else {
+                try session?.updateApplicationContext(["formSamples": data])
+            }
+        } catch {
+            print("Failed to push form samples: \(error.localizedDescription)")
         }
     }
     
@@ -232,6 +330,22 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         self.currentPreset = preset
         self.activeTargetNPI = preset.targetNPI
         self.batteryManager.setProfile(preset.defaultBatteryProfile)
+        self.activeActivityTemplate = nil
+        self.activeFeedbackSettings = FeedbackSettings()
+    }
+    
+    func setActivityTemplate(_ template: ActivityTemplate) {
+        self.activeActivityTemplate = template
+        self.currentPreset = nil
+        switch template.goal {
+        case .efficiency: self.activeTargetNPI = 135
+        case .race: self.activeTargetNPI = 150
+        case .burner: self.activeTargetNPI = 120
+        case .formMonitor: self.activeTargetNPI = 0
+        case .freeRun: self.activeTargetNPI = 130
+        }
+        self.batteryManager.setProfile(template.defaultBatteryProfile)
+        self.activeFeedbackSettings = template.feedback
     }
     
     func toggleTracking(targetNPI: Double) -> RunSummary? {
@@ -284,6 +398,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         heartRateSamples.removeAll()
         routeCoordinates.removeAll()
         currentPaceSeconds = 0
+        formSessionId = isFormMonitorActivity ? UUID() : nil
         
         // Reset Progress
         runProgress = 0.0
@@ -357,6 +472,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
         gpsMonitorTimer?.invalidate()
         stopWorkout()
         clearRecoveryData()
+        syncFormMonitorSamplesIfNeeded()
+        formSessionId = nil
         return summary
     }
     
@@ -479,7 +596,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
             avgStrideLength: currentFormMetrics.strideLength,
             formScore: currentFormMetrics.formScore,
             date: runStartTime ?? Date(),
-            routeData: routeCoordinates
+            routeData: routeCoordinates,
+            formSessionId: formSessionId
         )
     }
     
@@ -691,6 +809,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
             // Update context metrics for comprehensive form analysis
             currentFormMetrics.pace = currentPaceSeconds
             currentFormMetrics.distance = totalDistance
+            if currentFormMetrics.leftRightBalance == nil {
+                currentFormMetrics.leftRightBalance = 50 // Assume balanced if not available from sensors
+            }
             
             // Update 5-sec rolling buffer for Progress
             let now = Date()

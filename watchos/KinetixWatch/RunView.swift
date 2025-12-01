@@ -13,6 +13,7 @@ struct RunView: View {
     let targetNPI: Double
     let unitSystem: String
     let physioMode: Bool
+    @Binding var navigationPath: [String]
     
     @State private var showFireworks = false
     @State private var hasCelebrated = false
@@ -25,6 +26,7 @@ struct RunView: View {
     @State private var showWorkoutError = false
     @State private var showRecoveryPrompt = false
     @State private var showInvalidRunAlert = false
+    @State private var showExitConfirm = false
     @StateObject private var formMonitorEngine = FormMonitorEngine()
     @State private var bubbleState = FormBubbleState()
     
@@ -41,6 +43,14 @@ struct RunView: View {
             .attachWorkoutErrorAlert(showWorkoutError: $showWorkoutError, locationManager: locationManager)
             .attachRecoveryPrompt(showRecoveryPrompt: $showRecoveryPrompt, locationManager: locationManager, unitSystem: unitSystem)
             .attachInvalidRunAlert(showInvalidRunAlert: $showInvalidRunAlert, locationManager: locationManager, targetNPI: targetNPI, modelContext: modelContext)
+            .alert("Exit Activity?", isPresented: $showExitConfirm) {
+                Button("Cancel", role: .cancel) { }
+                Button("Exit", role: .destructive) {
+                    exitToActivitySelection()
+                }
+            } message: {
+                Text("This will stop the current activity and return to the selection screen.")
+            }
             .attachChangeHandlers(
                 locationManager: locationManager,
                 physioMode: physioMode,
@@ -136,6 +146,22 @@ struct RunView: View {
             VStack {
                 // HEADER
                 HStack {
+                    // Exit button (always visible)
+                    Button(action: {
+                        if locationManager.isRunning {
+                            // Show confirmation if running
+                            showExitConfirm = true
+                        } else {
+                            // Exit immediately if not running
+                            exitToActivitySelection()
+                        }
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(locationManager.isRunning ? .orange : .gray)
+                    }
+                    .buttonStyle(.plain)
+                    
                     Text("KINETIX").font(.system(size: 10, weight: .black)).italic()
                     Spacer()
                     
@@ -397,6 +423,17 @@ struct RunView: View {
         formTimer?.invalidate()
         formTimer = nil
         formCoach.currentRecommendation = nil
+    }
+    
+    private func exitToActivitySelection() {
+        // Stop tracking if active
+        if locationManager.isTracking {
+            locationManager.stop()
+        }
+        // Stop form evaluation
+        stopFormEvaluation()
+        // Navigate back
+        navigationPath.removeAll()
     }
     
     private func iconForType(_ type: RecommendationType) -> String {

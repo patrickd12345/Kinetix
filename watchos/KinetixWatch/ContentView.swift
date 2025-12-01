@@ -53,12 +53,12 @@ struct MainTabView: View {
             
             // PAGE 3: HISTORY
             NavigationStack {
-                HistoryView(unitSystem: unitSystem)
+                HistoryView(unitSystem: unitSystem, navigationPath: $navigationPath)
             }
             .tag(2)
             
             // PAGE 4: USER MANUAL
-            ManualView()
+            ManualView(navigationPath: $navigationPath)
                 .tag(3)
         }
         .tabViewStyle(.verticalPage)

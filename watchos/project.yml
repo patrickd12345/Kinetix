@@ -15,6 +15,8 @@ targets:
       - path: ../ios/KinetixPhone
       - path: KinetixWatch/Models/Run.swift
       - path: KinetixWatch/Models/WorkoutConfig.swift
+      - path: KinetixWatch/Models/ActivityTemplate.swift
+      - path: KinetixWatch/Models/FormMonitorSample.swift
       - path: KinetixWatch/Services/BatteryManager.swift
       - path: KinetixWatch/FormMetrics.swift
       - path: KinetixWatch/AICoach.swift
@@ -41,6 +43,8 @@ targets:
         excludes:
           - "**/*.app"
           - "**/*.ipa"
+      - path: KinetixWatch/Models/ActivityTemplate.swift
+      - path: KinetixWatch/Models/FormMonitorSample.swift
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixWatchOS
       INFOPLIST_FILE: KinetixWatch/Info.plist

@@ -129,13 +129,15 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         let session = WCSession.default
         if session.isReachable {
             session.sendMessage(["activities": data], replyHandler: nil)
+        } else {
+            DiagnosticLogManager.shared.log("Watch not reachable during activity sync", category: "sync")
         }
         do {
             var context = session.applicationContext
             context["activities"] = data
             try session.updateApplicationContext(context)
         } catch {
-            print("Failed to push activities: \(error.localizedDescription)")
+            DiagnosticLogManager.shared.log("Failed to push activities: \(error.localizedDescription)", category: "sync")
         }
         lastActivitySync = Date()
     }
@@ -149,7 +151,7 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             }
             lastActivitySync = Date()
         } catch {
-            print("Failed to decode incoming activities: \(error.localizedDescription)")
+            DiagnosticLogManager.shared.log("Failed to decode incoming activities: \(error.localizedDescription)", category: "sync")
         }
     }
     
@@ -221,7 +223,7 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                 }
             }
         } catch {
-            print("Failed to decode form samples: \(error.localizedDescription)")
+            DiagnosticLogManager.shared.log("Failed to decode form samples: \(error.localizedDescription)", category: "sync")
         }
     }
 }

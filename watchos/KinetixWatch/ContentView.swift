@@ -7,6 +7,7 @@ struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var aiCoach = AICoach()
     @StateObject private var formCoach = FormCoach()
+    @AppStorage("skipHomeScreen") private var skipHomeScreen: Bool = false
     
     // Persistent Settings
     @AppStorage("targetNPI") private var targetNPI: Double = 135.0
@@ -17,16 +18,26 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            PresetSelectionView(locationManager: locationManager, navigationPath: $navigationPath)
-                .navigationDestination(for: String.self) { destination in
-                    if destination == "RunView" {
-                        MainTabView(locationManager: locationManager, aiCoach: aiCoach, formCoach: formCoach, targetNPI: $targetNPI, unitSystem: $unitSystem, physioMode: $physioMode, navigationPath: $navigationPath)
-                            .navigationBarBackButtonHidden(true)
-                    }
+            Group {
+                if skipHomeScreen {
+                    PresetSelectionView(locationManager: locationManager, navigationPath: $navigationPath)
+                } else {
+                    HomeView(locationManager: locationManager, navigationPath: $navigationPath)
                 }
-        }
-        .onAppear {
-            locationManager.bind(modelContext: modelContext)
+            }
+            .navigationDestination(for: String.self) { destination in
+                switch destination {
+                case "RunView":
+                    MainTabView(locationManager: locationManager, aiCoach: aiCoach, formCoach: formCoach, targetNPI: $targetNPI, unitSystem: $unitSystem, physioMode: $physioMode, navigationPath: $navigationPath)
+                        .navigationBarBackButtonHidden(true)
+                case "Activities":
+                    PresetSelectionView(locationManager: locationManager, navigationPath: $navigationPath)
+                case "Settings":
+                    SettingsView(locationManager: locationManager, targetNPI: $targetNPI, unitSystem: $unitSystem, physioMode: $physioMode, formCoach: formCoach, navigationPath: $navigationPath)
+                default:
+                    EmptyView()
+                }
+            }
         }
     }
 }

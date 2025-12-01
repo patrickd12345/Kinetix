@@ -14,6 +14,8 @@ struct RunView: View {
     let unitSystem: String
     let physioMode: Bool
     @Binding var navigationPath: [String]
+    @AppStorage("globalHapticsEnabled") private var globalHapticsEnabled = true
+    @AppStorage("globalSonicFeedbackEnabled") private var globalSonicFeedbackEnabled = true
     
     @State private var showFireworks = false
     @State private var hasCelebrated = false
@@ -75,7 +77,7 @@ struct RunView: View {
                 }
                 
                 if isRunning && isFormMonitorMode, let sessionId = locationManager.formSessionId {
-                    var feedback = locationManager.activeFeedbackSettings
+                    var feedback = effectiveFeedback
                     if !locationManager.batteryManager.activeSettings.allowVoice {
                         feedback.sonicEnabled = false
                     }
@@ -118,12 +120,13 @@ struct RunView: View {
             .onReceive(locationManager.$currentFormMetrics) { metrics in
                 guard locationManager.isRunning, isFormMonitorMode, let sessionId = locationManager.formSessionId else { return }
                 formMonitorEngine.bind(context: modelContext)
+                let hapticsAllowed = locationManager.batteryManager.activeSettings.allowHaptics && globalHapticsEnabled
                 let newState = formMonitorEngine.ingest(
                     metrics: metrics,
                     pace: locationManager.currentPaceSeconds,
                     rollingPace: locationManager.paceSeconds,
                     balance: metrics.leftRightBalance,
-                    hapticsAllowed: locationManager.batteryManager.activeSettings.allowHaptics
+                    hapticsAllowed: hapticsAllowed
                 )
                 bubbleState = newState
                 // Ensure session id stays attached
@@ -335,6 +338,7 @@ struct RunView: View {
                                 if locationManager.shouldSaveRun() {
                                     let run = Run(
                                         date: summary.date,
+                                        source: "recorded",
                                         distance: summary.distance,
                                         duration: summary.duration,
                                         avgPace: summary.avgPace,
@@ -494,5 +498,12 @@ struct RunView: View {
         }
         // Default stack for built-in Form Monitor
         return [.bubble, .metrics, .pace, .npi]
+    }
+    
+    private var effectiveFeedback: FeedbackSettings {
+        var feedback = locationManager.activeFeedbackSettings
+        feedback.hapticsEnabled = feedback.hapticsEnabled && globalHapticsEnabled
+        feedback.sonicEnabled = feedback.sonicEnabled && globalSonicFeedbackEnabled
+        return feedback
     }
 }

@@ -38,6 +38,11 @@ struct RunRow: View {
                 Spacer()
                 Label("\(Int(run.avgNPI)) NPI", systemImage: "bolt")
                     .foregroundColor(.cyan)
+                if run.source != "recorded" {
+                    Spacer()
+                    Label(run.source.capitalized, systemImage: "tray.and.arrow.down")
+                        .foregroundColor(.orange)
+                }
             }
             .font(.caption)
             .foregroundColor(.gray)
@@ -62,18 +67,23 @@ struct RunDetailView: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Summary Card
-                VStack {
-                    Text("NPI SCORE").font(.caption).bold().foregroundColor(.gray)
-                    Text("\(Int(run.avgNPI))")
-                        .font(.system(size: 60, weight: .black, design: .rounded))
-                        .foregroundColor(.cyan)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(12)
+                VStack(alignment: .leading, spacing: 20) {
+                    // Summary Card
+                    VStack {
+                        Text("NPI SCORE").font(.caption).bold().foregroundColor(.gray)
+                        Text("\(Int(run.avgNPI))")
+                            .font(.system(size: 60, weight: .black, design: .rounded))
+                            .foregroundColor(.cyan)
+                        if run.source != "recorded" {
+                            Text(run.source.capitalized)
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(12)
                 
                 // Metrics Grid
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
@@ -134,5 +144,3 @@ struct MetricDetailCard: View {
         .cornerRadius(10)
     }
 }
-
-

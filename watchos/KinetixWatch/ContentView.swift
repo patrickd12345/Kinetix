@@ -20,7 +20,7 @@ struct ContentView: View {
             PresetSelectionView(locationManager: locationManager, navigationPath: $navigationPath)
                 .navigationDestination(for: String.self) { destination in
                     if destination == "RunView" {
-                        MainTabView(locationManager: locationManager, aiCoach: aiCoach, formCoach: formCoach, targetNPI: $targetNPI, unitSystem: $unitSystem, physioMode: $physioMode)
+                        MainTabView(locationManager: locationManager, aiCoach: aiCoach, formCoach: formCoach, targetNPI: $targetNPI, unitSystem: $unitSystem, physioMode: $physioMode, navigationPath: $navigationPath)
                             .navigationBarBackButtonHidden(true)
                     }
                 }
@@ -38,6 +38,7 @@ struct MainTabView: View {
     @Binding var targetNPI: Double
     @Binding var unitSystem: String
     @Binding var physioMode: Bool
+    @Binding var navigationPath: [String]
     @State private var selectedTab = 0
     
     var body: some View {
@@ -47,7 +48,7 @@ struct MainTabView: View {
                 .tag(0)
             
             // PAGE 2: SETTINGS
-            SettingsView(targetNPI: $targetNPI, unitSystem: $unitSystem, physioMode: $physioMode, formCoach: formCoach)
+            SettingsView(locationManager: locationManager, targetNPI: $targetNPI, unitSystem: $unitSystem, physioMode: $physioMode, formCoach: formCoach, navigationPath: $navigationPath)
                 .tag(1)
             
             // PAGE 3: HISTORY

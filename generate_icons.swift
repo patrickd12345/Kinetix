@@ -139,3 +139,4 @@ if let jsonData = try? JSONSerialization.data(withJSONObject: contents, options:
 
 print("Icons generated successfully.")
 
+

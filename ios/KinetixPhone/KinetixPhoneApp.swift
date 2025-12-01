@@ -1,11 +1,13 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct KinetixPhoneApp: App {
     var body: some Scene {
         WindowGroup {
-            DashboardView()
+            MainTabView()
         }
+        .modelContainer(for: Run.self)
     }
 }
 

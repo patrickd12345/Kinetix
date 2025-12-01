@@ -26,6 +26,18 @@ class ConversationalCoach: ObservableObject {
     }
     
     private let connectivity = ConnectivityManager.shared
+    private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        // Listen for alerts from Watch
+        connectivity.alertSubject
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] message in
+                self?.speak("Coach Alert: " + message)
+                self?.conversationHistory.append(ChatMessage(sender: .coach, text: "⚠️ " + message))
+            }
+            .store(in: &cancellables)
+    }
     
     func sendUserMessage(_ text: String) {
         // 1. Add user message to UI

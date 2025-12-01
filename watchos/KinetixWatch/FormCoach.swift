@@ -27,7 +27,7 @@ class FormCoach: ObservableObject {
     @Published var currentRecommendation: FormRecommendation?
     @Published var currentMode: CoachMode = .auto
     @Published var modeDescription: String = "Auto (Rule-Based)"
-    @Published var useVoiceAlerts: Bool = true // Default to voice
+    @Published var useVoiceAlerts: Bool = false // Default OFF (Phone handles audio)
     
     // Adaptive learning system
     private let learner = AdaptiveLearner()

@@ -153,6 +153,12 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, HK
     func sessionDidDeactivate(_ session: WCSession) { session.activate() }
     #endif
     
+    func sendAlertToPhone(_ message: String) {
+        guard let session = session, session.isReachable else { return }
+        let data: [String: Any] = ["alert": message]
+        session.sendMessage(data, replyHandler: nil)
+    }
+    
     private func sendMetricsToPhone() {
         guard let session = session, session.isReachable else { return }
         

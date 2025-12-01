@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -24,6 +24,7 @@
 		55A6801F408E87BE92C55919 /* AICoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7553B244B0DCAC9F367580 /* AICoach.swift */; };
 		56D9B55F9ECD9A87EF1E0A74 /* WorkoutConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309F4DC7F05D8FFC1B4842BD /* WorkoutConfig.swift */; };
 		5EF3111B85E8AEA2F203CFD5 /* TESTING.md in Resources */ = {isa = PBXBuildFile; fileRef = 1F04F4E2475279941FB785DC /* TESTING.md */; };
+		82ED47BEBB368B301E5EE047 /* FormCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE12469BF9D744AF83E83323 /* FormCoach.swift */; };
 		8426237C22FC3B1628C13F67 /* BatteryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3703426350E8A941BE01CEDE /* BatteryManager.swift */; };
 		847900CB5797EF7F9901058F /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */; };
 		879EAC246134A83548BBC9DF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BB59C1319B3536A8992F1F /* SettingsView.swift */; };
@@ -73,7 +74,7 @@
 		34484F4C19E3E2712A7179C1 /* HYBRID_COACH_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HYBRID_COACH_SYSTEM.md; sourceTree = "<group>"; };
 		3475476A74F52E3075EB3DC8 /* FORM_MODEL_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FORM_MODEL_GUIDE.md; sourceTree = "<group>"; };
 		3703426350E8A941BE01CEDE /* BatteryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryManager.swift; sourceTree = "<group>"; };
-		37DEB1FE1B2F1869BB5A02F1 /* KinetixPhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KinetixPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		37DEB1FE1B2F1869BB5A02F1 /* KinetixPhone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = KinetixPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4AE3DA4C0B64FB7E52B19005 /* RunView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunView.swift; sourceTree = "<group>"; };
 		4FC699FE028BB4E94506BD1D /* AUDIT_REPORT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AUDIT_REPORT.md; sourceTree = "<group>"; };
 		5302557ACA0EA7AD3A02BCA3 /* CoreMLCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreMLCoach.swift; sourceTree = "<group>"; };
@@ -89,7 +90,7 @@
 		88A6625E1273DD7333057CC8 /* ManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualView.swift; sourceTree = "<group>"; };
 		89BB59C1319B3536A8992F1F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		938F108DBA35FB7322DE372C /* KinetixWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KinetixWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunDetailView.swift; sourceTree = "<group>"; };
 		9C63D91A26A6AE87CC482BD0 /* UI_AUDIT_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_AUDIT_SUMMARY.md; sourceTree = "<group>"; };
 		9F78A546B983E88DBA026390 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
@@ -169,6 +170,8 @@
 				D73BF37704B718A9EED5BC21 /* UIAuditor.swift */,
 				07D661928CB58228F18D536E /* UnitTests.swift */,
 				140654E2278A00ABF053C0E1 /* VoiceCoach.swift */,
+				A988286F9354E58D28287238 /* Models */,
+				BB55E304CC478E9C0D0AF901 /* Services */,
 			);
 			path = KinetixWatch;
 			sourceTree = "<group>";
@@ -257,7 +260,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2610;
+				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					42B3645BC2638DE55F8DB975 = {
 						DevelopmentTeam = AWJBX83Y4X;
@@ -278,6 +281,7 @@
 			);
 			mainGroup = 2FF47699315FF3F633DB3F0C;
 			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -323,6 +327,7 @@
 				AB3C47E82B173EA3367C902D /* ConversationalCoach.swift in Sources */,
 				E6D56E991937C262F878768E /* CoreMLCoach.swift in Sources */,
 				064286FE5A8D113FF50CF3CA /* DashboardView.swift in Sources */,
+				82ED47BEBB368B301E5EE047 /* FormCoach.swift in Sources */,
 				F3CB3E77E62B1B59883A4C91 /* FormMetrics.swift in Sources */,
 				DBA24D7B6A916CE6454D1F3A /* HistoryView.swift in Sources */,
 				E7C8138486E487B8AAF105CB /* KinetixPhoneApp.swift in Sources */,
@@ -373,6 +378,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_CONTEXT_CLASS = XCWatchOSCodeSignContext;
 				CODE_SIGN_ENTITLEMENTS = KinetixWatch/KinetixWatch.entitlements;
+				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				INFOPLIST_FILE = KinetixWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickduchesneau.KinetixWatchOS;
 				SDKROOT = watchos;
@@ -418,12 +424,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -436,7 +439,6 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -478,12 +480,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -503,7 +502,6 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -517,6 +515,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = ../ios/KinetixPhone/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -537,6 +536,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_CONTEXT_CLASS = XCWatchOSCodeSignContext;
 				CODE_SIGN_ENTITLEMENTS = KinetixWatch/KinetixWatch.entitlements;
+				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				INFOPLIST_FILE = KinetixWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickduchesneau.KinetixWatchOS;
 				SDKROOT = watchos;
@@ -554,6 +554,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = ../ios/KinetixPhone/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

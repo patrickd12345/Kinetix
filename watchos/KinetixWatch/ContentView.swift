@@ -44,7 +44,7 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             // PAGE 1: RUN DASHBOARD
-            RunView(locationManager: locationManager, aiCoach: aiCoach, formCoach: formCoach, targetNPI: targetNPI, unitSystem: unitSystem, physioMode: physioMode)
+            RunView(locationManager: locationManager, aiCoach: aiCoach, formCoach: formCoach, targetNPI: targetNPI, unitSystem: unitSystem, physioMode: physioMode, navigationPath: $navigationPath)
                 .tag(0)
             
             // PAGE 2: SETTINGS

@@ -13,7 +13,7 @@ struct SettingsView: View {
                 Button(action: {
                     // Stop tracking if active
                     if locationManager.isRunning {
-                        locationManager.stop()
+                        _ = locationManager.stop()
                     }
                     // Navigate back
                     navigationPath.removeAll()

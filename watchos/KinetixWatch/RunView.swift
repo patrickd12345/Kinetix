@@ -428,7 +428,7 @@ struct RunView: View {
     private func exitToActivitySelection() {
         // Stop tracking if active
         if locationManager.isRunning {
-            locationManager.stop()
+            _ = locationManager.stop()
         }
         // Stop form evaluation
         stopFormEvaluation()

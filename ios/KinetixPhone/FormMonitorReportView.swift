@@ -10,8 +10,8 @@ struct FormMonitorReportView: View {
     init(sessionId: UUID) {
         self.sessionId = sessionId
         _samples = Query(
-            sort: [SortDescriptor<FormMonitorSample>(\.timestamp, order: .forward)],
-            filter: #Predicate { $0.sessionId == sessionId }
+            filter: #Predicate { $0.sessionId == sessionId },
+            sort: [SortDescriptor<FormMonitorSample>(\.timestamp, order: .forward)]
         )
     }
     
@@ -209,7 +209,7 @@ private struct DriftAnalysisView: View {
         samples.map(\.bubbleY).reduce(0, +) / Double(samples.count)
     }
     private var worstInstability: [FormMonitorSample] {
-        samples.sorted { $0.instability > $1.instability }.prefix(3)
+        Array(samples.sorted { $0.instability > $1.instability }.prefix(3))
     }
     private var collapseMoment: FormMonitorSample? {
         samples.first(where: { $0.symmetry < 0.7 || $0.instability > 0.7 })

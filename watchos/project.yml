@@ -47,9 +47,6 @@ targets:
         excludes:
           - "**/*.app"
           - "**/*.ipa"
-      - path: KinetixWatch/Models/WorkoutConfig.swift
-      - path: KinetixWatch/Models/ActivityTemplate.swift
-      - path: KinetixWatch/Models/FormMonitorSample.swift
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone.watchkitapp
       INFOPLIST_FILE: KinetixWatch/Info.plist
@@ -116,6 +113,7 @@ schemes:
         KinetixHostUITests: all
     run:
       config: Debug
+      executable: KinetixWatch
     test:
       config: Debug
       targets:

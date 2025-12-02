@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 #if os(watchOS)
 import WatchKit
 #endif
@@ -19,10 +20,12 @@ class BatteryManager: ObservableObject {
     @Published var currentState: PlatformBatteryState = .unknown
     @Published var activeProfile: BatteryProfileType = .balanced
     @Published var activeSettings: BatterySettings = BatterySettings.settings(for: .balanced)
+    @Published var activeCustomProfileId: String? = nil
     
     // Auto-switch thresholds
     var autoSwitchEnabled: Bool = true
     private var lastSwitchLevel: Float = 1.0
+    private weak var modelContext: ModelContext?
     
     init() {
         #if os(watchOS)
@@ -38,10 +41,26 @@ class BatteryManager: ObservableObject {
         #endif
     }
     
+    func bind(modelContext: ModelContext) {
+        self.modelContext = modelContext
+    }
+    
     func setProfile(_ profile: BatteryProfileType) {
         self.activeProfile = profile
+        self.activeCustomProfileId = nil
         self.activeSettings = BatterySettings.settings(for: profile)
         print("[Battery] Switched to \(profile.rawValue)")
+    }
+    
+    func setCustomProfile(_ profileId: String) {
+        guard let modelContext = modelContext else { return }
+        let descriptor = FetchDescriptor<CustomBatteryProfile>(predicate: #Predicate { $0.id == profileId })
+        if let profile = try? modelContext.fetch(descriptor).first {
+            self.activeCustomProfileId = profileId
+            self.activeProfile = .balanced // Placeholder, not used for custom
+            self.activeSettings = profile.toBatterySettings()
+            print("[Battery] Switched to custom profile: \(profile.name)")
+        }
     }
     
     private func updateBatteryStatus() {
@@ -72,6 +91,7 @@ class BatteryManager: ObservableObject {
         }
     }
 }
+
 
 
 

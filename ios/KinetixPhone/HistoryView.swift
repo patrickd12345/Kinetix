@@ -144,3 +144,4 @@ struct MetricDetailCard: View {
         .cornerRadius(10)
     }
 }
+

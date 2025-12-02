@@ -25,7 +25,7 @@ struct TrainingDistributionView: View {
             ZStack {
                 // Triangle base
                 Triangle()
-                    .strokeBorder(Color.gray.opacity(0.3), lineWidth: 1)
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                     .frame(width: radius * 1.8, height: radius * 1.5)
                     .position(center)
                 

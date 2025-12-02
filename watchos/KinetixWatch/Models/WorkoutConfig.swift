@@ -23,7 +23,8 @@ public enum BatteryProfileType: String, Codable, CaseIterable, Identifiable {
 }
 
 public struct BatterySettings: Codable {
-    let profile: BatteryProfileType
+    let profile: BatteryProfileType?
+    let customProfileId: String? // ID of custom profile if using custom
     
     // Sampling Intervals (seconds)
     let gpsInterval: Double
@@ -35,6 +36,32 @@ public struct BatterySettings: Codable {
     let allowHaptics: Bool
     let allowVoice: Bool
     let allowLiveCharts: Bool
+    
+    // Initializer for built-in profiles
+    init(profile: BatteryProfileType, gpsInterval: Double, motionSensorInterval: Double, formAnalysisInterval: Double, saveInterval: Double, allowHaptics: Bool, allowVoice: Bool, allowLiveCharts: Bool) {
+        self.profile = profile
+        self.customProfileId = nil
+        self.gpsInterval = gpsInterval
+        self.motionSensorInterval = motionSensorInterval
+        self.formAnalysisInterval = formAnalysisInterval
+        self.saveInterval = saveInterval
+        self.allowHaptics = allowHaptics
+        self.allowVoice = allowVoice
+        self.allowLiveCharts = allowLiveCharts
+    }
+    
+    // Initializer for custom profiles
+    init(customProfileId: String, gpsInterval: Double, motionSensorInterval: Double, formAnalysisInterval: Double, saveInterval: Double, allowHaptics: Bool, allowVoice: Bool, allowLiveCharts: Bool) {
+        self.profile = nil
+        self.customProfileId = customProfileId
+        self.gpsInterval = gpsInterval
+        self.motionSensorInterval = motionSensorInterval
+        self.formAnalysisInterval = formAnalysisInterval
+        self.saveInterval = saveInterval
+        self.allowHaptics = allowHaptics
+        self.allowVoice = allowVoice
+        self.allowLiveCharts = allowLiveCharts
+    }
     
     static func settings(for profile: BatteryProfileType) -> BatterySettings {
         switch profile {
@@ -93,6 +120,7 @@ final class WorkoutPreset {
         ]
     }
 }
+
 
 
 

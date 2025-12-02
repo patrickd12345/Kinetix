@@ -82,9 +82,11 @@ class AICoach: ObservableObject {
             let text = try await fetchGeminiResponse(prompt: context)
             return text.replacingOccurrences(of: "*", with: "") // Clean markdown
         } catch {
-            print("Ask Error: \(error)")
-            self.error = error.localizedDescription
-            return "Coach offline: \(error.localizedDescription)"
+            let errorMsg = error.localizedDescription
+            print("Ask Error: \(errorMsg)")
+            print("Full error: \(error)")
+            self.error = errorMsg
+            return "Coach offline: \(errorMsg)"
         }
     }
     
@@ -117,7 +119,13 @@ class AICoach: ObservableObject {
         }
         
         let geminiResp = try JSONDecoder().decode(GeminiResponse.self, from: data)
-        return geminiResp.candidates.first?.content.parts.first?.text ?? ""
+        let responseText = geminiResp.candidates.first?.content.parts.first?.text ?? ""
+        
+        if responseText.isEmpty {
+            throw URLError(.zeroByteResource, userInfo: [NSLocalizedDescriptionKey: "Empty response from AI"])
+        }
+        
+        return responseText
     }
 }
 

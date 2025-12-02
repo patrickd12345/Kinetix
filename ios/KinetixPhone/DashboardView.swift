@@ -86,9 +86,15 @@ struct DashboardView: View {
                         userTextInput = ""
                     }
                 }) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.title2)
+                    if coach.isSpeaking {
+                        ProgressView()
+                            .frame(width: 24, height: 24)
+                    } else {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.title2)
+                    }
                 }
+                .disabled(userTextInput.isEmpty || coach.isSpeaking)
                 
                 // Simulated Voice Button
                 Button(action: {

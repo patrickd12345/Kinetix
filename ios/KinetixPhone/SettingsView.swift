@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor<Run>(\.date, order: .reverse)]) private var runs: [Run]
     @Query private var profiles: [RunnerProfile]
+    @Query(sort: [SortDescriptor<CustomBatteryProfile>(\.name)]) private var batteryProfiles: [CustomBatteryProfile]
     
     @State private var weightText: String = ""
     @State private var birthDate: Date = Date()
@@ -23,12 +24,19 @@ struct SettingsView: View {
     @State private var logExportText: String = ""
     @State private var showingLogExport = false
     
+    @State private var showingProfileEditor = false
+    @State private var editingProfile: CustomBatteryProfile?
+    
+    @State private var showingSaveConfirmation = false
+    @State private var saveConfirmationMessage = ""
+    
     private let sexOptions = ["unspecified", "female", "male", "nonbinary"]
     
     var body: some View {
         NavigationStack {
             List {
                 profileSection
+                batteryProfileSection
                 findMyNPISection
                 aiSummarySection
                 trainingDistributionSection
@@ -64,10 +72,74 @@ struct SettingsView: View {
             .onAppear {
                 bootstrapProfile()
             }
+            .sheet(isPresented: $showingProfileEditor) {
+                BatteryProfileEditorView(profile: editingProfile, onSave: { profileName in
+                    saveConfirmationMessage = "Battery profile \"\(profileName)\" saved successfully"
+                    showingSaveConfirmation = true
+                })
+            }
+            .alert("Saved", isPresented: $showingSaveConfirmation) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(saveConfirmationMessage)
+            }
         }
     }
     
     // MARK: - Sections
+    private var batteryProfileSection: some View {
+        Section {
+            ForEach(batteryProfiles) { profile in
+                NavigationLink {
+                    BatteryProfileEditorView(profile: profile, onSave: { profileName in
+                        saveConfirmationMessage = "Battery profile \"\(profileName)\" saved successfully"
+                        showingSaveConfirmation = true
+                    })
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(profile.name)
+                            .font(.headline)
+                        Text("GPS: \(Int(profile.gpsInterval))s • Motion: \(Int(profile.motionSensorInterval))s • Form: \(Int(profile.formAnalysisInterval))s")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        HStack(spacing: 8) {
+                            if profile.allowHaptics {
+                                Label("Haptics", systemImage: "hand.tap")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            if profile.allowVoice {
+                                Label("Voice", systemImage: "speaker.wave.2")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            if profile.allowLiveCharts {
+                                Label("Charts", systemImage: "chart.line.uptrend.xyaxis")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Button {
+                editingProfile = nil
+                showingProfileEditor = true
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("New Battery Profile")
+                }
+                .foregroundColor(.blue)
+            }
+        } header: {
+            Text("Watch Battery Profiles")
+        } footer: {
+            Text("Custom battery profiles let you fine-tune GPS sampling, sensor intervals, and features to optimize battery life for your specific needs. Profiles sync automatically to your Watch.")
+        }
+    }
+    
     private var profileSection: some View {
         Section {
             TextField("Weight (kg)", text: $weightText)
@@ -189,6 +261,10 @@ struct SettingsView: View {
         if profiles.isEmpty {
             modelContext.insert(profile)
         }
+        
+        // Show confirmation
+        saveConfirmationMessage = "Runner profile saved successfully"
+        showingSaveConfirmation = true
     }
     
     private func addManualRun() {

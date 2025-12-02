@@ -6,8 +6,12 @@ import SwiftData
 class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var currentMetrics: FormMetrics = FormMetrics()
     @Published var isWatchConnected: Bool = false
-    @Published var lastUpdate: Date = Date()
+    @Published var connectionStatusMessage: String = "Initializing..."
+    @Published var lastUpdate: Date? = nil
     @Published var lastActivitySync: Date? = nil
+    
+    // Run State
+    @Published var isRunActive: Bool = false
     
     // History Buffer for Charts (Last 60 points)
     @Published var heartRateHistory: [(Date, Double)] = []
@@ -19,6 +23,7 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     static let shared = ConnectivityManager()
     
     weak var modelContext: ModelContext?
+    private var connectionCheckTimer: Timer?
     
     override private init() {
         super.init()
@@ -29,11 +34,30 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         self.modelContext = modelContext
     }
     
+    func checkForRunState() {
+        let session = WCSession.default
+        checkApplicationContextForRunState(session: session)
+    }
+    
     func setupSession() {
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self
             session.activate()
+            
+            // Check application context immediately for run state
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.checkApplicationContextForRunState(session: session)
+            }
+            
+            // Periodically check connection status and application context
+            // Interval increased to 10s to reduce background overhead
+            connectionCheckTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.updateConnectionStatus(session: session)
+                    self?.checkApplicationContextForRunState(session: session)
+                }
+            }
         }
     }
     
@@ -41,18 +65,30 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         DispatchQueue.main.async {
-            self.isWatchConnected = (activationState == .activated) && session.isReachable
+            // Update connection status based on actual connectivity
+            self.updateConnectionStatus(session: session)
         }
     }
     
-    func sessionDidBecomeInactive(_ session: WCSession) {}
+    func sessionDidBecomeInactive(_ session: WCSession) {
+        DispatchQueue.main.async {
+            self.isWatchConnected = false
+        }
+    }
+    
     func sessionDidDeactivate(_ session: WCSession) {
+        DispatchQueue.main.async {
+            self.isWatchConnected = false
+        }
         session.activate() // Reactivate if needed
     }
     
     // Receive real-time message from Watch
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
         DispatchQueue.main.async {
+            // Update connection status - receiving messages means watch is connected
+            self.updateConnectionStatus(session: session)
+            
             if let request = message["requestActivities"] as? Bool, request {
                 self.pushActivitiesToWatch()
                 return
@@ -68,6 +104,15 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                 return
             }
             
+            // Check for run state changes
+            if let isRunning = message["isRunning"] as? Bool {
+                print("📱 iPhone received run state: \(isRunning)")
+                if self.isRunActive != isRunning {
+                    DiagnosticLogManager.shared.log("Received run state in message: \(isRunning)", category: "connectivity")
+                    self.isRunActive = isRunning
+                }
+            }
+            
             self.parseMetrics(message)
             self.lastUpdate = Date()
         }
@@ -76,13 +121,109 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     // Receive background info (context update)
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
         DispatchQueue.main.async {
+            print("📱 iPhone: Received application context: \(applicationContext.keys)")
+            
+            // Update connection status
+            self.updateConnectionStatus(session: session)
+            
+            // Process ALL keys independently, not mutually exclusive
             if let data = applicationContext["activities"] as? Data {
                 self.storeIncomingActivities(data)
-            } else if let sampleData = applicationContext["formSamples"] as? Data {
+            }
+            
+            if let sampleData = applicationContext["formSamples"] as? Data {
                 self.storeIncomingFormSamples(sampleData)
-            } else {
+            }
+            
+            if let isRunning = applicationContext["isRunning"] as? Bool {
+                print("📱 iPhone received run state (context): \(isRunning)")
+                if self.isRunActive != isRunning {
+                    let msg = "Received run state in context update: \(isRunning)"
+                    DiagnosticLogManager.shared.log(msg, category: "connectivity")
+                    self.isRunActive = isRunning
+                }
+            }
+            
+            // Parse metrics if present (and not just run state)
+            if applicationContext["heartRate"] != nil || applicationContext["pace"] != nil {
                 self.parseMetrics(applicationContext)
                 self.lastUpdate = Date()
+            }
+        }
+    }
+    
+    // MARK: - Connection Status
+    
+    private func updateConnectionStatus(session: WCSession) {
+        // Log status for debugging
+        let timeSinceStr = lastUpdate.map { String(format: "%.1fs ago", Date().timeIntervalSince($0)) } ?? "never"
+        let statusMsg = "Check: Reachable=\(session.isReachable), Paired=\(session.isPaired), AppInstalled=\(session.isWatchAppInstalled), State=\(session.activationState.rawValue)"
+        print("📱 \(statusMsg)")
+        
+        // 1. Basic Session State
+        guard session.activationState == .activated else {
+            isWatchConnected = false
+            connectionStatusMessage = "Session Not Active (\(session.activationState.rawValue))"
+            return
+        }
+        
+        guard session.isPaired else {
+            isWatchConnected = false
+            connectionStatusMessage = "No Watch Paired"
+            return
+        }
+        
+        guard session.isWatchAppInstalled else {
+            isWatchConnected = false
+            connectionStatusMessage = "Watch App Not Installed"
+            return
+        }
+        
+        // 2. Connectivity
+        if session.isReachable {
+            isWatchConnected = true
+            connectionStatusMessage = "Connected (Reachable)"
+            return
+        }
+        
+        // 3. Recent Activity Fallback
+        if let lastUpdate = lastUpdate {
+            let timeSinceLastUpdate = Date().timeIntervalSince(lastUpdate)
+            if timeSinceLastUpdate < 30.0 {
+                isWatchConnected = true
+                connectionStatusMessage = "Connected (Active \(Int(timeSinceLastUpdate))s ago)"
+                return
+            }
+        }
+        
+        // 4. Default State: Paired but not reachable
+        isWatchConnected = false
+        connectionStatusMessage = "Paired (Not Reachable)"
+        
+        // Log this specific state to diagnostics only occasionally to avoid spam
+        if Int(Date().timeIntervalSince1970) % 10 == 0 {
+             DiagnosticLogManager.shared.log("Watch paired but not reachable. Last update: \(timeSinceStr)", category: "connectivity")
+        }
+    }
+    
+    func checkApplicationContextForRunState(session: WCSession) {
+        guard session.activationState == .activated else { return }
+        
+        let context = session.receivedApplicationContext
+        // Log context keys periodically to debug what's stuck in there
+        if !context.isEmpty {
+             // print("📱 iPhone: Current Application Context Keys: \(context.keys)")
+        }
+        
+        if let isRunning = context["isRunning"] as? Bool {
+            // Only log if state mismatch to avoid spam
+            if self.isRunActive != isRunning {
+                let msg = "Found run state in application context: \(isRunning) (Current: \(self.isRunActive))"
+                print("📱 iPhone: \(msg)")
+                DiagnosticLogManager.shared.log(msg, category: "connectivity")
+                DispatchQueue.main.async {
+                    self.isRunActive = isRunning
+                }
             }
         }
     }
@@ -115,6 +256,32 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     func syncActivitiesFromBuilder(_ activities: [ActivityTemplate]) {
         let payloads = activities.map { $0.toPayload() }
         sendActivitiesPayload(payloads)
+    }
+    
+    // MARK: - Battery Profile Sync
+    func syncBatteryProfiles() {
+        guard let ctx = modelContext else { return }
+        if let profiles = try? ctx.fetch(FetchDescriptor<CustomBatteryProfile>()) {
+            let payloads = profiles.map { $0.toPayload() }
+            sendBatteryProfilesPayload(payloads)
+        }
+    }
+    
+    private func sendBatteryProfilesPayload(_ payloads: [BatteryProfilePayload]) {
+        guard let data = try? JSONEncoder().encode(payloads) else { return }
+        let session = WCSession.default
+        if session.isReachable {
+            session.sendMessage(["batteryProfiles": data], replyHandler: nil)
+        } else {
+            DiagnosticLogManager.shared.log("Watch not reachable during battery profile sync", category: "sync")
+        }
+        do {
+            var context = session.applicationContext
+            context["batteryProfiles"] = data
+            try session.updateApplicationContext(context)
+        } catch {
+            DiagnosticLogManager.shared.log("Failed to push battery profiles: \(error.localizedDescription)", category: "sync")
+        }
     }
     
     private func pushActivitiesToWatch() {

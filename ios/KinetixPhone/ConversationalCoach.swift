@@ -44,23 +44,63 @@ class ConversationalCoach: ObservableObject {
         // 1. Add user message to UI
         conversationHistory.append(ChatMessage(sender: .user, text: text))
         
-        // 2. Capture CURRENT context from Watch stream
+        // 2. Add loading indicator
+        let loadingMessage = ChatMessage(sender: .coach, text: "💭 Thinking...")
+        conversationHistory.append(loadingMessage)
+        let loadingId = loadingMessage.id
+        
+        // 3. Set loading state
+        isSpeaking = true
+        
+        // 4. Capture CURRENT context from Watch stream
         let metrics = connectivity.currentMetrics
         
-        // 3. Ask AI
+        // 5. Ask AI
         Task {
-            let response = await aiEngine.ask(question: text, metrics: metrics)
-            if response.lowercased().contains("error") {
-                logger.log("AI response error: \(response)", category: "chat")
+            do {
+                let response = await aiEngine.ask(question: text, metrics: metrics)
+                
+                // Remove loading message
+                await MainActor.run {
+                    conversationHistory.removeAll { $0.id == loadingId }
+                }
+                
+                // Check for actual errors in response
+                let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if trimmed.isEmpty {
+                    logger.log("AI returned empty response", category: "chat")
+                    await MainActor.run {
+                        conversationHistory.append(ChatMessage(sender: .coach, text: "⚠️ Coach is offline right now. Try again in a moment."))
+                        isSpeaking = false
+                    }
+                } else if response.lowercased().contains("error") || response.lowercased().contains("offline") {
+                    logger.log("AI response error: \(response)", category: "chat")
+                    await MainActor.run {
+                        conversationHistory.append(ChatMessage(sender: .coach, text: "⚠️ \(trimmed)"))
+                        isSpeaking = false
+                    }
+                } else {
+                    // Success - Add response to UI
+                    await MainActor.run {
+                        conversationHistory.append(ChatMessage(sender: .coach, text: trimmed))
+                        isSpeaking = false
+                        // Speak it!
+                        speak(trimmed)
+                    }
+                }
+            } catch {
+                // Remove loading message
+                await MainActor.run {
+                    conversationHistory.removeAll { $0.id == loadingId }
+                }
+                
+                logger.log("AI request failed: \(error.localizedDescription)", category: "chat")
+                await MainActor.run {
+                    conversationHistory.append(ChatMessage(sender: .coach, text: "⚠️ Coach offline: \(error.localizedDescription)"))
+                    isSpeaking = false
+                }
             }
-            
-            // 4. Add response to UI
-            let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
-            let safeResponse = trimmed.isEmpty ? "Coach is offline right now. Try again in a moment." : trimmed
-            conversationHistory.append(ChatMessage(sender: .coach, text: safeResponse))
-            
-            // 5. Speak it! (Basic iOS TTS for now)
-            speak(safeResponse)
         }
     }
     

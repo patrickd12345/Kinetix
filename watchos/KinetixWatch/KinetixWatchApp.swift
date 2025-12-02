@@ -7,6 +7,6 @@ struct KinetixWatchApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [Run.self, ActivityTemplate.self, FormMonitorSample.self])
+        .modelContainer(for: [Run.self, ActivityTemplate.self, FormMonitorSample.self, CustomBatteryProfile.self])
     }
 }

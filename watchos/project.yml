@@ -17,6 +17,7 @@ targets:
       - path: KinetixWatch/Models/WorkoutConfig.swift
       - path: KinetixWatch/Models/ActivityTemplate.swift
       - path: KinetixWatch/Models/FormMonitorSample.swift
+      - path: KinetixWatch/Models/CustomBatteryProfile.swift
       - path: KinetixWatch/Services/BatteryManager.swift
       - path: KinetixWatch/FormMetrics.swift
       - path: KinetixWatch/AICoach.swift
@@ -24,6 +25,9 @@ targets:
       - path: KinetixWatch/AdaptiveLearner.swift
       - path: KinetixWatch/CoreMLCoach.swift
       - path: KinetixWatch/FormCoach.swift
+    dependencies:
+      - target: KinetixWatch
+        embed: true
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone
       INFOPLIST_FILE: ../ios/KinetixPhone/Info.plist
@@ -43,10 +47,11 @@ targets:
         excludes:
           - "**/*.app"
           - "**/*.ipa"
+      - path: KinetixWatch/Models/WorkoutConfig.swift
       - path: KinetixWatch/Models/ActivityTemplate.swift
       - path: KinetixWatch/Models/FormMonitorSample.swift
     settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixWatchOS
+      PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone.watchkitapp
       INFOPLIST_FILE: KinetixWatch/Info.plist
       CODE_SIGN_ENTITLEMENTS: KinetixWatch/KinetixWatch.entitlements
       SWIFT_VERSION: "5.0"
@@ -55,10 +60,38 @@ targets:
       DEVELOPMENT_TEAM: "AWJBX83Y4X"
       SUPPORTED_PLATFORMS: watchos
       CODE_SIGN_CONTEXT_CLASS: XCWatchOSCodeSignContext
-      SKIP_INSTALL: NO
+      SKIP_INSTALL: YES
+      ENABLE_TESTABILITY: YES
     capabilities:
       - Background Modes
       - HealthKit
+
+  KinetixHostTests:
+    type: bundle.unit-test
+    platform: watchOS
+    sources:
+      - KinetixHostTests
+      - KinetixWatch/Services/RunMetricsCalculator.swift
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixWatchOS.KinetixHostTests
+      GENERATE_INFOPLIST_FILE: YES
+      DEVELOPMENT_TEAM: "AWJBX83Y4X"
+      CODE_SIGN_STYLE: Automatic
+      ENABLE_TESTABILITY: YES
+
+  KinetixHostUITests:
+    type: bundle.ui-testing
+    platform: watchOS
+    sources:
+      - KinetixHostUITests
+    dependencies:
+      - target: KinetixWatch
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixWatchOS.KinetixHostUITests
+      GENERATE_INFOPLIST_FILE: YES
+      DEVELOPMENT_TEAM: "AWJBX83Y4X"
+      CODE_SIGN_STYLE: Automatic
+      TEST_TARGET_NAME: KinetixWatch
 
 schemes:
   KinetixPhone:
@@ -79,10 +112,15 @@ schemes:
     build:
       targets:
         KinetixWatch: all
+        KinetixHostTests: all
+        KinetixHostUITests: all
     run:
       config: Debug
     test:
       config: Debug
+      targets:
+        - KinetixHostTests
+        - KinetixHostUITests
     profile:
       config: Release
     analyze:

@@ -40,8 +40,8 @@
 	</array>
 	<key>WKApplication</key>
 	<true/>
-	<key>WKWatchOnly</key>
-	<true/>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>com.patrickduchesneau.KinetixPhone</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

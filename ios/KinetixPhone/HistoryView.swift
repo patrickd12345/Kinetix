@@ -113,6 +113,64 @@ struct RunDetailView: View {
             .padding()
         }
         .navigationTitle(run.date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted)))
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    if !run.routeData.isEmpty {
+                        ShareLink(item: generateExportFile(for: run, type: "gpx"), preview: SharePreview("Run GPX", image: Image(systemName: "map"))) {
+                            Label("Export GPX", systemImage: "location")
+                        }
+                        
+                        ShareLink(item: generateExportFile(for: run, type: "tcx"), preview: SharePreview("Run TCX", image: Image(systemName: "stopwatch"))) {
+                            Label("Export TCX", systemImage: "clock")
+                        }
+                        
+                        if let fitData = RunExporter.generateFIT(run: run),
+                           let fitURL = generateFITFile(for: run, data: fitData) {
+                            ShareLink(item: fitURL, preview: SharePreview("Run FIT", image: Image(systemName: "figure.run"))) {
+                                Label("Export FIT", systemImage: "figure.run")
+                            }
+                        } else {
+                            Label("Export FIT (SDK Required)", systemImage: "figure.run")
+                                .disabled(true)
+                        }
+                    } else {
+                        Label("No GPS Data", systemImage: "location.slash")
+                            .disabled(true)
+                    }
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+        }
+    }
+    
+    private func generateExportFile(for run: Run, type: String) -> URL {
+        let fileName = "kinetix_\(run.date.formatted(date: .numeric, time: .omitted).replacingOccurrences(of: "/", with: "-"))_\(type.uppercased()).\(type)"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        
+        let content: String
+        if type == "gpx" {
+            content = RunExporter.generateGPX(run: run)
+        } else {
+            content = RunExporter.generateTCX(run: run)
+        }
+        
+        try? content.write(to: url, atomically: true, encoding: .utf8)
+        return url
+    }
+    
+    private func generateFITFile(for run: Run, data: Data) -> URL? {
+        let fileName = "kinetix_\(run.date.formatted(date: .numeric, time: .omitted).replacingOccurrences(of: "/", with: "-"))_FIT.fit"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        
+        do {
+            try data.write(to: url)
+            return url
+        } catch {
+            print("Failed to write FIT file: \(error)")
+            return nil
+        }
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {

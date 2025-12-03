@@ -6,6 +6,10 @@ options:
     watchOS: "10.0"
   developmentLanguage: en
   xcodeVersion: "15.0"
+packages:
+  FITSwiftSDK:
+    url: https://github.com/garmin/fit-swift-sdk.git
+    from: 21.171.0
 
 targets:
   KinetixPhone:
@@ -13,6 +17,8 @@ targets:
     platform: iOS
     sources:
       - path: ../ios/KinetixPhone
+        excludes:
+          - "**/FITSDK/**"  # Exclude SDK directory from auto-inclusion (we'll add it manually if needed)
       - path: KinetixWatch/Models/Run.swift
       - path: KinetixWatch/Models/WorkoutConfig.swift
       - path: KinetixWatch/Models/ActivityTemplate.swift
@@ -28,6 +34,7 @@ targets:
     dependencies:
       - target: KinetixWatch
         embed: true
+      - package: FITSwiftSDK
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone
       INFOPLIST_FILE: ../ios/KinetixPhone/Info.plist

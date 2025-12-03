@@ -33,15 +33,20 @@
 		49EE007185C137F510F76351 /* RUNNING_FORM_THEORY.md in Resources */ = {isa = PBXBuildFile; fileRef = EF512D262834B941AAB91EC3 /* RUNNING_FORM_THEORY.md */; };
 		4BCFE627C225EA695B07AE8C /* Run.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D583739706F3A5D76F29E9 /* Run.swift */; };
 		4C57FB5C715043627994BD9A /* AUDIT_REPORT.md in Resources */ = {isa = PBXBuildFile; fileRef = 4FC699FE028BB4E94506BD1D /* AUDIT_REPORT.md */; };
+		553F6ABA31C1C8CB887AA383 /* QUICK_START_FIT.md in Resources */ = {isa = PBXBuildFile; fileRef = AE8DBF7BCC0EC8FA0B6E7BF2 /* QUICK_START_FIT.md */; };
 		55A0B70226B9111063BA04E3 /* FormCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE12469BF9D744AF83E83323 /* FormCoach.swift */; };
 		55A6801F408E87BE92C55919 /* AICoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7553B244B0DCAC9F367580 /* AICoach.swift */; };
 		56D9B55F9ECD9A87EF1E0A74 /* WorkoutConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309F4DC7F05D8FFC1B4842BD /* WorkoutConfig.swift */; };
 		5EF3111B85E8AEA2F203CFD5 /* TESTING.md in Resources */ = {isa = PBXBuildFile; fileRef = 1F04F4E2475279941FB785DC /* TESTING.md */; };
 		68CFF3790237E58A64FCB656 /* RunMetricsCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42DBAC61CB87FCD12DAF6A32 /* RunMetricsCalculator.swift */; };
+		6AAF249EBFB3C367D0B5A9F6 /* RunExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8DEFF557153BDCF17F7EC70 /* RunExporter.swift */; };
 		6C3469A80FE72BF6FCD6A609 /* KinetixHostUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF7830E282EF102DAA90362 /* KinetixHostUITestsLaunchTests.swift */; };
+		700A26932A5569EF6BCFA0E0 /* FIT_SDK_INTEGRATION.md in Resources */ = {isa = PBXBuildFile; fileRef = 9A1CE68D2B20B08237570256 /* FIT_SDK_INTEGRATION.md */; };
 		799A4C676E85D0467AD86D69 /* RunnerProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FCF5C8ACF15B775E4E1A5EC /* RunnerProfile.swift */; };
+		7DB3DCCF2B6ED3CF45A8DBCF /* integrate_fit_sdk.sh in Resources */ = {isa = PBXBuildFile; fileRef = FDC93EC808B7C5367193E626 /* integrate_fit_sdk.sh */; };
 		7FC7660FD5C58840F360A279 /* ActivityTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75885F4B9E8B534FCF738DCA /* ActivityTemplate.swift */; };
 		82ED47BEBB368B301E5EE047 /* FormCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE12469BF9D744AF83E83323 /* FormCoach.swift */; };
+		83600E589CB8B78C6D3D6AF4 /* INTEGRATE_NOW.md in Resources */ = {isa = PBXBuildFile; fileRef = C5969248B6F9CCA6C79ED033 /* INTEGRATE_NOW.md */; };
 		83D1802D7715388E96DFE10D /* CustomBatteryProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 075F414A9476EAABA5F22EFB /* CustomBatteryProfile.swift */; };
 		8426237C22FC3B1628C13F67 /* BatteryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3703426350E8A941BE01CEDE /* BatteryManager.swift */; };
 		847900CB5797EF7F9901058F /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */; };
@@ -61,6 +66,7 @@
 		AA91E430B768C70352009C52 /* UI_AUDIT_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 9C63D91A26A6AE87CC482BD0 /* UI_AUDIT_SUMMARY.md */; };
 		AB3C47E82B173EA3367C902D /* ConversationalCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF4421816DBAD9973071281 /* ConversationalCoach.swift */; };
 		AC8630042C30CA1A3F61BABD /* FormMonitorReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB513B721E38DC0846246717 /* FormMonitorReportView.swift */; };
+		AE942A7A7057EEB154C933A0 /* FITSwiftSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 1E039B4AAEDE9BA9712F9490 /* FITSwiftSDK */; };
 		B6196FBADA5E67DD710771F1 /* CoreMLCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5302557ACA0EA7AD3A02BCA3 /* CoreMLCoach.swift */; };
 		B6F986DA450EAD0708D81F25 /* LOCATION_MANAGER_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 61923B71F153A4AEFDF4E32C /* LOCATION_MANAGER_GUIDE.md */; };
 		C2DB332AD3E1990D71F2C482 /* ActivityBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D647A317159FF9821654B504 /* ActivityBuilderView.swift */; };
@@ -171,6 +177,7 @@
 		89BB59C1319B3536A8992F1F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		938F108DBA35FB7322DE372C /* KinetixWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KinetixWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		9A1CE68D2B20B08237570256 /* FIT_SDK_INTEGRATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FIT_SDK_INTEGRATION.md; sourceTree = "<group>"; };
 		9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunDetailView.swift; sourceTree = "<group>"; };
 		9C63D91A26A6AE87CC482BD0 /* UI_AUDIT_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_AUDIT_SUMMARY.md; sourceTree = "<group>"; };
 		9EF7830E282EF102DAA90362 /* KinetixHostUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinetixHostUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -179,13 +186,17 @@
 		AA7553B244B0DCAC9F367580 /* AICoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoach.swift; sourceTree = "<group>"; };
 		AAD2450347A4522C72F2993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AE45662EE8163DAE84F0602C /* TrainingDistributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingDistributionView.swift; sourceTree = "<group>"; };
+		AE8DBF7BCC0EC8FA0B6E7BF2 /* QUICK_START_FIT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUICK_START_FIT.md; sourceTree = "<group>"; };
 		B21C48FA6314FAC5561CAA3D /* BootstrapModelGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootstrapModelGenerator.swift; sourceTree = "<group>"; };
+		B8DEFF557153BDCF17F7EC70 /* RunExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunExporter.swift; sourceTree = "<group>"; };
 		BB366A8CAB9FED18A04D7F95 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		C5969248B6F9CCA6C79ED033 /* INTEGRATE_NOW.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INTEGRATE_NOW.md; sourceTree = "<group>"; };
 		C87D5C2E0ED67057387A27EB /* UI_AUDIT_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_AUDIT_GUIDE.md; sourceTree = "<group>"; };
 		C9DEC93895E3171BE4D215AC /* KinetixWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KinetixWatch.entitlements; sourceTree = "<group>"; };
 		CAD3DEAACA5A3422A37BE8F4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CB513B721E38DC0846246717 /* FormMonitorReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormMonitorReportView.swift; sourceTree = "<group>"; };
 		CE12469BF9D744AF83E83323 /* FormCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormCoach.swift; sourceTree = "<group>"; };
+		D32E65BA0A8C23E2D6314A3C /* KinetixPhone-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "KinetixPhone-Bridging-Header.h"; sourceTree = "<group>"; };
 		D5CB4D80649044E40F39B9B3 /* BOOTSTRAP_MODEL_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = BOOTSTRAP_MODEL_SETUP.md; sourceTree = "<group>"; };
 		D647A317159FF9821654B504 /* ActivityBuilderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityBuilderView.swift; sourceTree = "<group>"; };
 		D73BF37704B718A9EED5BC21 /* UIAuditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAuditor.swift; sourceTree = "<group>"; };
@@ -197,8 +208,20 @@
 		F6D583739706F3A5D76F29E9 /* Run.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Run.swift; sourceTree = "<group>"; };
 		F6F0132AF8F52774A2098339 /* ConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityManager.swift; sourceTree = "<group>"; };
 		FACA8BF8273B19E1A6C07A0C /* FormMonitorSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormMonitorSample.swift; sourceTree = "<group>"; };
+		FDC93EC808B7C5367193E626 /* integrate_fit_sdk.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = integrate_fit_sdk.sh; sourceTree = "<group>"; };
 		FFBA2E0057B0B97CD5C94F31 /* DOCUMENTATION_INDEX.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DOCUMENTATION_INDEX.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4E0A556E2010C6F08DEEED75 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AE942A7A7057EEB154C933A0 /* FITSwiftSDK in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		02D4928CDA819E7A1380D1CA /* KinetixPhone */ = {
@@ -211,12 +234,18 @@
 				5CF4421816DBAD9973071281 /* ConversationalCoach.swift */,
 				1A1EC689F4A254D7AE8814BA /* DashboardView.swift */,
 				046CE128D018A4470003ABF4 /* DiagnosticLogManager.swift */,
+				9A1CE68D2B20B08237570256 /* FIT_SDK_INTEGRATION.md */,
 				CB513B721E38DC0846246717 /* FormMonitorReportView.swift */,
 				6E4D122E4CDA7464253635F7 /* HistoryView.swift */,
 				4517191ACFFCCD9382643FC8 /* HomeView.swift */,
 				A4B4CB2C23DDD8A29841CA1E /* Info.plist */,
+				FDC93EC808B7C5367193E626 /* integrate_fit_sdk.sh */,
+				C5969248B6F9CCA6C79ED033 /* INTEGRATE_NOW.md */,
+				D32E65BA0A8C23E2D6314A3C /* KinetixPhone-Bridging-Header.h */,
 				7C3460D8B71F01B27AF32DA7 /* KinetixPhoneApp.swift */,
 				9F78A546B983E88DBA026390 /* MainTabView.swift */,
+				AE8DBF7BCC0EC8FA0B6E7BF2 /* QUICK_START_FIT.md */,
+				B8DEFF557153BDCF17F7EC70 /* RunExporter.swift */,
 				CAD3DEAACA5A3422A37BE8F4 /* SettingsView.swift */,
 				AE45662EE8163DAE84F0602C /* TrainingDistributionView.swift */,
 				AA08962A6E2FC659C1AA89E1 /* Models */,
@@ -412,6 +441,8 @@
 			buildConfigurationList = ACCB1F952E5DC2FC4DB266C6 /* Build configuration list for PBXNativeTarget "KinetixPhone" */;
 			buildPhases = (
 				061ABD2CDC67DF480ACD0254 /* Sources */,
+				858F0D0F4575A859DC2FDDA0 /* Resources */,
+				4E0A556E2010C6F08DEEED75 /* Frameworks */,
 				398096993F15F10AC3532E0D /* Embed Watch Content */,
 			);
 			buildRules = (
@@ -421,6 +452,7 @@
 			);
 			name = KinetixPhone;
 			packageProductDependencies = (
+				1E039B4AAEDE9BA9712F9490 /* FITSwiftSDK */,
 			);
 			productName = KinetixPhone;
 			productReference = 37DEB1FE1B2F1869BB5A02F1 /* KinetixPhone.app */;
@@ -463,6 +495,9 @@
 			);
 			mainGroup = 2FF47699315FF3F633DB3F0C;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0B188B3AB9B1E62329468247 /* XCRemoteSwiftPackageReference "fit-swift-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
@@ -498,6 +533,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		858F0D0F4575A859DC2FDDA0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				700A26932A5569EF6BCFA0E0 /* FIT_SDK_INTEGRATION.md in Resources */,
+				83600E589CB8B78C6D3D6AF4 /* INTEGRATE_NOW.md in Resources */,
+				553F6ABA31C1C8CB887AA383 /* QUICK_START_FIT.md in Resources */,
+				7DB3DCCF2B6ED3CF45A8DBCF /* integrate_fit_sdk.sh in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -527,6 +573,7 @@
 				E7C8138486E487B8AAF105CB /* KinetixPhoneApp.swift in Sources */,
 				8F58AE3F06B74EFF78A4318E /* MainTabView.swift in Sources */,
 				4BCFE627C225EA695B07AE8C /* Run.swift in Sources */,
+				6AAF249EBFB3C367D0B5A9F6 /* RunExporter.swift in Sources */,
 				799A4C676E85D0467AD86D69 /* RunnerProfile.swift in Sources */,
 				CC50472692F34FA2282A64FB /* SettingsView.swift in Sources */,
 				88A8F169DAEB374DD680F9AB /* TrainingDistributionView.swift in Sources */,
@@ -939,6 +986,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0B188B3AB9B1E62329468247 /* XCRemoteSwiftPackageReference "fit-swift-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/garmin/fit-swift-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 21.171.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1E039B4AAEDE9BA9712F9490 /* FITSwiftSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0B188B3AB9B1E62329468247 /* XCRemoteSwiftPackageReference "fit-swift-sdk" */;
+			productName = FITSwiftSDK;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 25C759F49059770DA135F04B /* Project object */;
 }

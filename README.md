@@ -19,6 +19,9 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 ### 🏃‍♂️ Running Metrics & Analytics
 
 - **NPI (Normalized Performance Index)**: Custom metric tracking running efficiency
+  - Converts directly into predicted finish times for **any** race distance (from a mile to an ultramarathon)
+  - Generates infinite "beat yourself" scenarios by recalculating projected finish times every few seconds based on live NPI
+  - Translates NPI into target paces/splits so you always know how fast you need to run to stay on goal
 - **Comprehensive Biomechanics Tracking**:
   - Cadence (Steps per minute)
   - Vertical Oscillation (Bounce)

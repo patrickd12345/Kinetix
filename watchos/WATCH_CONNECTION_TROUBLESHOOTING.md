@@ -95,3 +95,4 @@ Check Xcode console for specific errors:
 - Look for specific error messages about signing, bundle IDs, or device connection
 
 
+

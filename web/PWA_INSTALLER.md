@@ -149,3 +149,4 @@ Edit `vite.config.js` to customize:
 
 **The PWA installer makes Kinetix feel like a native app while keeping the flexibility of web technologies!**
 
+

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -176,7 +176,7 @@
 		88A6625E1273DD7333057CC8 /* ManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualView.swift; sourceTree = "<group>"; };
 		89BB59C1319B3536A8992F1F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		938F108DBA35FB7322DE372C /* KinetixWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KinetixWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		9A1CE68D2B20B08237570256 /* FIT_SDK_INTEGRATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FIT_SDK_INTEGRATION.md; sourceTree = "<group>"; };
 		9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunDetailView.swift; sourceTree = "<group>"; };
 		9C63D91A26A6AE87CC482BD0 /* UI_AUDIT_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_AUDIT_SUMMARY.md; sourceTree = "<group>"; };
@@ -298,8 +298,6 @@
 				D73BF37704B718A9EED5BC21 /* UIAuditor.swift */,
 				07D661928CB58228F18D536E /* UnitTests.swift */,
 				140654E2278A00ABF053C0E1 /* VoiceCoach.swift */,
-				A988286F9354E58D28287238 /* Models */,
-				BB55E304CC478E9C0D0AF901 /* Services */,
 			);
 			path = KinetixWatch;
 			sourceTree = "<group>";
@@ -472,12 +470,9 @@
 						ProvisioningStyle = Automatic;
 						TestTargetID = 42B3645BC2638DE55F8DB975;
 					};
-					426A4D67BDEF21A32C5372A9 = {
-						DevelopmentTeam = AWJBX83Y4X;
-						ProvisioningStyle = Automatic;
-					};
 					42B3645BC2638DE55F8DB975 = {
 						DevelopmentTeam = AWJBX83Y4X;
+						ProvisioningStyle = Automatic;
 					};
 					67DB05E72D659C6495C2D341 = {
 						DevelopmentTeam = AWJBX83Y4X;
@@ -498,7 +493,6 @@
 			packageReferences = (
 				0B188B3AB9B1E62329468247 /* XCRemoteSwiftPackageReference "fit-swift-sdk" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -664,6 +658,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_CONTEXT_CLASS = XCWatchOSCodeSignContext;
 				CODE_SIGN_ENTITLEMENTS = KinetixWatch/KinetixWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = KinetixWatch/Info.plist;
@@ -681,6 +676,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_TESTABILITY = YES;
@@ -691,6 +687,7 @@
 					"@loader_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickduchesneau.KinetixWatchOS.KinetixHostTests;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -721,6 +718,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_TESTABILITY = YES;
@@ -731,6 +729,7 @@
 					"@loader_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickduchesneau.KinetixWatchOS.KinetixHostTests;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -903,6 +902,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_CONTEXT_CLASS = XCWatchOSCodeSignContext;
 				CODE_SIGN_ENTITLEMENTS = KinetixWatch/KinetixWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = AWJBX83Y4X;
 				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = KinetixWatch/Info.plist;

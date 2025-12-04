@@ -125,3 +125,4 @@ After integration:
 - FIT File Format Specification: https://developer.garmin.com/fit/protocol/
 - Example Code: Check the SDK's example programs for reference implementations
 
+

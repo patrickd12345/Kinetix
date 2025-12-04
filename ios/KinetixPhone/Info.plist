@@ -41,6 +41,19 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.kinetix.phone</string>
+			</array>
+		</dict>
+	</array>
+	<key>GOOGLE_CLIENT_ID</key>
+	<string>YOUR_GOOGLE_CLIENT_ID</string>
+	<key>GOOGLE_CLIENT_SECRET</key>
+	<string>YOUR_GOOGLE_CLIENT_SECRET</string>
 </dict>
 </plist>
 

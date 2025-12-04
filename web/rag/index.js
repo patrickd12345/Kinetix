@@ -105,3 +105,4 @@ app.listen(PORT, () => {
   console.log(`🤖 Ollama: ${process.env.OLLAMA_API_URL || 'http://localhost:11434'}`);
 });
 
+

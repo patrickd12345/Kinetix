@@ -44,3 +44,4 @@ echo "   - pwa-512x512.png"
 echo "   - apple-touch-icon.png"
 echo "   - favicon.png"
 
+

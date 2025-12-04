@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Square, Play, Pause, Flag, Activity, Heart, Ruler } from 'lucide-react';
 import { useRunTracker } from '../hooks/useRunTracker';
 import { StorageService } from '../services/storageService';
+import { unifiedStorageService } from '../services/unifiedStorageService';
 import { Run } from '../models/Run';
 
 /**
@@ -79,7 +80,8 @@ export function RunView({ settings, onSave, onCancel }) {
 
   const handleSave = async () => {
     const run = getRunSummary();
-    await StorageService.saveRun(run);
+    // Use unified storage service for automatic cloud sync
+    await unifiedStorageService.saveRun(run);
     setShowSaveDialog(false);
     reset();
     onSave?.(run);

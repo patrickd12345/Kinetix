@@ -200,6 +200,20 @@ For the Watch and iPhone apps to communicate properly (WCSession), strict Bundle
 
 If you see "Watch App Not Installed" in the iPhone app diagnostics, one of these 3 rules is broken.
 
+### Watch Installation Troubleshooting
+
+**Having issues installing the Watch app?** See the comprehensive fix guide:
+
+- **[Quick Fix](watchos/QUICK_FIX.md)** - Start here for the most common solution
+- **[Complete Fix Guide](watchos/WATCH_INSTALL_FIX.md)** - Comprehensive solutions for all installation issues
+- **[Automated Fix Script](watchos/fix-watch-install.sh)** - Run `./fix-watch-install.sh` for automated diagnostics
+
+**Most Common Solution:** Install Watch app via iPhone first:
+1. Build iPhone app in Xcode (KinetixPhone scheme)
+2. On iPhone: Open Watch app → Find "Kinetix" → Tap "Install"
+3. Wait 1-2 minutes for installation
+4. Then build Watch app in Xcode (KinetixWatch scheme)
+
 ### Project Structure
 ```
 Kinetix/

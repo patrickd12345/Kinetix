@@ -188,3 +188,4 @@ For production deployment:
 **🎉 You're all set! Start indexing your runs and enjoy personalized AI coaching!**
 
 
+

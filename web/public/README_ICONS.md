@@ -42,3 +42,4 @@ Use any image editor to create icons at the specified sizes.
 Until you create proper icons, the PWA will still work but may show default browser icons. The app functionality is not affected.
 
 
+

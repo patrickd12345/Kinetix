@@ -4,6 +4,66 @@
 
 This document describes how local storage (IndexedDB/SwiftData) and cloud storage (Google Drive/Dropbox/OneDrive) coexist in a cohesive, unified storage solution. The architecture follows an **offline-first** approach where local storage is the primary source of truth, with cloud storage serving as backup, sync, and cross-device access.
 
+## Folder Structure
+
+```
+web/src/
+├── storage/
+│   ├── local/              ← storageService.js (IndexedDB abstraction)
+│   ├── sync/               ← unifiedStorageService.js + cloudSyncService.js
+│   └── providers/          ← googleDriveProvider.js + cloudStorageProvider.js + cloudTokenStorage.js
+├── ai/
+│   └── README.md           ← Placeholder for Local AI integration
+└── components/             ← All use unifiedStorageService
+
+docs/
+├── UNIFIED_STORAGE_ARCHITECTURE.md   ← This file
+├── CLOUD_STORAGE_ARCHITECTURE.md     ← Cloud specifics
+└── HOW_STORAGE_WORKS.md              ← User guide
+
+archive/
+└── << deprecated files >>
+```
+
+## Single File Cloud Storage
+
+The cloud storage uses **ONE JSON file** per user: `kinetix-data.json`
+
+### Data Structure
+
+```json
+{
+  "runs": [
+    {
+      "id": "abc123",
+      "date": "2025-01-15T10:30:00Z",
+      "distance": 5000,
+      "duration": 1800,
+      "avgNPI": 142.5,
+      "lastModified": "2025-01-15T10:35:00Z",
+      "syncedAt": "2025-01-15T10:35:00Z"
+    }
+  ],
+  "settings": {
+    "targetNPI": 135.0,
+    "unitSystem": "metric",
+    "physioMode": false
+  },
+  "syncMetadata": {
+    "lastSync": "2025-01-15T10:35:00Z",
+    "deviceId": "web-uuid-123",
+    "syncVersion": 1
+  }
+}
+```
+
+### Benefits
+
+- ✅ Single atomic operation per sync
+- ✅ Simpler conflict resolution
+- ✅ Fewer API calls
+- ✅ Easier debugging
+
 ## Core Principles
 
 ### 1. **Offline-First Architecture**
@@ -20,8 +80,7 @@ This document describes how local storage (IndexedDB/SwiftData) and cloud storag
 
 ### 3. **User Control**
 - **Opt-in cloud sync**: Users choose to enable cloud storage
-- **Storage modes**: Local-only, Cloud-synced, or Cloud-primary
-- **Selective sync**: Choose what to sync (runs, settings, etc.)
+- **Storage modes**: Local-only or Cloud-synced
 - **Easy migration**: Switch between modes without data loss
 
 ## Storage Architecture Layers
@@ -67,14 +126,8 @@ This document describes how local storage (IndexedDB/SwiftData) and cloud storag
 - Secondary: Cloud storage (backup)
 - Automatic background sync
 - Works offline, syncs when online
+- **Single file sync**: `kinetix-data.json`
 - **Use case**: Most users, cross-device access, backup
-
-### Mode 3: **Cloud-Primary** (Advanced)
-- Primary: Cloud storage
-- Cache: Local storage (for offline access)
-- Always sync before operations
-- Requires internet for writes
-- **Use case**: Multi-device users, minimal local storage
 
 ## Data Flow Patterns
 

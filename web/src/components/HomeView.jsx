@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, TrendingUp, History, Settings, Play, Sparkles } from 'lucide-react';
-import { StorageService } from '../services/storageService';
+import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { Run } from '../models/Run';
 
 /**
@@ -17,7 +17,7 @@ export function HomeView({ onNavigate, onStartRun }) {
   }, []);
 
   const loadData = async () => {
-    const runs = (await StorageService.getAllRuns())
+    const runs = (await unifiedStorageService.getAllRuns())
       .map((r) => Run.fromJSON(r))
       .sort((a, b) => b.date - a.date);
     
@@ -31,7 +31,7 @@ export function HomeView({ onNavigate, onStartRun }) {
       }
     }
     
-    setSettings(await StorageService.getSettings());
+    setSettings(await unifiedStorageService.getSettings());
   };
 
   const formatNPI = (npi) => {

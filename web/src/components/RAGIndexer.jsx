@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Database, CheckCircle, AlertCircle, Loader } from 'lucide-react';
-import { StorageService } from '../services/storageService';
+import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { RAGIndexService } from '../services/ragIndexService';
 
 /**
@@ -36,7 +36,7 @@ export function RAGIndexer({ onClose }) {
     setIndexed(0);
 
     try {
-      const runs = await StorageService.getAllRuns();
+      const runs = await unifiedStorageService.getAllRuns();
       setTotal(runs.length);
 
       let successCount = 0;

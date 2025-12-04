@@ -5,8 +5,7 @@ import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
 import { RunDetailView } from './components/RunDetailView';
 import { PWAInstaller, PWAStatus } from './components/PWAInstaller';
-import { StorageService } from './services/storageService';
-import { unifiedStorageService } from './services/unifiedStorageService';
+import { unifiedStorageService } from './storage/sync/unifiedStorageService';
 import { RAGIndexService } from './services/ragIndexService';
 
 /**

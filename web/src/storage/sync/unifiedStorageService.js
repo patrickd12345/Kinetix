@@ -4,9 +4,9 @@
  * Implements offline-first architecture with cloud sync
  */
 
-import { StorageService } from './storageService.js';
+import { StorageService } from '../local/storageService.js';
 import { cloudSyncService } from './cloudSyncService.js';
-import { CloudTokenStorage } from './cloudTokenStorage.js';
+import { CloudTokenStorage } from '../providers/cloudTokenStorage.js';
 
 export class UnifiedStorageService {
   constructor() {

@@ -41,12 +41,64 @@ This document provides an overview of all documentation files in the Kinetix Wat
 - **Status**: ✅ Current
 - **When to read**: For understanding the biomechanics behind form coaching
 
+## Watch App Feature Status & Guides
+
+### `FEATURES_IMPLEMENTED.md`
+- **Purpose**: Summarizes recently delivered critical features and UX flows
+- **Content**: Pause/resume, crash recovery, GPS/HealthKit handling, alerts, validation
+- **Status**: ✅ Current
+- **When to read**: To understand which issues have been addressed and where the code lives
+
+### `MISSING_FEATURES.md`
+- **Purpose**: Tracks non-critical enhancement ideas
+- **Content**: Auto-pause, richer recovery UI, exports, onboarding, battery tips
+- **Status**: ✅ Current (backlog only)
+- **When to read**: For prioritizing future work
+
+### `TESTING.md`
+- **Purpose**: How to run the in-app self-test suite and UI audit
+- **Content**: Steps to execute diagnostics and recent compilation fixes
+- **Status**: ✅ Current
+- **When to read**: Before shipping builds or debugging regressions
+
+### `LOCATION_MANAGER_GUIDE.md`
+- **Purpose**: Explains the GPS/HealthKit pipeline and state machine
+- **Content**: Authorization flow, workout lifecycle, data publishing, error handling
+- **Status**: ✅ Current
+- **When to read**: When modifying tracking logic or adding new metrics
+
+### `UI_AUDIT_GUIDE.md` / `UI_AUDIT_SUMMARY.md`
+- **Purpose**: Accessibility/design audit how-to and findings
+- **Content**: Audit steps, criteria, and summarized outcomes
+- **Status**: ✅ Current
+- **When to read**: When running accessibility checks or updating UI components
+
+### `AUDIT_REPORT.md`
+- **Purpose**: Latest code/documentation audit results
+- **Content**: Integrity findings, documentation alignment, remaining opportunities
+- **Status**: ✅ Current
+- **When to read**: For a snapshot of overall health and loose ends
+
 ## Other Documentation
 
 ### `SIGNING_FIX_PLAN.md` (watchos/)
 - **Purpose**: Xcode signing configuration guide
 - **Content**: Signing setup instructions
 - **Status**: ⚠️ May be outdated (check if still relevant)
+
+## iPhone Companion Documentation (ios/KinetixPhone)
+
+### `FIT_SDK_INTEGRATION.md` / `QUICK_START_FIT.md`
+- **Purpose**: Guidance for integrating the Garmin FIT SDK
+- **Content**: Setup steps, scripts, and quick-start instructions
+- **Status**: ⚠️ Review before use (integration may require updates)
+- **When to read**: When working on run export/import for the iPhone app
+
+### `INTEGRATE_NOW.md`
+- **Purpose**: Checklist for enabling the iOS app experience
+- **Content**: Configuration reminders and quick setup tips
+- **Status**: ✅ Current
+- **When to read**: After cloning to get the iPhone companion running
 
 ## Documentation Relationships
 

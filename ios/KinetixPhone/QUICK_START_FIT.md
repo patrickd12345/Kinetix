@@ -120,3 +120,4 @@ The exact file names depend on the SDK version, but you should see Objective-C `
 
 Once integrated, the FIT export will automatically appear in the export menu when viewing a run in History!
 
+

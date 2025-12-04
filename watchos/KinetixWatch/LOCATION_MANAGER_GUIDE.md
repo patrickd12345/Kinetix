@@ -130,3 +130,4 @@ The refactored `LocationManager` should:
 - **Reusable**: GPSManager can be used elsewhere
 - **Debuggable**: Clear separation of concerns
 
+

@@ -68,3 +68,4 @@ echo "   3. Add bridging header (see FIT_SDK_INTEGRATION.md)"
 echo "   4. Build the project"
 echo ""
 
+

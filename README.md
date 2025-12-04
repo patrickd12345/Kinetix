@@ -227,6 +227,15 @@ Kinetix/
 - **Watch as Sensor Hub**: Watch focuses on data collection; iPhone handles AI and management
 - **Modular Architecture**: Clean separation between Watch (sensors) and iPhone (intelligence)
 
+## 📋 Feature Documentation
+
+For detailed feature lists and comparisons across platforms:
+
+- **[Watch App Features](FEATURES_WATCH.md)** - Complete list of watchOS features
+- **[iPhone App Features](FEATURES_PHONE.md)** - Complete list of iOS features
+- **[Web App Features](FEATURES_WEB.md)** - Complete list of web app features
+- **[Feature Comparison](FEATURES_COMPARISON.md)** - Cross-platform feature comparison
+
 ## 📝 License
 
 Proprietary / Personal Use.

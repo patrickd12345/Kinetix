@@ -30,12 +30,17 @@ struct SettingsView: View {
     @State private var showingSaveConfirmation = false
     @State private var saveConfirmationMessage = ""
     
+    @State private var cloudSyncStatus: SyncStatus?
+    @State private var isSyncing = false
+    @State private var showingCloudAuth = false
+    
     private let sexOptions = ["unspecified", "female", "male", "nonbinary"]
     
     var body: some View {
         NavigationStack {
             List {
                 profileSection
+                cloudStorageSection
                 batteryProfileSection
                 findMyNPISection
                 aiSummarySection
@@ -71,6 +76,10 @@ struct SettingsView: View {
             }
             .onAppear {
                 bootstrapProfile()
+                updateCloudSyncStatus()
+            }
+            .sheet(isPresented: $showingCloudAuth) {
+                // OAuth will be handled by CloudSyncService
             }
             .sheet(isPresented: $showingProfileEditor) {
                 BatteryProfileEditorView(profile: editingProfile, onSave: { profileName in
@@ -87,6 +96,90 @@ struct SettingsView: View {
     }
     
     // MARK: - Sections
+    private var cloudStorageSection: some View {
+        Section {
+            if let status = cloudSyncStatus {
+                if status.isConnected {
+                    HStack {
+                        Label("Connected", systemImage: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Spacer()
+                        Text(status.provider?.capitalized ?? "Unknown")
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    if let lastSync = status.lastSyncTime {
+                        HStack {
+                            Label("Last Sync", systemImage: "clock")
+                            Spacer()
+                            Text(lastSync, style: .relative)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Button {
+                        Task {
+                            await syncNow()
+                        }
+                    } label: {
+                        HStack {
+                            if isSyncing {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Label("Sync Now", systemImage: "arrow.clockwise")
+                            }
+                        }
+                    }
+                    .disabled(isSyncing)
+                    
+                    Button(role: .destructive) {
+                        UnifiedStorageService.shared.disableCloudSync()
+                        updateCloudSyncStatus()
+                    } label: {
+                        Label("Disconnect", systemImage: "xmark.circle")
+                    }
+                } else {
+                    Button {
+                        Task {
+                            await connectCloudStorage()
+                        }
+                    } label: {
+                        HStack {
+                            if isSyncing {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Label("Connect Google Drive", systemImage: "cloud")
+                            }
+                        }
+                    }
+                    .disabled(isSyncing)
+                }
+            } else {
+                Button {
+                    Task {
+                        await connectCloudStorage()
+                    }
+                } label: {
+                    HStack {
+                        if isSyncing {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Label("Connect Google Drive", systemImage: "cloud")
+                        }
+                    }
+                }
+                .disabled(isSyncing)
+            }
+        } header: {
+            Text("Cloud Storage")
+        } footer: {
+            Text("Sync your runs to Google Drive for backup and cross-device access.")
+        }
+    }
+    
     private var batteryProfileSection: some View {
         Section {
             ForEach(batteryProfiles) { profile in
@@ -316,6 +409,61 @@ struct SettingsView: View {
         Focus on smoother ground contact and even strides. Recovery days every 3rd run.
         """
         aiSummary = summary
+    }
+    
+    private func updateCloudSyncStatus() {
+        cloudSyncStatus = UnifiedStorageService.shared.getSyncStatus()
+    }
+    
+    @State private var presentingViewController: UIViewController?
+    
+    private func connectCloudStorage() async {
+        // Check if credentials are configured
+        guard CloudSyncService.shared.areCredentialsConfigured() else {
+            saveConfirmationMessage = "Google OAuth credentials not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to Info.plist"
+            showingSaveConfirmation = true
+            return
+        }
+        
+        // Get the root view controller for OAuth
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            saveConfirmationMessage = "Could not find view controller for authentication"
+            showingSaveConfirmation = true
+            return
+        }
+        
+        isSyncing = true
+        defer { isSyncing = false }
+        
+        do {
+            // This automatically opens Google OAuth dialog - user just signs in
+            try await UnifiedStorageService.shared.enableCloudSync(
+                presentingViewController: rootViewController,
+                modelContext: modelContext
+            )
+            updateCloudSyncStatus()
+            saveConfirmationMessage = "Google Drive connected successfully"
+            showingSaveConfirmation = true
+        } catch {
+            saveConfirmationMessage = "Failed to connect: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
+    }
+    
+    private func syncNow() async {
+        isSyncing = true
+        defer { isSyncing = false }
+        
+        do {
+            let result = try await UnifiedStorageService.shared.manualSync(modelContext: modelContext)
+            updateCloudSyncStatus()
+            saveConfirmationMessage = "Sync complete: \(result.uploaded ?? 0) uploaded, \(result.downloaded ?? 0) downloaded"
+            showingSaveConfirmation = true
+        } catch {
+            saveConfirmationMessage = "Sync failed: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
     }
 }
 

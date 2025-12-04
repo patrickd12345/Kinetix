@@ -6,6 +6,7 @@ import { SettingsView } from './components/SettingsView';
 import { RunDetailView } from './components/RunDetailView';
 import { PWAInstaller, PWAStatus } from './components/PWAInstaller';
 import { StorageService } from './services/storageService';
+import { unifiedStorageService } from './services/unifiedStorageService';
 import { RAGIndexService } from './services/ragIndexService';
 
 /**
@@ -17,16 +18,22 @@ export default function App() {
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
-    loadSettings();
+    initializeStorage();
   }, []);
 
+  const initializeStorage = async () => {
+    // Initialize unified storage (handles local + cloud)
+    await unifiedStorageService.initialize();
+    await loadSettings();
+  };
+
   const loadSettings = async () => {
-    const loaded = await StorageService.getSettings();
+    const loaded = await unifiedStorageService.getSettings();
     setSettings(loaded);
   };
 
   const saveSettings = async (newSettings) => {
-    await StorageService.saveSettings(newSettings);
+    await unifiedStorageService.saveSettings(newSettings);
     setSettings(newSettings);
   };
 

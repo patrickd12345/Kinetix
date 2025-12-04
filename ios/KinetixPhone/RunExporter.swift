@@ -1,6 +1,8 @@
 import Foundation
 import CoreLocation
+#if canImport(FITSwiftSDK)
 import FITSwiftSDK
+#endif
 
 class RunExporter {
     
@@ -126,8 +128,8 @@ class RunExporter {
     // 1. Add Swift Package: https://github.com/garmin/fit-swift-sdk.git
     // 2. Import FITSwiftSDK in this file
     // 3. The SDK provides Encoder, FileIdMesg, RecordMesg, etc.
+#if canImport(FITSwiftSDK)
     static func generateFIT(run: Run) -> Data? {
-        
         do {
             // DateTime uses seconds since UTC 00:00 Dec 31 1989
             // FIT epoch: Dec 31, 1989 00:00:00 UTC = 631065600 seconds since Unix epoch
@@ -139,18 +141,18 @@ class RunExporter {
             }
             let startTime = DateTime(timestamp: UInt32(secondsSinceFitEpoch))
             let semicirclesPerDegree: Double = 11930464.711111111 // Conversion factor
-            
+
             // Create encoder
             let encoder = Encoder()
             var messages: [Mesg] = []
-            
+
             // Timer Event Start (BEST PRACTICE)
             let eventStart = EventMesg()
             try eventStart.setTimestamp(startTime)
             try eventStart.setEvent(.timer)
             try eventStart.setEventType(.start)
             messages.append(eventStart)
-            
+
             // File ID Message (REQUIRED)
             let fileIdMesg = FileIdMesg()
             try fileIdMesg.setType(.activity)
@@ -159,7 +161,7 @@ class RunExporter {
             try fileIdMesg.setTimeCreated(startTime)
             try fileIdMesg.setSerialNumber(UInt32.random(in: 1..<UInt32.max))
             encoder.write(mesg: fileIdMesg)
-            
+
             // Device Info (BEST PRACTICE)
             let deviceInfo = DeviceInfoMesg()
             try deviceInfo.setDeviceIndex(DeviceIndexValues.creator)
@@ -169,40 +171,40 @@ class RunExporter {
             try deviceInfo.setSoftwareVersion(1.0)
             try deviceInfo.setTimestamp(startTime)
             encoder.write(mesg: deviceInfo)
-            
+
             // Record Messages (track points)
             let points = run.routeData
             let count = points.count
-            
+
             if count > 0 {
                 let duration = run.duration
                 let interval = duration / Double(count)
                 let distInterval = run.distance / Double(count)
-                
+
                 for (index, point) in points.enumerated() {
                     let timeOffset = interval * Double(index)
                     let timestamp = DateTime(timestamp: UInt32(startTime.timestamp + UInt32(timeOffset)))
                     let currentDist = distInterval * Double(index)
-                    
+
                     let recordMesg = RecordMesg()
                     try recordMesg.setTimestamp(timestamp)
-                    
+
                     // Convert lat/lon to semicircles (FIT format)
                     let latSemicircles = Int32(round(point.lat * semicirclesPerDegree))
                     let lonSemicircles = Int32(round(point.lon * semicirclesPerDegree))
                     try recordMesg.setPositionLat(latSemicircles)
                     try recordMesg.setPositionLong(lonSemicircles)
-                    
+
                     try recordMesg.setDistance(Float64(currentDist))
                     try recordMesg.setHeartRate(UInt8(run.avgHeartRate))
                     if let cadence = run.avgCadence {
                         try recordMesg.setCadence(UInt8(cadence))
                     }
-                    
+
                     messages.append(recordMesg)
                 }
             }
-            
+
             // Session Message (summary)
             let endTime = DateTime(timestamp: UInt32(startTime.timestamp + UInt32(run.duration)))
             let sessionMesg = SessionMesg()
@@ -220,7 +222,7 @@ class RunExporter {
                 try sessionMesg.setMaxCadence(UInt8(cadence))
             }
             messages.append(sessionMesg)
-            
+
             // Lap Message
             let lapMesg = LapMesg()
             try lapMesg.setTimestamp(endTime)
@@ -233,7 +235,7 @@ class RunExporter {
             try lapMesg.setEvent(.timer)
             try lapMesg.setEventType(.stop)
             messages.append(lapMesg)
-            
+
             // Activity Message
             let activityMesg = ActivityMesg()
             try activityMesg.setTimestamp(endTime)
@@ -245,26 +247,30 @@ class RunExporter {
             let timezoneOffset = TimeZone.current.secondsFromGMT()
             try activityMesg.setLocalTimestamp(LocalDateTime(Int(endTime.timestamp) + timezoneOffset))
             messages.append(activityMesg)
-            
+
             // Timer Event Stop
             let eventStop = EventMesg()
             try eventStop.setTimestamp(endTime)
             try eventStop.setEvent(.timer)
             try eventStop.setEventType(.stop)
             messages.append(eventStop)
-            
+
             // Write all messages
             encoder.write(mesgs: messages)
-            
+
             // Close encoder and get data
             let encodedData = encoder.close()
             return encodedData
-            
+
         } catch {
             print("FIT encoding error: \(error)")
             return nil
         }
-        
     }
+#else
+    static func generateFIT(run: Run) -> Data? {
+        // FITSwiftSDK not available. Return nil to disable FIT export gracefully.
+        return nil
+    }
+#endif
 }
-

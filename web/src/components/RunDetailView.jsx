@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Sparkles, MapPin, Activity, TrendingUp } from 'lucide-react';
-import { StorageService } from '../services/storageService';
+import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { Run } from '../models/Run';
 import { AICoachService } from '../services/aiCoachService';
 
@@ -21,8 +21,8 @@ export function RunDetailView({ runId, onNavigate }) {
 
   const loadRun = async () => {
     const [runData, settingsData] = await Promise.all([
-      StorageService.getRun(runId),
-      StorageService.getSettings(),
+      unifiedStorageService.getRun(runId),
+      unifiedStorageService.getSettings(),
     ]);
     
     if (runData) {

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Square, Play, Pause, Flag, Activity, Heart, Ruler } from 'lucide-react';
 import { useRunTracker } from '../hooks/useRunTracker';
-import { StorageService } from '../services/storageService';
-import { unifiedStorageService } from '../services/unifiedStorageService';
+import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { Run } from '../models/Run';
 
 /**

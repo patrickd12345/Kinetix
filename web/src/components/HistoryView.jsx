@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, TrendingUp, Calendar, Activity } from 'lucide-react';
-import { StorageService } from '../services/storageService';
+import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { Run } from '../models/Run';
 
 /**
@@ -15,7 +15,7 @@ export function HistoryView({ onNavigate }) {
   }, []);
 
   const loadRuns = async () => {
-    const allRuns = (await StorageService.getAllRuns())
+    const allRuns = (await unifiedStorageService.getAllRuns())
       .map((r) => Run.fromJSON(r))
       .sort((a, b) => b.date - a.date);
     setRuns(allRuns);

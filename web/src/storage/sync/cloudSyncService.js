@@ -1,6 +1,6 @@
-import { GoogleDriveProvider } from './googleDriveProvider.js';
-import { CloudTokenStorage } from './cloudTokenStorage.js';
-import { StorageService } from './storageService.js';
+import { GoogleDriveProvider } from '../providers/googleDriveProvider.js';
+import { CloudTokenStorage } from '../providers/cloudTokenStorage.js';
+import { StorageService } from '../local/storageService.js';
 
 /**
  * Cloud sync service - handles syncing data between local storage and cloud

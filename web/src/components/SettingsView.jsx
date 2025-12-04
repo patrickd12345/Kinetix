@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Target, Globe, Heart, Calculator, Trash2, Database } from 'lucide-react';
-import { StorageService } from '../services/storageService';
+import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { calculateNPIFromRace } from '../utils/npiCalculator';
 import { RAGIndexer } from './RAGIndexer';
 
@@ -49,7 +49,7 @@ export function SettingsView({ settings, onSave, onNavigate }) {
 
   const handleClearData = async () => {
     if (confirm('Are you sure you want to delete all runs? This cannot be undone.')) {
-      await StorageService.clearAll();
+      await unifiedStorageService.clearAll();
       alert('All data cleared. Refreshing...');
       window.location.reload();
     }

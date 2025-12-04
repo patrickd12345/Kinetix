@@ -707,7 +707,9 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
     
     func updateCalculations() {
         let duration = runStateManager.elapsedDuration()
-        
+
+        timeToBeat = nil
+
         if totalDistance > 0 {
             // Overall Avg Pace (for NPI)
             paceSeconds = duration / (totalDistance / 1000.0)
@@ -749,50 +751,22 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
             let avg5SecPace = rollingPaceBuffer.isEmpty ? paceSeconds : rollingPaceBuffer.map(\.1).reduce(0, +) / Double(rollingPaceBuffer.count)
             rolling5SecPace = avg5SecPace
             
-            // Calculate Progress (MeBeatMe)
-            let targetDistance = 5000.0
-            let remainingDist = max(0, targetDistance - totalDistance)
-            
-            if avg5SecPace > 0 && remainingDist > 0 {
-                let pacePerMeter = avg5SecPace / 1000.0
-                let timeRemaining = remainingDist * pacePerMeter
-                let predictedTotal = duration + timeRemaining
-                
-                if predictedTotal > 0 {
-                    runProgress = duration / predictedTotal
-                }
-            } else if remainingDist <= 0 {
-                runProgress = 1.0
-            }
-            
             // NPI Calculation
             if totalDistance > 100 && duration > 30 {
                 let speedKmH = (1000/paceSeconds) * 3.6
                 let factor = pow((totalDistance/1000.0), 0.06)
                 liveNPI = speedKmH * factor * 10.0
-                
-                // Projection Logic
-                let roundingThreshold = activeTargetNPI - 0.5
-                let term = 10 * ((roundingThreshold * (duration/60)/(totalDistance/1000)) / 500 - 1)
-                
-                if term < 5 {
-                    let distNeeded = exp(term) - 0.1
-                    let distRemaining = distNeeded - (totalDistance/1000.0)
-                    
-                    if distRemaining > 0 {
-                        let timeSecs = distRemaining * paceSeconds
-                        let m = Int(timeSecs / 60)
-                        let s = Int(timeSecs.truncatingRemainder(dividingBy: 60))
-                        
-                        let paceMin = Int(paceSeconds / 60)
-                        let paceSec = Int(paceSeconds.truncatingRemainder(dividingBy: 60))
-                        
-                        timeToBeat = String(format: "%d:%02d @ AVG %d:%02d", m, s, paceMin, paceSec)
-                    } else {
-                        timeToBeat = "GO GO GO!"
-                    }
-                } else {
-                    timeToBeat = "INCREASE PACE"
+
+                let targetDistance = 5000.0
+                if let projection = RunMetricsCalculator.projectRaceTime(
+                    currentNPI: liveNPI,
+                    goalNPI: activeTargetNPI,
+                    elapsedSeconds: duration,
+                    distanceCoveredMeters: totalDistance,
+                    targetDistanceMeters: targetDistance
+                ) {
+                    runProgress = projection.progress
+                    timeToBeat = projection.displayString(includeGoal: activeTargetNPI > 0)
                 }
             }
         }

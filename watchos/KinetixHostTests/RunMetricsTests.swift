@@ -58,5 +58,37 @@ struct RunMetricsTests {
         #expect(avg == 310.0)
         #expect(buffer.count == 2)
     }
+
+    @Test("Predict finish time from NPI")
+    func testFinishTimePrediction() {
+        let baselineDistance = 5000.0
+        let baselineTime = 1500.0
+        let npi = RunMetricsCalculator.calculateNPI(distanceMeters: baselineDistance, durationSeconds: baselineTime)
+
+        let predictedBaseline = RunMetricsCalculator.finishTime(fromNPI: npi, distanceMeters: baselineDistance)
+        #expect(abs(predictedBaseline - baselineTime) < 1.0)
+
+        let tenKPrediction = RunMetricsCalculator.finishTime(fromNPI: npi, distanceMeters: 10000.0)
+        #expect(tenKPrediction > baselineTime) // Longer distance should take longer
+    }
+
+    @Test("Race projection uses NPI to set progress and goal")
+    func testRaceProjection() {
+        let distanceSoFar = 2500.0
+        let elapsed = 750.0
+        let currentNPI = RunMetricsCalculator.calculateNPI(distanceMeters: distanceSoFar, durationSeconds: elapsed)
+        let projection = RunMetricsCalculator.projectRaceTime(
+            currentNPI: currentNPI,
+            goalNPI: currentNPI + 10,
+            elapsedSeconds: elapsed,
+            distanceCoveredMeters: distanceSoFar,
+            targetDistanceMeters: 5000.0
+        )
+
+        #expect(projection != nil)
+        #expect(projection?.progress ?? 0 > 0.45)
+        #expect(projection?.progress ?? 0 < 0.6)
+        #expect((projection?.displayString() ?? "").isEmpty == false)
+    }
 }
 

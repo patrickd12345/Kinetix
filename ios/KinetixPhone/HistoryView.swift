@@ -64,6 +64,14 @@ struct RunRow: View {
 
 struct RunDetailView: View {
     let run: Run
+    @Environment(\.modelContext) private var modelContext
+    @Query private var profiles: [RunnerProfile]
+    
+    @StateObject private var aiCoach = AICoach()
+    
+    private var targetNPI: Double {
+        profiles.first?.targetNPI ?? 135.0
+    }
     
     var body: some View {
         ScrollView {
@@ -95,15 +103,53 @@ struct RunDetailView: View {
                     MetricDetailCard(title: "Bounce", value: String(format: "%.1f cm", run.avgVerticalOscillation ?? 0))
                 }
                 
-                // AI Analysis (Lab Report) placeholder
-                Text("AI Analysis")
-                    .font(.headline)
-                    .padding(.top)
-                Text("This run showed solid cadence stability. Vertical oscillation was slightly high at mile 2.")
-                    .font(.body)
-                    .padding()
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
+                // AI Analysis
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("AI Analysis")
+                            .font(.headline)
+                        Spacer()
+                        if aiCoach.isAnalyzing {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else if aiCoach.result == nil && aiCoach.error == nil {
+                            Button("Analyze") {
+                                analyzeRun()
+                            }
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    if let error = aiCoach.error {
+                        Text("Error: \(error)")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding()
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(8)
+                    } else if let result = aiCoach.result {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(result.title)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.cyan)
+                            Text(result.insight)
+                                .font(.body)
+                        }
+                        .padding()
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                    } else {
+                        Text("Tap 'Analyze' to get AI-powered insights about this run.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding()
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
+                    }
+                }
+                .padding(.top)
                 
                 if let sessionId = run.formSessionId {
                     FormMonitorReportView(sessionId: sessionId)
@@ -184,6 +230,20 @@ struct RunDetailView: View {
         let m = Int(pace / 60)
         let s = Int(pace.truncatingRemainder(dividingBy: 60))
         return String(format: "%d:%02d /km", m, s)
+    }
+    
+    private func analyzeRun() {
+        let distance = run.distance / 1000.0 // km
+        let paceMin = Int(run.avgPace / 60)
+        let paceSec = Int(run.avgPace.truncatingRemainder(dividingBy: 60))
+        let pace = String(format: "%d:%02d", paceMin, paceSec)
+        
+        aiCoach.analyzeRun(
+            distance: distance,
+            pace: pace,
+            npi: run.avgNPI,
+            pb: targetNPI
+        )
     }
 }
 

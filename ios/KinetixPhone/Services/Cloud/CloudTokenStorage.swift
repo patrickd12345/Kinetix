@@ -132,14 +132,14 @@ struct CloudTokens: Codable {
     var tokenType: String
 }
 
-enum CloudStorageError: LocalizedError {
+public enum CloudStorageError: LocalizedError {
     case tokenStorageFailed(String)
     case authenticationFailed(String)
     case networkError(String)
     case fileNotFound
     case syncFailed(String)
     
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .tokenStorageFailed(let msg): return "Token storage failed: \(msg)"
         case .authenticationFailed(let msg): return "Authentication failed: \(msg)"
@@ -149,4 +149,5 @@ enum CloudStorageError: LocalizedError {
         }
     }
 }
+
 

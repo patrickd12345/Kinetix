@@ -353,6 +353,11 @@ struct RunView: View {
                                         formSessionId: summary.formSessionId
                                     )
                                     modelContext.insert(run)
+                                    
+                                    // Sync run to iPhone via Watch Connectivity
+                                    Task {
+                                        await syncRunToiPhone(run)
+                                    }
                                 } else {
                                     showInvalidRunAlert = true
                                 }
@@ -505,5 +510,24 @@ struct RunView: View {
         feedback.hapticsEnabled = feedback.hapticsEnabled && globalHapticsEnabled
         feedback.sonicEnabled = feedback.sonicEnabled && globalSonicFeedbackEnabled
         return feedback
+    }
+    
+    // MARK: - Watch Connectivity: Sync Run to iPhone
+    private func syncRunToiPhone(_ run: Run) async {
+        let payload = RunPayload(from: run)
+        guard let data = try? JSONEncoder().encode(payload) else { return }
+        
+        let session = WCSession.default
+        if session.isReachable {
+            session.sendMessage(["run": data], replyHandler: nil)
+        }
+        
+        do {
+            var context = session.applicationContext
+            context["run"] = data
+            try session.updateApplicationContext(context)
+        } catch {
+            print("Failed to sync run to iPhone: \(error.localizedDescription)")
+        }
     }
 }

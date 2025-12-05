@@ -104,6 +104,11 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                 return
             }
             
+            if let runData = message["run"] as? Data {
+                self.storeIncomingRun(runData)
+                return
+            }
+            
             // Check for run state changes
             if let isRunning = message["isRunning"] as? Bool {
                 print("📱 iPhone received run state: \(isRunning)")
@@ -133,6 +138,10 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             
             if let sampleData = applicationContext["formSamples"] as? Data {
                 self.storeIncomingFormSamples(sampleData)
+            }
+            
+            if let runData = applicationContext["run"] as? Data {
+                self.storeIncomingRun(runData)
             }
             
             if let isRunning = applicationContext["isRunning"] as? Bool {
@@ -391,6 +400,38 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             }
         } catch {
             DiagnosticLogManager.shared.log("Failed to decode form samples: \(error.localizedDescription)", category: "sync")
+        }
+    }
+    
+    private func storeIncomingRun(_ data: Data) {
+        guard let modelContext else { return }
+        do {
+            let payload = try JSONDecoder().decode(RunPayload.self, from: data)
+            // Check if run already exists
+            let descriptor = FetchDescriptor<Run>(predicate: #Predicate { $0.id == payload.id })
+            if (try? modelContext.fetch(descriptor).first) == nil {
+                // Create new run from payload
+                let run = Run(
+                    date: payload.date,
+                    source: payload.source,
+                    distance: payload.distance,
+                    duration: payload.duration,
+                    avgPace: payload.avgPace,
+                    avgNPI: payload.avgNPI,
+                    avgHeartRate: payload.avgHeartRate,
+                    avgCadence: payload.avgCadence,
+                    avgVerticalOscillation: payload.avgVerticalOscillation,
+                    avgGroundContactTime: payload.avgGroundContactTime,
+                    avgStrideLength: payload.avgStrideLength,
+                    formScore: payload.formScore,
+                    routeData: payload.routeData,
+                    formSessionId: payload.formSessionId
+                )
+                modelContext.insert(run)
+                print("📱 iPhone: Received and saved run from Watch: \(String(format: "%.2f", payload.distance / 1000)) km")
+            }
+        } catch {
+            DiagnosticLogManager.shared.log("Failed to decode incoming run: \(error.localizedDescription)", category: "sync")
         }
     }
 }

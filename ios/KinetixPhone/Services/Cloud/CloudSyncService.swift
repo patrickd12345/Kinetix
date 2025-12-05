@@ -7,8 +7,8 @@ import UIKit
  * Handles syncing data between SwiftData (local) and Google Drive (cloud)
  * Uses single file architecture: kinetix-data.json
  */
-class CloudSyncService {
-    static let shared = CloudSyncService()
+public class CloudSyncService {
+    public static let shared = CloudSyncService()
     
     private let dataFilename = "kinetix-data.json"
     private let googleDriveProvider: GoogleDriveProvider
@@ -20,10 +20,17 @@ class CloudSyncService {
         // Get from Info.plist
         let clientId = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_ID") as? String ?? ""
         let clientSecret = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_SECRET") as? String ?? ""
-        let redirectURI = "com.kinetix.phone://oauth/google/callback"
+        
+        // Standard Google iOS Redirect URI format:
+        // com.googleusercontent.apps.CLIENT_ID:/oauth2redirect/google
+        // We must extract the scheme part from the Client ID
+        let reversedClientId = clientId.components(separatedBy: ".").reversed().joined(separator: ".")
+        let redirectURI = "\(reversedClientId):/oauth2redirect/google"
         
         // Validate credentials are configured
-        guard !clientId.isEmpty, !clientSecret.isEmpty, clientId != "YOUR_GOOGLE_CLIENT_ID" else {
+        // Note: For iOS clients, clientSecret can be empty (Google doesn't provide it)
+        guard !clientId.isEmpty, 
+              clientId != "YOUR_GOOGLE_CLIENT_ID" else {
             // Credentials not configured - provider will throw error on use
             self.googleDriveProvider = GoogleDriveProvider(
                 clientId: "",
@@ -43,10 +50,11 @@ class CloudSyncService {
     /**
      * Check if Google OAuth credentials are configured
      */
-    func areCredentialsConfigured() -> Bool {
+    public func areCredentialsConfigured() -> Bool {
         let clientId = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_ID") as? String ?? ""
-        let clientSecret = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_SECRET") as? String ?? ""
-        return !clientId.isEmpty && !clientSecret.isEmpty && clientId != "YOUR_GOOGLE_CLIENT_ID"
+        // Note: For iOS clients, clientSecret can be empty (Google doesn't provide it)
+        return !clientId.isEmpty 
+            && clientId != "YOUR_GOOGLE_CLIENT_ID"
     }
     
     /**
@@ -89,12 +97,15 @@ class CloudSyncService {
             return try JSONDecoder().decode(CloudData.self, from: data)
         } catch CloudStorageError.fileNotFound {
             // File doesn't exist yet, return empty structure
+            let deviceId = await MainActor.run {
+                UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+            }
             return CloudData(
                 runs: [],
                 settings: nil,
                 syncMetadata: SyncMetadata(
                     lastSync: nil,
-                    deviceId: UIDevice.current.identifierForVendor?.uuidString ?? "unknown",
+                    deviceId: deviceId,
                     syncVersion: 1
                 )
             )
@@ -116,7 +127,7 @@ class CloudSyncService {
     /**
      * Sync all runs to cloud (using single file)
      */
-    func syncRunsToCloud(modelContext: ModelContext) async throws -> SyncResult {
+    public func syncRunsToCloud(modelContext: ModelContext) async throws -> SyncResult {
         guard !syncInProgress else {
             throw CloudStorageError.syncFailed("Sync already in progress")
         }
@@ -135,9 +146,6 @@ class CloudSyncService {
             RunData.from(run: run)
         }
         
-        // Load cloud data (if exists)
-        let cloudData = try await loadDataFromCloud(accessToken: accessToken)
-        
         // Get settings (if any stored locally)
         // Note: Settings might be stored differently in iOS, adjust as needed
         let settings: [String: Any]? = nil // TODO: Get from UserDefaults or SwiftData
@@ -153,7 +161,9 @@ class CloudSyncService {
             settings: settings,
             syncMetadata: SyncMetadata(
                 lastSync: ISO8601DateFormatter().string(from: Date()),
-                deviceId: UIDevice.current.identifierForVendor?.uuidString ?? "unknown",
+                deviceId: await MainActor.run {
+                    UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+                },
                 syncVersion: 1
             )
         )
@@ -162,13 +172,13 @@ class CloudSyncService {
         try await saveDataToCloud(mergedData, accessToken: accessToken)
         
         lastSyncTime = Date()
-        return SyncResult(success: true, uploaded: localRuns.count, total: localRuns.count)
+        return SyncResult(success: true, uploaded: localRuns.count, downloaded: nil, merged: nil, total: localRuns.count)
     }
     
     /**
      * Sync runs from cloud to local (using single file)
      */
-    func syncRunsFromCloud(modelContext: ModelContext) async throws -> SyncResult {
+    public func syncRunsFromCloud(modelContext: ModelContext) async throws -> SyncResult {
         guard !syncInProgress else {
             throw CloudStorageError.syncFailed("Sync already in progress")
         }
@@ -249,6 +259,7 @@ class CloudSyncService {
         lastSyncTime = Date()
         return SyncResult(
             success: true,
+            uploaded: nil,
             downloaded: downloaded,
             merged: merged,
             total: cloudData.runs.count
@@ -258,7 +269,7 @@ class CloudSyncService {
     /**
      * Get sync status
      */
-    func getSyncStatus() -> SyncStatus {
+    public func getSyncStatus() -> SyncStatus {
         let isConnected = CloudTokenStorage.shared.hasTokens(provider: "google")
         
         return SyncStatus(
@@ -273,15 +284,8 @@ class CloudSyncService {
      * Authenticate with Google Drive
      * Opens Google OAuth dialog automatically
      */
-    func authenticate(presentingViewController: UIViewController) async throws {
-        // Validate credentials are configured
-        guard areCredentialsConfigured() else {
-            throw CloudStorageError.authenticationFailed(
-                "Google OAuth credentials not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to Info.plist"
-            )
-        }
-        
-        // Open Google OAuth dialog automatically
+    public func authenticate(presentingViewController: UIViewController) async throws {
+        // Open Google OAuth dialog automatically - let it handle credential validation
         let tokens = try await googleDriveProvider.authenticate(presentingViewController: presentingViewController)
         
         try CloudTokenStorage.shared.storeTokens(
@@ -379,18 +383,33 @@ struct SyncMetadata: Codable {
     var syncVersion: Int
 }
 
-struct SyncResult {
-    let success: Bool
-    let uploaded: Int?
-    let downloaded: Int?
-    let merged: Int?
-    let total: Int
+public struct SyncResult {
+    public let success: Bool
+    public let uploaded: Int?
+    public let downloaded: Int?
+    public let merged: Int?
+    public let total: Int
+    
+    public init(success: Bool, uploaded: Int?, downloaded: Int?, merged: Int?, total: Int) {
+        self.success = success
+        self.uploaded = uploaded
+        self.downloaded = downloaded
+        self.merged = merged
+        self.total = total
+    }
 }
 
-struct SyncStatus {
-    let isConnected: Bool
-    let isSyncing: Bool
-    let provider: String?
-    let lastSyncTime: Date?
+public struct SyncStatus {
+    public let isConnected: Bool
+    public let isSyncing: Bool
+    public let provider: String?
+    public let lastSyncTime: Date?
+    
+    public init(isConnected: Bool, isSyncing: Bool, provider: String?, lastSyncTime: Date?) {
+        self.isConnected = isConnected
+        self.isSyncing = isSyncing
+        self.provider = provider
+        self.lastSyncTime = lastSyncTime
+    }
 }
 

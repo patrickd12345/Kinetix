@@ -7,8 +7,8 @@ import UIKit
  * Coordinates between SwiftData (local) and cloud storage
  * Single entry point for all storage operations
  */
-class UnifiedStorageService {
-    static let shared = UnifiedStorageService()
+public class UnifiedStorageService {
+    public static let shared = UnifiedStorageService()
     
     private var syncMode: String = "local" // "local" | "cloud-synced"
     private var syncInProgress = false
@@ -21,14 +21,14 @@ class UnifiedStorageService {
     /**
      * Initialize unified storage service
      */
-    func initialize(modelContext: ModelContext) async {
+    public func initialize(modelContext: ModelContext) async {
         // If cloud-synced, trigger background sync
         if syncMode == "cloud-synced" {
             let status = CloudSyncService.shared.getSyncStatus()
             if status.isConnected {
                 Task {
                     do {
-                        try await CloudSyncService.shared.syncRunsFromCloud(modelContext: modelContext)
+                        _ = try await CloudSyncService.shared.syncRunsFromCloud(modelContext: modelContext)
                     } catch {
                         print("Background sync failed on init: \(error)")
                     }
@@ -41,7 +41,7 @@ class UnifiedStorageService {
      * Save a run
      * Always saves to SwiftData first, then syncs to cloud if enabled
      */
-    func saveRun(_ run: Run, modelContext: ModelContext) async throws {
+    public func saveRun(_ run: Run, modelContext: ModelContext) async throws {
         // Always save to local first (offline-first)
         modelContext.insert(run)
         try modelContext.save()
@@ -50,7 +50,7 @@ class UnifiedStorageService {
         if syncMode == "cloud-synced" {
             Task {
                 do {
-                    try await CloudSyncService.shared.syncRunsToCloud(modelContext: modelContext)
+                    _ = try await CloudSyncService.shared.syncRunsToCloud(modelContext: modelContext)
                 } catch {
                     print("Background sync failed for run: \(error)")
                     // Run is saved locally, sync will retry later
@@ -88,7 +88,7 @@ class UnifiedStorageService {
         // If cloud-synced, sync to cloud (run will be removed on next sync)
         if syncMode == "cloud-synced" {
             Task {
-                try? await CloudSyncService.shared.syncRunsToCloud(modelContext: modelContext)
+                _ = try? await CloudSyncService.shared.syncRunsToCloud(modelContext: modelContext)
             }
         }
     }
@@ -96,7 +96,7 @@ class UnifiedStorageService {
     /**
      * Enable cloud sync
      */
-    func enableCloudSync(presentingViewController: UIViewController, modelContext: ModelContext) async throws {
+    public func enableCloudSync(presentingViewController: UIViewController, modelContext: ModelContext) async throws {
         // Authenticate with Google Drive
         try await CloudSyncService.shared.authenticate(presentingViewController: presentingViewController)
         
@@ -105,22 +105,23 @@ class UnifiedStorageService {
         UserDefaults.standard.set(syncMode, forKey: "kinetix_sync_mode")
         
         // Initial sync
-        try await CloudSyncService.shared.syncRunsToCloud(modelContext: modelContext)
-        try await CloudSyncService.shared.syncRunsFromCloud(modelContext: modelContext)
+        _ = try await CloudSyncService.shared.syncRunsToCloud(modelContext: modelContext)
+        _ = try await CloudSyncService.shared.syncRunsFromCloud(modelContext: modelContext)
     }
     
     /**
      * Disable cloud sync
      */
-    func disableCloudSync() {
+    public func disableCloudSync() {
         syncMode = "local"
         UserDefaults.standard.set(syncMode, forKey: "kinetix_sync_mode")
+        try? CloudTokenStorage.shared.removeTokens(provider: "google")
     }
     
     /**
      * Manual sync
      */
-    func manualSync(modelContext: ModelContext) async throws -> SyncResult {
+    public func manualSync(modelContext: ModelContext) async throws -> SyncResult {
         guard syncMode == "cloud-synced" else {
             throw CloudStorageError.syncFailed("Cloud sync not enabled")
         }
@@ -143,14 +144,14 @@ class UnifiedStorageService {
     /**
      * Get sync status
      */
-    func getSyncStatus() -> SyncStatus {
+    public func getSyncStatus() -> SyncStatus {
         return CloudSyncService.shared.getSyncStatus()
     }
     
     /**
      * Check if cloud sync is enabled
      */
-    func isCloudSyncEnabled() -> Bool {
+    public func isCloudSyncEnabled() -> Bool {
         return syncMode == "cloud-synced"
     }
 }

@@ -31,6 +31,7 @@ targets:
       - path: KinetixWatch/AdaptiveLearner.swift
       - path: KinetixWatch/CoreMLCoach.swift
       - path: KinetixWatch/FormCoach.swift
+      - path: ../ios/KinetixPhone/Services/ApiKeyStorage.swift
     dependencies:
       - target: KinetixWatch
         embed: true
@@ -54,6 +55,7 @@ targets:
         excludes:
           - "**/*.app"
           - "**/*.ipa"
+      - path: ../ios/KinetixPhone/Services/ApiKeyStorage.swift
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone.watchkitapp
       INFOPLIST_FILE: KinetixWatch/Info.plist

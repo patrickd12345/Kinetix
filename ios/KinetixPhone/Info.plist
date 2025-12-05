@@ -28,6 +28,14 @@
 	<string>Kinetix needs microphone access to hear your coaching questions.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Kinetix uses speech recognition to understand your questions.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Kinetix needs location access to track your runs and calculate NPI.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Kinetix needs location access to track your runs and calculate NPI.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Kinetix needs health data access to track your heart rate during runs.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Kinetix saves your workout data to HealthKit.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -47,13 +55,14 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.kinetix.phone</string>
+				<string>com.googleusercontent.apps.915406480058-s855cf6s4dqipjskfqh0egqq1hui6frn</string>
 			</array>
 		</dict>
 	</array>
 	<key>GOOGLE_CLIENT_ID</key>
-	<string>YOUR_GOOGLE_CLIENT_ID</string>
+	<string>915406480058-s855cf6s4dqipjskfqh0egqq1hui6frn.apps.googleusercontent.com</string>
 	<key>GOOGLE_CLIENT_SECRET</key>
-	<string>YOUR_GOOGLE_CLIENT_SECRET</string>
+	<string></string>
 </dict>
 </plist>
 

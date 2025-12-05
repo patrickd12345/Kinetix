@@ -6,6 +6,7 @@ struct HomeView: View {
     @StateObject private var connectivity = ConnectivityManager.shared
     @Query(sort: [SortDescriptor<Run>(\.date, order: .reverse)]) private var runs: [Run]
     @Binding var selectedTab: Int
+    @State private var showingRunTracking = false
     
     var body: some View {
         NavigationStack {
@@ -68,6 +69,15 @@ struct HomeView: View {
                             .foregroundColor(.secondary)
                         
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                            HomeTile(
+                                title: "Start Run",
+                                systemImage: "play.circle.fill",
+                                accent: .green,
+                                description: "Track with iPhone"
+                            ) {
+                                showingRunTracking = true
+                            }
+                            
                             HomeTile(
                                 title: "Coach",
                                 systemImage: "figure.run",
@@ -143,6 +153,9 @@ struct HomeView: View {
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showingRunTracking) {
+                RunTrackingView()
+            }
         }
     }
     

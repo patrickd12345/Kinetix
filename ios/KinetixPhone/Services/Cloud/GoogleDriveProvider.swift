@@ -29,14 +29,20 @@ class GoogleDriveProvider: NSObject {
      */
     func getAuthorizationURL() -> URL {
         var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
-        components.queryItems = [
+        var queryItems = [
             URLQueryItem(name: "client_id", value: clientId),
-            URLQueryItem(name: "redirect_uri", value: redirectURI),
             URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "scope", value: scope),
             URLQueryItem(name: "access_type", value: "offline"),
             URLQueryItem(name: "prompt", value: "consent")
         ]
+        
+        // Always include redirect_uri - required for OAuth flow
+        // For ASWebAuthenticationSession, we use http://localhost (Google requirement)
+        // but ASWebAuthenticationSession intercepts via callbackURLScheme
+        queryItems.append(URLQueryItem(name: "redirect_uri", value: redirectURI))
+        
+        components.queryItems = queryItems
         return components.url!
     }
     
@@ -45,20 +51,21 @@ class GoogleDriveProvider: NSObject {
      * Automatically opens Google OAuth dialog - user just needs to sign in
      */
     func authenticate(presentingViewController: UIViewController) async throws -> CloudTokens {
-        // Validate credentials
-        guard !clientId.isEmpty, clientId != "YOUR_GOOGLE_CLIENT_ID" else {
-            throw CloudStorageError.authenticationFailed("Google OAuth credentials not configured")
-        }
-        
+        // Open OAuth dialog - validation will happen when exchanging the code
+        // This allows the dialog to open even with placeholder credentials
         return try await withCheckedThrowingContinuation { continuation in
             self.authContinuation = continuation
             
             let authURL = getAuthorizationURL()
             
             // This automatically opens Google's OAuth dialog
+            // Calculate the callback scheme from the redirectURI
+            // Format: com.googleusercontent.apps.CLIENT_ID:/oauth2redirect/google -> com.googleusercontent.apps.CLIENT_ID
+            let scheme = redirectURI.components(separatedBy: ":").first ?? "com.kinetix.phone"
+            
             self.authSession = ASWebAuthenticationSession(
                 url: authURL,
-                callbackURLScheme: URL(string: redirectURI)?.scheme,
+                callbackURLScheme: scheme,
                 completionHandler: { [weak self] callbackURL, error in
                     guard let self = self else { return }
                     
@@ -94,25 +101,48 @@ class GoogleDriveProvider: NSObject {
      * Exchange authorization code for tokens
      */
     private func exchangeCodeForToken(code: String) async throws -> CloudTokens {
+        // Validate credentials at token exchange time (after OAuth dialog)
+        // Note: For iOS clients, clientSecret can be empty (Google doesn't provide it)
+        guard !clientId.isEmpty,
+              clientId != "YOUR_GOOGLE_CLIENT_ID" else {
+            throw CloudStorageError.authenticationFailed("Google OAuth credentials not configured. Please add GOOGLE_CLIENT_ID to Info.plist")
+        }
+        
         var request = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         
         var components = URLComponents()
-        components.queryItems = [
+        var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "client_id", value: clientId),
-            URLQueryItem(name: "client_secret", value: clientSecret),
             URLQueryItem(name: "code", value: code),
-            URLQueryItem(name: "grant_type", value: "authorization_code"),
-            URLQueryItem(name: "redirect_uri", value: redirectURI)
+            URLQueryItem(name: "grant_type", value: "authorization_code")
         ]
+        
+        // Always include redirect_uri in token exchange - must match authorization request
+        queryItems.append(URLQueryItem(name: "redirect_uri", value: redirectURI))
+        
+        // Only include client_secret if it's provided (for Web clients)
+        // iOS clients don't have a client secret
+        if !clientSecret.isEmpty && clientSecret != "YOUR_GOOGLE_CLIENT_SECRET" {
+            queryItems.append(URLQueryItem(name: "client_secret", value: clientSecret))
+        }
+        
+        components.queryItems = queryItems
         request.httpBody = components.query?.data(using: .utf8)
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw CloudStorageError.authenticationFailed("Token exchange failed")
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw CloudStorageError.authenticationFailed("Token exchange failed: Invalid response")
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
+            if errorMsg.contains("invalid_client") || errorMsg.contains("client_id") {
+                throw CloudStorageError.authenticationFailed("Google OAuth credentials not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to Info.plist")
+            }
+            throw CloudStorageError.authenticationFailed("Token exchange failed: \(errorMsg)")
         }
         
         let tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data)
@@ -134,12 +164,19 @@ class GoogleDriveProvider: NSObject {
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         
         var components = URLComponents()
-        components.queryItems = [
+        var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "client_id", value: clientId),
-            URLQueryItem(name: "client_secret", value: clientSecret),
             URLQueryItem(name: "refresh_token", value: refreshToken),
             URLQueryItem(name: "grant_type", value: "refresh_token")
         ]
+        
+        // Only include client_secret if it's provided (for Web clients)
+        // iOS clients don't have a client secret
+        if !clientSecret.isEmpty && clientSecret != "YOUR_GOOGLE_CLIENT_SECRET" {
+            queryItems.append(URLQueryItem(name: "client_secret", value: clientSecret))
+        }
+        
+        components.queryItems = queryItems
         request.httpBody = components.query?.data(using: .utf8)
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -157,6 +194,14 @@ class GoogleDriveProvider: NSObject {
         )
     }
     
+    // MARK: - Error Handling Helper
+    private func parseGoogleError(data: Data, statusCode: Int) -> String {
+        if let errorResponse = try? JSONDecoder().decode(GoogleErrorResponse.self, from: data) {
+            return errorResponse.error.message
+        }
+        return String(data: data, encoding: .utf8) ?? "Unknown error \(statusCode)"
+    }
+
     /**
      * Find or create Kinetix folder
      */
@@ -173,6 +218,12 @@ class GoogleDriveProvider: NSObject {
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         
         let (data, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+            let errorMessage = parseGoogleError(data: data, statusCode: httpResponse.statusCode)
+            print("❌ Drive API Error: \(errorMessage)")
+            throw CloudStorageError.networkError("Drive API: \(errorMessage)")
+        }
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
@@ -199,9 +250,9 @@ class GoogleDriveProvider: NSObject {
         
         let (createData, createResponse) = try await URLSession.shared.data(for: createRequest)
         
-        guard let createHttpResponse = createResponse as? HTTPURLResponse,
-              createHttpResponse.statusCode == 200 else {
-            throw CloudStorageError.networkError("Failed to create folder")
+        if let createHttpResponse = createResponse as? HTTPURLResponse, createHttpResponse.statusCode != 200 {
+            let errorMessage = parseGoogleError(data: createData, statusCode: createHttpResponse.statusCode)
+            throw CloudStorageError.networkError("Create Folder Error: \(errorMessage)")
         }
         
         let folder = try JSONDecoder().decode(FileResponse.self, from: createData)
@@ -225,6 +276,11 @@ class GoogleDriveProvider: NSObject {
         
         let (searchData, searchResponse) = try await URLSession.shared.data(for: searchRequest)
         
+        if let searchHttpResponse = searchResponse as? HTTPURLResponse, searchHttpResponse.statusCode != 200 {
+            let errorMessage = parseGoogleError(data: searchData, statusCode: searchHttpResponse.statusCode)
+            throw CloudStorageError.networkError("Search failed: \(errorMessage)")
+        }
+        
         guard let searchHttpResponse = searchResponse as? HTTPURLResponse,
               searchHttpResponse.statusCode == 200 else {
             throw CloudStorageError.networkError("Failed to search for file")
@@ -233,9 +289,30 @@ class GoogleDriveProvider: NSObject {
         let searchResult = try JSONDecoder().decode(FileListResponse.self, from: searchData)
         let existingFile = searchResult.files?.first
         
+        // Determine content type based on filename
+        let contentType: String
+        if filename.hasSuffix(".json") {
+            contentType = "application/json"
+        } else {
+            contentType = "application/octet-stream"
+        }
+        
         // Upload or update file using multipart upload
         let boundary = UUID().uuidString
-        var uploadRequest = URLRequest(url: URL(string: "\(uploadBase)/files\(existingFile != nil ? "/\(existingFile!.id)" : "")?uploadType=multipart")!)
+        let uploadURL: URL
+        if let fileId = existingFile?.id {
+            // Update existing file
+            var urlComponents = URLComponents(string: "\(uploadBase)/files/\(fileId)")!
+            urlComponents.queryItems = [URLQueryItem(name: "uploadType", value: "multipart")]
+            uploadURL = urlComponents.url!
+        } else {
+            // Create new file
+            var urlComponents = URLComponents(string: "\(uploadBase)/files")!
+            urlComponents.queryItems = [URLQueryItem(name: "uploadType", value: "multipart")]
+            uploadURL = urlComponents.url!
+        }
+        
+        var uploadRequest = URLRequest(url: uploadURL)
         uploadRequest.httpMethod = existingFile != nil ? "PATCH" : "POST"
         uploadRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         uploadRequest.setValue("multipart/related; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
@@ -244,23 +321,31 @@ class GoogleDriveProvider: NSObject {
         
         // Metadata part
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Type: application/json\r\n\r\n".data(using: .utf8)!)
-        let metadata = [
-            "name": filename,
-            "parents": [folderId]
-        ]
+        body.append("Content-Type: application/json; charset=UTF-8\r\n\r\n".data(using: .utf8)!)
+        
+        var metadata: [String: Any] = ["name": filename]
+        if existingFile == nil {
+            // Only set parents for new files
+            metadata["parents"] = [folderId]
+        }
         body.append(try JSONSerialization.data(withJSONObject: metadata))
         body.append("\r\n".data(using: .utf8)!)
         
         // File content part
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Type: application/json\r\n\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(contentType)\r\n\r\n".data(using: .utf8)!)
         body.append(content)
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         
         uploadRequest.httpBody = body
         
-        let (_, uploadResponse) = try await URLSession.shared.data(for: uploadRequest)
+        let (uploadData, uploadResponse) = try await URLSession.shared.data(for: uploadRequest)
+        
+        if let uploadHttpResponse = uploadResponse as? HTTPURLResponse, !(200...299).contains(uploadHttpResponse.statusCode) {
+            let errorMessage = parseGoogleError(data: uploadData, statusCode: uploadHttpResponse.statusCode)
+            print("❌ Upload Error: \(errorMessage)")
+            throw CloudStorageError.networkError("Upload failed: \(errorMessage)")
+        }
         
         guard let uploadHttpResponse = uploadResponse as? HTTPURLResponse,
               (200...299).contains(uploadHttpResponse.statusCode) else {
@@ -336,5 +421,14 @@ private struct FileListResponse: Codable {
 private struct FileResponse: Codable {
     let id: String
     let name: String?
+}
+
+private struct GoogleErrorResponse: Codable {
+    let error: GoogleError
+}
+
+private struct GoogleError: Codable {
+    let code: Int
+    let message: String
 }
 

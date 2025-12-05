@@ -2,24 +2,24 @@ import Foundation
 import SwiftData
 
 @Model
-final class Run {
-    var id: UUID
-    var date: Date
-    var source: String
-    var distance: Double // in meters
-    var duration: TimeInterval // in seconds
-    var avgPace: Double // seconds per km
-    var avgNPI: Double
-    var avgHeartRate: Double
-    var avgCadence: Double?
-    var avgVerticalOscillation: Double?
-    var avgGroundContactTime: Double?
-    var avgStrideLength: Double?
-    var formScore: Double?
-    var routeData: [RoutePoint] = []
-    var formSessionId: UUID? // Link to Form Monitor samples when applicable
+public final class Run {
+    public var id: UUID
+    public var date: Date
+    public var source: String
+    public var distance: Double // in meters
+    public var duration: TimeInterval // in seconds
+    public var avgPace: Double // seconds per km
+    public var avgNPI: Double
+    public var avgHeartRate: Double
+    public var avgCadence: Double?
+    public var avgVerticalOscillation: Double?
+    public var avgGroundContactTime: Double?
+    public var avgStrideLength: Double?
+    public var formScore: Double?
+    public var routeData: [RoutePoint] = []
+    public var formSessionId: UUID? // Link to Form Monitor samples when applicable
     
-    init(
+    public init(
         date: Date = Date(),
         source: String = "recorded",
         distance: Double,
@@ -53,12 +53,49 @@ final class Run {
     }
 }
 
-struct RoutePoint: Codable {
-    let lat: Double
-    let lon: Double
+public struct RoutePoint: Codable {
+    public let lat: Double
+    public let lon: Double
     
-    init(lat: Double, lon: Double) {
+    public init(lat: Double, lon: Double) {
         self.lat = lat
         self.lon = lon
+    }
+}
+
+// MARK: - Run Payload for syncing between Watch and iPhone
+public struct RunPayload: Codable, Identifiable {
+    public let id: UUID
+    public let date: Date
+    public let source: String
+    public let distance: Double
+    public let duration: TimeInterval
+    public let avgPace: Double
+    public let avgNPI: Double
+    public let avgHeartRate: Double
+    public let avgCadence: Double?
+    public let avgVerticalOscillation: Double?
+    public let avgGroundContactTime: Double?
+    public let avgStrideLength: Double?
+    public let formScore: Double?
+    public let routeData: [RoutePoint]
+    public let formSessionId: UUID?
+    
+    public init(from run: Run) {
+        self.id = run.id
+        self.date = run.date
+        self.source = run.source
+        self.distance = run.distance
+        self.duration = run.duration
+        self.avgPace = run.avgPace
+        self.avgNPI = run.avgNPI
+        self.avgHeartRate = run.avgHeartRate
+        self.avgCadence = run.avgCadence
+        self.avgVerticalOscillation = run.avgVerticalOscillation
+        self.avgGroundContactTime = run.avgGroundContactTime
+        self.avgStrideLength = run.avgStrideLength
+        self.formScore = run.formScore
+        self.routeData = run.routeData
+        self.formSessionId = run.formSessionId
     }
 }

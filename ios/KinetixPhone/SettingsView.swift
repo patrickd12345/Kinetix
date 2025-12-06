@@ -35,6 +35,11 @@ struct SettingsView: View {
     @State private var isSyncing = false
     @State private var showingCloudAuth = false
     
+    @State private var isStravaConnected = false
+    @State private var stravaExporting = false
+    @State private var showingStravaExport = false
+    @State private var stravaDays = 90
+    
     @State private var ollamaURL: String = "http://localhost:11434"
     @State private var ollamaModel: String = "llama3.2"
     @State private var ollamaAvailable: Bool = false
@@ -50,6 +55,7 @@ struct SettingsView: View {
             List {
                 profileSection
                 cloudStorageSection
+                stravaSection
                 aiSettingsSection
                 batteryProfileSection
                 findMyNPISection
@@ -193,6 +199,100 @@ struct SettingsView: View {
             Text("Cloud Storage")
         } footer: {
             Text("Sync your runs to Google Drive for backup and cross-device access.")
+        }
+    }
+    
+    private var stravaSection: some View {
+        Section {
+            if isStravaConnected {
+                HStack {
+                    Label("Connected", systemImage: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Spacer()
+                    Text("Strava")
+                        .foregroundColor(.secondary)
+                }
+                
+                Button {
+                    showingStravaExport = true
+                } label: {
+                    HStack {
+                        if stravaExporting {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Label("Export to Google Drive", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                }
+                .disabled(stravaExporting)
+                
+                Button(role: .destructive) {
+                    disconnectStrava()
+                } label: {
+                    Label("Disconnect", systemImage: "xmark.circle")
+                }
+            } else {
+                Button {
+                    connectStrava()
+                } label: {
+                    Label("Connect Strava", systemImage: "figure.run")
+                }
+            }
+        } header: {
+            Text("Strava")
+        } footer: {
+            Text(isStravaConnected 
+                ? "Your runs are automatically synced to Strava. Export historical data to Google Drive."
+                : "Connect Strava to automatically sync your runs and export historical data.")
+        }
+        .sheet(isPresented: $showingStravaExport) {
+            stravaExportSheet
+        }
+        .onAppear {
+            checkStravaConnection()
+        }
+    }
+    
+    private var stravaExportSheet: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Stepper("Days: \(stravaDays)", value: $stravaDays, in: 1...365)
+                    Text("Export runs from the last \(stravaDays) days")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } header: {
+                    Text("Export Range")
+                }
+                
+                Section {
+                    Button {
+                        Task {
+                            await exportStravaToGoogleDrive()
+                        }
+                    } label: {
+                        HStack {
+                            if stravaExporting {
+                                ProgressView()
+                                Text("Exporting...")
+                            } else {
+                                Text("Export to Google Drive")
+                            }
+                        }
+                    }
+                    .disabled(stravaExporting)
+                }
+            }
+            .navigationTitle("Export Strava Data")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        showingStravaExport = false
+                    }
+                }
+            }
         }
     }
     
@@ -742,6 +842,179 @@ struct SettingsView: View {
             showingSaveConfirmation = true
         } catch {
             saveConfirmationMessage = "Sync failed: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
+    }
+    
+    private func checkStravaConnection() {
+        isStravaConnected = CloudTokenStorage.shared.hasTokens(provider: "strava")
+    }
+    
+    private func connectStrava() {
+        // Check if credentials are configured
+        guard StravaService.shared.areCredentialsConfigured() else {
+            saveConfirmationMessage = "Strava integration is not configured. Please contact the developer."
+            showingSaveConfirmation = true
+            return
+        }
+        
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            saveConfirmationMessage = "Could not find view controller for authentication"
+            showingSaveConfirmation = true
+            return
+        }
+        
+        Task {
+            do {
+                let tokens = try await StravaService.shared.authenticate(presentingViewController: rootViewController)
+                
+                // Store tokens
+                try CloudTokenStorage.shared.storeTokens(
+                    provider: "strava",
+                    accessToken: tokens.accessToken,
+                    refreshToken: tokens.refreshToken,
+                    expiresAt: tokens.expiresAt
+                )
+                
+                isStravaConnected = true
+                saveConfirmationMessage = "✅ Connected to Strava! Your runs will now sync automatically."
+                showingSaveConfirmation = true
+            } catch {
+                saveConfirmationMessage = "Failed to connect Strava: \(error.localizedDescription)"
+                showingSaveConfirmation = true
+            }
+        }
+    }
+    
+    private func disconnectStrava() {
+        do {
+            try CloudTokenStorage.shared.removeTokens(provider: "strava")
+            isStravaConnected = false
+            saveConfirmationMessage = "Strava disconnected"
+            showingSaveConfirmation = true
+        } catch {
+            saveConfirmationMessage = "Failed to disconnect: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
+    }
+    
+    private func exportStravaToGoogleDrive() async {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let _ = windowScene.windows.first?.rootViewController else {
+            saveConfirmationMessage = "Could not find view controller"
+            showingSaveConfirmation = true
+            return
+        }
+        
+        // Check Google Drive connection
+        let cloudStatus = UnifiedStorageService.shared.getSyncStatus()
+        guard cloudStatus.isConnected else {
+            saveConfirmationMessage = "Please connect Google Drive first in Cloud Storage settings"
+            showingSaveConfirmation = true
+            return
+        }
+        
+        stravaExporting = true
+        defer { stravaExporting = false }
+        
+        do {
+            // Get Strava tokens
+            guard let tokens = try CloudTokenStorage.shared.getTokens(provider: "strava") else {
+                throw StravaError.authenticationFailed("Not connected to Strava")
+            }
+            
+            // Ensure token is valid
+            var accessToken = tokens.accessToken
+            if !CloudTokenStorage.shared.isTokenValid(provider: "strava") {
+                let newTokens = try await StravaService.shared.refreshAccessToken(refreshToken: tokens.refreshToken)
+                try CloudTokenStorage.shared.storeTokens(
+                    provider: "strava",
+                    accessToken: newTokens.accessToken,
+                    refreshToken: newTokens.refreshToken,
+                    expiresAt: newTokens.expiresAt
+                )
+                accessToken = newTokens.accessToken
+            }
+            
+            // Fetch activities
+            let activities = try await StravaService.shared.fetchActivities(accessToken: accessToken, days: stravaDays)
+            
+            // Convert to runs
+            var runs: [[String: Any]] = []
+            for activity in activities {
+                guard activity.type == "Run" || activity.sport_type == "Run" else { continue }
+                guard activity.distance > 0, activity.moving_time > 0 else { continue }
+                
+                let distanceKm = activity.distance / 1000.0
+                let paceSecondsPerKm = Double(activity.moving_time) / distanceKm
+                let speedKmH = 3600.0 / paceSecondsPerKm
+                let factor = pow(distanceKm, 0.06)
+                let npi = speedKmH * factor * 10.0
+                
+                let run: [String: Any] = [
+                    "id": "strava_\(activity.id)",
+                    "date": activity.start_date,
+                    "source": "strava",
+                    "distance": activity.distance,
+                    "duration": activity.moving_time,
+                    "avgPace": paceSecondsPerKm,
+                    "avgNPI": npi,
+                    "avgHeartRate": activity.average_heartrate ?? 0,
+                    "avgCadence": activity.average_cadence != nil ? activity.average_cadence! * 2 : NSNull(),
+                    "elevationGain": activity.total_elevation_gain ?? 0,
+                    "stravaId": activity.id,
+                    "stravaName": activity.name,
+                    "stravaDescription": activity.description ?? NSNull(),
+                ]
+                runs.append(run)
+            }
+            
+            if runs.isEmpty {
+                saveConfirmationMessage = "No runs found in the last \(stravaDays) days"
+                showingSaveConfirmation = true
+                showingStravaExport = false
+                return
+            }
+            
+            // Prepare JSON data
+            let jsonData = try JSONSerialization.data(withJSONObject: runs, options: .prettyPrinted)
+            let filename = "strava-runs-last-\(stravaDays)-days-\(ISO8601DateFormatter().string(from: Date()).prefix(10)).json"
+            
+            // Upload to Google Drive - get token from CloudSyncService
+            // We need to access the provider, but it's private, so we'll use a workaround
+            // Check if Google Drive is connected
+            let cloudStatus = UnifiedStorageService.shared.getSyncStatus()
+            guard cloudStatus.isConnected else {
+                throw CloudStorageError.authenticationFailed("Google Drive not connected")
+            }
+            
+            // Get Google tokens
+            guard let googleTokens = try CloudTokenStorage.shared.getTokens(provider: "google") else {
+                throw CloudStorageError.authenticationFailed("Google Drive tokens not found")
+            }
+            
+            // Create a temporary GoogleDriveProvider for upload
+            let clientId = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_ID") as? String ?? ""
+            let clientSecret = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_SECRET") as? String ?? ""
+            let reversedClientId = clientId.components(separatedBy: ".").reversed().joined(separator: ".")
+            let redirectURI = "\(reversedClientId):/oauth2redirect/google"
+            let provider = GoogleDriveProvider(clientId: clientId, clientSecret: clientSecret, redirectURI: redirectURI)
+            
+            // Ensure folder exists and upload
+            let _ = try await provider.ensureFolderExists(accessToken: googleTokens.accessToken)
+            let content = String(data: jsonData, encoding: .utf8) ?? ""
+            try await provider.uploadFile(
+                filename: filename,
+                content: content.data(using: .utf8)!,
+                accessToken: googleTokens.accessToken
+            )
+            
+            saveConfirmationMessage = "✅ Successfully exported \(runs.count) runs to Google Drive!"
+            showingSaveConfirmation = true
+            showingStravaExport = false
+        } catch {
+            saveConfirmationMessage = "Export failed: \(error.localizedDescription)"
             showingSaveConfirmation = true
         }
     }

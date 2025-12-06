@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { HomeView } from './components/HomeView';
 import { RunView } from './components/RunView';
 import { HistoryView } from './components/HistoryView';
@@ -16,29 +16,32 @@ export default function App() {
   const [viewParams, setViewParams] = useState({});
   const [settings, setSettings] = useState(null);
 
-  useEffect(() => {
-    initializeStorage();
-  }, []);
-
-  const initializeStorage = async () => {
-    // Initialize unified storage (handles local + cloud)
-    await unifiedStorageService.initialize();
-    await loadSettings();
-  };
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     const loaded = await unifiedStorageService.getSettings();
     setSettings(loaded);
-  };
+  }, []);
+
+  const initializeStorage = useCallback(async () => {
+    await unifiedStorageService.initialize();
+    await loadSettings();
+  }, [loadSettings]);
+
+  const navigate = useCallback((view, params = {}) => {
+    setCurrentView(view);
+    setViewParams(params);
+  }, []);
+
+  useEffect(() => {
+    initializeStorage();
+    const path = window.location.pathname;
+    if (path.includes('/oauth/strava/callback')) {
+      navigate('oauth', { provider: 'strava' });
+    }
+  }, [initializeStorage, navigate]);
 
   const saveSettings = async (newSettings) => {
     await unifiedStorageService.saveSettings(newSettings);
     setSettings(newSettings);
-  };
-
-  const navigate = (view, params = {}) => {
-    setCurrentView(view);
-    setViewParams(params);
   };
 
   const handleStartRun = () => {
@@ -91,6 +94,13 @@ export default function App() {
             onNavigate={navigate}
           />
         );
+      case 'oauth':
+        // Handle OAuth callbacks
+        if (viewParams.provider === 'strava') {
+          // This will be handled by SettingsView useEffect
+          navigate('settings');
+        }
+        return null;
       case 'run-detail':
         return (
           <RunDetailView
@@ -111,4 +121,3 @@ export default function App() {
     </div>
   );
 }
-

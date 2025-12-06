@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Square, Timer, Activity, TrendingUp, Sparkles, X, Share2, Ruler, Zap, History, Settings, ChevronRight, Trash2, Save, Globe, Flag, ChevronDown, Heart, AlertTriangle, BookOpen, Info, Calculator } from 'lucide-react';
 
@@ -806,4 +807,3 @@ const KinetixMaxPrototype = () => {
 };
 
 export default KinetixMaxPrototype;
-

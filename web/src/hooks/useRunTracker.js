@@ -6,7 +6,7 @@ import { Run } from '../models/Run';
 /**
  * Hook for tracking runs with GPS and calculating metrics
  */
-export function useRunTracker(targetNPI, unitSystem) {
+export function useRunTracker(targetNPI, _unitSystem) {
   const [isRunning, setIsRunning] = useState(false);
   const [gpsStatus, setGpsStatus] = useState('unknown');
   const [distance, setDistance] = useState(0); // meters
@@ -200,6 +200,7 @@ export function useRunTracker(targetNPI, unitSystem) {
     getRunSummary,
   };
 }
+
 
 
 

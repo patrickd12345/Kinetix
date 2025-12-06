@@ -109,3 +109,5 @@ export function calculateTimeToBeat(currentNPI, targetNPI, distanceKm, durationS
 
 
 
+
+

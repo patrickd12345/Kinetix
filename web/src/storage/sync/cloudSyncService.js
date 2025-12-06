@@ -120,7 +120,7 @@ export class CloudSyncService {
         throw new Error('No cloud storage provider connected');
       }
 
-      const { name: providerName, provider } = providerInfo;
+      const { name: providerName } = providerInfo;
       const accessToken = await this.ensureValidToken(providerName);
 
       // Get local data
@@ -179,7 +179,7 @@ export class CloudSyncService {
         throw new Error('No cloud storage provider connected');
       }
 
-      const { name: providerName, provider } = providerInfo;
+      const { name: providerName } = providerInfo;
       const accessToken = await this.ensureValidToken(providerName);
 
       // Load cloud data
@@ -251,7 +251,7 @@ export class CloudSyncService {
   async syncSettingsFromCloud() {
     // Settings are now part of the main data file
     // This method is kept for API compatibility but calls syncRunsFromCloud
-    const result = await this.syncRunsFromCloud();
+    await this.syncRunsFromCloud();
     return { success: true, settings: await StorageService.getSettings() };
   }
 
@@ -300,4 +300,3 @@ export class CloudSyncService {
 
 // Export singleton instance
 export const cloudSyncService = new CloudSyncService();
-

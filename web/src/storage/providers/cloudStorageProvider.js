@@ -2,6 +2,7 @@
  * Abstract base class for cloud storage providers
  * Defines the interface that all cloud storage providers must implement
  */
+/* eslint-disable no-unused-vars */
 export class CloudStorageProvider {
   constructor(providerName) {
     this.providerName = providerName;
@@ -84,4 +85,3 @@ export class CloudStorageProvider {
     throw new Error('deleteFile must be implemented by provider');
   }
 }
-

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, TrendingUp, History, Settings, Play, Sparkles } from 'lucide-react';
+import { Activity, TrendingUp, History, Settings, Play } from 'lucide-react';
 import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { Run } from '../models/Run';
 
@@ -228,4 +228,3 @@ export function HomeView({ onNavigate, onStartRun }) {
     </div>
   );
 }
-

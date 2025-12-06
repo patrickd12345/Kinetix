@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Square, Play, Pause, Flag, Activity, Heart, Ruler } from 'lucide-react';
+import React, { useState } from 'react';
+import { Square, Play, Pause, Flag, Heart } from 'lucide-react';
 import { useRunTracker } from '../hooks/useRunTracker';
 import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
-import { Run } from '../models/Run';
 
 /**
  * Run tracking view with NPI as the star feature
@@ -346,4 +345,3 @@ export function RunView({ settings, onSave, onCancel }) {
     </div>
   );
 }
-

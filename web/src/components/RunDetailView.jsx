@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Sparkles, MapPin, Activity, TrendingUp } from 'lucide-react';
 import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { Run } from '../models/Run';
@@ -13,13 +13,9 @@ export function RunDetailView({ runId, onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [settings, setSettings] = useState(null);
-  const [useRAG, setUseRAG] = useState(true);
+  const [useRAG] = useState(true);
 
-  useEffect(() => {
-    loadRun();
-  }, [runId]);
-
-  const loadRun = async () => {
+  const loadRun = useCallback(async () => {
     const [runData, settingsData] = await Promise.all([
       unifiedStorageService.getRun(runId),
       unifiedStorageService.getSettings(),
@@ -30,7 +26,11 @@ export function RunDetailView({ runId, onNavigate }) {
     }
     setSettings(settingsData);
     setLoading(false);
-  };
+  }, [runId]);
+
+  useEffect(() => {
+    loadRun();
+  }, [loadRun]);
 
   const handleAnalyze = async () => {
     if (!run || !settings) return;
@@ -70,14 +70,6 @@ export function RunDetailView({ runId, onNavigate }) {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
-    });
-  };
-
-  const formatTime = (date) => {
-    const d = new Date(date);
-    return d.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
     });
   };
 
@@ -284,4 +276,3 @@ export function RunDetailView({ runId, onNavigate }) {
     </div>
   );
 }
-

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { Database, AlertCircle, Loader } from 'lucide-react';
 import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { RAGIndexService } from '../services/ragIndexService';
 
@@ -171,7 +171,6 @@ export function RAGIndexer({ onClose }) {
     </div>
   );
 }
-
 
 
 

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import WatchConnectivity
 #if os(watchOS)
 import WatchKit
 #endif
@@ -519,11 +520,12 @@ struct RunView: View {
         
         let session = WCSession.default
         if session.isReachable {
-            session.sendMessage(["run": data], replyHandler: nil)
+            let message: [String: Any] = ["run": data]
+            session.sendMessage(message, replyHandler: nil)
         }
         
         do {
-            var context = session.applicationContext
+            var context: [String: Any] = session.applicationContext
             context["run"] = data
             try session.updateApplicationContext(context)
         } catch {

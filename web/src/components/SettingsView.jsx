@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Target, Globe, Heart, Calculator, Trash2, Database } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Target, Globe, Heart, Calculator, Trash2, Database, Download, Cloud, Activity } from 'lucide-react';
 import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { calculateNPIFromRace } from '../utils/npiCalculator';
 import { RAGIndexer } from './RAGIndexer';
+import { stravaService } from '../services/stravaService';
+import { cloudSyncService } from '../storage/sync/cloudSyncService';
 
 /**
  * Settings view
@@ -16,6 +18,120 @@ export function SettingsView({ settings, onSave, onNavigate }) {
   const [findTime, setFindTime] = useState('');
   const [findUnit, setFindUnit] = useState('metric');
   const [showRAGIndexer, setShowRAGIndexer] = useState(false);
+  
+  // Strava states
+  const [isStravaConnected, setIsStravaConnected] = useState(false);
+  const [stravaExporting, setStravaExporting] = useState(false);
+  const [showStravaExport, setShowStravaExport] = useState(false);
+  const [stravaDays, setStravaDays] = useState(90);
+  
+  // Check Strava connection on mount
+  useEffect(() => {
+    const tokens = stravaService.getStoredTokens();
+    setIsStravaConnected(tokens !== null);
+  }, []);
+
+  const handleStravaCallback = async (code) => {
+    try {
+      if (!stravaService.clientId || !stravaService.clientSecret) {
+        alert('Strava integration is not configured. Please contact the developer.');
+        return;
+      }
+      
+      const tokens = await stravaService.exchangeCodeForToken(code);
+      stravaService.storeTokens(tokens);
+      setIsStravaConnected(true);
+      alert('✅ Connected to Strava! Your runs will now sync automatically.');
+    } catch (error) {
+      alert(`Failed to connect Strava: ${error.message}`);
+    }
+  };
+
+  // Check for OAuth callback on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    
+    if (code && (window.location.pathname.includes('/oauth/strava/callback') || window.location.search.includes('code='))) {
+      handleStravaCallback(code);
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
+
+  const handleConnectStrava = async () => {
+    try {
+      if (!stravaService.clientId || !stravaService.clientSecret) {
+        alert('Strava integration is not configured. Please contact the developer.');
+        return;
+      }
+      
+      const authUrl = stravaService.getAuthorizationUrl();
+      window.location.href = authUrl;
+    } catch (error) {
+      alert(`Failed to connect Strava: ${error.message}`);
+    }
+  };
+
+  const handleDisconnectStrava = async () => {
+    if (confirm('Disconnect Strava? Your runs will no longer sync automatically.')) {
+      stravaService.clearTokens();
+      setIsStravaConnected(false);
+    }
+  };
+
+  const handleStravaExport = async () => {
+    try {
+      setStravaExporting(true);
+      
+      const tokens = stravaService.getStoredTokens();
+      if (!tokens) {
+        alert('Please connect Strava first');
+        setShowStravaExport(false);
+        return;
+      }
+
+      const cloudStatus = await cloudSyncService.getSyncStatus();
+      if (!cloudStatus.isConnected) {
+        alert('Please connect Google Drive first in Cloud Storage settings');
+        setShowStravaExport(false);
+        return;
+      }
+
+      const accessToken = await stravaService.getValidAccessToken();
+      const activities = await stravaService.fetchActivities(accessToken, stravaDays);
+      const runs = stravaService.convertToRuns(activities);
+
+      if (runs.length === 0) {
+        alert(`No runs found in the last ${stravaDays} days`);
+        setShowStravaExport(false);
+        setStravaExporting(false);
+        return;
+      }
+
+      const jsonData = JSON.stringify(runs, null, 2);
+      const filename = `strava-runs-last-${stravaDays}-days-${new Date().toISOString().split('T')[0]}.json`;
+
+      const providerInfo = await cloudSyncService.getProvider();
+      if (!providerInfo) {
+        throw new Error('Google Drive not connected');
+      }
+
+      const { provider } = providerInfo;
+      const googleToken = await cloudSyncService.ensureValidToken('google');
+
+      await provider.ensureFolderExists('Kinetix', googleToken);
+      await provider.uploadFile(`Kinetix/${filename}`, jsonData, googleToken);
+
+      alert(`✅ Successfully exported ${runs.length} runs to Google Drive!`);
+      setShowStravaExport(false);
+    } catch (error) {
+      console.error('Strava export failed:', error);
+      alert(`Failed to export: ${error.message}`);
+    } finally {
+      setStravaExporting(false);
+    }
+  };
 
   const handleSave = () => {
     onSave({
@@ -168,6 +284,45 @@ export function SettingsView({ settings, onSave, onNavigate }) {
             </div>
           </div>
 
+          {/* Strava Integration */}
+          <div className="glass rounded-2xl p-6 border border-orange-500/20">
+            <div className="flex items-center gap-3 mb-4">
+              <Activity className="text-orange-400" size={20} />
+              <h2 className="text-lg font-bold text-white">Strava</h2>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">
+              {isStravaConnected 
+                ? 'Connected to Strava. Your runs are automatically synced.'
+                : 'Connect Strava to automatically sync your runs and export historical data.'}
+            </p>
+            {!isStravaConnected ? (
+              <button
+                onClick={handleConnectStrava}
+                className="w-full py-3 bg-gradient-to-r from-orange-500/20 to-orange-600/20 hover:from-orange-500/30 hover:to-orange-600/30 border border-orange-500/30 rounded-xl text-orange-400 font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <Activity size={16} />
+                Connect Strava
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowStravaExport(true)}
+                  disabled={stravaExporting}
+                  className="w-full py-3 bg-gradient-to-r from-orange-500/20 to-orange-600/20 hover:from-orange-500/30 hover:to-orange-600/30 border border-orange-500/30 rounded-xl text-orange-400 font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Download size={16} />
+                  {stravaExporting ? 'Exporting...' : 'Export to Google Drive'}
+                </button>
+                <button
+                  onClick={handleDisconnectStrava}
+                  className="w-full py-2 bg-gray-900/50 hover:bg-gray-800 border border-gray-700/50 rounded-xl text-gray-300 font-bold transition-all text-sm"
+                >
+                  Disconnect Strava
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* RAG Indexing */}
           <div className="glass rounded-2xl p-6 border border-cyan-500/20">
             <div className="flex items-center gap-3 mb-4">
@@ -279,7 +434,61 @@ export function SettingsView({ settings, onSave, onNavigate }) {
       {showRAGIndexer && (
         <RAGIndexer onClose={() => setShowRAGIndexer(false)} />
       )}
+
+      {/* Strava Export Modal */}
+      {showStravaExport && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 z-50">
+          <div className="glass border border-orange-500/30 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-black text-orange-400 mb-4 text-center">
+              Export Strava Runs to Google Drive
+            </h3>
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
+                  Number of Days (default: 90)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={stravaDays}
+                  onChange={(e) => setStravaDays(parseInt(e.target.value) || 90)}
+                  className="w-full bg-gray-900/50 text-white p-3 rounded-xl border border-gray-700/50 focus:border-orange-500/50 focus:outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Export runs from the last {stravaDays} days
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowStravaExport(false)}
+                disabled={stravaExporting}
+                className="flex-1 py-3 bg-gray-900/50 hover:bg-gray-800 rounded-xl text-gray-300 font-bold border border-gray-700/50 transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStravaExport}
+                disabled={stravaExporting}
+                className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 rounded-xl text-white font-bold shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {stravaExporting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <Cloud size={16} />
+                    Export
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

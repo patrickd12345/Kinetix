@@ -40,6 +40,7 @@ public class UnifiedStorageService {
     /**
      * Save a run
      * Always saves to SwiftData first, then syncs to cloud if enabled
+     * Also syncs to Strava if connected
      */
     public func saveRun(_ run: Run, modelContext: ModelContext) async throws {
         // Always save to local first (offline-first)
@@ -56,6 +57,57 @@ public class UnifiedStorageService {
                     // Run is saved locally, sync will retry later
                 }
             }
+        }
+        
+        // Sync to Strava if connected (non-blocking)
+        Task {
+            do {
+                try await syncRunToStrava(run)
+            } catch {
+                print("Strava sync failed for run: \(error)")
+                // Run is saved locally, Strava sync failure is not critical
+            }
+        }
+    }
+    
+    /**
+     * Sync a run to Strava
+     */
+    private func syncRunToStrava(_ run: Run) async throws {
+        // Check if Strava tokens exist
+        guard let tokens = try? CloudTokenStorage.shared.getTokens(provider: "strava") else {
+            return // Not connected to Strava
+        }
+        
+        // Ensure we have a valid token; if invalid, try to refresh once
+        if !CloudTokenStorage.shared.isTokenValid(provider: "strava") {
+            do {
+                let newTokens = try await StravaService.shared.refreshAccessToken(refreshToken: tokens.refreshToken)
+                try CloudTokenStorage.shared.storeTokens(
+                    provider: "strava",
+                    accessToken: newTokens.accessToken,
+                    refreshToken: newTokens.refreshToken,
+                    expiresIn: newTokens.expiresAt.timeIntervalSinceNow
+                )
+            } catch {
+                print("Failed to refresh Strava token: \(error)")
+                return
+            }
+            // After attempting refresh, if still invalid, bail out
+            guard CloudTokenStorage.shared.isTokenValid(provider: "strava") else { return }
+        }
+        
+        // Get valid access token
+        let validTokens = try CloudTokenStorage.shared.getTokens(provider: "strava")!
+        let accessToken = validTokens.accessToken
+        
+        // Upload to Strava
+        do {
+            _ = try await StravaService.shared.uploadActivity(accessToken: accessToken, run: run)
+            print("✅ Run synced to Strava")
+        } catch {
+            print("Failed to upload run to Strava: \(error)")
+            throw error
         }
     }
     

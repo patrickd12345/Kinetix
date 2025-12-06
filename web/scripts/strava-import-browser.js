@@ -120,7 +120,9 @@ async function importStravaRunsFromArray(runsArray) {
           if (await RAGIndexService.isAvailable()) {
             await RAGIndexService.indexRun(runData);
           }
-        } catch {}
+        } catch (indexError) {
+          console.warn('RAG indexing skipped:', indexError?.message || indexError);
+        }
       }
     } catch (error) {
       console.error(`Error importing ${runData.id}:`, error);
@@ -139,6 +141,7 @@ if (typeof window !== 'undefined') {
   console.log('   Run: importStravaRuns()');
   console.log('   Or: importStravaRunsFromArray([...runs...])');
 }
+
 
 
 

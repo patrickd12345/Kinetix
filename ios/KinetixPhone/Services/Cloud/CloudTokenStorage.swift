@@ -46,6 +46,37 @@ class CloudTokenStorage {
     }
     
     /**
+     * Store tokens with explicit expiresAt (for Strava)
+     */
+    func storeTokens(provider: String, accessToken: String, refreshToken: String, expiresAt: Date) throws {
+        let tokens = CloudTokens(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            expiresAt: expiresAt,
+            tokenType: "Bearer"
+        )
+        
+        let data = try JSONEncoder().encode(tokens)
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: provider,
+            kSecValueData as String: data
+        ]
+        
+        // Delete existing item if any
+        SecItemDelete(query as CFDictionary)
+        
+        // Add new item
+        let status = SecItemAdd(query as CFDictionary, nil)
+        
+        guard status == errSecSuccess else {
+            throw CloudStorageError.tokenStorageFailed("Failed to store tokens: \(status)")
+        }
+    }
+    
+    /**
      * Get tokens for a provider
      */
     func getTokens(provider: String) throws -> CloudTokens? {

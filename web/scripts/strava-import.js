@@ -11,7 +11,7 @@
  * 3. Run: node scripts/strava-import.js
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -24,50 +24,6 @@ const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID;
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET;
 const STRAVA_ACCESS_TOKEN = process.env.STRAVA_ACCESS_TOKEN;
 const STRAVA_REFRESH_TOKEN = process.env.STRAVA_REFRESH_TOKEN;
-
-// Run model (simplified for import script)
-class Run {
-  constructor(data) {
-    this.id = data.id || `strava_${Date.now()}`;
-    this.date = data.date instanceof Date ? data.date : new Date(data.date);
-    this.source = data.source || 'strava';
-    this.distance = data.distance || 0;
-    this.duration = data.duration || 0;
-    this.avgPace = data.avgPace || 0;
-    this.avgNPI = data.avgNPI || 0;
-    this.avgHeartRate = data.avgHeartRate || 0;
-    this.avgCadence = data.avgCadence || null;
-    this.avgVerticalOscillation = data.avgVerticalOscillation || null;
-    this.avgGroundContactTime = data.avgGroundContactTime || null;
-    this.avgStrideLength = data.avgStrideLength || null;
-    this.formScore = data.formScore || null;
-    this.routeData = data.routeData || [];
-    this.formSessionId = data.formSessionId || null;
-  }
-
-  toJSON() {
-    return {
-      ...this,
-      date: this.date.toISOString(),
-    };
-  }
-
-  static fromJSON(json) {
-    return new Run({
-      ...json,
-      date: new Date(json.date),
-    });
-  }
-}
-
-// NPI calculation (inline to avoid import issues)
-function calculateNPI(distanceKm, paceSecondsPerKm) {
-  // NPI formula: speedKmH * factor * 10.0
-  // where factor = distanceKm^0.06
-  const speedKmH = 3600 / paceSecondsPerKm; // km/h
-  const factor = Math.pow(distanceKm, 0.06);
-  return speedKmH * factor * 10.0;
-}
 
 /**
  * Get Strava access token (OAuth flow or use existing)
@@ -365,6 +321,7 @@ async function main() {
 
     // Export to JSON
     const jsonPath = exportRunsToJSON(runs);
+    console.log(`💾 Exported runs to ${jsonPath}`);
 
     // Instructions for importing
     console.log('\n📋 Next Steps:');
@@ -396,4 +353,3 @@ async function main() {
 if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
-

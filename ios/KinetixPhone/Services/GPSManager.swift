@@ -149,3 +149,5 @@ class GPSManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 }
 
 
+
+

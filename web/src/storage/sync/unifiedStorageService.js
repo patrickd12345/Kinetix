@@ -7,6 +7,7 @@
 import { StorageService } from '../local/storageService.js';
 import { cloudSyncService } from './cloudSyncService.js';
 import { CloudTokenStorage } from '../providers/cloudTokenStorage.js';
+import { stravaService } from '../../services/stravaService.js';
 
 export class UnifiedStorageService {
   constructor() {
@@ -43,6 +44,7 @@ export class UnifiedStorageService {
   /**
    * Save a run
    * Always saves to local first (offline-first), then syncs to cloud if enabled
+   * Also syncs to Strava if connected
    */
   async saveRun(run) {
     // Always save to local first (offline-first principle)
@@ -75,7 +77,36 @@ export class UnifiedStorageService {
       }
     }
 
+    // Sync to Strava if connected (non-blocking)
+    this.syncRunToStrava(runData).catch(error => {
+      console.warn('Strava sync failed for run:', error);
+      // Run is saved locally, Strava sync failure is not critical
+    });
+
     return saved;
+  }
+
+  /**
+   * Sync a run to Strava
+   */
+  async syncRunToStrava(run) {
+    try {
+      // Check if Strava is connected
+      const tokens = stravaService.getStoredTokens();
+      if (!tokens) {
+        return; // Not connected to Strava
+      }
+
+      // Get valid access token
+      const accessToken = await stravaService.getValidAccessToken();
+      
+      // Upload to Strava
+      await stravaService.uploadActivity(accessToken, run);
+      console.log('✅ Run synced to Strava');
+    } catch (error) {
+      console.error('Failed to sync run to Strava:', error);
+      throw error;
+    }
   }
 
   /**
@@ -408,4 +439,3 @@ export class UnifiedStorageService {
 
 // Export singleton instance
 export const unifiedStorageService = new UnifiedStorageService();
-

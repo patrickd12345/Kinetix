@@ -18,6 +18,7 @@ public final class Run {
     public var formScore: Double?
     public var routeData: [RoutePoint] = []
     public var formSessionId: UUID? // Link to Form Monitor samples when applicable
+    public var elevationGain: Double? // Elevation gain in meters
     
     public init(
         date: Date = Date(),
@@ -33,7 +34,8 @@ public final class Run {
         avgStrideLength: Double? = nil,
         formScore: Double? = nil,
         routeData: [RoutePoint] = [],
-        formSessionId: UUID? = nil
+        formSessionId: UUID? = nil,
+        elevationGain: Double? = nil
     ) {
         self.id = UUID()
         self.date = date
@@ -50,6 +52,7 @@ public final class Run {
         self.formScore = formScore
         self.routeData = routeData
         self.formSessionId = formSessionId
+        self.elevationGain = elevationGain
     }
 }
 
@@ -80,6 +83,7 @@ public struct RunPayload: Codable, Identifiable {
     public let formScore: Double?
     public let routeData: [RoutePoint]
     public let formSessionId: UUID?
+    public let elevationGain: Double?
     
     public init(from run: Run) {
         self.id = run.id
@@ -97,5 +101,6 @@ public struct RunPayload: Codable, Identifiable {
         self.formScore = run.formScore
         self.routeData = run.routeData
         self.formSessionId = run.formSessionId
+        self.elevationGain = run.elevationGain
     }
 }

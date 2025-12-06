@@ -18,6 +18,7 @@ export class Run {
     formScore = null,
     routeData = [],
     formSessionId = null,
+    elevationGain = null,
   } = {}) {
     this.id = id;
     this.date = date instanceof Date ? date : new Date(date);
@@ -34,6 +35,7 @@ export class Run {
     this.formScore = formScore;
     this.routeData = routeData;
     this.formSessionId = formSessionId;
+    this.elevationGain = elevationGain;
   }
 
   toJSON() {

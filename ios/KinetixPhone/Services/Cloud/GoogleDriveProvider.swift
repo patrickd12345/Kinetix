@@ -6,7 +6,7 @@ import UIKit
  * Google Drive cloud storage provider for iOS
  * Implements OAuth 2.0 and Google Drive API v3
  */
-class GoogleDriveProvider: NSObject {
+public class GoogleDriveProvider: NSObject {
     private let clientId: String
     private let clientSecret: String
     private let redirectURI: String
@@ -398,7 +398,7 @@ class GoogleDriveProvider: NSObject {
 
 // MARK: - ASWebAuthenticationPresentationContextProviding
 extension GoogleDriveProvider: ASWebAuthenticationPresentationContextProviding {
-    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+    public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         return UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap { $0.windows }

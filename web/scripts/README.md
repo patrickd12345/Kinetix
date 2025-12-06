@@ -30,6 +30,24 @@ Browser-side import script. Run in browser console after generating the JSON fil
 5. Copy and paste `strava-import-browser.js` code
 6. Run: `importStravaRuns()`
 
+## strava-to-googledrive.js
+
+Export last 90 days of Strava runs directly to Google Drive.
+
+**Usage:**
+```bash
+# Set credentials
+export STRAVA_CLIENT_ID=your_client_id
+export STRAVA_CLIENT_SECRET=your_client_secret
+export GOOGLE_CLIENT_ID=your_google_client_id
+export GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Run export
+node scripts/strava-to-googledrive.js
+```
+
+See `STRAVA_TO_GOOGLEDRIVE.md` for full instructions.
+
 ## export-runs.js
 
 Export runs from browser IndexedDB to JSON.

@@ -103,6 +103,7 @@
 		F30401B5CB4B5CEDF0900D67 /* WorkoutConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309F4DC7F05D8FFC1B4842BD /* WorkoutConfig.swift */; };
 		F3CB3E77E62B1B59883A4C91 /* FormMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D19BC530096CBBDAFF4C74D /* FormMetrics.swift */; };
 		F709AA617E6B0B0CE611D285 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ED3CD3155DBDE8B424D4F7E9 /* Assets.xcassets */; };
+		F9FFAD9E8FA8890A74773B38 /* StravaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17EBB47A61474FB15B69AAD /* StravaService.swift */; };
 		FA540A34A8C8C91CFF95DF75 /* UIAuditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D73BF37704B718A9EED5BC21 /* UIAuditor.swift */; };
 		FC7582C201CA944A4F9638DF /* RunDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */; };
 /* End PBXBuildFile section */
@@ -195,6 +196,7 @@
 		9C63D91A26A6AE87CC482BD0 /* UI_AUDIT_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_AUDIT_SUMMARY.md; sourceTree = "<group>"; };
 		9EF7830E282EF102DAA90362 /* KinetixHostUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinetixHostUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		9F78A546B983E88DBA026390 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		A17EBB47A61474FB15B69AAD /* StravaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaService.swift; sourceTree = "<group>"; };
 		A4B4CB2C23DDD8A29841CA1E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA7553B244B0DCAC9F367580 /* AICoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoach.swift; sourceTree = "<group>"; };
 		AAD2450347A4522C72F2993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -386,6 +388,7 @@
 				C637BB2BE19F32A00E24EFCF /* GPSManager.swift */,
 				DF0F04DB225D6A22C8C234C7 /* HealthKitManager.swift */,
 				E5632984667BA3EAF8CC857B /* RunMetricsCalculator.swift */,
+				A17EBB47A61474FB15B69AAD /* StravaService.swift */,
 				9A121F9F8D3E9E156119EC54 /* Cloud */,
 			);
 			path = Services;
@@ -629,6 +632,7 @@
 				8B388DC347E90A216ADF195D /* RunTrackingView.swift in Sources */,
 				799A4C676E85D0467AD86D69 /* RunnerProfile.swift in Sources */,
 				CC50472692F34FA2282A64FB /* SettingsView.swift in Sources */,
+				F9FFAD9E8FA8890A74773B38 /* StravaService.swift in Sources */,
 				88A8F169DAEB374DD680F9AB /* TrainingDistributionView.swift in Sources */,
 				DA866412D487D132DE7E6C2D /* UnifiedStorageService.swift in Sources */,
 				2BC81BBC7A9C0A1628790142 /* VoiceCoach.swift in Sources */,

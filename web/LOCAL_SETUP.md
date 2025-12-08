@@ -68,6 +68,19 @@ If you want to use a deployed webapp with local Ollama:
    - Set `VITE_OLLAMA_API_URL` to the tunnel URL
    - Example: `VITE_OLLAMA_API_URL=https://abc123.ngrok.io/api/generate`
 
+### OpsAI / Control Plane configuration
+
+OpsAI modules respect the following environment variables (place them in `web/.env` for local runs):
+
+```
+OPSAI_AUTONOMY_ENABLED=true
+OPSAI_AUTONOMY_LEVEL=limited
+SENTRY_DSN=<optional for upstream queries>
+SENTRY_WEBHOOK_SECRET=<optional signature secret>
+```
+
+Autonomy defaults to an observing mode unless explicitly enabled and will only execute guard-railed actions in limited mode.
+
 ## Development vs Production
 
 ### Development (Local)

@@ -70,3 +70,5 @@ DerivedData/
 *.tmp
 *.temp
 .cache/
+
+.vercel

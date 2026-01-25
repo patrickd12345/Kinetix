@@ -1,0 +1,535 @@
+import SwiftUI
+import SwiftData
+import WatchConnectivity
+#if os(watchOS)
+import WatchKit
+#endif
+
+// MARK: - PAGE 1: RUN VIEW
+struct RunView: View {
+    @Environment(\.modelContext) private var modelContext
+    @ObservedObject var locationManager: LocationManager
+    @ObservedObject var aiCoach: AICoach
+    @ObservedObject var formCoach: FormCoach
+    let targetNPI: Double
+    let unitSystem: String
+    let physioMode: Bool
+    @Binding var navigationPath: [String]
+    @AppStorage("globalHapticsEnabled") private var globalHapticsEnabled = true
+    @AppStorage("globalSonicFeedbackEnabled") private var globalSonicFeedbackEnabled = true
+    
+    @State private var showFireworks = false
+    @State private var hasCelebrated = false
+    @State private var showPhysioAlert = false
+    @State private var formTimer: Timer?
+    
+    // Error & Recovery Alerts
+    @State private var showGPSError = false
+    @State private var showHealthKitError = false
+    @State private var showWorkoutError = false
+    @State private var showRecoveryPrompt = false
+    @State private var showInvalidRunAlert = false
+    @State private var showExitConfirm = false
+    @StateObject private var formMonitorEngine = FormMonitorEngine()
+    @State private var bubbleState = FormBubbleState()
+    
+    // Voice Coach
+    @StateObject private var voiceCoach = VoiceCoach()
+    @State private var lastSpokenMessage: String?
+    @State private var lastSpokenTime: Date = Date.distantPast
+    
+    var body: some View {
+        mainContentView
+            .attachPhysioAlert(showPhysioAlert: $showPhysioAlert, locationManager: locationManager, unitSystem: unitSystem)
+            .attachGPSErrorAlert(showGPSError: $showGPSError, locationManager: locationManager)
+            .attachHealthKitErrorAlert(showHealthKitError: $showHealthKitError, locationManager: locationManager)
+            .attachWorkoutErrorAlert(showWorkoutError: $showWorkoutError, locationManager: locationManager)
+            .attachRecoveryPrompt(showRecoveryPrompt: $showRecoveryPrompt, locationManager: locationManager, unitSystem: unitSystem)
+            .attachInvalidRunAlert(showInvalidRunAlert: $showInvalidRunAlert, locationManager: locationManager, targetNPI: targetNPI, modelContext: modelContext)
+            .alert("Exit Activity?", isPresented: $showExitConfirm) {
+                Button("Cancel", role: .cancel) { }
+                Button("Exit", role: .destructive) {
+                    exitToActivitySelection()
+                }
+            } message: {
+                Text("This will stop the current activity and return to the selection screen.")
+            }
+            .attachChangeHandlers(
+                locationManager: locationManager,
+                physioMode: physioMode,
+                targetNPI: targetNPI,
+                hasCelebrated: $hasCelebrated,
+                showFireworks: $showFireworks,
+                showPhysioAlert: $showPhysioAlert,
+                formCoach: formCoach
+            )
+            .onAppear {
+                if !locationManager.isRunning { hasCelebrated = false }
+                if locationManager.checkForRecovery() != nil {
+                    showRecoveryPrompt = true
+                }
+                voiceCoach.requestPermissions()
+            }
+            .onChange(of: locationManager.isRunning) { _, isRunning in
+                if isRunning {
+                    startFormEvaluation()
+                } else {
+                    stopFormEvaluation()
+                }
+                
+                if isRunning && isFormMonitorMode, let sessionId = locationManager.formSessionId {
+                    var feedback = effectiveFeedback
+                    if !locationManager.batteryManager.activeSettings.allowVoice {
+                        feedback.sonicEnabled = false
+                    }
+                    formMonitorEngine.start(sessionId: sessionId, feedback: feedback)
+                } else {
+                    formMonitorEngine.endSession()
+                }
+            }
+            .onChange(of: formCoach.currentRecommendation?.id) { _, _ in
+                guard let rec = formCoach.currentRecommendation, formCoach.useVoiceAlerts else { return }
+                
+                let isNewMessage = rec.message != lastSpokenMessage
+                let timeSinceLast = Date().timeIntervalSince(lastSpokenTime)
+                
+                // Speak if it's a new message OR if it's been more than 60 seconds since the last identical message
+                if isNewMessage || timeSinceLast > 60 {
+                    voiceCoach.speak(rec.message + ". " + rec.detail)
+                    lastSpokenMessage = rec.message
+                    lastSpokenTime = Date()
+                }
+            }
+            // AI Overlay
+            .sheet(isPresented: Binding<Bool>(
+                get: { aiCoach.isAnalyzing || aiCoach.result != nil },
+                set: { if !$0 { aiCoach.isAnalyzing = false; aiCoach.result = nil } }
+            )) {
+                if aiCoach.isAnalyzing {
+                    VStack { ProgressView("Analyzing...") }
+                } else if let res = aiCoach.result {
+                    ScrollView {
+                        VStack(spacing: 10) {
+                            Text(res.title).font(.headline).foregroundColor(.cyan)
+                            Divider()
+                            Text(res.insight).font(.caption).foregroundColor(.white)
+                            Button("Close") { aiCoach.result = nil }.padding(.top)
+                        }.padding()
+                    }
+                }
+            }
+            .onReceive(locationManager.$currentFormMetrics) { metrics in
+                guard locationManager.isRunning, isFormMonitorMode, let sessionId = locationManager.formSessionId else { return }
+                formMonitorEngine.bind(context: modelContext)
+                let hapticsAllowed = locationManager.batteryManager.activeSettings.allowHaptics && globalHapticsEnabled
+                let newState = formMonitorEngine.ingest(
+                    metrics: metrics,
+                    pace: locationManager.currentPaceSeconds,
+                    rollingPace: locationManager.paceSeconds,
+                    balance: metrics.leftRightBalance,
+                    hapticsAllowed: hapticsAllowed
+                )
+                bubbleState = newState
+                // Ensure session id stays attached
+                if locationManager.formSessionId == nil {
+                    locationManager.formSessionId = sessionId
+                }
+            }
+            .onAppear {
+                formMonitorEngine.bind(context: modelContext)
+            }
+    }
+    
+    private var mainContentView: some View {
+        ZStack {
+            // Visual Outline Progress
+            ScreenOutline(current: locationManager.liveNPI, target: targetNPI)
+            
+            if showFireworks { FireworksView() }
+            
+            VStack {
+                // HEADER
+                HStack {
+                    // Exit button (always visible)
+                    Button(action: {
+                        if locationManager.isRunning {
+                            // Show confirmation if running
+                            showExitConfirm = true
+                        } else {
+                            // Exit immediately if not running
+                            exitToActivitySelection()
+                        }
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(locationManager.isRunning ? .orange : .gray)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text("KINETIX").font(.system(size: 10, weight: .black)).italic()
+                    Spacer()
+                    
+                    // Status with GPS indicator
+                    HStack(spacing: 4) {
+                        if locationManager.isRunning {
+                            if locationManager.isPaused {
+                                Text("PAUSED")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.orange)
+                            } else {
+                                Text("LIVE")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.cyan)
+                            }
+                        } else {
+                            Text(locationManager.gpsStatus.displayText)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(locationManager.gpsStatus.color)
+                        }
+                        
+                        // GPS accuracy indicator
+                        if let accuracy = locationManager.gpsAccuracy, locationManager.isRunning && !locationManager.isPaused {
+                            Image(systemName: accuracy < 10 ? "location.fill" : accuracy < 20 ? "location" : "location.slash")
+                                .font(.system(size: 8))
+                                .foregroundColor(accuracy < 10 ? .green : accuracy < 20 ? .orange : .red)
+                        }
+                    }
+                }
+                .padding(.top, 10).padding(.horizontal)
+                
+                Spacer()
+                
+                // MAIN GAUGE OR PROGRESS GAUGE
+                if isFormMonitorMode {
+                    formMonitorContent
+                        .frame(height: 200)
+                        .padding(.horizontal, 8)
+                } else if locationManager.currentPreset?.type == .meBeatMe {
+                    // PROGRESS GAUGE FOR MEBEATME
+                    ZStack {
+                        Circle()
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 15)
+                        
+                        Circle()
+                            .trim(from: 0.0, to: CGFloat(min(locationManager.runProgress, 1.0)))
+                            .stroke(
+                                AngularGradient(gradient: Gradient(colors: [.blue, .cyan, .green]), center: .center),
+                                style: StrokeStyle(lineWidth: 15, lineCap: .round)
+                            )
+                            .rotationEffect(Angle(degrees: -90))
+                            .animation(.linear, value: locationManager.runProgress)
+                        
+                        VStack(spacing: 0) {
+                            Text("\(Int(locationManager.liveNPI))")
+                                .font(.system(size: 40, weight: .black, design: .rounded))
+                                .italic()
+                                .foregroundColor(locationManager.liveNPI >= targetNPI ? .green : .white)
+                            
+                            Text("NPI")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.gray)
+                            
+                            if let proj = locationManager.timeToBeat {
+                                Text(proj)
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(proj.contains("GO") ? .green : .orange)
+                                    .padding(.top, 4)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 5)
+                } else {
+                    // STANDARD NPI DISPLAY
+                    VStack(spacing: 5) {
+                        HStack(spacing: 4) {
+                            Text("TARGET").font(.system(size: 8, weight: .bold)).foregroundColor(.gray)
+                            Text("\(Int(targetNPI))").font(.system(size: 12, weight: .bold)).foregroundColor(.cyan)
+                        }
+                        .padding(4).background(Capsule().stroke(Color.gray.opacity(0.5), lineWidth: 1))
+                        
+                        Text("\(Int(locationManager.liveNPI))")
+                            .font(.system(size: 56, weight: .black, design: .rounded))
+                            .italic()
+                            .foregroundColor(locationManager.liveNPI >= targetNPI ? .green : .white)
+                            .contentTransition(.numericText())
+                        
+                        Text("INDEX").font(.system(size: 8, weight: .bold)).tracking(2).foregroundColor(.gray).offset(y: -5)
+                        
+                        // DYNAMIC PROJECTION
+                        if locationManager.isRunning, let proj = locationManager.timeToBeat {
+                            HStack(spacing: 4) {
+                                Image(systemName: "flag.fill").font(.system(size: 8)).foregroundColor(.orange)
+                                Text(proj)
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundColor(proj.contains("GO") ? .green : .orange)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                            }
+                            .padding(4).background(Color.gray.opacity(0.2)).cornerRadius(4)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                if locationManager.isRunning && !isFormMonitorMode {
+                    RunnerTrack(current: locationManager.liveNPI, target: targetNPI)
+                        .frame(height: 20)
+                        .padding(.horizontal)
+                }
+                
+                // STATS GRID
+                HStack(spacing: 2) {
+                    StatBox(title: "PACE", value: locationManager.formattedPace(unit: unitSystem), color: .cyan)
+                    if physioMode {
+                        StatBox(title: "BPM", value: "\(Int(locationManager.heartRate))", color: locationManager.heartRate > 170 ? .red : .white)
+                    }
+                    StatBox(title: "DIST", value: locationManager.formattedDistance(unit: unitSystem), color: .purple)
+                }
+                .padding(.horizontal)
+                
+                // FORM RECOMMENDATION BANNER (Only if voice alerts are OFF)
+                if locationManager.isRunning, let rec = formCoach.currentRecommendation, !formCoach.useVoiceAlerts {
+                    HStack(spacing: 6) {
+                        Image(systemName: iconForType(rec.type))
+                            .font(.system(size: 10))
+                            .foregroundColor(colorForType(rec.type))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(rec.message)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                            Text(rec.detail)
+                                .font(.system(size: 8))
+                                .foregroundColor(.gray)
+                        }
+                        Spacer()
+                    }
+                    .padding(6)
+                    .background(backgroundColorForType(rec.type))
+                    .cornerRadius(6)
+                    .padding(.horizontal)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                
+                // CONTROL BUTTONS
+                if locationManager.isRunning {
+                    HStack(spacing: 12) {
+                        // Pause/Resume Button
+                        Button(action: {
+                            if locationManager.isPaused {
+                                locationManager.resume()
+                            } else {
+                                locationManager.pause()
+                            }
+                            #if os(watchOS)
+                            WKInterfaceDevice.current().play(.click)
+                            #endif
+                        }) {
+                            Image(systemName: locationManager.isPaused ? "play.fill" : "pause.fill")
+                        }
+                        .accessibilityLabel(locationManager.isPaused ? "Resume Run" : "Pause Run")
+                        .background(locationManager.isPaused ? Color.green : Color.orange)
+                        .clipShape(Circle())
+                        
+                        // Stop Button
+                        Button(action: {
+                            if let summary = locationManager.toggleTracking(targetNPI: targetNPI) {
+                                // Validate run before saving
+                                if locationManager.shouldSaveRun() {
+                                    let run = Run(
+                                        date: summary.date,
+                                        source: "recorded",
+                                        distance: summary.distance,
+                                        duration: summary.duration,
+                                        avgPace: summary.avgPace,
+                                        avgNPI: summary.avgNPI,
+                                        avgHeartRate: summary.avgHeartRate,
+                                        avgCadence: summary.avgCadence,
+                                        avgVerticalOscillation: summary.avgVerticalOscillation,
+                                        avgGroundContactTime: summary.avgGroundContactTime,
+                                        avgStrideLength: summary.avgStrideLength,
+                                        formScore: summary.formScore,
+                                        routeData: summary.routeData,
+                                        formSessionId: summary.formSessionId
+                                    )
+                                    modelContext.insert(run)
+                                    
+                                    // Sync run to iPhone via Watch Connectivity
+                                    Task {
+                                        await syncRunToiPhone(run)
+                                    }
+                                } else {
+                                    showInvalidRunAlert = true
+                                }
+                            }
+                        }) {
+                            Image(systemName: "stop.fill")
+                        }
+                        .accessibilityLabel("Stop and Save Run")
+                        .background(Color.red)
+                        .clipShape(Circle())
+                        
+                        // Voice Assistant Button
+                        Button(action: {
+                            if voiceCoach.isListening {
+                                voiceCoach.stopListening()
+                            } else {
+                                voiceCoach.startListening { text in
+                                    Task {
+                                        let response = await aiCoach.ask(question: text, metrics: locationManager.currentFormMetrics)
+                                        voiceCoach.speak(response)
+                                    }
+                                }
+                            }
+                            #if os(watchOS)
+                            WKInterfaceDevice.current().play(.click)
+                            #endif
+                        }) {
+                            Image(systemName: voiceCoach.isListening ? "mic.fill" : "mic")
+                                .foregroundColor(voiceCoach.isListening ? .red : .white)
+                        }
+                        .accessibilityLabel("Ask Coach")
+                        .background(Color.blue)
+                        .clipShape(Circle())
+                        .overlay(
+                            voiceCoach.isListening ? 
+                                Circle().stroke(Color.red, lineWidth: 2).scaleEffect(1.2).opacity(0.5) 
+                                : nil
+                        )
+                    }
+                    .padding(.bottom, 5)
+                } else {
+                    // Start Button
+                    Button(action: {
+                        _ = locationManager.toggleTracking(targetNPI: targetNPI)
+                        #if os(watchOS)
+                        WKInterfaceDevice.current().play(.click)
+                        #endif
+                    }) {
+                        Image(systemName: "play.fill")
+                    }
+                    .accessibilityLabel("Start Run")
+                    .background(Color.green)
+                    .clipShape(Circle())
+                    .padding(.bottom, 5)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Form Coach Helpers
+    private func startFormEvaluation() {
+        // Initial evaluation
+        formCoach.evaluate(metrics: locationManager.currentFormMetrics)
+        
+        // Timer for periodic evaluation (every 5 seconds)
+        formTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+            formCoach.evaluate(metrics: locationManager.currentFormMetrics)
+        }
+    }
+    
+    private func stopFormEvaluation() {
+        formTimer?.invalidate()
+        formTimer = nil
+        formCoach.currentRecommendation = nil
+    }
+    
+    private func exitToActivitySelection() {
+        // Stop tracking if active
+        if locationManager.isRunning {
+            _ = locationManager.stop()
+        }
+        // Stop form evaluation
+        stopFormEvaluation()
+        // Navigate back
+        navigationPath.removeAll()
+    }
+    
+    private func iconForType(_ type: RecommendationType) -> String {
+        switch type {
+        case .good: return "checkmark.circle.fill"
+        case .warning: return "exclamationmark.triangle.fill"
+        case .alert: return "exclamationmark.circle.fill"
+        }
+    }
+    
+    private func colorForType(_ type: RecommendationType) -> Color {
+        switch type {
+        case .good: return .green
+        case .warning: return .orange
+        case .alert: return .red
+        }
+    }
+    
+    private func backgroundColorForType(_ type: RecommendationType) -> Color {
+        switch type {
+        case .good: return Color.green.opacity(0.15)
+        case .warning: return Color.orange.opacity(0.15)
+        case .alert: return Color.red.opacity(0.15)
+        }
+    }
+    
+    private var isFormMonitorMode: Bool {
+        locationManager.isFormMonitorActivity
+    }
+    
+    private var formMonitorContent: some View {
+        TabView {
+            ForEach(formMonitorScreens, id: \.self) { screen in
+                switch screen {
+                case .bubble:
+                    FormMonitorPrimaryView(state: bubbleState)
+                case .metrics:
+                    FormMonitorSecondaryMetricsView(metrics: locationManager.currentFormMetrics, state: bubbleState)
+                case .pace:
+                    FormMonitorPaceView(metrics: locationManager.currentFormMetrics, state: bubbleState, distance: locationManager.totalDistance)
+                case .npi:
+                    FormMonitorNPIView(npi: locationManager.liveNPI, symmetry: bubbleState.symmetry, instability: bubbleState.instability)
+                default:
+                    FormMonitorSecondaryMetricsView(metrics: locationManager.currentFormMetrics, state: bubbleState)
+                }
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+    }
+    
+    private var formMonitorScreens: [ActivityScreenType] {
+        if let template = locationManager.activeActivityTemplate {
+            var screens: [ActivityScreenType] = [template.primaryScreen]
+            for screen in template.secondaryScreens where !screens.contains(screen) {
+                screens.append(screen)
+            }
+            return screens
+        }
+        // Default stack for built-in Form Monitor
+        return [.bubble, .metrics, .pace, .npi]
+    }
+    
+    private var effectiveFeedback: FeedbackSettings {
+        var feedback = locationManager.activeFeedbackSettings
+        feedback.hapticsEnabled = feedback.hapticsEnabled && globalHapticsEnabled
+        feedback.sonicEnabled = feedback.sonicEnabled && globalSonicFeedbackEnabled
+        return feedback
+    }
+    
+    // MARK: - Watch Connectivity: Sync Run to iPhone
+    private func syncRunToiPhone(_ run: Run) async {
+        let payload = RunPayload(from: run)
+        guard let data = try? JSONEncoder().encode(payload) else { return }
+        
+        let session = WCSession.default
+        if session.isReachable {
+            let message: [String: Any] = ["run": data]
+            session.sendMessage(message, replyHandler: nil)
+        }
+        
+        do {
+            var context: [String: Any] = session.applicationContext
+            context["run"] = data
+            try session.updateApplicationContext(context)
+        } catch {
+            print("Failed to sync run to iPhone: \(error.localizedDescription)")
+        }
+    }
+}

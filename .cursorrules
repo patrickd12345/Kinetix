@@ -1,0 +1,193 @@
+# Kinetix Project Rules
+
+## Project Overview
+Kinetix is an intelligent running coach app with three platforms:
+- **Watch App** (watchOS): Standalone run tracking with form analysis
+- **iPhone App** (iOS): Management hub, AI coaching, settings
+- **Web App**: Cross-platform prototype with GPS tracking and NPI calculation
+
+## Core Principles
+
+### NPI (Normalized Performance Index)
+- **NPI is the poster child of Kinetix** - always feature it prominently
+- Homepage should showcase NPI (Best, Average, Target) as the star feature
+- NPI calculation formula must match iOS implementation exactly
+- Display NPI prominently in run views with large, clear numbers
+
+### Code Quality
+- Always test after code changes (APIs with curl, UI with Playwright)
+- Never ask user to check code - do it yourself
+- Never ask user to code - do it yourself
+- Check for linting errors after edits
+- Prefer optimistic UI with rollback for actions
+- Use retry/backoff for queries
+- Use skeletons instead of blank loading states
+- Guard against double clicks
+
+### Database & Data
+- **NEVER run SQL directly** - always use migrations
+- Always execute SQL migrations without asking confirmation
+- Use SwiftData for iOS/watchOS persistence
+- Use localStorage/IndexedDB for web app
+
+### Testing
+- Test APIs with curl
+- Test UI with Playwright
+- Always test after code changes before returning
+
+### Architecture
+
+#### Watch App
+- Standalone operation - runs entirely on Watch
+- Watch handles: GPS, HealthKit, form metrics, run tracking
+- Watch sends data to iPhone via Watch Connectivity
+- Battery profiles for optimization
+- **Constraints**: Small screen, limited battery, lightweight processing, simple UI only
+- **Focus**: Essential run-time features, not management/analysis (that's iPhone's job)
+
+#### iPhone App
+- Management & Analysis Hub
+- 3-tab architecture: Coach, History, Settings
+- Receives data from Watch
+- AI coaching via Gemini API
+- Voice coaching through iPhone (earphones paired to iPhone)
+
+#### Web App
+- Modern React + Vite setup
+- Use local LLM (Ollama) for AI, not Gemini API
+- Browser Geolocation API for GPS
+- localStorage for persistence (can upgrade to IndexedDB)
+- Modular structure: components, services, hooks, models, utils
+
+### File Organization
+
+#### Web App Structure
+```
+web/src/
+  components/     # React components
+  services/       # Business logic (GPS, storage, AI)
+  hooks/          # Custom React hooks
+  models/         # Data models (Run, FormMetrics, etc.)
+  utils/          # Utility functions (NPI calculator, etc.)
+```
+
+#### iOS/watchOS Structure
+- SwiftUI for UI
+- SwiftData for persistence
+- Services folder for managers (BatteryManager, GPSManager, etc.)
+- Models folder for data structures
+
+### Feature Documentation
+- Maintain feature lists in:
+  - `FEATURES_WATCH.md` - Watch app features
+  - `FEATURES_PHONE.md` - iPhone app features
+  - `FEATURES_WEB.md` - Web app features
+  - `FEATURES_COMPARISON.md` - Cross-platform comparison
+- **Always update these files** when features are added/removed
+- **When adding a feature**, update ALL relevant files:
+  - The specific platform file (FEATURES_WATCH.md, etc.)
+  - FEATURES_COMPARISON.md (add to comparison table)
+  - Consider if feature should be on other platforms
+
+### Common Patterns
+
+#### GPS Tracking
+- Watch: CoreLocation with accuracy monitoring
+- Web: Browser Geolocation API with permission handling
+- Always show GPS status to user
+
+#### NPI Calculation
+- Formula: `speedKmH * factor * 10.0` where `factor = distanceKm^0.06`
+- Must match iOS implementation exactly
+- Calculate from distance (km) and pace (seconds per km)
+
+#### Error Handling
+- User-facing error messages (not just console logs)
+- Graceful degradation when permissions denied
+- Clear instructions on how to fix issues
+
+#### State Management
+- React: useState/useEffect for local state
+- iOS: @State, @StateObject, @ObservedObject
+- Watch: @AppStorage for persistent settings
+
+### Design Philosophy
+- **"Anti-Social" Design**: Zero distractions, no feeds, no likes
+- **Voice-First Coaching**: Audio coaching through iPhone
+- **Watch as Sensor Hub**: Watch collects data, iPhone handles intelligence
+- **Dark Theme**: Modern glassmorphism UI
+- **NPI First**: NPI is always the star feature
+
+### Terminal & Development
+- Often check if terminal is not stuck and force quit if necessary
+- Use absolute paths when possible
+- cd to appropriate directory before running commands
+
+### Documentation
+- Read repo .md files on startup to get project context
+- Maintain feature documentation files
+- Keep README.md updated with platform info
+
+### Platform-Specific Notes
+
+#### Watch App
+- watchOS 10.0+ required
+- Standalone operation
+- Battery optimization critical
+- Background tracking essential
+
+#### iPhone App
+- iOS 17.0+ required
+- Depends on Watch for run tracking
+- Gemini API for AI (not local LLM)
+- Voice coaching via AVFoundation
+
+#### Web App
+- Modern browsers (Chrome, Firefox, Safari, Edge)
+- Requires location permissions
+- Local LLM (Ollama) for AI (not Gemini)
+- No sensor access (form metrics simulated/not available)
+- No HealthKit access (heart rate simulated)
+
+### Cross-Platform Feature Development
+- **ALWAYS consider all 3 platforms** when implementing new features, but **make smart decisions** - don't ask when it's obvious
+- **Platform Roles** (use these to decide automatically):
+  - **Watch**: Sensor data collection, real-time tracking, form metrics, GPS during runs, battery-optimized features
+  - **iPhone**: Management, AI analysis, settings, voice coaching, large-screen views, complex UI
+  - **Web**: Cross-platform access, quick tracking, no device requirements, browser-based features
+- **Watch App Constraints** (be realistic):
+  - Limited screen space (small display)
+  - Battery is critical - optimize everything
+  - Processing power is limited - keep computations lightweight
+  - Memory is constrained - don't store large datasets
+  - Simple UI only - complex interactions don't work well
+  - Focus on essential features during runs - not management/analysis
+- **When to ask vs. decide automatically**:
+  - **Don't ask** if it's obvious:
+    - Sensor/form metrics → Watch only
+    - Complex settings/management → iPhone/Web
+    - Voice coaching → iPhone (earphones)
+    - Map visualization → iPhone/Web (not Watch - too small)
+    - AI analysis → iPhone/Web (Watch sends to iPhone)
+    - Run tracking → Watch + Web (iPhone doesn't track)
+  - **Do ask** if genuinely unclear or needs user preference
+- **Feature parity considerations**:
+  - Core features (NPI, GPS, run tracking) should be on all platforms where possible
+  - Platform-specific features are acceptable and expected
+  - Always document feature differences in FEATURES_*.md files
+- **When adding a feature**:
+  - **Decide which platform(s)** based on constraints and roles (don't ask if obvious)
+  - Update the relevant FEATURES_*.md file(s)
+  - Update FEATURES_COMPARISON.md
+  - Consider if it should be on other platforms too
+  - Document platform limitations if not implementing everywhere
+
+### When Working on This Project
+1. Read relevant .md files first for context
+2. Check feature documentation to understand what exists
+3. **Consider all 3 platforms** - should this feature be on Watch, iPhone, Web, or all?
+4. Test changes before returning
+5. Update feature docs if adding/removing features
+6. Keep NPI prominent in UI
+7. Follow platform-specific patterns
+

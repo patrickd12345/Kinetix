@@ -1,0 +1,137 @@
+name: KinetixWatch
+options:
+  bundleIdPrefix: com.kinetix
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+  developmentLanguage: en
+  xcodeVersion: "15.0"
+packages:
+  FITSwiftSDK:
+    url: https://github.com/garmin/fit-swift-sdk.git
+    from: 21.171.0
+
+targets:
+  KinetixPhone:
+    type: application
+    platform: iOS
+    sources:
+      - path: ../ios/KinetixPhone
+        excludes:
+          - "**/FITSDK/**"  # Exclude SDK directory from auto-inclusion (we'll add it manually if needed)
+      - path: KinetixWatch/Models/Run.swift
+      - path: KinetixWatch/Models/WorkoutConfig.swift
+      - path: KinetixWatch/Models/ActivityTemplate.swift
+      - path: KinetixWatch/Models/FormMonitorSample.swift
+      - path: KinetixWatch/Models/CustomBatteryProfile.swift
+      - path: KinetixWatch/Services/BatteryManager.swift
+      - path: KinetixWatch/FormMetrics.swift
+      - path: KinetixWatch/AICoach.swift
+      - path: KinetixWatch/VoiceCoach.swift
+      - path: KinetixWatch/AdaptiveLearner.swift
+      - path: KinetixWatch/CoreMLCoach.swift
+      - path: KinetixWatch/FormCoach.swift
+      - path: ../ios/KinetixPhone/Services/ApiKeyStorage.swift
+    dependencies:
+      - target: KinetixWatch
+        embed: true
+      - package: FITSwiftSDK
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone
+      INFOPLIST_FILE: ../ios/KinetixPhone/Info.plist
+      SWIFT_VERSION: "5.0"
+      TARGETED_DEVICE_FAMILY: "1"
+      IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+      DEVELOPMENT_TEAM: "AWJBX83Y4X"
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      CODE_SIGN_STYLE: Automatic
+      ENABLE_PREVIEWS: YES
+      
+  KinetixWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: KinetixWatch
+        excludes:
+          - "**/*.app"
+          - "**/*.ipa"
+      - path: ../ios/KinetixPhone/Services/ApiKeyStorage.swift
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone.watchkitapp
+      INFOPLIST_FILE: KinetixWatch/Info.plist
+      CODE_SIGN_ENTITLEMENTS: KinetixWatch/KinetixWatch.entitlements
+      SWIFT_VERSION: "5.0"
+      TARGETED_DEVICE_FAMILY: "4"
+      WATCHOS_DEPLOYMENT_TARGET: "10.0"
+      DEVELOPMENT_TEAM: "AWJBX83Y4X"
+      SUPPORTED_PLATFORMS: watchos
+      CODE_SIGN_STYLE: Automatic
+      CODE_SIGN_CONTEXT_CLASS: XCWatchOSCodeSignContext
+      SKIP_INSTALL: YES
+      ENABLE_TESTABILITY: YES
+    capabilities:
+      - Background Modes
+      - HealthKit
+
+  KinetixHostTests:
+    type: bundle.unit-test
+    platform: watchOS
+    sources:
+      - KinetixHostTests
+      - KinetixWatch/Services/RunMetricsCalculator.swift
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixWatchOS.KinetixHostTests
+      GENERATE_INFOPLIST_FILE: YES
+      DEVELOPMENT_TEAM: "AWJBX83Y4X"
+      CODE_SIGN_STYLE: Automatic
+      ENABLE_TESTABILITY: YES
+
+  KinetixHostUITests:
+    type: bundle.ui-testing
+    platform: watchOS
+    sources:
+      - KinetixHostUITests
+    dependencies:
+      - target: KinetixWatch
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixWatchOS.KinetixHostUITests
+      GENERATE_INFOPLIST_FILE: YES
+      DEVELOPMENT_TEAM: "AWJBX83Y4X"
+      CODE_SIGN_STYLE: Automatic
+      TEST_TARGET_NAME: KinetixWatch
+
+schemes:
+  KinetixPhone:
+    build:
+      targets:
+        KinetixPhone: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+  KinetixWatch:
+    build:
+      targets:
+        KinetixWatch: all
+        KinetixHostTests: all
+        KinetixHostUITests: all
+    run:
+      config: Debug
+      executable: KinetixWatch
+    test:
+      config: Debug
+      targets:
+        - KinetixHostTests
+        - KinetixHostUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

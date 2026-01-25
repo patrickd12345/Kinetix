@@ -1,0 +1,40 @@
+{
+  "name": "Kinetix - Intelligent Running Coach",
+  "short_name": "Kinetix",
+  "description": "Intelligent running coach with NPI tracking, GPS, and AI-powered analysis",
+  "theme_color": "#0a0a0a",
+  "background_color": "#000000",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
+
+
+
+
+
+
+
+
+

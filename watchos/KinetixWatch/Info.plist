@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Kinetix</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>GEMINI_API_KEY</key>
+	<string>AIzaSyBo5iWSR6yGbWU8EzoOEU7JusjciFVATSE</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Kinetix uses HealthKit to track your heart rate and workouts.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Kinetix saves your workouts to HealthKit.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Kinetix needs location access to track your runs</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Kinetix needs location access to track your runs</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Kinetix needs microphone access to hear your coaching questions.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Kinetix uses speech recognition to understand your questions.</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>WKApplication</key>
+	<true/>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>com.patrickduchesneau.KinetixPhone</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>remote-notification</string>
+	</array>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
+</dict>
+</plist>

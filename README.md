@@ -1,387 +1,267 @@
-# KINETIX 🏃‍♂️
+# Kinetix - Intelligent Running Coach
 
-**AI-Powered Running Coach with NPI (Normalized Performance Index)**
+A revolutionary running app for Apple Watch with iPhone companion, focusing on biomechanics, form efficiency, and personalized coaching through AI and real-time analysis.
 
-[![Version](https://img.shields.io/badge/version-1.0--rc-blue.svg)](https://github.com/patrickd12345/Kinetix)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+## 🚀 Core Features
 
----
+### 🧠 Intelligent Coaching System
 
-## 📖 Overview
+- **Hybrid AI Engine**: Combines rule-based biomechanics with Core ML for adaptive, personalized feedback
+- **Real-time Form Analysis**: Monitors vertical oscillation, cadence, ground contact time, and stride length
+- **Adaptive Learning**: Learns your personal running baseline (e.g., adjusting for asymmetry) to provide personalized recommendations
+- **Three Coach Modes**:
+  - **Auto Mode**: Machine learning adapts to your running style
+  - **Rule-Based**: Traditional biomechanics rules
+  - **Core ML**: Advanced on-device machine learning
+- **Voice Coaching**: AI-powered voice alerts delivered through iPhone (earphones paired to iPhone)
+- **Form Recommendations**: Real-time haptic and voice feedback for form corrections
 
-Kinetix is a revolutionary running coach application that uses a proprietary **Normalized Performance Index (NPI)** to provide real-time performance tracking and coaching. Unlike traditional pace-based systems, NPI adjusts for fatigue over distance, giving runners a more accurate measure of their performance potential.
+### 🏃‍♂️ Running Metrics & Analytics
 
-### Key Innovation: Normalized Performance Index (NPI)
+- **NPI (Normalized Performance Index)**: Custom metric tracking running efficiency
+  - Converts directly into predicted finish times for **any** race distance (from a mile to an ultramarathon)
+  - Generates infinite "beat yourself" scenarios by recalculating projected finish times every few seconds based on live NPI
+  - Translates NPI into target paces/splits so you always know how fast you need to run to stay on goal
+- **Comprehensive Biomechanics Tracking**:
+  - Cadence (Steps per minute)
+  - Vertical Oscillation (Bounce)
+  - Ground Contact Time
+  - Stride Length
+  - Form Score (0-100)
+  - Left/Right Balance
+- **Post-Run Lab Report**: Detailed breakdown including:
+  - Form score visualization
+  - Biomechanics grid with all metrics
+  - AI-generated coach's analysis
+  - Performance insights
+- **Real-time Metrics**: Live tracking of pace, distance, heart rate, and form metrics
+- **Route Tracking**: GPS-based route recording with map visualization
 
-NPI is a unique metric that:
-- **Normalizes speed** for fatigue over distance
-- **Provides real-time feedback** on performance relative to your target
-- **Projects finish times** based on current average pace
-- **Adapts dynamically** as your pace changes during the run
+### ⌚ Watch App Features
 
----
+- **Standalone Operation**: Runs entirely on Apple Watch (watchOS 10+)
+- **Preset System**: Built-in workout presets:
+  - **MeBeatMe**: Performance/NPI tracking with progress gauge
+  - **Race Mode**: Target finish time pacing
+  - **Burner**: Fat-burn biomechanics focus
+  - **Form Monitor**: Real-time form analysis
+  - **Custom**: User-created activity templates
+- **Preset Selection Screen**: Startup screen to choose workout type before run
+- **Battery Profiles**: 
+  - **Built-in Profiles**: Aggressive, Balanced, Eco, Emergency
+  - **Custom Profiles**: Create and sync custom battery profiles from iPhone
+  - **Auto-Switch**: Automatically switches to more conservative profiles at battery thresholds (40%, 20%, 10%)
+- **Background Tracking**: Reliable workout recording even when screen is off
+- **Haptic Feedback**: Subtle taps for form corrections
+- **Always-On Display**: Optimized for quick glances
+- **Pause/Resume**: Full pause/resume functionality during runs
+- **Crash Recovery**: Automatic recovery of interrupted runs with resume option
+- **GPS Status Monitoring**: Real-time GPS accuracy tracking with visual indicators
+- **Data Persistence**: Periodic autosave during runs (frequency based on battery profile)
 
-## ✨ Features
+### 📱 iPhone Companion App
 
-### 🎯 Core Features
+The iPhone app serves as a **Management & Analysis Hub** with a 3-tab architecture:
 
-- **Real-Time NPI Tracking**: Live performance index that adjusts for distance and fatigue
-- **Dynamic Target System**: Set and adjust your target NPI during runs
-- **Time-to-Beat Projection**: See exactly how long you need to maintain your current pace to hit your target
-- **Visual Progress Indicators**: 
-  - Circular gauge showing time-based progress
-  - Linear runner track with animated progress
-- **GPS Integration**: Real-time location tracking with GPS fix detection
-- **Physio-Pacer Mode**: Cardiac drift detection with recommended pace adjustments
-- **Race History**: Log and analyze past performances
-- **Find My Target NPI**: Calculate your target NPI from previous race data
+#### 1. **Coach Tab** (Dashboard)
+- **Live Metrics Dashboard**: Real-time charts for heart rate and cadence
+- **Conversational AI Coach**: Ask questions about your run via voice
+- **Live Biometric Stream**: Real-time data from Watch displayed on iPhone
+- **Alert System**: Receives and vocalizes alerts from Watch
 
-### 🎨 User Interface
+#### 2. **History Tab**
+- **Run History**: Complete list of all runs synced from Watch
+- **Detailed Run Views**: Full post-run analysis including:
+  - Lab report with form score
+  - Biomechanics grid
+  - AI-generated summary
+  - Route map
+  - All metrics and statistics
 
-- **Watch-Optimized Design**: Apple Watch Ultra form factor (410x502px)
-- **Vertical Scroll Navigation**: Native watchOS-style page navigation
-- **Modern UI**: Glassmorphism effects, gradients, and smooth animations
-- **Dark Theme**: Optimized for outdoor visibility
-- **Responsive Feedback**: Haptic-ready design for native watch integration
+#### 3. **Settings Tab**
+- **Runner Profile**: Weight, date of birth, sex (for AI summaries and training distribution)
+- **Battery Profile Manager**: 
+  - Create custom battery profiles
+  - Configure GPS, motion sensor, and form analysis intervals
+  - Toggle haptics, voice, and live charts
+  - Profiles automatically sync to Watch
+- **Activity Builder**: Create custom workout templates with:
+  - Custom screens (Form Bubble, Metrics, Pace, NPI, Map, Coach, History)
+  - Goal types (Efficiency, Race, Burner, Form Monitor, Free Run)
+  - Feedback settings (haptics, speech, bubble sensitivity, sonic feedback)
+  - Default battery profile assignment
+- **Find My NPI**: Manual entry tool for race results or treadmill sessions
+- **AI Training Summary**: Generate summaries of last 6 weeks of training
+- **Training Distribution**: Visual chart showing Speed/Strength, Endurance, and Stability axes
+- **Diagnostics**: Export logs, clear logs, troubleshoot sync issues
 
-### 🤖 AI Coach (Optional)
+### 🔋 Battery Management
 
-- **Gemini AI Integration**: Post-run analysis and recommendations
-- **Performance Insights**: Scientific feedback on your running data
-- **Customizable**: Enable/disable as needed
+- **Dynamic Battery Profiles**: 
+  - **Aggressive**: Max precision (1s GPS, full features)
+  - **Balanced**: Standard (2s GPS, optimized)
+  - **Eco**: Long run (5s GPS, haptics only)
+  - **Emergency**: Survival (10s GPS, minimal features)
+- **Custom Profiles**: Create unlimited custom profiles with fine-tuned settings
+- **Auto-Switch Thresholds**: Configurable auto-switching at 40%, 20%, or 10% battery
+- **Battery-Safe Persistence**: More frequent saves in low-battery modes
+- **Adaptive Sampling**: GPS, motion sensor, and form analysis intervals adjust based on battery level
 
----
+### 🎯 Workout Presets & Activity Templates
 
-## 🏗️ Architecture
+- **Built-in Presets**: Pre-configured for common workout types
+- **Custom Activity Templates**: Create unlimited custom activities on iPhone
+- **Template Configuration**:
+  - Primary and secondary screens
+  - Goal type (Efficiency, Race, Burner, Form Monitor, Free Run)
+  - Feedback settings (haptics, speech, sonic)
+  - Default battery profile
+  - Custom icons
+- **Automatic Sync**: Templates sync from iPhone to Watch via Watch Connectivity
+
+### 🔄 Watch Connectivity
+
+- **Real-time Data Streaming**: Watch streams live metrics to iPhone
+- **Bidirectional Sync**: 
+  - Activities sync from iPhone to Watch
+  - Battery profiles sync from iPhone to Watch
+  - Run data syncs from Watch to iPhone
+- **Background Updates**: Uses application context for reliable background sync
+- **Alert System**: Watch sends alerts to iPhone for vocalization
+
+### 🎤 Voice & Audio
+
+- **iPhone-Based Audio**: All audio coaching comes from iPhone (earphones paired to iPhone)
+- **Voice Alerts**: AI-generated voice coaching delivered through iPhone
+- **Music Mixing**: Voice alerts mix seamlessly with background music
+- **Speech Recognition**: Ask questions to AI coach via voice on iPhone
+- **Text-to-Speech**: Premium voices for natural-sounding coaching
+
+### 📊 Post-Run Analysis
+
+- **Lab Report**: Comprehensive post-run analysis including:
+  - Form score (0-100)
+  - Biomechanics grid (cadence, bounce, GCT, stride)
+  - AI-generated coach's analysis
+  - Performance insights
+- **Run Detail View**: Full breakdown of every run with:
+  - Route map
+  - All metrics
+  - Form metrics
+  - Coach's analysis
+  - Historical comparison
+
+### 🛡️ Reliability Features
+
+- **Crash Recovery**: Automatic detection and recovery of interrupted runs
+- **Data Persistence**: Periodic autosave during runs
+- **GPS Status Monitoring**: Real-time GPS accuracy tracking
+- **Error Handling**: User-friendly error messages for GPS, HealthKit, and workout errors
+- **Run Validation**: Prevents saving invalid runs (< 100m or < 10s)
+- **HealthKit Integration**: Deep integration with HealthKit for heart rate and workout data
+- **Background Operation**: Reliable tracking even when app is backgrounded
+
+## 🛠 Technical Stack
+
+- **SwiftUI & SwiftData**: Modern UI and persistence
+- **Core ML**: On-device machine learning for form classification
+- **HealthKit**: Deep integration for heart rate and workout data
+- **Watch Connectivity**: Real-time data streaming between Watch and iPhone
+- **Core Location**: GPS tracking and route recording
+- **AVFoundation**: Audio session management, speech recognition, and text-to-speech
+- **Gemini API**: AI-powered coaching and conversational responses
+- **XcodeGen**: Programmatic project generation and management
+
+## 📦 Installation
+
+### Requirements
+- Xcode 15+
+- Apple Watch (watchOS 10.0+)
+- iPhone (iOS 17.0+)
+- Apple Developer account
+
+### Setup
+1. Clone the repository
+2. Navigate to `watchos/` directory
+3. Run `xcodegen generate` to generate the Xcode project
+4. Open `KinetixWatch.xcodeproj` in Xcode
+5. Select your Team in **Signing & Capabilities** for both targets:
+   - `KinetixWatch` (Watch app)
+   - `KinetixPhone` (iPhone app)
+6. Build & Run on both devices
+
+### ⚠️ Critical Setup for Connectivity
+For the Watch and iPhone apps to communicate properly (WCSession), strict Bundle ID rules apply:
+1. **Bundle ID Hierarchy**: The Watch App Bundle ID **MUST** be a child of the iPhone App Bundle ID.
+   - iPhone: `com.yourcompany.appname`
+   - Watch: `com.yourcompany.appname.watchkitapp`
+2. **Info.plist Linkage**: The Watch App `Info.plist` **MUST** contain `WKCompanionAppBundleIdentifier` pointing to the iPhone App Bundle ID.
+3. **Embedding**: The iPhone App target **MUST** embed the Watch App target (handled by `xcodegen` via `dependencies: embed: true`).
+
+If you see "Watch App Not Installed" in the iPhone app diagnostics, one of these 3 rules is broken.
+
+### Watch Installation Troubleshooting
+
+**Having issues installing the Watch app?** See the comprehensive fix guide:
+
+- **[Quick Fix](watchos/QUICK_FIX.md)** - Start here for the most common solution
+- **[Complete Fix Guide](watchos/WATCH_INSTALL_FIX.md)** - Comprehensive solutions for all installation issues
+- **[Automated Fix Script](watchos/fix-watch-install.sh)** - Run `./fix-watch-install.sh` for automated diagnostics
+
+**Most Common Solution:** Install Watch app via iPhone first:
+1. Build iPhone app in Xcode (KinetixPhone scheme)
+2. On iPhone: Open Watch app → Find "Kinetix" → Tap "Install"
+3. Wait 1-2 minutes for installation
+4. Then build Watch app in Xcode (KinetixWatch scheme)
 
 ### Project Structure
-
 ```
 Kinetix/
 ├── watchos/
-│   └── KinetixWatch/
-│       └── ContentView.swift          # Native Apple Watch app (SwiftUI)
-├── web/
-│   ├── src/
-│   │   ├── KinetixMaxPrototype.jsx   # Main React component
-│   │   ├── main.jsx                  # Entry point
-│   │   └── index.css                 # Global styles
-│   ├── index.html
-│   ├── package.json
-│   ├── vite.config.js                # Vite configuration
-│   ├── tailwind.config.js             # Tailwind CSS config
-│   └── postcss.config.js
+│   ├── KinetixWatch/          # Watch app source
+│   │   ├── Models/           # Data models
+│   │   ├── Services/         # BatteryManager, etc.
+│   │   └── ...
+│   └── project.yml           # XcodeGen configuration
+├── ios/
+│   └── KinetixPhone/         # iPhone app source
 └── README.md
 ```
 
-### Technology Stack
-
-**Native Watch App:**
-- SwiftUI
-- CoreLocation
-- SwiftData
-- AVFoundation
-- watchOS 10+
-
-**Web Prototype:**
-- React 18
-- Vite
-- Tailwind CSS
-- Lucide React Icons
-- Modern ES6+
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- **For Watch App**: Xcode 15+, watchOS 10+, Apple Watch
-- **For Web Prototype**: Node.js 18+, pnpm (or npm)
-
-### Installation
-
-#### Web Prototype
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/patrickd12345/Kinetix.git
-   cd Kinetix/web
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   # or
-   npm install
-   ```
-
-3. **Start development server**
-   ```bash
-   pnpm dev
-   # or
-   npm run dev
-   ```
-
-4. **Open in browser**
-   - Navigate to `http://localhost:5173`
-   - The app will display in a watch-sized container
-
-#### Native Watch App
-
-1. **Open in Xcode**
-   ```bash
-   open watchos/KinetixWatch.xcodeproj
-   ```
-
-2. **Configure capabilities**
-   - Enable "Location When In Use" in Info.plist
-   - Add usage description: "Kinetix needs location access to track your runs"
-   - Enable "Background Modes" → "Location Updates"
-
-3. **Build and run**
-   - Select your Apple Watch as the target
-   - Build and run (⌘R)
-
----
-
-## 🔑 API Keys Setup
-
-### Gemini AI Coach (Optional)
-
-To enable the AI Coach feature:
-
-1. **Get a Gemini API Key**
-   - Visit [Google AI Studio](https://aistudio.google.com/)
-   - Create a new API key
-
-2. **Add to Web Prototype**
-   - Edit `web/src/KinetixMaxPrototype.jsx`
-   - Replace `"PASTE_KEY_HERE"` on line 6 with your API key
-
-3. **Add to Watch App**
-   - Edit `watchos/KinetixWatch/ContentView.swift`
-   - Replace `"PASTE_KEY_HERE"` on line 6 with your API key
-
----
-
-## 📱 Usage Guide
-
-### Starting a Run
-
-1. **Set Your Target NPI**
-   - Navigate to Settings (swipe up from Run screen)
-   - Adjust Target NPI using `--`, `-`, `+`, `++` buttons
-   - Or use "Find my target NPI" to calculate from a previous race
-
-2. **Wait for GPS Fix**
-   - Status indicator shows:
-     - **WAITING** (gray): GPS not available
-     - **READY** (green): GPS fix obtained
-     - **LIVE** (cyan): Currently running
-
-3. **Start Tracking**
-   - Tap the green play button
-   - The app begins tracking distance, pace, and calculating NPI
-
-### During Your Run
-
-- **Main Display**: Shows your current NPI vs target
-- **Circular Gauge**: Progress toward target (time-based)
-- **Runner Track**: Visual progress indicator
-- **Time to Beat**: Projected time remaining at current pace
-- **Stats**: Pace, Distance, Heart Rate (if Physio mode enabled)
-
-### Understanding the Display
-
-- **NPI Number**: Your current Normalized Performance Index
-- **Target Badge**: Your goal NPI
-- **Progress Indicators**: 
-  - Green = Target reached/exceeded
-  - Cyan = Working toward target
-- **Time Projection**: Format `MM:SS @ AVG MM:SS`
-  - First time = Remaining time to beat target
-  - Second time = Your current average pace
-
-### Settings
-
-- **Target NPI**: Fine (`-`/`+`) or coarse (`--`/`++`) adjustments
-- **Physio-Pacer**: Enable cardiac drift detection
-- **Units**: Switch between Metric (km) and Imperial (miles)
-
-### History
-
-- View logged races and their NPI values
-- Races added via "Find my target NPI" feature
-- Shows date, distance, time, and calculated NPI
-
----
-
-## 🧮 NPI Formula
-
-The Normalized Performance Index is calculated as:
-
-```
-NPI = (Speed in km/h) × (Distance Factor) × 10
-
-Where:
-- Speed = (1000 / pace_seconds) × 3.6
-- Distance Factor = (distance_km)^0.06
-```
-
-This formula:
-- **Rewards consistency**: Maintains performance value over distance
-- **Accounts for fatigue**: Adjusts for distance-based performance decay
-- **Provides actionable metrics**: Directly comparable across different distances
-
----
-
-## 🎯 Key Concepts
-
-### Normalized Performance Index (NPI)
-
-NPI is a unique metric that normalizes running performance across distances. Unlike pace (which gets slower over distance), NPI maintains its value, making it perfect for:
-- Setting consistent performance goals
-- Comparing runs of different distances
-- Tracking improvement over time
-
-### Time-to-Beat Projection
-
-The app calculates how long you need to maintain your current average pace to reach your target NPI. This updates in real-time as your pace changes.
-
-### Physio-Pacer Mode
-
-When enabled, the app monitors heart rate and detects "cardiac drift" - when heart rate increases while pace stays constant. This indicates fatigue, and the app suggests a recovery pace.
-
----
-
-## 🛠️ Development
-
-### Building for Production
-
-**Web:**
-```bash
-cd web
-pnpm build
-```
-
-Output will be in `web/dist/`
-
-### Code Structure
-
-- **`useLocationManager`**: Core running logic and NPI calculations
-- **`useAICoach`**: Gemini AI integration
-- **Components**: Modular React components for UI elements
-- **State Management**: React hooks for local state
-
-### Key Functions
-
-- `calculateNPIFromRace()`: Calculate NPI from race data
-- `toggleTracking()`: Start/stop run tracking
-- `updateCalculations()`: Recalculate NPI and projections
-
----
-
 ## 🧪 Testing
 
-### Web Prototype
+- **Self-Test Suite**: Integrated directly into the app (Settings > Self-Test) to verify core logic on-device
+- **UI Audit**: Custom internal tool to ensure accessibility and design consistency
+- **Diagnostic Logs**: Export diagnostic logs for troubleshooting
 
-The web prototype simulates:
-- GPS tracking (distance accumulation)
-- Heart rate (gradual increase)
-- Real-time NPI calculations
-- All UI interactions
+## 🎨 Design Philosophy
 
-### Native Watch App
+- **"Anti-Social" Design**: Zero distractions. No feeds, no likes, just pure performance data
+- **Voice-First Coaching**: Audio coaching delivered through iPhone for hands-free operation
+- **Watch as Sensor Hub**: Watch focuses on data collection; iPhone handles AI and management
+- **Modular Architecture**: Clean separation between Watch (sensors) and iPhone (intelligence)
 
-Requires:
-- Physical Apple Watch
-- Xcode Simulator (limited GPS simulation)
-- Real device for full GPS testing
+## 📋 Feature Documentation
 
----
+For detailed feature lists and comparisons across platforms:
 
-## 📋 Requirements
+- **[Watch App Features](FEATURES_WATCH.md)** - Complete list of watchOS features
+- **[iPhone App Features](FEATURES_PHONE.md)** - Complete list of iOS features
+- **[Web App Features](FEATURES_WEB.md)** - Complete list of web app features
+- **[Feature Comparison](FEATURES_COMPARISON.md)** - Cross-platform feature comparison
 
-### Watch App
-- watchOS 10.0+
-- Xcode 15.0+
-- Apple Watch (Series 4+ recommended)
+## 📝 License
 
-### Web Prototype
-- Modern browser (Chrome, Safari, Firefox, Edge)
-- JavaScript enabled
-- Optional: GPS access for location features
+Proprietary / Personal Use.
 
----
+## 🔮 Future Enhancements
 
-## 🐛 Known Issues
-
-- Web prototype uses simulated GPS (for demo purposes)
-- AI Coach requires valid Gemini API key
-- History data is stored in memory (not persisted)
+- Advanced training plans
+- Social features (optional)
+- Export to Strava/other platforms
+- More detailed biomechanics analysis
+- Custom ML model training
 
 ---
 
-## 🚧 Roadmap
-
-- [ ] Persistent storage for run history
-- [ ] Cloud sync for runs across devices
-- [ ] Advanced analytics and trends
-- [ ] Social features and challenges
-- [ ] Integration with Strava, Garmin, etc.
-- [ ] Training plans based on NPI
-- [ ] Weather integration for performance adjustments
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Concept**: Unique NPI-based running coaching system
-- **Design**: Modern watchOS-inspired UI
-- **AI Integration**: Google Gemini API
-- **Icons**: Lucide React
-
----
-
-## 📞 Support
-
-For issues, questions, or feature requests:
-- Open an issue on GitHub
-- Check existing documentation
-- Review the Quick Info section in the app
-
----
-
-## 🎉 Version History
-
-### v1.0 (Release Candidate) - November 27, 2025
-- Initial release
-- Core NPI calculation and tracking
-- Watch-optimized UI
-- AI Coach integration
-- Race history logging
-- GPS fix detection
-- Physio-Pacer mode
-
----
-
-**Built with ❤️ for runners who want to push their limits**
+**Built with ❤️ for runners who want to improve their form and performance.**

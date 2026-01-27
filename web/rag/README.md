@@ -49,7 +49,7 @@ const response = await fetch('http://localhost:3001/analyze', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     run: runData,
-    targetNPI: 135,
+    targetKps: 95,
     options: { includeSimilarRuns: 5 }
   })
 });
@@ -76,7 +76,7 @@ Analyze a run with RAG context
 ```json
 {
   "run": { /* Run object */ },
-  "targetNPI": 135,
+  "targetKps": 95,
   "options": { "includeSimilarRuns": 5 }
 }
 ```

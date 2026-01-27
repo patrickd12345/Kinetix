@@ -36,7 +36,7 @@ struct RunRow: View {
                 Spacer()
                 Label(formatDuration(run.duration), systemImage: "stopwatch")
                 Spacer()
-                Label("\(Int(run.avgNPI)) NPI", systemImage: "bolt")
+                Label("\(String(format: "%.1f", run.kps)) KPS", systemImage: "bolt")
                     .foregroundColor(.cyan)
                 if run.source != "recorded" {
                     Spacer()
@@ -69,8 +69,8 @@ struct RunDetailView: View {
     
     @StateObject private var aiCoach = AICoach()
     
-    private var targetNPI: Double {
-        profiles.first?.targetNPI ?? 135.0
+    private var targetKps: Double {
+        profiles.first?.targetKps ?? 95.0
     }
     
     var body: some View {
@@ -78,8 +78,8 @@ struct RunDetailView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Summary Card
                     VStack {
-                        Text("NPI SCORE").font(.caption).bold().foregroundColor(.gray)
-                        Text("\(Int(run.avgNPI))")
+                        Text("KPS (KINETIX PERFORMANCE SCORE)").font(.caption).bold().foregroundColor(.gray)
+                        Text(String(format: "%.1f", run.kps))
                             .font(.system(size: 60, weight: .black, design: .rounded))
                             .foregroundColor(.cyan)
                         if run.source != "recorded" {
@@ -241,8 +241,8 @@ struct RunDetailView: View {
         aiCoach.analyzeRun(
             distance: distance,
             pace: pace,
-            npi: run.avgNPI,
-            pb: targetNPI
+            kps: run.kps,
+            targetKps: targetKps
         )
     }
 }

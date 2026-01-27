@@ -34,11 +34,11 @@
   - Toggle haptics, voice, and live charts
   - Profiles automatically sync to Watch
 - ✅ **Activity Builder**: Create custom workout templates with:
-  - Custom screens (Form Bubble, Metrics, Pace, NPI, Map, Coach, History)
+  - Custom screens (Form Bubble, Metrics, Pace, KPS, Map, Coach, History)
   - Goal types (Efficiency, Race, Burner, Form Monitor, Free Run)
   - Feedback settings (haptics, speech, bubble sensitivity, sonic feedback)
   - Default battery profile assignment
-- ✅ **Find My NPI**: Manual entry tool for race results or treadmill sessions
+- ✅ **Find My KPS**: Manual entry tool for race results or treadmill sessions
 - ✅ **AI Training Summary**: Generate summaries of last 6 weeks of training
 - ✅ **Training Distribution**: Visual chart showing Speed/Strength, Endurance, and Stability axes
 - ✅ **Diagnostics**: Export logs, clear logs, troubleshoot sync issues

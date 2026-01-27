@@ -76,7 +76,7 @@ export class AICoachService {
    * Analyze a run and provide coaching feedback
    * Uses RAG if available, falls back to simple prompt
    */
-  static async analyzeRun(run, targetNPI, useRAG = true) {
+  static async analyzeRun(run, targetKps, useRAG = true) {
     // Try RAG first if enabled
     if (useRAG) {
       try {
@@ -87,7 +87,7 @@ export class AICoachService {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               run,
-              targetNPI,
+              targetKps,
               options: { includeSimilarRuns: 5 },
             }),
             signal: AbortSignal.timeout(30000),
@@ -109,13 +109,13 @@ export class AICoachService {
     const paceMin = Math.floor(run.avgPace / 60);
     const paceSec = Math.floor(run.avgPace % 60);
     const pace = `${paceMin}:${paceSec.toString().padStart(2, '0')}`;
-    const npi = Math.floor(run.avgNPI);
-    const target = Math.floor(targetNPI);
+    const kps = run.kps ? Number(run.kps).toFixed(1) : '0.0';
+    const target = Math.floor(targetKps);
 
     const prompt = `You are Kinetix AI, an intelligent running coach. Analyze this run:
 - Distance: ${distance}km
 - Average Pace: ${pace} per km
-- NPI: ${npi} (Target: ${target})
+- KPS (Kinetix Performance Score): ${kps} (Target: ${target})
 - Heart Rate: ${Math.floor(run.avgHeartRate)} bpm
 ${run.avgCadence ? `- Cadence: ${Math.floor(run.avgCadence)} spm` : ''}
 ${run.formScore ? `- Form Score: ${Math.floor(run.formScore)}/100` : ''}
@@ -150,7 +150,7 @@ Format as JSON: {"title": "...", "insight": "..."}`;
     }
 
     // Fallback to rule-based analysis
-    return this.fallbackAnalysis(run, targetNPI);
+    return this.fallbackAnalysis(run, targetKps);
   }
 
   /**
@@ -181,27 +181,27 @@ Format as JSON: {"title": "...", "insight": "..."}`;
   /**
    * Fallback rule-based analysis
    */
-  static fallbackAnalysis(run, targetNPI) {
-    const npi = run.avgNPI;
-    const target = targetNPI;
+  static fallbackAnalysis(run, targetKps) {
+    const kps = Number(run.kps || 0);
+    const target = Number(targetKps || 0);
     const distance = run.distance / 1000;
     const pace = run.avgPace;
 
     let title = 'Solid Run';
     let insight = '';
 
-    if (npi >= target) {
+    if (kps >= target) {
       title = 'Target Achieved! 🎉';
-      insight = `Excellent work! You hit your target NPI of ${Math.floor(target)} with a score of ${Math.floor(npi)}. Your pace of ${Math.floor(pace / 60)}:${Math.floor(pace % 60).toString().padStart(2, '0')} per km was efficient for this ${distance.toFixed(2)}km distance.`;
-    } else if (npi >= target * 0.95) {
+      insight = `Excellent work! You hit your target KPS of ${Math.floor(target)} with a score of ${kps.toFixed(1)}. Your pace of ${Math.floor(pace / 60)}:${Math.floor(pace % 60).toString().padStart(2, '0')} per km was strong for this ${distance.toFixed(2)}km distance.`;
+    } else if (kps >= target * 0.95) {
       title = 'Close to Target';
-      insight = `You're very close! Your NPI of ${Math.floor(npi)} is just ${Math.floor(target - npi)} points below your target. Consider slightly increasing your pace or maintaining consistency over the distance.`;
-    } else if (npi >= target * 0.85) {
+      insight = `You're very close! Your KPS of ${kps.toFixed(1)} is just ${Math.max(0, Math.floor(target - kps))} points below your target. Consider slightly increasing your pace or maintaining consistency over the distance.`;
+    } else if (kps >= target * 0.85) {
       title = 'Building Progress';
-      insight = `Your NPI of ${Math.floor(npi)} shows good progress. To reach your target of ${Math.floor(target)}, focus on maintaining a steady pace and improving running efficiency through cadence and form.`;
+      insight = `Your KPS of ${kps.toFixed(1)} shows good progress. To reach your target of ${Math.floor(target)}, focus on steady pacing and smooth form.`;
     } else {
       title = 'Room for Improvement';
-      insight = `Your NPI of ${Math.floor(npi)} indicates there's potential to improve. Focus on consistent pacing, proper form, and building endurance. Your target of ${Math.floor(target)} is achievable with training.`;
+      insight = `Your KPS of ${kps.toFixed(1)} indicates there's potential to improve. Focus on consistent pacing, proper form, and building endurance. Your target of ${Math.floor(target)} is achievable with training.`;
     }
 
     if (run.avgCadence) {
@@ -221,7 +221,7 @@ Format as JSON: {"title": "...", "insight": "..."}`;
   static async askQuestion(question, context = {}) {
     const prompt = `You are Kinetix AI, a friendly running coach. Answer this question concisely: "${question}"
     
-${context.recentRun ? `Context: User just completed a ${(context.recentRun.distance / 1000).toFixed(2)}km run with NPI ${Math.floor(context.recentRun.avgNPI)}.` : ''}
+${context.recentRun ? `Context: User just completed a ${(context.recentRun.distance / 1000).toFixed(2)}km run with KPS ${Number(context.recentRun.kps || 0).toFixed(1)}.` : ''}
 
 Provide a helpful, encouraging response in 2-3 sentences.`;
 
@@ -232,6 +232,6 @@ Provide a helpful, encouraging response in 2-3 sentences.`;
     }
 
     // Fallback
-    return "I'm here to help! For the best coaching experience, make sure your local LLM (Ollama) is running. You can still track your runs and view your NPI progress.";
+    return "I'm here to help! For the best coaching experience, make sure your local LLM (Ollama) is running. You can still track your runs and view your KPS progress.";
   }
 }

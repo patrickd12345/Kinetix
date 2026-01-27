@@ -80,10 +80,10 @@ Once indexed, RAG is automatically used when:
 ## Example RAG-Enhanced Analysis
 
 **Without RAG:**
-> "Your NPI of 142 is good. Keep training."
+> "Your KPS of 97.4 is good. Keep training."
 
 **With RAG:**
-> "Your NPI of 142 is your 2nd best out of 247 similar 5km runs, just 3 points below your PB from 3 weeks ago. You're on a 4-run improvement streak! Your pace consistency (4:15/km) matches your best performances, suggesting you're in peak form."
+> "Your KPS of 97.4 is your 2nd best out of 247 similar 5km runs, just 2.6 points below your lifetime best from 3 weeks ago. You're on a 4-run improvement streak! Your pace consistency (4:15/km) matches your best performances, suggesting you're in peak form."
 
 ## Architecture
 

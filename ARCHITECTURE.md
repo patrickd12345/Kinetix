@@ -5,7 +5,7 @@
 ### 1. **Apple Watch App** (watchOS)
 - **Location**: `watchos/KinetixWatch/`
 - **Purpose**: Standalone run tracking, sensor data collection
-- **Features**: GPS, HealthKit, form metrics, NPI calculation
+- **Features**: GPS, HealthKit, form metrics, KPS calculation
 - **AI**: Sends data to iPhone for AI analysis
 
 ### 2. **iPhone App** (iOS)
@@ -17,7 +17,7 @@
 ### 3. **Web App / PWA** (Browser)
 - **Location**: `web/`
 - **Purpose**: Cross-platform access, quick tracking
-- **Features**: GPS tracking, NPI calculation, run history
+- **Features**: GPS tracking, KPS calculation, run history
 - **AI**: Uses local Ollama (falls back to rule-based if unavailable)
 - **Installable**: Yes, as PWA (Progressive Web App)
 
@@ -68,7 +68,7 @@
 |---------|-------|--------|---------|
 | **Run Tracking** | ✅ | ❌ | ✅ |
 | **GPS** | ✅ | ❌ | ✅ |
-| **NPI** | ✅ | ⚠️ (displays) | ✅ |
+| **KPS** | ✅ | ⚠️ (displays) | ✅ |
 | **Form Metrics** | ✅ | ⚠️ (displays) | ❌ |
 | **AI Analysis** | ❌ | ✅ (Gemini) | ✅ (Ollama) |
 | **Voice Coaching** | ❌ | ✅ | ❌ |

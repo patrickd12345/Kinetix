@@ -711,7 +711,7 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         timeToBeat = nil
 
         if totalDistance > 0 {
-            // Overall Avg Pace (for NPI)
+            // Overall Avg Pace (for KPS)
             paceSeconds = duration / (totalDistance / 1000.0)
             
             // Calculate Rolling Pace (Last 10s) for Display
@@ -751,7 +751,7 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
             let avg5SecPace = rollingPaceBuffer.isEmpty ? paceSeconds : rollingPaceBuffer.map(\.1).reduce(0, +) / Double(rollingPaceBuffer.count)
             rolling5SecPace = avg5SecPace
             
-            // NPI Calculation
+            // KPS Calculation
             if totalDistance > 100 && duration > 30 {
                 let speedKmH = (1000/paceSeconds) * 3.6
                 let factor = pow((totalDistance/1000.0), 0.06)

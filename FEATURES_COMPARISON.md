@@ -6,7 +6,7 @@
 |---------|-------|-------|-----|
 | **Run Tracking** | ✅ | ❌ | ✅ |
 | **GPS Tracking** | ✅ | ❌ | ✅ |
-| **NPI Calculation** | ✅ | ❌ | ✅ |
+| **KPS Calculation** | ✅ | ❌ | ✅ |
 | **Heart Rate** | ✅ (HealthKit) | ❌ | ⚠️ (Simulated) |
 | **Form Metrics** | ✅ | ❌ | ❌ |
 | **Activity Presets** | ✅ | ❌ | ❌ |
@@ -51,10 +51,10 @@
 
 ### Metrics & Analytics
 
-#### NPI (Normalized Performance Index)
+#### KPS (Kinetix Performance Score)
 - **Watch**: ✅ Full calculation with target tracking
-- **Phone**: ❌ Displays NPI from Watch data
-- **Web**: ✅ Full calculation matching iOS formula
+- **Phone**: ❌ Displays KPS from Watch data
+- **Web**: ✅ Full calculation matching canonical KPS math
 
 #### Pace Tracking
 - **Watch**: ✅ Real-time pace calculation

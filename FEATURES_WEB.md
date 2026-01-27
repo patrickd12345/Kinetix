@@ -9,21 +9,21 @@
 - ✅ **Background Operation**: Continues tracking when tab is in background (limited)
 
 ### Metrics & Analytics
-- ✅ **NPI Calculation**: Normalized Performance Index tracking (matching iOS formula)
+- ✅ **KPS Calculation**: Kinetix Performance Score tracking (0–100, 100 = lifetime best)
 - ✅ **Pace Tracking**: Real-time pace calculation (seconds per km)
 - ✅ **Distance Tracking**: GPS-based distance measurement using Haversine formula
 - ✅ **Heart Rate Simulation**: Simulated heart rate (placeholder for future sensor integration)
-- ✅ **Time to Beat**: Projected time to reach target NPI
-- ✅ **Progress Tracking**: Visual progress indicator toward target NPI
+- ✅ **Time to Beat**: Projected time to reach target KPS
+- ✅ **Progress Tracking**: Visual progress indicator toward target KPS
 
 ### Homepage / Dashboard
-- ✅ **NPI Showcase**: Prominent display of Best, Average, and Target NPI
-- ✅ **Progress Indicator**: Visual progress toward target NPI
+- ✅ **KPS Showcase**: Prominent display of Best, Average, and Target KPS
+- ✅ **Progress Indicator**: Visual progress toward target KPS
 - ✅ **Recent Runs**: Quick view of last 3 runs
 - ✅ **Quick Actions**: Start run, view history, settings
 
 ### Run Tracking View
-- ✅ **Large NPI Display**: NPI as the star feature with circular progress gauge
+- ✅ **Large KPS Display**: KPS as the star feature with circular progress gauge
 - ✅ **Real-time Metrics**: Pace, distance, time, heart rate
 - ✅ **GPS Status**: Real-time GPS status indicator (ready/searching/poor/denied)
 - ✅ **Time to Beat**: Dynamic projection of time needed to hit target
@@ -32,18 +32,18 @@
 
 ### History View
 - ✅ **Run History List**: Complete list of all saved runs
-- ✅ **Run Cards**: Display date, distance, duration, and NPI
+- ✅ **Run Cards**: Display date, distance, duration, and KPS
 - ✅ **Run Detail Navigation**: Click to view detailed run analysis
 
 ### Run Detail View
-- ✅ **NPI Showcase**: Large display of run NPI
+- ✅ **KPS Showcase**: Large display of run KPS
 - ✅ **Comprehensive Stats**: Distance, duration, pace, heart rate
 - ✅ **AI Coach Analysis**: Get AI-powered insights about the run
 - ✅ **Route Info**: Display number of GPS points recorded
 
 ### Settings View
-- ✅ **Target NPI Configuration**: Set and adjust target NPI
-- ✅ **Find My Target NPI**: Calculate target from race results
+- ✅ **Target KPS Configuration**: Set and adjust target KPS
+- ✅ **Find My Target KPS**: Calculate target from race results
 - ✅ **Unit System**: Toggle between metric and imperial
 - ✅ **Physio-Pacer Mode**: Toggle heart rate monitoring mode
 - ✅ **Data Management**: Clear all data option

@@ -33,7 +33,7 @@ test('convertToRuns filters and maps run activities', () => {
   assert.equal(run.distance, 6000)
   assert.equal(run.avgCadence, 160)
   assert.equal(run.avgHeartRate, 140)
-  assert.ok(run.avgNPI > 120)
+  assert.ok(run.kps >= 0)
   assert.equal(run.stravaName, 'Long run')
   assert.equal(run.elevationGain, 50)
 })

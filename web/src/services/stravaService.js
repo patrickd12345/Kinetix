@@ -211,12 +211,8 @@ export class StravaService {
         continue;
       }
 
-      // Calculate NPI
       const distanceKm = activity.distance / 1000; // meters to km
       const paceSecondsPerKm = (activity.moving_time / distanceKm); // seconds per km
-      const speedKmH = 3600 / paceSecondsPerKm; // km/h
-      const factor = Math.pow(distanceKm, 0.06);
-      const npi = speedKmH * factor * 10.0;
 
       const run = {
         id: `strava_${activity.id}`,
@@ -225,7 +221,8 @@ export class StravaService {
         distance: activity.distance, // meters
         duration: activity.moving_time, // seconds
         avgPace: paceSecondsPerKm,
-        avgNPI: npi,
+        kps: 0, // computed at import time (PB-aware)
+        setPb: false,
         avgHeartRate: activity.average_heartrate || 0,
         avgCadence: activity.average_cadence ? activity.average_cadence * 2 : null,
         routeData: [],
@@ -259,9 +256,9 @@ export class StravaService {
     const durationMinutes = Math.floor(((run.duration || 0) % 3600) / 60);
     const activityName = run.name || `Run - ${distanceKm.toFixed(2)} km`;
     
-    // Build description with NPI
-    const description = run.avgNPI 
-      ? `NPI: ${run.avgNPI.toFixed(1)}\nDistance: ${distanceKm.toFixed(2)} km\nDuration: ${durationHours}:${durationMinutes.toString().padStart(2, '0')}`
+    // Build description with KPS (if available)
+    const description = run.kps
+      ? `KPS: ${Number(run.kps).toFixed(1)}\nDistance: ${distanceKm.toFixed(2)} km\nDuration: ${durationHours}:${durationMinutes.toString().padStart(2, '0')}`
       : `Distance: ${distanceKm.toFixed(2)} km\nDuration: ${durationHours}:${durationMinutes.toString().padStart(2, '0')}`;
 
     // Prepare activity data

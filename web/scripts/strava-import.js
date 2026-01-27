@@ -198,13 +198,9 @@ function convertToRuns(activities) {
       continue;
     }
 
-    // Calculate NPI
+    // Compute pace (KPS is computed in-app against PB)
     const distanceKm = activity.distance / 1000; // meters to km
     const paceSecondsPerKm = (activity.moving_time / distanceKm); // seconds per km
-    // NPI formula: speedKmH * factor * 10.0 where factor = distanceKm^0.06
-    const speedKmH = 3600 / paceSecondsPerKm; // km/h
-    const factor = Math.pow(distanceKm, 0.06);
-    const npi = speedKmH * factor * 10.0;
 
     // Get detailed activity data (for heart rate, cadence, etc.)
     const run = {
@@ -214,7 +210,8 @@ function convertToRuns(activities) {
       distance: activity.distance, // meters
       duration: activity.moving_time, // seconds
       avgPace: paceSecondsPerKm,
-      avgNPI: npi,
+      kps: 0,
+      setPb: false,
       avgHeartRate: activity.average_heartrate || 0,
       avgCadence: activity.average_cadence ? activity.average_cadence * 2 : null, // Strava cadence is steps/min, we want strides/min
       routeData: [], // Will fetch if needed
@@ -233,10 +230,7 @@ function convertToRuns(activities) {
   return runs;
 }
 
-/**
- * Calculate NPI from distance and pace
- * (Already defined above, this is just for reference)
- */
+// KPS is PB-based and computed in-app at save time.
 
 /**
  * Fetch detailed activity data (for route, splits, etc.)

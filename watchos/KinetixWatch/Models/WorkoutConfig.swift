@@ -94,17 +94,17 @@ final class WorkoutPreset {
     @Attribute(.unique) var id: String
     var name: String
     var type: PresetType
-    var targetNPI: Double
+    var targetKps: Double
     var defaultBatteryProfile: BatteryProfileType
     var metricsToShow: [String] // e.g., ["pace", "hr", "cadence"]
     var audioCuesEnabled: Bool
     var lastModified: Date
     
-    init(id: String = UUID().uuidString, name: String, type: PresetType, targetNPI: Double, batteryProfile: BatteryProfileType = .balanced, metrics: [String] = ["pace", "hr", "dist"], audio: Bool = true) {
+    init(id: String = UUID().uuidString, name: String, type: PresetType, targetKps: Double, batteryProfile: BatteryProfileType = .balanced, metrics: [String] = ["pace", "hr", "dist"], audio: Bool = true) {
         self.id = id
         self.name = name
         self.type = type
-        self.targetNPI = targetNPI
+        self.targetKps = min(100.0, max(0.0, targetKps))
         self.defaultBatteryProfile = batteryProfile
         self.metricsToShow = metrics
         self.audioCuesEnabled = audio
@@ -113,10 +113,10 @@ final class WorkoutPreset {
     
     static func builtInPresets() -> [WorkoutPreset] {
         return [
-            WorkoutPreset(id: "preset_mebeatme", name: "MeBeatMe", type: .meBeatMe, targetNPI: 135, batteryProfile: .aggressive, metrics: ["npi", "pace", "projected_time"], audio: true),
-            WorkoutPreset(id: "preset_race", name: "Race Mode", type: .race, targetNPI: 150, batteryProfile: .balanced, metrics: ["pace", "dist", "time"], audio: true),
-            WorkoutPreset(id: "preset_burner", name: "Burner", type: .burner, targetNPI: 120, batteryProfile: .eco, metrics: ["hr", "cal", "time"], audio: false),
-            WorkoutPreset(id: "preset_form_monitor", name: "Form Monitor", type: .formMonitor, targetNPI: 0, batteryProfile: .balanced, metrics: ["form", "symmetry", "instability"], audio: true)
+            WorkoutPreset(id: "preset_mebeatme", name: "MeBeatMe", type: .meBeatMe, targetKps: 95, batteryProfile: .aggressive, metrics: ["kps", "pace", "projected_time"], audio: true),
+            WorkoutPreset(id: "preset_race", name: "Race Mode", type: .race, targetKps: 95, batteryProfile: .balanced, metrics: ["pace", "dist", "time"], audio: true),
+            WorkoutPreset(id: "preset_burner", name: "Burner", type: .burner, targetKps: 90, batteryProfile: .eco, metrics: ["hr", "cal", "time"], audio: false),
+            WorkoutPreset(id: "preset_form_monitor", name: "Form Monitor", type: .formMonitor, targetKps: 0, batteryProfile: .balanced, metrics: ["form", "symmetry", "instability"], audio: true)
         ]
     }
 }

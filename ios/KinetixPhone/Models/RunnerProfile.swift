@@ -7,14 +7,14 @@ final class RunnerProfile {
     var weightKg: Double
     var dateOfBirth: Date
     var sex: String
-    var targetNPI: Double
+    var targetKps: Double
     
-    init(id: UUID = UUID(), weightKg: Double = 70, dateOfBirth: Date = Calendar.current.date(byAdding: .year, value: -30, to: Date()) ?? Date(), sex: String = "unspecified", targetNPI: Double = 135.0) {
+    init(id: UUID = UUID(), weightKg: Double = 70, dateOfBirth: Date = Calendar.current.date(byAdding: .year, value: -30, to: Date()) ?? Date(), sex: String = "unspecified", targetKps: Double = 95.0) {
         self.id = id
         self.weightKg = weightKg
         self.dateOfBirth = dateOfBirth
         self.sex = sex
-        self.targetNPI = targetNPI
+        self.targetKps = targetKps
     }
 }
 

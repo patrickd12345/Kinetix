@@ -4,12 +4,12 @@ import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 import { Run } from '../models/Run';
 
 /**
- * Homepage with NPI as the star feature
+ * Homepage with KPS as the star feature
  */
 export function HomeView({ onNavigate, onStartRun }) {
   const [recentRuns, setRecentRuns] = useState([]);
-  const [bestNPI, setBestNPI] = useState(null);
-  const [averageNPI, setAverageNPI] = useState(null);
+  const [bestKps, setBestKps] = useState(null);
+  const [averageKps, setAverageKps] = useState(null);
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
@@ -24,19 +24,19 @@ export function HomeView({ onNavigate, onStartRun }) {
     setRecentRuns(runs.slice(0, 3));
     
     if (runs.length > 0) {
-      const npis = runs.map((r) => r.avgNPI).filter((n) => n > 0);
-      if (npis.length > 0) {
-        setBestNPI(Math.max(...npis));
-        setAverageNPI(npis.reduce((a, b) => a + b, 0) / npis.length);
+      const kpsValues = runs.map((r) => r.kps).filter((n) => n > 0);
+      if (kpsValues.length > 0) {
+        setBestKps(Math.max(...kpsValues));
+        setAverageKps(kpsValues.reduce((a, b) => a + b, 0) / kpsValues.length);
       }
     }
     
     setSettings(await unifiedStorageService.getSettings());
   };
 
-  const formatNPI = (npi) => {
-    if (!npi || npi === 0) return '---';
-    return Math.floor(npi).toString();
+  const formatKps = (kps) => {
+    if (!kps || kps === 0) return '---';
+    return kps.toFixed(1);
   };
 
   const formatDate = (date) => {
@@ -57,76 +57,76 @@ export function HomeView({ onNavigate, onStartRun }) {
           <p className="text-gray-400 text-sm">Intelligent Running Coach</p>
         </div>
 
-        {/* NPI Showcase - The Star! */}
+        {/* KPS Showcase - The Star! */}
         <div className="mb-8">
           <div className="glass rounded-3xl p-8 border border-cyan-500/20 shadow-2xl shadow-cyan-500/10">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-                  Normalized Performance Index
+                  Kinetix Performance Score
                 </div>
                 <div className="text-sm text-gray-300">
-                  Your running efficiency score
+                  0–100 score showing how close you were to your lifetime best
                 </div>
               </div>
               <Activity className="text-cyan-400" size={24} />
             </div>
 
             <div className="grid grid-cols-3 gap-4 mb-6">
-              {/* Best NPI */}
+              {/* Best KPS */}
               <div className="text-center">
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                   Best
                 </div>
                 <div className="text-5xl font-black text-cyan-400 mb-1">
-                  {formatNPI(bestNPI)}
+                  {formatKps(bestKps)}
                 </div>
                 <div className="text-xs text-gray-500">
-                  {bestNPI ? 'All Time' : 'No runs yet'}
+                  {bestKps ? 'All Time' : 'No runs yet'}
                 </div>
               </div>
 
-              {/* Average NPI */}
+              {/* Average KPS */}
               <div className="text-center">
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                   Average
                 </div>
                 <div className="text-5xl font-black text-purple-400 mb-1">
-                  {formatNPI(averageNPI)}
+                  {formatKps(averageKps)}
                 </div>
                 <div className="text-xs text-gray-500">
-                  {averageNPI ? 'Overall' : 'No runs yet'}
+                  {averageKps ? 'Overall' : 'No runs yet'}
                 </div>
               </div>
 
-              {/* Target NPI */}
+              {/* Target KPS */}
               <div className="text-center">
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                   Target
                 </div>
                 <div className="text-5xl font-black text-orange-400 mb-1">
-                  {settings ? Math.floor(settings.targetNPI) : '---'}
+                  {settings ? Math.floor(settings.targetKps ?? 95) : '---'}
                 </div>
                 <div className="text-xs text-gray-500">Goal</div>
               </div>
             </div>
 
             {/* Progress indicator if we have data */}
-            {bestNPI && settings && (
+            {bestKps && settings && (
               <div className="mt-6 pt-6 border-t border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-gray-400">
                     Progress to Target
                   </span>
                   <span className="text-xs font-bold text-cyan-400">
-                    {Math.min(100, Math.floor((bestNPI / settings.targetNPI) * 100))}%
+                    {Math.min(100, Math.floor((bestKps / (settings.targetKps ?? 95)) * 100))}%
                   </span>
                 </div>
                 <div className="h-2 bg-gray-900 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-500"
                     style={{
-                      width: `${Math.min(100, (bestNPI / settings.targetNPI) * 100)}%`,
+                      width: `${Math.min(100, (bestKps / (settings.targetKps ?? 95)) * 100)}%`,
                     }}
                   />
                 </div>
@@ -199,9 +199,9 @@ export function HomeView({ onNavigate, onStartRun }) {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-black text-cyan-400 group-hover:scale-110 transition-transform">
-                        {Math.floor(run.avgNPI)}
+                        {run.kps ? run.kps.toFixed(1) : '---'}
                       </div>
-                      <div className="text-xs text-gray-500 uppercase">NPI</div>
+                      <div className="text-xs text-gray-500 uppercase">KPS</div>
                     </div>
                   </div>
                 </div>

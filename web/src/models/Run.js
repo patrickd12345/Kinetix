@@ -9,7 +9,8 @@ export class Run {
     distance = 0, // meters
     duration = 0, // seconds
     avgPace = 0, // seconds per km
-    avgNPI = 0,
+    kps = 0,
+    setPb = false,
     avgHeartRate = 0,
     avgCadence = null,
     avgVerticalOscillation = null,
@@ -26,7 +27,8 @@ export class Run {
     this.distance = distance;
     this.duration = duration;
     this.avgPace = avgPace;
-    this.avgNPI = avgNPI;
+    this.kps = kps;
+    this.setPb = setPb;
     this.avgHeartRate = avgHeartRate;
     this.avgCadence = avgCadence;
     this.avgVerticalOscillation = avgVerticalOscillation;
@@ -48,6 +50,8 @@ export class Run {
   static fromJSON(json) {
     return new Run({
       ...json,
+      kps: json.kps ?? 0,
+      setPb: json.setPb ?? json.set_pb ?? false,
       date: new Date(json.date),
     });
   }

@@ -18,10 +18,10 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 
 ### 🏃‍♂️ Running Metrics & Analytics
 
-- **NPI (Normalized Performance Index)**: Custom metric tracking running efficiency
-  - Converts directly into predicted finish times for **any** race distance (from a mile to an ultramarathon)
-  - Generates infinite "beat yourself" scenarios by recalculating projected finish times every few seconds based on live NPI
-  - Translates NPI into target paces/splits so you always know how fast you need to run to stay on goal
+- **KPS (Kinetix Performance Score)**: The single official performance score (0–100)
+  - **100 always means lifetime best** (your fastest-ever equivalent 5K)
+  - Shows how close a run was to your lifetime best: e.g. **KPS 97.4 = 97% of your lifetime best**
+  - **Never displays above 100** — anything that would exceed 100 becomes a **new lifetime PB** and is recorded as **KPS 100**
 - **Comprehensive Biomechanics Tracking**:
   - Cadence (Steps per minute)
   - Vertical Oscillation (Bounce)
@@ -41,7 +41,7 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 
 - **Standalone Operation**: Runs entirely on Apple Watch (watchOS 10+)
 - **Preset System**: Built-in workout presets:
-  - **MeBeatMe**: Performance/NPI tracking with progress gauge
+  - **MeBeatMe**: KPS tracking with progress gauge
   - **Race Mode**: Target finish time pacing
   - **Burner**: Fat-burn biomechanics focus
   - **Form Monitor**: Real-time form analysis
@@ -86,11 +86,11 @@ The iPhone app serves as a **Management & Analysis Hub** with a 3-tab architectu
   - Toggle haptics, voice, and live charts
   - Profiles automatically sync to Watch
 - **Activity Builder**: Create custom workout templates with:
-  - Custom screens (Form Bubble, Metrics, Pace, NPI, Map, Coach, History)
+  - Custom screens (Form Bubble, Metrics, Pace, KPS, Map, Coach, History)
   - Goal types (Efficiency, Race, Burner, Form Monitor, Free Run)
   - Feedback settings (haptics, speech, bubble sensitivity, sonic feedback)
   - Default battery profile assignment
-- **Find My NPI**: Manual entry tool for race results or treadmill sessions
+- **Find My KPS**: Manual entry tool for race results or treadmill sessions
 - **AI Training Summary**: Generate summaries of last 6 weeks of training
 - **Training Distribution**: Visual chart showing Speed/Strength, Endurance, and Stability axes
 - **Diagnostics**: Export logs, clear logs, troubleshoot sync issues

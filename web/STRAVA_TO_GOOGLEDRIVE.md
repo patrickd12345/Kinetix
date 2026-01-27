@@ -70,7 +70,7 @@ With tokens saved, you can run the script directly without OAuth flow.
 - ✅ **Last 90 days** of Strava running activities
 - ✅ **Distance, Duration, Date/Time**
 - ✅ **Average Pace** (calculated)
-- ✅ **NPI** (calculated from distance and pace)
+- ✅ **KPS** (0–100, PB-aware)
 - ✅ **Heart Rate** (if available)
 - ✅ **Cadence** (if available)
 - ✅ **Elevation Gain**

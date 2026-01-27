@@ -28,7 +28,7 @@
 - Saves/loads recovery data
 
 ### 4. **Metrics Calculation** (~100 lines)
-- Calculates NPI (Normalized Performance Index)
+- Calculates KPS (Kinetix Performance Score)
 - Calculates pace
 - Calculates distance
 - Rolling 5-second pace average

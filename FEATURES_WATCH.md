@@ -11,7 +11,7 @@
 - ✅ **Background Operation**: Reliable tracking when screen is off
 
 ### Metrics & Analytics
-- ✅ **NPI Calculation**: Normalized Performance Index tracking
+- ✅ **KPS Calculation**: Kinetix Performance Score tracking (0–100, 100 = lifetime best)
 - ✅ **Pace Tracking**: Real-time pace calculation (seconds per km)
 - ✅ **Distance Tracking**: GPS-based distance measurement
 - ✅ **Heart Rate Monitoring**: HealthKit integration for heart rate data
@@ -21,7 +21,7 @@
 - ✅ **Left/Right Balance**: Asymmetry detection
 
 ### Workout Presets
-- ✅ **MeBeatMe**: Performance/NPI tracking with progress gauge
+- ✅ **MeBeatMe**: KPS tracking with progress gauge
 - ✅ **Race Mode**: Target finish time pacing
 - ✅ **Burner**: Fat-burn biomechanics focus
 - ✅ **Form Monitor**: Real-time form analysis
@@ -71,7 +71,7 @@
 
 ### UI Features
 - ✅ **Always-On Display**: Optimized for quick glances
-- ✅ **Multiple Screen Views**: Form Bubble, Metrics, Pace, NPI, Map, Coach, History
+- ✅ **Multiple Screen Views**: Form Bubble, Metrics, Pace, KPS, Map, Coach, History
 - ✅ **Progress Gauges**: Visual progress indicators
 - ✅ **Status Indicators**: GPS, battery, run state
 - ✅ **Run Validation**: Prevents saving invalid runs (< 100m or < 10s)
@@ -86,7 +86,7 @@
 ### Not Implemented
 - ❌ **Auto-pause on Stop**: Automatically pause when user stops moving
 - ❌ **Export/Share Runs**: Export to GPX/TCX or share to other apps
-- ❌ **Onboarding/Tutorial**: First-run tutorial explaining NPI and features
+- ❌ **Onboarding/Tutorial**: First-run tutorial explaining KPS and features
 - ❌ **Map Visualization**: Route map display (data collected but not visualized)
 - ❌ **Music Integration**: Mix with background music
 - ❌ **Social Features**: Sharing, leaderboards, etc.

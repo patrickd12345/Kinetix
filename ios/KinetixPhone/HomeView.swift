@@ -42,8 +42,8 @@ struct HomeView: View {
                                 )
                                 
                                 StatCard(
-                                    title: "NPI",
-                                    value: "\(Int(recentRun.avgNPI))",
+                                    title: "KPS",
+                                    value: String(format: "%.1f", recentRun.kps),
                                     unit: "",
                                     color: .cyan
                                 )

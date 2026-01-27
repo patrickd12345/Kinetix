@@ -11,13 +11,15 @@ struct SettingsView: View {
     @State private var weightText: String = ""
     @State private var birthDate: Date = Date()
     @State private var sex: String = "unspecified"
-    @State private var targetNPIText: String = "135"
+    @State private var targetKpsText: String = "95"
     
-    @State private var npiDistance: String = ""
-    @State private var npiMinutes: String = ""
-    @State private var npiSeconds: String = ""
-    @State private var npiDate: Date = Date()
-    @State private var npiResult: Double?
+    @State private var kpsDistance: String = ""
+    @State private var kpsMinutes: String = ""
+    @State private var kpsSeconds: String = ""
+    @State private var kpsDate: Date = Date()
+    @State private var kpsResult: Double?
+
+    @AppStorage("pb_eq5k_sec") private var pbEq5kSec: Double = 0
     
     @State private var aiSummary: String?
     @State private var summaryError: String?
@@ -58,7 +60,7 @@ struct SettingsView: View {
                 stravaSection
                 aiSettingsSection
                 batteryProfileSection
-                findMyNPISection
+                findMyKpsSection
                 aiSummarySection
                 trainingDistributionSection
                 diagnosticsSection
@@ -585,9 +587,9 @@ struct SettingsView: View {
                 }
             }
             HStack {
-                Text("Target NPI")
+                Text("Target KPS")
                     .frame(width: 120, alignment: .leading)
-                TextField("Target NPI", text: $targetNPIText)
+                TextField("Target KPS", text: $targetKpsText)
                     .keyboardType(.decimalPad)
             }
             Button("Save Profile") {
@@ -596,33 +598,33 @@ struct SettingsView: View {
         } header: {
             Text("Runner Profile")
         } footer: {
-            Text("Used for AI summaries, training distribution, and future pace/power estimates. Target NPI is used for AI analysis comparisons.")
+            Text("Used for AI summaries, training distribution, and future pace/power estimates. Target KPS is used for AI analysis comparisons.")
         }
     }
     
-    private var findMyNPISection: some View {
+    private var findMyKpsSection: some View {
         Section {
             HStack {
-                TextField("Distance km", text: $npiDistance)
+                TextField("Distance km", text: $kpsDistance)
                     .keyboardType(.decimalPad)
-                TextField("Min", text: $npiMinutes)
+                TextField("Min", text: $kpsMinutes)
                     .frame(width: 50)
                     .keyboardType(.numberPad)
-                TextField("Sec", text: $npiSeconds)
+                TextField("Sec", text: $kpsSeconds)
                     .frame(width: 50)
                     .keyboardType(.numberPad)
             }
-            DatePicker("Date", selection: $npiDate, displayedComponents: .date)
+            DatePicker("Date", selection: $kpsDate, displayedComponents: .date)
             Button("Add to Log") {
                 addManualRun()
             }
-            if let npiResult {
-                Text("Computed NPI \(Int(npiResult)) added to history")
+            if let kpsResult {
+                Text("Computed KPS \(String(format: "%.1f", kpsResult)) added to history")
                     .font(.caption)
                     .foregroundColor(.green)
             }
         } header: {
-            Text("Find My NPI")
+            Text("Find My KPS")
         } footer: {
             Text("Creates a manual workout entry tagged as imported. Great for race results or treadmill sessions.")
         }
@@ -686,13 +688,13 @@ struct SettingsView: View {
             weightText = String(format: "%.1f", newProfile.weightKg)
             birthDate = newProfile.dateOfBirth
             sex = newProfile.sex
-            targetNPIText = String(format: "%.0f", newProfile.targetNPI)
+            targetKpsText = String(format: "%.0f", newProfile.targetKps)
             return
         }
         weightText = String(format: "%.1f", profile.weightKg)
         birthDate = profile.dateOfBirth
         sex = profile.sex
-        targetNPIText = String(format: "%.0f", profile.targetNPI)
+        targetKpsText = String(format: "%.0f", profile.targetKps)
     }
     
     private func saveProfile() {
@@ -700,7 +702,8 @@ struct SettingsView: View {
         profile.weightKg = Double(weightText) ?? profile.weightKg
         profile.dateOfBirth = birthDate
         profile.sex = sex
-        profile.targetNPI = Double(targetNPIText) ?? profile.targetNPI
+        let parsedTarget = Double(targetKpsText) ?? profile.targetKps
+        profile.targetKps = min(100.0, max(0.0, parsedTarget))
         if profiles.isEmpty {
             modelContext.insert(profile)
         }
@@ -711,33 +714,34 @@ struct SettingsView: View {
     }
     
     private func addManualRun() {
-        guard let distanceKm = Double(npiDistance), distanceKm > 0 else { return }
-        let minutes = Double(npiMinutes) ?? 0
-        let seconds = Double(npiSeconds) ?? 0
+        guard let distanceKm = Double(kpsDistance), distanceKm > 0 else { return }
+        let minutes = Double(kpsMinutes) ?? 0
+        let seconds = Double(kpsSeconds) ?? 0
         let duration = (minutes * 60) + seconds
         guard duration > 0 else { return }
         let distanceMeters = distanceKm * 1000
         let pace = duration / (distanceMeters / 1000)
-        let npi = computeNPI(distanceMeters: distanceMeters, durationSeconds: duration)
+        
+        let result = KpsCalculator.computeKps(
+            distanceMeters: distanceMeters,
+            durationSeconds: duration,
+            pbEq5kSec: pbEq5kSec > 0 ? pbEq5kSec : nil
+        )
+        if result.setPb, let next = result.pbEq5kSecNext, next.isFinite, next > 0 {
+            pbEq5kSec = next
+        }
         let run = Run(
-            date: npiDate,
+            date: kpsDate,
             source: "manual",
             distance: distanceMeters,
             duration: duration,
             avgPace: pace,
-            avgNPI: npi,
+            kps: min(100.0, result.kps),
+            setPb: result.setPb,
             avgHeartRate: 0
         )
         modelContext.insert(run)
-        npiResult = npi
-    }
-    
-    private func computeNPI(distanceMeters: Double, durationSeconds: Double) -> Double {
-        guard distanceMeters > 0, durationSeconds > 0 else { return 0 }
-        let paceSeconds = durationSeconds / (distanceMeters / 1000.0)
-        let speedKmH = (1000 / paceSeconds) * 3.6
-        let factor = pow(distanceMeters / 1000.0, 0.06)
-        return speedKmH * factor * 10.0
+        kpsResult = min(100.0, result.kps)
     }
     
     private func generateAISummary() {
@@ -747,14 +751,14 @@ struct SettingsView: View {
         }
         summaryError = nil
         let totalDistance = recentRuns.map(\.distance).reduce(0, +) / 1000
-        let avgNPI = recentRuns.map(\.avgNPI).reduce(0, +) / Double(recentRuns.count)
-        let bestNPI = recentRuns.map(\.avgNPI).max() ?? avgNPI
+        let avgKps = recentRuns.map(\.kps).reduce(0, +) / Double(recentRuns.count)
+        let bestKps = recentRuns.map(\.kps).max() ?? avgKps
         let stabilityScore = recentRuns.compactMap { $0.formScore }.averageOrNil() ?? 0
         let cadence = recentRuns.compactMap { $0.avgCadence }.averageOrNil() ?? 0
         
         let summary = """
         Past \(recentRuns.count) workouts: \(String(format: "%.1f", totalDistance)) km total.
-        Avg NPI \(Int(avgNPI)), best \(Int(bestNPI)).
+        Avg KPS \(String(format: "%.1f", avgKps)), best \(String(format: "%.1f", bestKps)).
         Stability \(Int(stabilityScore)) / cadence \(Int(cadence)) spm.
         Focus on smoother ground contact and even strides. Recovery days every 3rd run.
         """
@@ -948,9 +952,14 @@ struct SettingsView: View {
                 
                 let distanceKm = activity.distance / 1000.0
                 let paceSecondsPerKm = Double(activity.moving_time) / distanceKm
-                let speedKmH = 3600.0 / paceSecondsPerKm
-                let factor = pow(distanceKm, 0.06)
-                let npi = speedKmH * factor * 10.0
+                
+                // Compute KPS against current PB reference without updating PB during export
+                let pb = pbEq5kSec > 0 ? pbEq5kSec : nil
+                let kps = KpsCalculator.computeKps(
+                    distanceMeters: activity.distance,
+                    durationSeconds: Double(activity.moving_time),
+                    pbEq5kSec: pb
+                ).kps
                 
                 let run: [String: Any] = [
                     "id": "strava_\(activity.id)",
@@ -959,7 +968,7 @@ struct SettingsView: View {
                     "distance": activity.distance,
                     "duration": activity.moving_time,
                     "avgPace": paceSecondsPerKm,
-                    "avgNPI": npi,
+                    "kps": min(100.0, kps),
                     "avgHeartRate": activity.average_heartrate ?? 0,
                     "avgCadence": activity.average_cadence != nil ? activity.average_cadence! * 2 : NSNull(),
                     "elevationGain": activity.total_elevation_gain ?? 0,

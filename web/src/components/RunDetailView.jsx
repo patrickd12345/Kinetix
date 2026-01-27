@@ -37,7 +37,7 @@ export function RunDetailView({ runId, onNavigate }) {
     
     setAnalyzing(true);
     try {
-      const analysis = await AICoachService.analyzeRun(run, settings.targetNPI, useRAG);
+      const analysis = await AICoachService.analyzeRun(run, settings.targetKps ?? 95, useRAG);
       setAiAnalysis(analysis);
     } catch (error) {
       console.error('Failed to analyze:', error);
@@ -102,23 +102,23 @@ export function RunDetailView({ runId, onNavigate }) {
           </div>
         </div>
 
-        {/* NPI Showcase */}
+        {/* KPS Showcase */}
         <div className="glass rounded-3xl p-8 border border-cyan-500/20 shadow-2xl mb-6">
           <div className="text-center">
             <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-              Normalized Performance Index
+              KPS (Kinetix Performance Score)
             </div>
             <div className="text-8xl font-black italic text-cyan-400 mb-2">
-              {Math.floor(run.avgNPI)}
+              {run.kps ? run.kps.toFixed(1) : '---'}
             </div>
             {settings && (
               <div className="text-sm text-gray-400">
-                Target: {Math.floor(settings.targetNPI)} •{' '}
-                {run.avgNPI >= settings.targetNPI ? (
+                Target: {Math.floor(settings.targetKps ?? 95)} •{' '}
+                {run.kps >= (settings.targetKps ?? 95) ? (
                   <span className="text-green-400">Target Achieved! 🎉</span>
                 ) : (
                   <span className="text-orange-400">
-                    {Math.floor(settings.targetNPI - run.avgNPI)} points to go
+                    {Math.max(0, Math.floor((settings.targetKps ?? 95) - run.kps))} points to go
                   </span>
                 )}
               </div>

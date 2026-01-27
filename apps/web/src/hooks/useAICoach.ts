@@ -16,7 +16,7 @@ export function useAICoach() {
   const analyzeRun = async (
     distance: number,
     pace: string,
-    npi: number,
+    kps: number,
     target: number,
     duration: number,
     heartRate?: number
@@ -35,14 +35,14 @@ export function useAICoach() {
 Distance: ${distance.toFixed(2)} km
 Time: ${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, '0')}
 Pace: ${pace} per km
-NPI (Normalized Performance Index): ${Math.floor(npi)}
-Target NPI: ${Math.round(target)}
+KPS (Kinetix Performance Score): ${kps.toFixed(1)} (0–100, 100 = lifetime best)
+Target KPS: ${Math.round(target)}
 ${heartRate ? `Average Heart Rate: ${Math.floor(heartRate)} BPM` : ''}
 
 Provide a JSON response with:
 {
   "title": "A concise scientific title (max 50 chars)",
-  "insight": "Detailed feedback on performance, what went well, areas for improvement, and specific recommendations based on NPI analysis (2-3 sentences)"
+  "insight": "Detailed feedback on performance, what went well, areas for improvement, and specific recommendations based on KPS context (2-3 sentences)"
 }`
 
     try {

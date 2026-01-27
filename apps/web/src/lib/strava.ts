@@ -1,6 +1,4 @@
 import { RunRecord } from './database'
-import { calculateNPI } from '@kinetix/core'
-import { UserProfile } from '@kinetix/core'
 
 export interface StravaActivity {
   id: number
@@ -105,24 +103,19 @@ export async function fetchStravaActivities(
 
 export function convertStravaToRunRecord(
   activity: StravaActivity,
-  userProfile: UserProfile,
-  targetNPI: number
+  targetKps: number
 ): RunRecord {
   const duration = activity.moving_time
   const distanceMeters = activity.distance
-
-  const npi = calculateNPI(
-    { distanceKm: distanceMeters / 1000, timeSeconds: duration },
-    userProfile
-  )
 
   return {
     date: activity.start_date,
     distance: distanceMeters,
     duration,
     averagePace: duration / (distanceMeters / 1000 || 1),
-    npi,
-    targetNPI,
+    kps: 0, // computed at import time (PB-aware)
+    targetKps,
+    set_pb: false,
     locations: [],
     splits: [],
     heartRate: activity.average_heartrate,

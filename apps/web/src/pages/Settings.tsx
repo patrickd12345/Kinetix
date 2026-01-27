@@ -2,13 +2,14 @@ import { useSettingsStore } from '../store/settingsStore'
 import { fetchStravaActivities, convertStravaToRunRecord } from '../lib/strava'
 import { db } from '../lib/database'
 import { useState } from 'react'
+import { computeKpsWithPb } from '@kinetix/core'
 
 export default function Settings() {
   const {
     userProfile,
     setUserProfile,
-    targetNPI,
-    setTargetNPI,
+    targetKps,
+    setTargetKps,
     unitSystem,
     setUnitSystem,
     physioMode,
@@ -45,11 +46,14 @@ export default function Settings() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Target NPI</label>
+            <label className="block text-sm font-medium mb-2">Target KPS (0–100)</label>
             <input
               type="number"
-              value={targetNPI}
-              onChange={(e) => setTargetNPI(parseFloat(e.target.value) || 135)}
+              value={targetKps}
+              min={0}
+              max={100}
+              step={0.1}
+              onChange={(e) => setTargetKps(parseFloat(e.target.value) || 95)}
               className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
             />
           </div>
@@ -99,10 +103,35 @@ export default function Settings() {
                       setImportMessage('No recent activities found.')
                       return
                     }
-                    const records = activities.map((activity) =>
-                      convertStravaToRunRecord(activity, userProfile, targetNPI)
-                    )
-                    await db.runs.bulkAdd(records)
+                    const records = activities
+                      .map((activity) => convertStravaToRunRecord(activity, targetKps))
+                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+                    await db.transaction('rw', db.runs, db.meta, async () => {
+                      const meta = await db.meta.get('kps')
+                      let pbEq5kSec: number | null = meta?.pb_eq5k_sec ?? null
+
+                      for (const rec of records) {
+                        const result = computeKpsWithPb({
+                          distanceKm: rec.distance / 1000,
+                          timeSeconds: rec.duration,
+                          pbEq5kSec,
+                        })
+                        pbEq5kSec = result.pbEq5kSecNext
+
+                        await db.runs.add({
+                          ...rec,
+                          kps: Math.round(result.kps * 10) / 10,
+                          set_pb: result.setPb,
+                          targetKps,
+                        })
+                      }
+
+                      if (pbEq5kSec && Number.isFinite(pbEq5kSec) && pbEq5kSec > 0) {
+                        await db.meta.put({ id: 'kps', pb_eq5k_sec: pbEq5kSec })
+                      }
+                    })
+
                     setImportMessage(`Imported ${records.length} activities.`)
                   } catch (error) {
                     console.error('Strava import error', error)

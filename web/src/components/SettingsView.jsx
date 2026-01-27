@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Target, Globe, Heart, Calculator, Trash2, Database, Download, Cloud, Activity } from 'lucide-react';
 import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
-import { calculateNPIFromRace } from '../utils/npiCalculator';
+import { calculateKpsFromRace } from '../utils/kpsCalculator';
 import { RAGIndexer } from './RAGIndexer';
 import { stravaService } from '../services/stravaService';
 import { cloudSyncService } from '../storage/sync/cloudSyncService';
@@ -10,7 +10,7 @@ import { cloudSyncService } from '../storage/sync/cloudSyncService';
  * Settings view
  */
 export function SettingsView({ settings, onSave, onNavigate }) {
-  const [targetNPI, setTargetNPI] = useState(settings?.targetNPI || 135);
+  const [targetKps, setTargetKps] = useState(settings?.targetKps || 95);
   const [unitSystem, setUnitSystem] = useState(settings?.unitSystem || 'metric');
   const [physioMode, setPhysioMode] = useState(settings?.physioMode || false);
   const [showFindTarget, setShowFindTarget] = useState(false);
@@ -135,9 +135,10 @@ export function SettingsView({ settings, onSave, onNavigate }) {
 
   const handleSave = () => {
     onSave({
-      targetNPI,
+      targetKps,
       unitSystem,
       physioMode,
+      pb_eq5k_sec: settings?.pb_eq5k_sec || 0,
     });
     onNavigate('home');
   };
@@ -149,12 +150,13 @@ export function SettingsView({ settings, onSave, onNavigate }) {
     }
 
     try {
-      const calculated = calculateNPIFromRace(
+      const calculated = calculateKpsFromRace(
         parseFloat(findDistance),
         findTime,
-        findUnit
+        findUnit,
+        settings?.pb_eq5k_sec || 0
       );
-      setTargetNPI(calculated);
+      setTargetKps(calculated);
       setShowFindTarget(false);
       setFindDistance('');
       setFindTime('');
@@ -190,41 +192,41 @@ export function SettingsView({ settings, onSave, onNavigate }) {
         </div>
 
         <div className="space-y-6">
-          {/* Target NPI */}
+          {/* Target KPS */}
           <div className="glass rounded-2xl p-6 border border-white/10">
             <div className="flex items-center gap-3 mb-4">
               <Target className="text-cyan-400" size={20} />
-              <h2 className="text-lg font-bold text-white">Target NPI</h2>
+              <h2 className="text-lg font-bold text-white">Target KPS</h2>
             </div>
             <div className="mb-4">
               <div className="text-5xl font-black text-cyan-400 mb-2">
-                {Math.round(targetNPI)}
+                {Math.round(targetKps)}
               </div>
               <p className="text-sm text-gray-400">
-                Your goal Normalized Performance Index
+                Your goal Kinetix Performance Score (0–100)
               </p>
             </div>
             <div className="flex gap-2 mb-4">
               <button
-                onClick={() => setTargetNPI((n) => Math.max(0, n - 5))}
+                onClick={() => setTargetKps((n) => Math.max(0, n - 5))}
                 className="flex-1 py-3 bg-gray-900/50 rounded-xl text-gray-300 font-bold hover:bg-gray-800 border border-gray-700/50 transition-all"
               >
                 -5
               </button>
               <button
-                onClick={() => setTargetNPI((n) => Math.max(0, n - 1))}
+                onClick={() => setTargetKps((n) => Math.max(0, n - 1))}
                 className="flex-1 py-3 bg-gray-900/50 rounded-xl text-gray-300 font-bold hover:bg-gray-800 border border-gray-700/50 transition-all"
               >
                 -1
               </button>
               <button
-                onClick={() => setTargetNPI((n) => n + 1)}
+                onClick={() => setTargetKps((n) => Math.min(100, n + 1))}
                 className="flex-1 py-3 bg-gray-900/50 rounded-xl text-gray-300 font-bold hover:bg-gray-800 border border-gray-700/50 transition-all"
               >
                 +1
               </button>
               <button
-                onClick={() => setTargetNPI((n) => n + 5)}
+                onClick={() => setTargetKps((n) => Math.min(100, n + 5))}
                 className="flex-1 py-3 bg-gray-900/50 rounded-xl text-gray-300 font-bold hover:bg-gray-800 border border-gray-700/50 transition-all"
               >
                 +5
@@ -235,7 +237,7 @@ export function SettingsView({ settings, onSave, onNavigate }) {
               className="w-full py-3 bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 hover:from-cyan-500/30 hover:to-cyan-600/30 border border-cyan-500/30 rounded-xl text-cyan-400 font-bold transition-all flex items-center justify-center gap-2"
             >
               <Calculator size={16} />
-              Find My Target NPI
+              Find My Target KPS
             </button>
           </div>
 
@@ -368,7 +370,7 @@ export function SettingsView({ settings, onSave, onNavigate }) {
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 z-50">
           <div className="glass border border-cyan-500/30 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
             <h3 className="text-lg font-black text-cyan-400 mb-4 text-center">
-              Find My Target NPI
+              Find My Target KPS
             </h3>
             <div className="space-y-4 mb-6">
               <div>

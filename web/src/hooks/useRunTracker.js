@@ -1,18 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { gpsService } from '../services/gpsService';
-import { calculateNPI, calculateTimeToBeat } from '../utils/npiCalculator';
+import { computeKpsWithPb, calculateTimeToBeatKps } from '../utils/kpsCalculator';
 import { Run } from '../models/Run';
 
 /**
  * Hook for tracking runs with GPS and calculating metrics
  */
-export function useRunTracker(targetNPI, _unitSystem) {
+export function useRunTracker(targetKps, pbEq5kSec, _unitSystem) {
   const [isRunning, setIsRunning] = useState(false);
   const [gpsStatus, setGpsStatus] = useState('unknown');
   const [distance, setDistance] = useState(0); // meters
   const [duration, setDuration] = useState(0); // seconds
   const [pace, setPace] = useState(0); // seconds per km
-  const [npi, setNpi] = useState(0);
+  const [kps, setKps] = useState(0);
   const [heartRate, setHeartRate] = useState(70); // Simulated for now
   const [timeToBeat, setTimeToBeat] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -74,7 +74,7 @@ export function useRunTracker(targetNPI, _unitSystem) {
     };
   }, [isRunning, duration]);
 
-  // Calculate pace and NPI
+  // Calculate pace and KPS
   useEffect(() => {
     if (distance > 0 && duration > 0) {
       const distanceKm = distance / 1000;
@@ -82,17 +82,19 @@ export function useRunTracker(targetNPI, _unitSystem) {
       setPace(currentPace);
       
       if (distance > 50) {
-        // Calculate NPI
-        const calculatedNPI = calculateNPI(distanceKm, currentPace);
-        setNpi(calculatedNPI);
+        // Calculate KPS (PB-aware; PB updates only on save)
+        const calculatedKps = pbEq5kSec
+          ? computeKpsWithPb(distanceKm, duration, pbEq5kSec).kps
+          : 0;
+        setKps(calculatedKps);
         
         // Calculate time to beat
-        const projection = calculateTimeToBeat(
-          calculatedNPI,
-          targetNPI,
+        const projection = calculateTimeToBeatKps(
           distanceKm,
           duration,
-          currentPace
+          currentPace,
+          targetKps,
+          pbEq5kSec
         );
         
         if (projection) {
@@ -100,17 +102,17 @@ export function useRunTracker(targetNPI, _unitSystem) {
           setProgress(projection.progress);
         }
       } else {
-        setNpi(0);
+        setKps(0);
         setTimeToBeat(null);
         setProgress(0);
       }
     } else {
       setPace(0);
-      setNpi(0);
+      setKps(0);
       setTimeToBeat(null);
       setProgress(0);
     }
-  }, [distance, duration, targetNPI]);
+  }, [distance, duration, targetKps, pbEq5kSec]);
 
   const start = useCallback(async () => {
     try {
@@ -125,7 +127,7 @@ export function useRunTracker(targetNPI, _unitSystem) {
       // Reset state
       setDistance(0);
       setDuration(0);
-      setNpi(0);
+      setKps(0);
       setPace(0);
       setProgress(0);
       setTimeToBeat(null);
@@ -159,7 +161,7 @@ export function useRunTracker(targetNPI, _unitSystem) {
     stop();
     setDistance(0);
     setDuration(0);
-    setNpi(0);
+    setKps(0);
     setPace(0);
     setProgress(0);
     setTimeToBeat(null);
@@ -175,11 +177,11 @@ export function useRunTracker(targetNPI, _unitSystem) {
       distance,
       duration,
       avgPace: pace,
-      avgNPI: npi,
+      kps,
       avgHeartRate: heartRate,
       routeData: routePoints.map((p) => ({ lat: p.lat, lon: p.lon })),
     });
-  }, [distance, duration, pace, npi, heartRate, routePoints]);
+  }, [distance, duration, pace, kps, heartRate, routePoints]);
 
   return {
     isRunning,
@@ -187,7 +189,7 @@ export function useRunTracker(targetNPI, _unitSystem) {
     distance,
     duration,
     pace,
-    npi,
+    kps,
     heartRate,
     timeToBeat,
     progress,

@@ -1,91 +1,16 @@
 import Foundation
 
-/// Calculates running metrics: NPI, pace, progress, etc.
+/// Calculates running metrics: KPS, pace, progress, etc.
 class RunMetricsCalculator {
-
-    struct RaceProjection {
-        let targetDistanceMeters: Double
-        let predictedFinishTime: TimeInterval
-        let goalFinishTime: TimeInterval
-        let projectedPaceSeconds: Double
+    struct TargetProjection {
+        let timeToBeat: String?
         let progress: Double
-
-        func displayString(includeGoal: Bool = true) -> String {
-            let finishText = RunMetricsCalculator.formatTime(predictedFinishTime)
-            if includeGoal && goalFinishTime > 0 {
-                let goalText = RunMetricsCalculator.formatTime(goalFinishTime)
-                return "\(finishText)→\(goalText)"
-            }
-
-            let paceText = RunMetricsCalculator.formatPace(projectedPaceSeconds)
-            return "\(finishText) @\(paceText)"
-        }
     }
     
-    // MARK: - NPI Calculation
+    // MARK: - KPS
     
-    static func calculateNPI(distanceMeters: Double, durationSeconds: Double) -> Double {
-        guard distanceMeters > 0, durationSeconds > 0 else { return 0 }
-
-        let paceSeconds = durationSeconds / (distanceMeters / 1000.0)
-        let speedKmH = (1000 / paceSeconds) * 3.6
-        let factor = pow(distanceMeters / 1000.0, 0.06)
-        return speedKmH * factor * 10.0
-    }
-
-    // MARK: - NPI <-> Pace/Time Conversion
-
-    static func paceSeconds(forNPI npi: Double, distanceMeters: Double) -> Double {
-        guard npi > 0, distanceMeters > 0 else { return 0 }
-
-        let distanceKm = distanceMeters / 1000.0
-        let factor = pow(distanceKm, 0.06)
-        let speedKmH = npi / (factor * 10.0)
-        guard speedKmH > 0 else { return 0 }
-
-        return 3600.0 / speedKmH
-    }
-
-    static func finishTime(fromNPI npi: Double, distanceMeters: Double) -> TimeInterval {
-        let pace = paceSeconds(forNPI: npi, distanceMeters: distanceMeters)
-        guard pace > 0 else { return 0 }
-
-        return pace * (distanceMeters / 1000.0)
-    }
-
-    static func projectRaceTime(
-        currentNPI: Double,
-        goalNPI: Double,
-        elapsedSeconds: Double,
-        distanceCoveredMeters: Double,
-        targetDistanceMeters: Double
-    ) -> RaceProjection? {
-        guard currentNPI > 0, targetDistanceMeters > 0 else { return nil }
-        guard targetDistanceMeters >= distanceCoveredMeters else {
-            let pace = paceSeconds(forNPI: currentNPI, distanceMeters: targetDistanceMeters)
-            return RaceProjection(
-                targetDistanceMeters: targetDistanceMeters,
-                predictedFinishTime: elapsedSeconds,
-                goalFinishTime: finishTime(fromNPI: goalNPI, distanceMeters: targetDistanceMeters),
-                projectedPaceSeconds: pace,
-                progress: 1.0
-            )
-        }
-
-        let projectedFinish = finishTime(fromNPI: currentNPI, distanceMeters: targetDistanceMeters)
-        guard projectedFinish > 0 else { return nil }
-
-        let goalFinish = goalNPI > 0 ? finishTime(fromNPI: goalNPI, distanceMeters: targetDistanceMeters) : 0
-        let progress = min(max(elapsedSeconds / projectedFinish, 0.0), 1.0)
-        let pace = paceSeconds(forNPI: currentNPI, distanceMeters: targetDistanceMeters)
-
-        return RaceProjection(
-            targetDistanceMeters: targetDistanceMeters,
-            predictedFinishTime: projectedFinish,
-            goalFinishTime: goalFinish,
-            projectedPaceSeconds: pace,
-            progress: progress
-        )
+    static func calculateKps(distanceMeters: Double, durationSeconds: Double, pbEq5kSec: Double?) -> Double {
+        return KpsCalculator.computeKps(distanceMeters: distanceMeters, durationSeconds: durationSeconds, pbEq5kSec: pbEq5kSec).kps
     }
     
     // MARK: - Pace Calculation
@@ -116,18 +41,26 @@ class RunMetricsCalculator {
     static func calculateProgress(
         elapsedTime: TimeInterval,
         rollingPace: Double,
-        targetNPI: Double
+        targetKps: Double,
+        pbEq5kSec: Double?
     ) -> Double {
-        guard rollingPace > 0, targetNPI > 0 else { return 0 }
-
-        // Predict total time needed to hit target NPI at current pace
-        // This is a simplified calculation - adjust based on your NPI model
-        let predictedTotalTime = estimateTimeForNPI(targetNPI: targetNPI, currentPace: rollingPace)
-
-        guard predictedTotalTime > 0 else { return 0 }
+        guard rollingPace.isFinite, rollingPace > 0 else { return 0 }
+        guard let pb = pbEq5kSec, pb.isFinite, pb > 0 else { return 0 }
+        guard targetKps.isFinite, targetKps > 0 else { return 0 }
         
-        let progress = elapsedTime / predictedTotalTime
-        return min(max(progress, 0.0), 1.0) // Clamp between 0 and 1
+        let desiredEq5kSec = pb * (100.0 / targetKps)
+        let numerator = rollingPace * pow(KpsCalculator.referenceDistanceKm, KpsCalculator.riegelExponent)
+        let ratio = numerator / desiredEq5kSec
+        guard ratio.isFinite, ratio > 0 else { return 0 }
+        
+        // d = (pace * 5^1.06 / eq5k)^(1/0.06)
+        let distanceNeededKm = pow(ratio, 1.0 / (KpsCalculator.riegelExponent - 1.0))
+        guard distanceNeededKm.isFinite, distanceNeededKm > 0 else { return 0 }
+        
+        let predictedTotalTime = distanceNeededKm * rollingPace
+        guard predictedTotalTime.isFinite, predictedTotalTime > 0 else { return 0 }
+        
+        return min(max(elapsedTime / predictedTotalTime, 0.0), 1.0)
     }
     
     // MARK: - Private Helpers
@@ -146,20 +79,6 @@ class RunMetricsCalculator {
         return String(format: "%d:%02d", m, s)
     }
     
-    private static func estimateTimeForNPI(targetNPI: Double, currentPace: Double) -> TimeInterval {
-        // Simplified: assume a standard distance (e.g., 5km) for prediction
-        // You may want to adjust this based on your actual NPI model
-        let standardDistance: Double = 5000 // 5km in meters
-        
-        // Reverse NPI calculation to estimate time
-        // NPI = (speed * factor * 10) where speed = 3.6 / (pace / 1000)
-        // Solving for time: time = distance * pace
-        // But we need to account for the NPI factor
-        
-        // This is a placeholder - adjust based on your actual NPI formula
-        let estimatedTime = standardDistance * (currentPace / 1000.0)
-        return estimatedTime
-    }
 }
 
 

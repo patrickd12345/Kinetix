@@ -15,14 +15,14 @@ export class EmbeddingService {
     const paceMin = Math.floor(run.avgPace / 60);
     const paceSec = Math.floor(run.avgPace % 60);
     const pace = `${paceMin}:${paceSec.toString().padStart(2, '0')}`;
-    const npi = Math.floor(run.avgNPI);
+    const kps = Number(run.kps || 0);
     const date = new Date(run.date).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
     });
 
-    let text = `${distance}km run, pace ${pace} per km, NPI ${npi}`;
+    let text = `${distance}km run, pace ${pace} per km, KPS ${kps.toFixed(1)}`;
     
     if (run.avgHeartRate) {
       text += `, heart rate ${Math.floor(run.avgHeartRate)} bpm`;
@@ -47,9 +47,11 @@ export class EmbeddingService {
     text += `, date ${date}`;
     
     // Add context about performance
-    if (run.avgNPI >= 140) {
+    if (kps >= 100) {
+      text += ', lifetime best performance';
+    } else if (kps >= 95) {
       text += ', excellent performance';
-    } else if (run.avgNPI >= 130) {
+    } else if (kps >= 85) {
       text += ', good performance';
     } else {
       text += ', moderate performance';

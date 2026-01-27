@@ -29,7 +29,7 @@
 - Saves to UserDefaults as `RunRecoveryData`
 - Recovery prompt on app launch if crash detected
 - Auto-discards recovery data older than 1 hour
-- Saves: distance, duration, route, heart rate samples, target NPI
+- Saves: distance, duration, route, heart rate samples, target KPS
 
 **Recovery Flow**:
 1. App detects recovery data on launch

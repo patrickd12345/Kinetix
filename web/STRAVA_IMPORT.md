@@ -53,7 +53,7 @@ The script will:
 1. ✅ Fetch all your Strava activities
 2. ✅ Filter for running activities
 3. ✅ Convert to Kinetix Run format
-4. ✅ Calculate NPI for each run
+4. ✅ Compute KPS for each run (PB-aware, capped at 100)
 5. ✅ Export to `strava-runs-import.json`
 
 ### 4. Load into Web App
@@ -94,7 +94,7 @@ For each Strava run:
 - ✅ **Duration** (seconds)
 - ✅ **Date/Time**
 - ✅ **Average Pace** (calculated)
-- ✅ **NPI** (calculated from distance and pace)
+- ✅ **KPS** (0–100, PB-aware)
 - ✅ **Heart Rate** (if available)
 - ✅ **Cadence** (if available, converted to strides/min)
 - ✅ **Elevation Gain** (as metadata)
@@ -167,7 +167,7 @@ const runs = convertToRuns(activities).filter(run => {
 2. **Verify Import**:
    - Check History view
    - All Strava runs should appear
-   - NPI should be calculated correctly
+   - KPS should be calculated correctly
 
 3. **Clean Up**:
    - Delete `strava-runs-import.json` if desired

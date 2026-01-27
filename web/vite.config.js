@@ -16,7 +16,7 @@ export default defineConfig({
       manifest: {
         name: 'Kinetix - Intelligent Running Coach',
         short_name: 'Kinetix',
-        description: 'Intelligent running coach with NPI tracking, GPS, and AI-powered analysis',
+        description: 'Intelligent running coach with KPS tracking, GPS, and AI-powered analysis',
         theme_color: '#0a0a0a',
         background_color: '#000000',
         display: 'standalone',

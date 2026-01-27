@@ -1,17 +1,12 @@
 import Foundation
 
-/// Calculates running metrics: NPI, pace, etc. (matches Watch implementation)
+/// Calculates running metrics: KPS, pace, etc. (matches Watch implementation)
 class RunMetricsCalculator {
     
-    // MARK: - NPI Calculation
+    // MARK: - KPS Calculation
     
-    static func calculateNPI(distanceMeters: Double, durationSeconds: Double) -> Double {
-        guard distanceMeters > 0, durationSeconds > 0 else { return 0 }
-
-        let paceSeconds = durationSeconds / (distanceMeters / 1000.0)
-        let speedKmH = (1000 / paceSeconds) * 3.6
-        let factor = pow(distanceMeters / 1000.0, 0.06)
-        return speedKmH * factor * 10.0
+    static func calculateKps(distanceMeters: Double, durationSeconds: Double, pbEq5kSec: Double?) -> Double {
+        return KpsCalculator.computeKps(distanceMeters: distanceMeters, durationSeconds: durationSeconds, pbEq5kSec: pbEq5kSec).kps
     }
     
     static func formatPace(_ paceSeconds: Double) -> String {

@@ -9,7 +9,8 @@ public final class Run {
     public var distance: Double // in meters
     public var duration: TimeInterval // in seconds
     public var avgPace: Double // seconds per km
-    public var avgNPI: Double
+    public var kps: Double // 0–100
+    public var setPb: Bool
     public var avgHeartRate: Double
     public var avgCadence: Double?
     public var avgVerticalOscillation: Double?
@@ -26,7 +27,8 @@ public final class Run {
         distance: Double,
         duration: TimeInterval,
         avgPace: Double,
-        avgNPI: Double,
+        kps: Double,
+        setPb: Bool,
         avgHeartRate: Double,
         avgCadence: Double? = nil,
         avgVerticalOscillation: Double? = nil,
@@ -43,7 +45,8 @@ public final class Run {
         self.distance = distance
         self.duration = duration
         self.avgPace = avgPace
-        self.avgNPI = avgNPI
+        self.kps = kps
+        self.setPb = setPb
         self.avgHeartRate = avgHeartRate
         self.avgCadence = avgCadence
         self.avgVerticalOscillation = avgVerticalOscillation
@@ -74,7 +77,8 @@ public struct RunPayload: Codable, Identifiable {
     public let distance: Double
     public let duration: TimeInterval
     public let avgPace: Double
-    public let avgNPI: Double
+    public let kps: Double
+    public let setPb: Bool
     public let avgHeartRate: Double
     public let avgCadence: Double?
     public let avgVerticalOscillation: Double?
@@ -92,7 +96,8 @@ public struct RunPayload: Codable, Identifiable {
         self.distance = run.distance
         self.duration = run.duration
         self.avgPace = run.avgPace
-        self.avgNPI = run.avgNPI
+        self.kps = run.kps
+        self.setPb = run.setPb
         self.avgHeartRate = run.avgHeartRate
         self.avgCadence = run.avgCadence
         self.avgVerticalOscillation = run.avgVerticalOscillation

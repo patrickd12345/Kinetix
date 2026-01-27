@@ -45,14 +45,14 @@ The web app will automatically use RAG when the service is available!
 
 ### Before (Simple AI):
 ```
-"Your NPI of 142 is above target. Good work!"
+"Your KPS of 97.4 is above target. Good work!"
 ```
 
 ### After (RAG with Historical Context):
 ```
-"Excellent progress! Your NPI of 142 is your second-best 
+"Excellent progress! Your KPS of 97.4 is your second-best 
 on a 5km run, just 3 points below your PB from 3 weeks ago. 
-You're showing a clear improvement trend - your NPI has 
+You're showing a clear improvement trend - your KPS has
 increased from 138 → 140 → 142 over the past month. To beat 
 your PB of 145, try matching that 4:25/km pace from 3 weeks 
 ago - you've proven you can do it!"

@@ -1,7 +1,7 @@
 {
   "name": "@kinetix/core",
   "version": "1.0.0",
-  "description": "Core NPI calculation engine and running utilities",
+  "description": "Core KPS calculation engine and running utilities",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

@@ -14,17 +14,20 @@ export default function RunDashboard() {
     distance,
     duration,
     averagePace,
-    liveNPI,
+    liveKps,
     heartRate,
     progress,
     timeToBeat,
+    pbEq5kSec,
+    lastRunKps,
+    lastRunSetPb,
     startRun,
     pauseRun,
     resumeRun,
     stopRun,
   } = useRunStore()
   
-  const { targetNPI, unitSystem, physioMode } = useSettingsStore()
+  const { targetKps, unitSystem, physioMode } = useSettingsStore()
   
   // Start location tracking hook
   useLocationTracking()
@@ -48,8 +51,8 @@ export default function RunDashboard() {
     await analyzeRun(
       distanceKm,
       paceString,
-      liveNPI,
-      targetNPI,
+      lastRunKps ?? liveKps,
+      targetKps,
       duration,
       heartRate > 70 ? heartRate : undefined
     )
@@ -78,7 +81,7 @@ export default function RunDashboard() {
           <div className="flex items-center justify-center mb-4">
             <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full glass border border-cyan-500/20">
               <span className="text-xs font-semibold text-gray-400 uppercase">TARGET</span>
-              <span className="text-sm font-black text-cyan-400">{Math.round(targetNPI)}</span>
+              <span className="text-sm font-black text-cyan-400">{Math.round(targetKps)}</span>
             </div>
           </div>
 
@@ -87,8 +90,8 @@ export default function RunDashboard() {
             <svg className="w-48 h-48 transform -rotate-90">
               <defs>
                 <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor={liveNPI >= targetNPI ? "#4ade80" : "#22d3ee"} />
-                  <stop offset="100%" stopColor={liveNPI >= targetNPI ? "#16a34a" : "#06b6d4"} />
+                  <stop offset="0%" stopColor={liveKps >= targetKps ? "#4ade80" : "#22d3ee"} />
+                  <stop offset="100%" stopColor={liveKps >= targetKps ? "#16a34a" : "#06b6d4"} />
                 </linearGradient>
               </defs>
               <circle cx="96" cy="96" r="84" stroke="#1a1a1a" strokeWidth="8" fill="transparent" opacity="0.5" />
@@ -101,20 +104,40 @@ export default function RunDashboard() {
                 strokeDashoffset={2 * Math.PI * 84 * (1 - Math.min(Math.max(progress, 0), 1))}
                 className="transition-all duration-700 ease-out"
                 strokeLinecap="round"
-                style={{ filter: `drop-shadow(0 0 8px ${liveNPI >= targetNPI ? 'rgba(34, 197, 94, 0.5)' : 'rgba(6, 182, 212, 0.5)'})` }}
+                style={{ filter: `drop-shadow(0 0 8px ${liveKps >= targetKps ? 'rgba(34, 197, 94, 0.5)' : 'rgba(6, 182, 212, 0.5)'})` }}
               />
             </svg>
             
-            {/* NPI Value - Centered */}
+            {/* KPS Value - Centered */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
-                <span className={`text-6xl font-black italic tracking-tight ${liveNPI >= targetNPI ? 'text-green-400' : 'text-white'}`}>
-                  {Math.floor(liveNPI)}
+                <span className={`text-6xl font-black italic tracking-tight ${liveKps >= targetKps ? 'text-green-400' : 'text-white'}`}>
+                  {pbEq5kSec ? liveKps.toFixed(1) : '--'}
                 </span>
-                <div className="text-xs font-bold tracking-[0.3em] text-gray-400 uppercase mt-2">INDEX</div>
+                <div className="text-xs font-bold tracking-[0.3em] text-gray-400 uppercase mt-2">KPS</div>
               </div>
             </div>
           </div>
+
+          {/* KPS context / PB messaging */}
+          {!isRunning && lastRunKps != null && (
+            <div className="text-center mb-4">
+              {lastRunSetPb ? (
+                <div className="text-sm font-bold text-green-400">
+                  KPS 100 ✅ New lifetime PB
+                </div>
+              ) : (
+                <div className="text-sm font-bold text-gray-200">
+                  KPS {lastRunKps.toFixed(1)} — {Math.round(lastRunKps)}% of your lifetime best
+                </div>
+              )}
+            </div>
+          )}
+          {!isRunning && pbEq5kSec == null && (
+            <div className="text-center mb-4">
+              <div className="text-xs text-gray-400">Your first run will set your lifetime PB reference.</div>
+            </div>
+          )}
 
           {/* Time to Beat */}
           {isRunning && timeToBeat && (
@@ -213,7 +236,7 @@ export default function RunDashboard() {
                   </button>
                 )}
                 <button
-                  onClick={stopRun}
+                  onClick={() => void stopRun()}
                   className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-lg shadow-red-500/50 flex items-center justify-center transition-all active:scale-95"
                 >
                   <Square fill="white" size={18} strokeWidth={0} />

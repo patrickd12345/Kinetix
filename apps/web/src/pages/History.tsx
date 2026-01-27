@@ -43,8 +43,8 @@ export default function History() {
     await analyzeRun(
       distanceKm,
       paceString,
-      run.npi,
-      run.targetNPI,
+      run.kps,
+      run.targetKps,
       run.duration,
       run.heartRate
     )
@@ -110,8 +110,11 @@ export default function History() {
                     </div>
                   </div>
                   <div className="text-right ml-4">
-                    <div className="text-2xl font-black text-cyan-400">{Math.round(run.npi)}</div>
-                    <div className="text-xs text-gray-500 uppercase">NPI</div>
+                    <div className="text-2xl font-black text-cyan-400">{run.kps.toFixed(1)}</div>
+                    <div className="text-xs text-gray-500 uppercase">KPS</div>
+                    {run.set_pb && (
+                      <div className="text-[10px] font-bold text-green-400 mt-1">✅ NEW PB</div>
+                    )}
                     <div className="flex gap-2 mt-2 justify-end">
                       <button
                         onClick={() => handleAnalyzeRun(run)}

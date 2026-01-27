@@ -63,7 +63,7 @@ export class VectorDB {
       id: run.id,
       distance: run.distance,
       pace: run.avgPace,
-      npi: run.avgNPI,
+      kps: run.kps,
       heartRate: run.avgHeartRate || null,
       cadence: run.avgCadence || null,
       formScore: run.formScore || null,

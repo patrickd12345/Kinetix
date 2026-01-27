@@ -26,7 +26,7 @@ test('convertToRuns filters non-runs and requires metrics', () => {
   assert.strictEqual(runs[0].id, 'strava_3')
 })
 
-test('convertToRuns computes pace, NPI, cadence, and heart rate', () => {
+test('convertToRuns computes pace, cadence, and heart rate', () => {
   const runs = convertToRuns([{ ...baseActivity, id: 4, type: 'Run' }])
 
   assert.strictEqual(runs.length, 1)
@@ -43,8 +43,8 @@ test('convertToRuns computes pace, NPI, cadence, and heart rate', () => {
   // Pace should be 300s/km (25 min / 5 km)
   assert.strictEqual(run.avgPace, 300)
 
-  // NPI calculation: 12 km/h * distance^0.06 * 10 ~= 132.1
-  assert.ok(run.avgNPI > 130 && run.avgNPI < 135)
+  // KPS is computed in-app against PB; exporter leaves placeholder
+  assert.strictEqual(run.kps, 0)
 })
 
 test('convertToRuns leaves cadence null when missing', () => {

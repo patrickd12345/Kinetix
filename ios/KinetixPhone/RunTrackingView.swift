@@ -20,10 +20,12 @@ struct RunTrackingView: View {
     @State private var heartRateSamples: [(Date, Double)] = []
     
     @State private var currentPace: Double = 0 // seconds per km
-    @State private var currentNPI: Double = 0
+    @State private var currentKps: Double = 0
     @State private var timerTick: Int = 0 // Force UI refresh every second
     
     @State private var updateTimer: Timer?
+    
+    @AppStorage("pb_eq5k_sec") private var pbEq5kSec: Double = 0
     
     var body: some View {
         NavigationStack {
@@ -63,12 +65,12 @@ struct RunTrackingView: View {
                             .monospacedDigit()
                     }
                     
-                    // NPI (Star Feature!)
+                    // KPS (Star Feature!)
                     VStack(spacing: 8) {
-                        Text("NPI")
+                        Text("KPS")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text(String(format: "%.1f", currentNPI))
+                        Text(pbEq5kSec > 0 ? String(format: "%.1f", currentKps) : "--")
                             .font(.system(size: 48, weight: .bold))
                             .foregroundColor(.cyan)
                             .monospacedDigit()
@@ -340,11 +342,12 @@ struct RunTrackingView: View {
             // Calculate pace (seconds per km)
             currentPace = duration / (totalDistance / 1000.0)
             
-            // Calculate NPI
+            // Calculate KPS (PB-aware; PB is updated only when saving the run)
             if totalDistance > 100 && duration > 30 {
-                currentNPI = RunMetricsCalculator.calculateNPI(
+                currentKps = RunMetricsCalculator.calculateKps(
                     distanceMeters: totalDistance,
-                    durationSeconds: duration
+                    durationSeconds: duration,
+                    pbEq5kSec: pbEq5kSec > 0 ? pbEq5kSec : nil
                 )
             }
         }
@@ -371,15 +374,20 @@ struct RunTrackingView: View {
             avgPace = 0.0 // No pace if no distance
         }
         
-        // Calculate NPI - only if we have distance
-        let avgNPI: Double
+        // Calculate KPS - only if we have distance
+        let kpsResult: KpsCalculator.Result
         if distanceToSave > 0 {
-            avgNPI = RunMetricsCalculator.calculateNPI(
+            kpsResult = KpsCalculator.computeKps(
                 distanceMeters: distanceToSave,
-                durationSeconds: elapsedTime
+                durationSeconds: elapsedTime,
+                pbEq5kSec: pbEq5kSec > 0 ? pbEq5kSec : nil
             )
         } else {
-            avgNPI = 0.0 // No NPI if no distance
+            kpsResult = KpsCalculator.Result(kps: 0, eq5kSec: nil, pbEq5kSecNext: pbEq5kSec > 0 ? pbEq5kSec : nil, setPb: false)
+        }
+        
+        if kpsResult.setPb, let next = kpsResult.pbEq5kSecNext, next.isFinite, next > 0 {
+            pbEq5kSec = next
         }
         
         let run = Run(
@@ -388,7 +396,8 @@ struct RunTrackingView: View {
             distance: distanceToSave,
             duration: elapsedTime,
             avgPace: avgPace,
-            avgNPI: avgNPI,
+            kps: min(100.0, kpsResult.kps),
+            setPb: kpsResult.setPb,
             avgHeartRate: avgHeartRate,
             routeData: gpsManager.routeCoordinates
         )

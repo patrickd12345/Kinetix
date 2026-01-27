@@ -35,7 +35,7 @@ User: "What should I focus on based on my past runs?"
 
 ### 3. **Pattern Recognition**
 ```
-"Find runs where I hit my target NPI"
+"Find runs where I hit my target KPS"
 "Show me runs with similar weather conditions"
 "What pace worked best for 5km runs?"
 ```
@@ -139,7 +139,7 @@ Instead of vectorization, we could add:
 // Find runs by criteria (no vectors needed)
 findSimilarRuns(run, criteria) {
   return runs.filter(r => 
-    Math.abs(r.avgNPI - run.avgNPI) < 5 &&
+    Math.abs(r.kps - run.kps) < 5 &&
     Math.abs(r.distance - run.distance) < 500 &&
     r.date > run.date - 30 days
   );

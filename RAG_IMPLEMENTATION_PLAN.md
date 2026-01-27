@@ -71,9 +71,9 @@
 #### Embedding Strategy:
 1. **Create embedding text**:
    ```
-   "5km run, pace 4:30/km, NPI 142, heart rate 165 bpm, 
+   "5km run, pace 4:30/km, KPS 97.4, heart rate 165 bpm, 
    cadence 175 spm, form score 75, morning run, sunny weather, 
-   target achieved, improved by 2 NPI points"
+   target achieved, improved by 1.2 KPS points"
    ```
 
 2. **Generate vector** using embedding model
@@ -97,7 +97,7 @@
 
 #### Implementation:
 ```javascript
-async function analyzeRunWithRAG(run, targetNPI) {
+async function analyzeRunWithRAG(run, targetKps) {
   // 1. Vectorize current run
   const runVector = await embedRun(run);
   
@@ -111,7 +111,7 @@ async function analyzeRunWithRAG(run, targetNPI) {
   });
   
   // 3. Build augmented prompt
-  const prompt = buildRAGPrompt(run, similarRuns, targetNPI);
+  const prompt = buildRAGPrompt(run, similarRuns, targetKps);
   
   // 4. Generate response
   return await llm.generate(prompt);
@@ -147,8 +147,8 @@ async function analyzePatterns(timeframe = '3months') {
 async function getHistoricalContext(run) {
   const similarRuns = await findSimilarRuns(run);
   return {
-    averageNPI: calculateAverage(similarRuns),
-    bestNPI: findBest(similarRuns),
+    averageKps: calculateAverage(similarRuns),
+    bestKps: findBest(similarRuns),
     improvement: calculateTrend(similarRuns),
     patterns: identifyPatterns(similarRuns)
   };

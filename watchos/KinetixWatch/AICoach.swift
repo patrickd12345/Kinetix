@@ -32,14 +32,14 @@ class AICoach: ObservableObject {
         }
     }
     
-    func analyzeRun(distance: Double, pace: String, npi: Double, pb: Double) {
+    func analyzeRun(distance: Double, pace: String, kps: Double, targetKps: Double) {
         isAnalyzing = true
         result = nil
         error = nil
         
         Task {
             do {
-                let result = try await analyzeRunAsync(distance: distance, pace: pace, npi: npi, targetNPI: pb)
+                let result = try await analyzeRunAsync(distance: distance, pace: pace, kps: kps, targetKps: targetKps)
                 await MainActor.run {
                     self.result = result
                     self.isAnalyzing = false
@@ -55,21 +55,21 @@ class AICoach: ObservableObject {
     
     /// Analyze a run using local AI (Ollama) with fallback to Gemini or rule-based
     /// Aligned with local AI architecture: prefers local, falls back to cloud
-    func analyzeRunAsync(distance: Double, pace: String, npi: Double, targetNPI: Double) async throws -> AIResult {
+    func analyzeRunAsync(distance: Double, pace: String, kps: Double, targetKps: Double) async throws -> AIResult {
         // Try local Ollama first (aligned with local AI architecture)
-        if let result = try? await analyzeWithOllama(distance: distance, pace: pace, npi: npi, targetNPI: targetNPI) {
+        if let result = try? await analyzeWithOllama(distance: distance, pace: pace, kps: kps, targetKps: targetKps) {
             return result
         }
         
         // Fallback to Gemini if Ollama unavailable
         if !GEMINI_API_KEY.contains("PASTE") && !GEMINI_API_KEY.isEmpty {
-            if let result = try? await analyzeWithGemini(distance: distance, pace: pace, npi: npi, targetNPI: targetNPI) {
+            if let result = try? await analyzeWithGemini(distance: distance, pace: pace, kps: kps, targetKps: targetKps) {
                 return result
             }
         }
         
         // Last resort: rule-based analysis (always works, no AI needed)
-        return generateRuleBasedAnalysis(distance: distance, pace: pace, npi: npi, targetNPI: targetNPI)
+        return generateRuleBasedAnalysis(distance: distance, pace: pace, kps: kps, targetKps: targetKps)
     }
     
     // MARK: - Local AI (Ollama)
@@ -104,12 +104,12 @@ class AICoach: ObservableObject {
         }
     }
     
-    private func analyzeWithOllama(distance: Double, pace: String, npi: Double, targetNPI: Double) async throws -> AIResult {
+    private func analyzeWithOllama(distance: Double, pace: String, kps: Double, targetKps: Double) async throws -> AIResult {
         guard let url = URL(string: "\(ollamaURL)/api/generate") else {
             throw URLError(.badURL)
         }
         
-        let prompt = buildAnalysisPrompt(distance: distance, pace: pace, npi: npi, targetNPI: targetNPI)
+        let prompt = buildAnalysisPrompt(distance: distance, pace: pace, kps: kps, targetKps: targetKps)
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -146,28 +146,28 @@ class AICoach: ObservableObject {
     
     // MARK: - Cloud Fallback (Gemini)
     
-    private func analyzeWithGemini(distance: Double, pace: String, npi: Double, targetNPI: Double) async throws -> AIResult {
+    private func analyzeWithGemini(distance: Double, pace: String, kps: Double, targetKps: Double) async throws -> AIResult {
         guard !GEMINI_API_KEY.contains("PASTE") && !GEMINI_API_KEY.isEmpty else {
             throw URLError(.badURL)
         }
         
-        let prompt = buildAnalysisPrompt(distance: distance, pace: pace, npi: npi, targetNPI: targetNPI)
+        let prompt = buildAnalysisPrompt(distance: distance, pace: pace, kps: kps, targetKps: targetKps)
         let responseText = try await fetchGeminiResponse(prompt: prompt)
         return parseAIResponse(responseText)
     }
     
     // MARK: - Helper Methods
     
-    private func buildAnalysisPrompt(distance: Double, pace: String, npi: Double, targetNPI: Double) -> String {
+    private func buildAnalysisPrompt(distance: Double, pace: String, kps: Double, targetKps: Double) -> String {
         return """
         You are Kinetix AI, an intelligent running coach. Analyze this run:
         - Distance: \(String(format: "%.2f", distance)) km
         - Average Pace: \(pace) per km
-        - NPI: \(Int(npi)) (Target: \(Int(targetNPI)))
+        - KPS (Kinetix Performance Score): \(String(format: "%.1f", kps)) (Target: \(Int(targetKps)))
         
         Provide a concise analysis with:
         1. A brief, scientific-sounding title (max 8 words)
-        2. Key insights on performance, comparing to target NPI
+        2. Key insights on performance, comparing to target KPS
         3. Specific recommendations for improvement
         
         Format as JSON: {"title": "...", "insight": "..."}
@@ -202,24 +202,24 @@ class AICoach: ObservableObject {
         )
     }
     
-    private func generateRuleBasedAnalysis(distance: Double, pace: String, npi: Double, targetNPI: Double) -> AIResult {
-        let npiDiff = npi - targetNPI
+    private func generateRuleBasedAnalysis(distance: Double, pace: String, kps: Double, targetKps: Double) -> AIResult {
+        let diff = kps - targetKps
         
         var title: String
         var insight: String
         
-        if npiDiff > 10 {
+        if diff > 5 {
             title = "Strong Performance Above Target"
-            insight = "Your NPI of \(Int(npi)) is \(Int(npiDiff)) points above your target of \(Int(targetNPI)). Excellent work! You're performing well above expectations."
-        } else if npiDiff > 0 {
+            insight = "Your KPS of \(String(format: "%.1f", kps)) is \(String(format: "%.1f", diff)) points above your target of \(Int(targetKps)). Excellent work! You're performing well above expectations."
+        } else if diff >= 0 {
             title = "Target Achieved"
-            insight = "Your NPI of \(Int(npi)) meets your target of \(Int(targetNPI)). Great consistency! You're on track with your goals."
-        } else if npiDiff > -10 {
+            insight = "Your KPS of \(String(format: "%.1f", kps)) meets your target of \(Int(targetKps)). Great consistency! You're on track with your goals."
+        } else if diff > -5 {
             title = "Near Target Performance"
-            insight = "Your NPI of \(Int(npi)) is \(Int(abs(npiDiff))) points below target. You're close! Focus on maintaining consistent pace."
+            insight = "Your KPS of \(String(format: "%.1f", kps)) is \(String(format: "%.1f", abs(diff))) points below target. You're close! Focus on maintaining consistent pace."
         } else {
             title = "Below Target - Room for Improvement"
-            insight = "Your NPI of \(Int(npi)) is \(Int(abs(npiDiff))) points below target. Consider focusing on pace consistency and training volume."
+            insight = "Your KPS of \(String(format: "%.1f", kps)) is \(String(format: "%.1f", abs(diff))) points below target. Consider focusing on pace consistency and training volume."
         }
         
         insight += " Your \(String(format: "%.2f", distance)) km run at \(pace)/km shows good effort."

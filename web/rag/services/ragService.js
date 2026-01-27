@@ -13,7 +13,7 @@ export class RAGService {
   /**
    * Analyze a run using RAG (with historical context)
    */
-  static async analyzeRunWithRAG(run, targetNPI, options = {}) {
+  static async analyzeRunWithRAG(run, targetKps, options = {}) {
     const { includeSimilarRuns = 5, useRAG = true } = options;
 
     // Step 1: Generate embedding for current run
@@ -36,7 +36,7 @@ export class RAGService {
     }
 
     // Step 3: Build augmented prompt
-    const prompt = this.buildRAGPrompt(run, similarRuns, targetNPI);
+    const prompt = this.buildRAGPrompt(run, similarRuns, targetKps);
 
     // Step 4: Generate response using LLM
     return await this.generateResponse(prompt, run, similarRuns);
@@ -45,20 +45,20 @@ export class RAGService {
   /**
    * Build RAG prompt with context from similar runs
    */
-  static buildRAGPrompt(run, similarRuns, targetNPI) {
+  static buildRAGPrompt(run, similarRuns, targetKps) {
     const distance = (run.distance / 1000).toFixed(2);
     const paceMin = Math.floor(run.avgPace / 60);
     const paceSec = Math.floor(run.avgPace % 60);
     const pace = `${paceMin}:${paceSec.toString().padStart(2, '0')}`;
-    const npi = Math.floor(run.avgNPI);
-    const target = Math.floor(targetNPI);
+    const kps = Number(run.kps || 0);
+    const target = Math.floor(targetKps);
 
     let prompt = `You are Kinetix AI, an intelligent running coach. Analyze this run:
 
 CURRENT RUN:
 - Distance: ${distance}km
 - Average Pace: ${pace} per km
-- NPI: ${npi} (Target: ${target})
+- KPS (Kinetix Performance Score): ${kps.toFixed(1)} (Target: ${target})
 - Heart Rate: ${Math.floor(run.avgHeartRate)} bpm
 ${run.avgCadence ? `- Cadence: ${Math.floor(run.avgCadence)} spm` : ''}
 ${run.formScore ? `- Form Score: ${Math.floor(run.formScore)}/100` : ''}
@@ -73,25 +73,25 @@ ${run.formScore ? `- Form Score: ${Math.floor(run.formScore)}/100` : ''}
         const simPaceMin = Math.floor(similar.metadata.pace / 60);
         const simPaceSec = Math.floor(similar.metadata.pace % 60);
         const simPace = `${simPaceMin}:${simPaceSec.toString().padStart(2, '0')}`;
-        const simNPI = Math.floor(similar.metadata.npi);
+        const simKps = Number(similar.metadata.kps || 0);
         const simDate = new Date(similar.metadata.date).toLocaleDateString();
         const similarity = Math.round(similar.similarity * 100);
         
-        prompt += `${index + 1}. ${simDistance}km, NPI ${simNPI}, pace ${simPace}/km, ${simDate} (${similarity}% similar)\n`;
+        prompt += `${index + 1}. ${simDistance}km, KPS ${simKps.toFixed(1)}, pace ${simPace}/km, ${simDate} (${similarity}% similar)\n`;
       });
 
       // Add pattern analysis
-      const avgNPI = similarRuns.reduce((sum, r) => sum + r.metadata.npi, 0) / similarRuns.length;
-      const bestNPI = Math.max(...similarRuns.map(r => r.metadata.npi));
-      const improvement = npi - avgNPI;
+      const avgKps = similarRuns.reduce((sum, r) => sum + Number(r.metadata.kps || 0), 0) / similarRuns.length;
+      const bestKps = Math.max(...similarRuns.map(r => Number(r.metadata.kps || 0)));
+      const improvement = kps - avgKps;
 
       prompt += `\nPATTERN ANALYSIS:\n`;
-      prompt += `- Average NPI of similar runs: ${Math.floor(avgNPI)}\n`;
-      prompt += `- Best NPI on similar runs: ${Math.floor(bestNPI)}\n`;
+      prompt += `- Average KPS of similar runs: ${avgKps.toFixed(1)}\n`;
+      prompt += `- Best KPS on similar runs: ${bestKps.toFixed(1)}\n`;
       if (improvement > 0) {
-        prompt += `- Current run is ${Math.floor(improvement)} NPI points better than average\n`;
+        prompt += `- Current run is ${improvement.toFixed(1)} points better than average\n`;
       } else if (improvement < 0) {
-        prompt += `- Current run is ${Math.floor(Math.abs(improvement))} NPI points below average\n`;
+        prompt += `- Current run is ${Math.abs(improvement).toFixed(1)} points below average\n`;
       } else {
         prompt += `- Current run matches average performance\n`;
       }

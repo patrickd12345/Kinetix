@@ -4,7 +4,7 @@ import { useRunTracker } from '../hooks/useRunTracker';
 import { unifiedStorageService } from '../storage/sync/unifiedStorageService';
 
 /**
- * Run tracking view with NPI as the star feature
+ * Run tracking view with KPS as the star feature
  */
 export function RunView({ settings, onSave, onCancel }) {
   const { 
@@ -13,7 +13,7 @@ export function RunView({ settings, onSave, onCancel }) {
     distance, 
     duration, 
     pace, 
-    npi, 
+    kps, 
     heartRate, 
     timeToBeat, 
     progress,
@@ -23,7 +23,7 @@ export function RunView({ settings, onSave, onCancel }) {
     resume,
     reset,
     getRunSummary,
-  } = useRunTracker(settings?.targetNPI || 135, settings?.unitSystem || 'metric');
+  } = useRunTracker(settings?.targetKps || 95, settings?.pb_eq5k_sec || 0, settings?.unitSystem || 'metric');
 
   const [isPaused, setIsPaused] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -108,8 +108,8 @@ export function RunView({ settings, onSave, onCancel }) {
     return 'WAITING';
   };
 
-  const targetNPI = settings?.targetNPI || 135;
-  const npiReached = npi >= targetNPI && npi > 0;
+  const targetKps = settings?.targetKps || 95;
+  const targetReached = kps >= targetKps && kps > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950 text-white flex flex-col">
@@ -124,26 +124,26 @@ export function RunView({ settings, onSave, onCancel }) {
           </div>
         </div>
 
-        {/* Target NPI Badge */}
+        {/* Target KPS Badge */}
         <div className="flex items-center justify-center mb-6">
           <div className="glass px-4 py-2 rounded-full border border-cyan-500/20 flex items-center gap-2">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">TARGET</span>
-            <span className="text-lg font-black text-cyan-400">{Math.round(targetNPI)}</span>
+            <span className="text-lg font-black text-cyan-400">{Math.round(targetKps)}</span>
           </div>
         </div>
       </div>
 
-      {/* Main Content - NPI as Star */}
+      {/* Main Content - KPS as Star */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6">
-        {/* NPI Display - Large and Prominent */}
+        {/* KPS Display - Large and Prominent */}
         <div className="relative mb-8">
           {/* Progress Circle */}
           <div className="relative w-64 h-64 flex items-center justify-center">
             <svg className="w-64 h-64 transform -rotate-90 absolute inset-0">
               <defs>
-                <linearGradient id="npiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor={npiReached ? "#4ade80" : "#22d3ee"} />
-                  <stop offset="100%" stopColor={npiReached ? "#16a34a" : "#06b6d4"} />
+                <linearGradient id="kpsGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={targetReached ? "#4ade80" : "#22d3ee"} />
+                  <stop offset="100%" stopColor={targetReached ? "#16a34a" : "#06b6d4"} />
                 </linearGradient>
               </defs>
               <circle
@@ -159,7 +159,7 @@ export function RunView({ settings, onSave, onCancel }) {
                 cx="128"
                 cy="128"
                 r="120"
-                stroke="url(#npiGradient)"
+                stroke="url(#kpsGradient)"
                 strokeWidth="10"
                 fill="transparent"
                 strokeDasharray={2 * Math.PI * 120}
@@ -167,18 +167,18 @@ export function RunView({ settings, onSave, onCancel }) {
                 className="transition-all duration-700 ease-out"
                 strokeLinecap="round"
                 style={{
-                  filter: `drop-shadow(0 0 12px ${npiReached ? 'rgba(34, 197, 94, 0.6)' : 'rgba(6, 182, 212, 0.6)'})`,
+                  filter: `drop-shadow(0 0 12px ${targetReached ? 'rgba(34, 197, 94, 0.6)' : 'rgba(6, 182, 212, 0.6)'})`,
                 }}
               />
             </svg>
             
-            {/* NPI Value - Centered */}
+            {/* KPS Value - Centered */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className={`text-7xl font-black italic tracking-tight drop-shadow-2xl ${npiReached ? 'text-green-400' : 'text-white'}`}>
-                {Math.floor(npi) || '---'}
+              <div className={`text-7xl font-black italic tracking-tight drop-shadow-2xl ${targetReached ? 'text-green-400' : 'text-white'}`}>
+                {kps ? kps.toFixed(1) : '---'}
               </div>
               <div className="text-xs font-bold tracking-[0.3em] text-gray-400 uppercase mt-2">
-                NPI
+                KPS
               </div>
             </div>
           </div>
@@ -321,8 +321,8 @@ export function RunView({ settings, onSave, onCancel }) {
                 <span className="font-bold">{formatTime(duration)}</span>
               </div>
               <div className="flex justify-between">
-                <span>NPI:</span>
-                <span className="font-bold text-cyan-400">{Math.floor(npi)}</span>
+                <span>KPS:</span>
+                <span className="font-bold text-cyan-400">{kps ? kps.toFixed(1) : '--'}</span>
               </div>
             </div>
             <div className="flex gap-3">

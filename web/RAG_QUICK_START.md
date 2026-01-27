@@ -146,7 +146,7 @@ With RAG enabled, AI analysis includes:
 - ✅ Progress tracking
 
 **Example:**
-> "Your NPI of 142 is your 2nd best out of 247 similar 5km runs, just 3 points below your PB from 3 weeks ago. You're on a 4-run improvement streak!"
+> "Your KPS of 97.4 is your 2nd best out of 247 similar 5km runs, just 2.6 points below your lifetime best from 3 weeks ago. You're on a 4-run improvement streak!"
 
 ---
 

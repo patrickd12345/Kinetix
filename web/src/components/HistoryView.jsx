@@ -116,9 +116,12 @@ export function HistoryView({ onNavigate }) {
                   </div>
                   <div className="text-right">
                     <div className="text-3xl font-black text-cyan-400 group-hover:scale-110 transition-transform">
-                      {Math.floor(run.avgNPI)}
+                      {run.kps ? run.kps.toFixed(1) : '---'}
                     </div>
-                    <div className="text-xs text-gray-500 uppercase">NPI</div>
+                    <div className="text-xs text-gray-500 uppercase">KPS</div>
+                    {run.setPb && (
+                      <div className="text-[10px] font-bold text-green-400 mt-1">✅ NEW PB</div>
+                    )}
                   </div>
                 </div>
 

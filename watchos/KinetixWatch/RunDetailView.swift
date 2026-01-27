@@ -17,13 +17,18 @@ struct RunDetailView: View {
                     
                     HStack {
                         VStack {
-                            Text("NPI")
+                            Text("KPS")
                                 .font(.caption2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.gray)
-                            Text("\(Int(run.avgNPI))")
+                            Text(String(format: "%.1f", run.kps))
                                 .font(.system(size: 32, weight: .black, design: .rounded))
                                 .foregroundColor(.cyan)
+                            if run.setPb {
+                                Text("NEW PB")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(.green)
+                            }
                         }
                         
                         if let score = run.formScore {
@@ -140,11 +145,13 @@ struct RunDetailView: View {
             }
         }
         
-        // 3. Efficiency (NPI)
-        if run.avgNPI > 140 {
-            notes.append("Efficiency was elite today.")
-        } else if run.avgNPI < 120 {
-            notes.append("Efficiency dipped slightly. Check your form when fatigued.")
+        // 3. Performance (KPS)
+        if run.setPb {
+            notes.append("New lifetime PB — amazing work.")
+        } else if run.kps >= 95 {
+            notes.append("Strong performance — close to your lifetime best.")
+        } else if run.kps < 85 {
+            notes.append("Performance dipped slightly. Focus on smooth form when fatigued.")
         }
         
         // 4. Custom "Limp" Note (Asymmetry Awareness)

@@ -5,8 +5,8 @@ import { UserProfile } from '@kinetix/core'
 interface SettingsState {
   userProfile: UserProfile
   setUserProfile: (profile: UserProfile) => void
-  targetNPI: number
-  setTargetNPI: (npi: number) => void
+  targetKps: number
+  setTargetKps: (kps: number) => void
   unitSystem: 'metric' | 'imperial'
   setUnitSystem: (unit: 'metric' | 'imperial') => void
   physioMode: boolean
@@ -24,8 +24,8 @@ export const useSettingsStore = create<SettingsState>()(
       },
       setUserProfile: (profile) => set({ userProfile: profile }),
 
-      targetNPI: 135.0,
-      setTargetNPI: (npi) => set({ targetNPI: npi }),
+      targetKps: 95.0,
+      setTargetKps: (kps) => set({ targetKps: Math.min(100, Math.max(0, kps)) }),
 
       unitSystem: 'metric',
       setUnitSystem: (unit) => set({ unitSystem: unit }),

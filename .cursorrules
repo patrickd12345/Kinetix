@@ -4,15 +4,16 @@
 Kinetix is an intelligent running coach app with three platforms:
 - **Watch App** (watchOS): Standalone run tracking with form analysis
 - **iPhone App** (iOS): Management hub, AI coaching, settings
-- **Web App**: Cross-platform prototype with GPS tracking and NPI calculation
+- **Web App**: Cross-platform prototype with GPS tracking and KPS calculation
 
 ## Core Principles
 
-### NPI (Normalized Performance Index)
-- **NPI is the poster child of Kinetix** - always feature it prominently
-- Homepage should showcase NPI (Best, Average, Target) as the star feature
-- NPI calculation formula must match iOS implementation exactly
-- Display NPI prominently in run views with large, clear numbers
+### KPS (Kinetix Performance Score)
+- **KPS is the single official performance score** - always feature it prominently
+- Range: **0–100**
+- **100 always means lifetime best** (fastest-ever equivalent 5K)
+- Scores **never display above 100** (anything that would exceed 100 becomes a new lifetime PB and is recorded as **KPS 100**)
+- KPS math is PB-based and must be enforced in exactly one place per platform
 
 ### Code Quality
 - Always test after code changes (APIs with curl, UI with Playwright)
@@ -68,7 +69,7 @@ web/src/
   services/       # Business logic (GPS, storage, AI)
   hooks/          # Custom React hooks
   models/         # Data models (Run, FormMetrics, etc.)
-  utils/          # Utility functions (NPI calculator, etc.)
+  utils/          # Utility functions (KPS calculator, etc.)
 ```
 
 #### iOS/watchOS Structure
@@ -96,10 +97,11 @@ web/src/
 - Web: Browser Geolocation API with permission handling
 - Always show GPS status to user
 
-#### NPI Calculation
-- Formula: `speedKmH * factor * 10.0` where `factor = distanceKm^0.06`
-- Must match iOS implementation exactly
-- Calculate from distance (km) and pace (seconds per km)
+#### KPS Calculation (Canonical)
+- Compute \(eq5k_{sec}\) using the Riegel formula: \(T_{eq5k} = T \times (5km / D)^{1.06}\)
+- PB reference is stored as **pb_eq5k_sec** (minimum \(eq5k_{sec}\) ever recorded, strictly faster only)
+- Score: \(KPS = \min(100, 100 \times (pb\_eq5k\_sec / eq5k\_sec))\)
+- If \(eq5k_{sec} < pb\_eq5k\_sec\): update PB and set **KPS = 100**
 
 #### Error Handling
 - User-facing error messages (not just console logs)
@@ -116,7 +118,7 @@ web/src/
 - **Voice-First Coaching**: Audio coaching through iPhone
 - **Watch as Sensor Hub**: Watch collects data, iPhone handles intelligence
 - **Dark Theme**: Modern glassmorphism UI
-- **NPI First**: NPI is always the star feature
+- **KPS First**: KPS is always the star feature
 
 ### Terminal & Development
 - Often check if terminal is not stuck and force quit if necessary
@@ -172,7 +174,7 @@ web/src/
     - Run tracking → Watch + Web (iPhone doesn't track)
   - **Do ask** if genuinely unclear or needs user preference
 - **Feature parity considerations**:
-  - Core features (NPI, GPS, run tracking) should be on all platforms where possible
+  - Core features (KPS, GPS, run tracking) should be on all platforms where possible
   - Platform-specific features are acceptable and expected
   - Always document feature differences in FEATURES_*.md files
 - **When adding a feature**:
@@ -188,6 +190,6 @@ web/src/
 3. **Consider all 3 platforms** - should this feature be on Watch, iPhone, Web, or all?
 4. Test changes before returning
 5. Update feature docs if adding/removing features
-6. Keep NPI prominent in UI
+6. Keep KPS prominent in UI
 7. Follow platform-specific patterns
 

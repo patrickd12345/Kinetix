@@ -252,8 +252,8 @@ public class StravaService: NSObject {
         let durationMinutes = (Int(run.duration) % 3600) / 60
         let activityName = "Run - \(String(format: "%.2f", distanceKm)) km"
         
-        // Build description with NPI
-        var description = "NPI: \(String(format: "%.1f", run.avgNPI))\n"
+        // Build description with KPS
+        var description = "KPS: \(String(format: "%.1f", run.kps))\n"
         description += "Distance: \(String(format: "%.2f", distanceKm)) km\n"
         description += "Duration: \(durationHours):\(String(format: "%02d", durationMinutes))"
         

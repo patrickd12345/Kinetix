@@ -21,21 +21,20 @@ struct RunMetricsTests {
         #expect(pace == 300.0) // Expect 300s/km (5:00/km)
     }
 
-    @Test("Calculate NPI (Efficiency Score)")
-    func testCalculateNPI() {
-        // Given: 5km in 25 minutes (1500 seconds)
-        // Pace = 300s/km. Speed = 12 km/h.
-        // Factor = 5^0.06 ≈ 1.101
-        // NPI = 12 * 1.101 * 10 ≈ 132
+    @Test("Calculate KPS (PB-aware 0–100)")
+    func testCalculateKps() {
+        // Given: first valid run sets PB and returns KPS=100
         let distance = 5000.0
         let time = 1500.0
         
-        // When
-        let npi = RunMetricsCalculator.calculateNPI(distanceMeters: distance, durationSeconds: time)
+        let first = KpsCalculator.computeKps(distanceMeters: distance, durationSeconds: time, pbEq5kSec: nil)
+        #expect(first.setPb == true)
+        #expect(first.kps == 100.0)
         
-        // Then
-        // Use checking with accuracy for floating point math
-        #expect(abs(npi - 132) < 1.0) 
+        // Slower run should score below 100 vs the stored PB
+        let slower = KpsCalculator.computeKps(distanceMeters: distance, durationSeconds: 1560.0, pbEq5kSec: first.pbEq5kSecNext)
+        #expect(slower.setPb == false)
+        #expect(slower.kps < 100.0)
     }
 
     @Test("Rolling Pace Update (Window Logic)")
@@ -59,36 +58,7 @@ struct RunMetricsTests {
         #expect(buffer.count == 2)
     }
 
-    @Test("Predict finish time from NPI")
-    func testFinishTimePrediction() {
-        let baselineDistance = 5000.0
-        let baselineTime = 1500.0
-        let npi = RunMetricsCalculator.calculateNPI(distanceMeters: baselineDistance, durationSeconds: baselineTime)
-
-        let predictedBaseline = RunMetricsCalculator.finishTime(fromNPI: npi, distanceMeters: baselineDistance)
-        #expect(abs(predictedBaseline - baselineTime) < 1.0)
-
-        let tenKPrediction = RunMetricsCalculator.finishTime(fromNPI: npi, distanceMeters: 10000.0)
-        #expect(tenKPrediction > baselineTime) // Longer distance should take longer
-    }
-
-    @Test("Race projection uses NPI to set progress and goal")
-    func testRaceProjection() {
-        let distanceSoFar = 2500.0
-        let elapsed = 750.0
-        let currentNPI = RunMetricsCalculator.calculateNPI(distanceMeters: distanceSoFar, durationSeconds: elapsed)
-        let projection = RunMetricsCalculator.projectRaceTime(
-            currentNPI: currentNPI,
-            goalNPI: currentNPI + 10,
-            elapsedSeconds: elapsed,
-            distanceCoveredMeters: distanceSoFar,
-            targetDistanceMeters: 5000.0
-        )
-
-        #expect(projection != nil)
-        #expect(projection?.progress ?? 0 > 0.45)
-        #expect(projection?.progress ?? 0 < 0.6)
-        #expect((projection?.displayString() ?? "").isEmpty == false)
-    }
+    // Note: Finish-time and race projections were based on the legacy index metric and were removed
+    // when KPS became the single canonical score.
 }
 

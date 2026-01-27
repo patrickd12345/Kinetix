@@ -29,9 +29,9 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Kinetix uses speech recognition to understand your questions.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Kinetix needs location access to track your runs and calculate NPI.</string>
+	<string>Kinetix needs location access to track your runs and calculate KPS.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Kinetix needs location access to track your runs and calculate NPI.</string>
+	<string>Kinetix needs location access to track your runs and calculate KPS.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Kinetix needs health data access to track your heart rate during runs.</string>
 	<key>NSHealthUpdateUsageDescription</key>

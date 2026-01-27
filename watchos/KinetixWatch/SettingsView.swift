@@ -32,7 +32,7 @@ struct SettingsView: View {
             }
             Section(header: Text("GOALS")) {
                 VStack(spacing: 8) {
-                    Text("TARGET NPI").font(.system(size: 12, weight: .bold)).foregroundColor(.gray)
+                    Text("TARGET KPS").font(.system(size: 12, weight: .bold)).foregroundColor(.gray)
                     
                     // Fine Adjustment (+/- 1)
                     HStack {

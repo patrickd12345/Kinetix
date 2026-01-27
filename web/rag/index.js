@@ -39,13 +39,13 @@ app.get('/available', async (req, res) => {
 // Analyze run with RAG
 app.post('/analyze', async (req, res) => {
   try {
-    const { run, targetNPI, options = {} } = req.body;
+    const { run, targetKps, options = {} } = req.body;
     
-    if (!run || !targetNPI) {
-      return res.status(400).json({ error: 'run and targetNPI required' });
+    if (!run || targetKps == null) {
+      return res.status(400).json({ error: 'run and targetKps required' });
     }
 
-    const result = await RAGService.analyzeRunWithRAG(run, targetNPI, options);
+    const result = await RAGService.analyzeRunWithRAG(run, targetKps, options);
     res.json(result);
   } catch (error) {
     console.error('RAG analyze error:', error);

@@ -264,16 +264,18 @@ export class StorageService {
       
       // Default settings
       return {
-        targetNPI: 135.0,
+        targetKps: 95.0,
         unitSystem: 'metric',
         physioMode: false,
+        pb_eq5k_sec: 0,
       };
     } catch (error) {
       console.error('Failed to load settings:', error);
       return {
-        targetNPI: 135.0,
+        targetKps: 95.0,
         unitSystem: 'metric',
         physioMode: false,
+        pb_eq5k_sec: 0,
       };
     }
   }

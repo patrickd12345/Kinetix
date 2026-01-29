@@ -5,16 +5,40 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useAICoach } from '../hooks/useAICoach'
 import { Trash2, Calendar, MapPin, Clock, TrendingUp, Sparkles, X } from 'lucide-react'
 
+const PAGE_SIZE = 10
+
 export default function History() {
   const [runs, setRuns] = useState<RunRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [hasMore, setHasMore] = useState(true)
   const { unitSystem } = useSettingsStore()
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
 
-  const loadRuns = async () => {
+  const loadRuns = async (isInitial = false) => {
     try {
-      const allRuns = await db.runs.orderBy('date').reverse().toArray()
-      setRuns(allRuns)
+      let newRuns: RunRecord[]
+      if (isInitial) {
+        newRuns = await db.runs.orderBy('date').reverse().limit(PAGE_SIZE).toArray()
+      } else {
+        const lastRun = runs[runs.length - 1]
+        if (!lastRun) return
+        newRuns = await db.runs
+          .where('date')
+          .below(lastRun.date)
+          .reverse()
+          .limit(PAGE_SIZE)
+          .toArray()
+      }
+
+      if (newRuns.length < PAGE_SIZE) {
+        setHasMore(false)
+      }
+
+      if (isInitial) {
+        setRuns(newRuns)
+      } else {
+        setRuns((prev) => [...prev, ...newRuns])
+      }
     } catch (error) {
       console.error('Error loading runs:', error)
     } finally {
@@ -23,14 +47,14 @@ export default function History() {
   }
 
   useEffect(() => {
-    loadRuns()
+    loadRuns(true)
   }, [])
 
   const deleteRun = async (id: number) => {
     if (confirm('Are you sure you want to delete this run?')) {
       try {
         await db.runs.delete(id)
-        await loadRuns()
+        setRuns((prev) => prev.filter((r) => r.id !== id))
       } catch (error) {
         console.error('Error deleting run:', error)
       }
@@ -72,7 +96,7 @@ export default function History() {
           )}
         </div>
 
-        {runs.length === 0 ? (
+        {runs.length === 0 && !loading ? (
           <div className="glass rounded-2xl p-8 text-center">
             <Calendar className="mx-auto mb-4 text-gray-500" size={48} />
             <p className="text-gray-400 mb-2">No runs recorded yet</p>
@@ -135,6 +159,15 @@ export default function History() {
                 )}
               </div>
             ))}
+
+            {hasMore && (
+              <button
+                onClick={() => loadRuns(false)}
+                className="w-full py-3 glass rounded-xl text-cyan-400 font-bold hover:bg-cyan-500/10 transition-colors"
+              >
+                Load More
+              </button>
+            )}
           </div>
         )}
 

@@ -115,6 +115,7 @@ export default function History() {
                     <div className="flex gap-2 mt-2 justify-end">
                       <button
                         onClick={() => handleAnalyzeRun(run)}
+                        aria-label="Analyze run"
                         className="text-cyan-400 hover:text-cyan-300 transition-colors"
                         disabled={isAnalyzing}
                         title="Analyze with AI Coach"
@@ -123,6 +124,7 @@ export default function History() {
                       </button>
                       <button
                         onClick={() => run.id && deleteRun(run.id)}
+                        aria-label="Delete run"
                         className="text-red-400 hover:text-red-300 transition-colors"
                       >
                         <Trash2 size={14} />
@@ -164,6 +166,7 @@ export default function History() {
                     <h3 className="text-lg font-black text-cyan-400">{aiResult.title}</h3>
                     <button
                       onClick={clearResult}
+                      aria-label="Close analysis"
                       className="text-gray-400 hover:text-white transition-colors"
                     >
                       <X size={20} />

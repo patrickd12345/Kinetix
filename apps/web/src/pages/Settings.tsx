@@ -67,10 +67,13 @@ export default function Settings() {
           </div>
           
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Physio-Pacer Mode</label>
+            <span id="physio-pacer-mode-label" className="text-sm font-medium">Physio-Pacer Mode</span>
             <button
+              role="switch"
+              aria-checked={physioMode}
+              aria-labelledby="physio-pacer-mode-label"
               onClick={() => setPhysioMode(!physioMode)}
-              className={`w-12 h-6 rounded-full transition-all ${
+              className={`w-12 h-6 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 ${
                 physioMode ? 'bg-green-500' : 'bg-gray-700'
               }`}
             >

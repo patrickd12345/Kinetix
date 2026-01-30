@@ -55,12 +55,14 @@ export function useLocationTracking() {
     }
 
     // Start timer for duration updates
+    // Bolt: Reduced from 100ms to 1000ms to reduce main thread load and re-renders by 90%
+    // Since UI only displays seconds (HH:MM:SS), 1Hz updates are sufficient
     timerRef.current = window.setInterval(() => {
       if (startTimeRef.current) {
         const elapsed = (Date.now() - startTimeRef.current) / 1000
         updateDuration(elapsed)
       }
-    }, 100)
+    }, 1000)
 
     // Start watching position
     watchIdRef.current = navigator.geolocation.watchPosition(

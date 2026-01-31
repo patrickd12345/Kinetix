@@ -118,12 +118,14 @@ export default function History() {
                         className="text-cyan-400 hover:text-cyan-300 transition-colors"
                         disabled={isAnalyzing}
                         title="Analyze with AI Coach"
+                        aria-label="Analyze run with AI Coach"
                       >
                         <Sparkles size={14} />
                       </button>
                       <button
                         onClick={() => run.id && deleteRun(run.id)}
                         className="text-red-400 hover:text-red-300 transition-colors"
+                        aria-label="Delete run"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -164,6 +166,7 @@ export default function History() {
                     <h3 className="text-lg font-black text-cyan-400">{aiResult.title}</h3>
                     <button
                       onClick={clearResult}
+                      aria-label="Close AI analysis"
                       className="text-gray-400 hover:text-white transition-colors"
                     >
                       <X size={20} />

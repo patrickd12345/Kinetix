@@ -37,6 +37,7 @@ export function useLocationTracking() {
     return () => {
       stopTracking()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, isPaused])
 
   const startTracking = () => {

@@ -179,6 +179,7 @@ export default function RunDashboard() {
               <>
                 <button
                   onClick={startRun}
+                  aria-label="Start run"
                   className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 shadow-lg shadow-green-500/50 flex items-center justify-center transition-all active:scale-95"
                 >
                   <Play fill="white" size={28} className="ml-1" strokeWidth={0} />
@@ -200,6 +201,7 @@ export default function RunDashboard() {
                 {isPaused ? (
                   <button
                     onClick={resumeRun}
+                    aria-label="Resume run"
                     className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/50 flex items-center justify-center transition-all active:scale-95"
                   >
                     <Play fill="white" size={22} className="ml-1" strokeWidth={0} />
@@ -207,6 +209,7 @@ export default function RunDashboard() {
                 ) : (
                   <button
                     onClick={pauseRun}
+                    aria-label="Pause run"
                     className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 shadow-lg shadow-yellow-500/50 flex items-center justify-center transition-all active:scale-95"
                   >
                     <Pause fill="white" size={20} strokeWidth={0} />
@@ -214,6 +217,7 @@ export default function RunDashboard() {
                 )}
                 <button
                   onClick={stopRun}
+                  aria-label="Stop run"
                   className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-lg shadow-red-500/50 flex items-center justify-center transition-all active:scale-95"
                 >
                   <Square fill="white" size={18} strokeWidth={0} />
@@ -229,6 +233,7 @@ export default function RunDashboard() {
             <div className="glass border border-cyan-500/30 rounded-2xl p-6 w-full max-w-md shadow-2xl">
               {isAnalyzing ? (
                 <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
                   <div className="animate-pulse text-cyan-400 font-mono text-sm mb-2">ANALYZING...</div>
                   <div className="text-xs text-gray-400">Using AI to analyze your run</div>
                 </div>
@@ -249,6 +254,7 @@ export default function RunDashboard() {
                     <h3 className="text-lg font-black text-cyan-400">{aiResult.title}</h3>
                     <button
                       onClick={clearResult}
+                      aria-label="Close AI analysis"
                       className="text-gray-400 hover:text-white transition-colors"
                     >
                       <X size={20} />

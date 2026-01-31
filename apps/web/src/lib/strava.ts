@@ -32,6 +32,7 @@ export async function fetchStravaActivities(
   let page = 1
   const results: StravaActivity[] = []
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const params = new URLSearchParams({
       per_page: perPage.toString(),
@@ -68,6 +69,7 @@ export async function fetchStravaActivities(
           const errorData = await response.json()
           // Extract detailed error information from Strava API
           if (errorData.errors && Array.isArray(errorData.errors)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const scopeError = errorData.errors.find((e: any) => e.field?.includes('permission'))
             if (scopeError) {
               errorMessage = `Token missing required scope: ${scopeError.field}. Please generate a new token with 'activity:read_all' scope at https://www.strava.com/settings/api`

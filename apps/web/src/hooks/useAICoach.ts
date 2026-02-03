@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'PASTE_KEY_HERE'
 
@@ -13,7 +13,7 @@ export function useAICoach() {
   const [aiResult, setAiResult] = useState<AIResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const analyzeRun = async (
+  const analyzeRun = useCallback(async (
     distance: number,
     pace: string,
     npi: number,
@@ -85,12 +85,12 @@ Provide a JSON response with:
     } finally {
       setIsAnalyzing(false)
     }
-  }
+  }, [])
 
-  const clearResult = () => {
+  const clearResult = useCallback(() => {
     setAiResult(null)
     setError(null)
-  }
+  }, [])
 
   return {
     isAnalyzing,

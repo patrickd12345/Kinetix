@@ -2,6 +2,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { fetchStravaActivities, convertStravaToRunRecord } from '../lib/strava'
 import { db } from '../lib/database'
 import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
 
 export default function Settings() {
   const {
@@ -25,8 +26,9 @@ export default function Settings() {
         <h1 className="text-2xl font-bold mb-4">Settings</h1>
         <div className="glass rounded-2xl p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Age</label>
+            <label htmlFor="age" className="block text-sm font-medium mb-2">Age</label>
             <input
+              id="age"
               type="number"
               value={userProfile.age}
               onChange={(e) => setUserProfile({ ...userProfile, age: parseInt(e.target.value) || 30 })}
@@ -35,8 +37,9 @@ export default function Settings() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Weight (kg)</label>
+            <label htmlFor="weight" className="block text-sm font-medium mb-2">Weight (kg)</label>
             <input
+              id="weight"
               type="number"
               value={userProfile.weightKg}
               onChange={(e) => setUserProfile({ ...userProfile, weightKg: parseFloat(e.target.value) || 70 })}
@@ -45,8 +48,9 @@ export default function Settings() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Target NPI</label>
+            <label htmlFor="targetNPI" className="block text-sm font-medium mb-2">Target NPI</label>
             <input
+              id="targetNPI"
               type="number"
               value={targetNPI}
               onChange={(e) => setTargetNPI(parseFloat(e.target.value) || 135)}
@@ -55,8 +59,9 @@ export default function Settings() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Unit System</label>
+            <label htmlFor="unitSystem" className="block text-sm font-medium mb-2">Unit System</label>
             <select
+              id="unitSystem"
               value={unitSystem}
               onChange={(e) => setUnitSystem(e.target.value as 'metric' | 'imperial')}
               className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
@@ -67,11 +72,13 @@ export default function Settings() {
           </div>
           
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Physio-Pacer Mode</label>
+            <label htmlFor="physioMode" className="text-sm font-medium">Physio-Pacer Mode</label>
             <button
+              id="physioMode"
+              role="switch"
               onClick={() => setPhysioMode(!physioMode)}
               aria-label="Toggle Physio-Pacer Mode"
-              aria-pressed={physioMode}
+              aria-checked={physioMode}
               className={`w-12 h-6 rounded-full transition-all ${
                 physioMode ? 'bg-green-500' : 'bg-gray-700'
               }`}
@@ -114,14 +121,22 @@ export default function Settings() {
                     setImporting(false)
                   }
                 }}
-                className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition"
+                className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition flex items-center"
                 disabled={importing || !stravaToken.trim()}
               >
-                {importing ? 'Importing…' : 'Import from Strava'}
+                {importing ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2 h-3 w-3" />
+                    Importing…
+                  </>
+                ) : (
+                  'Import from Strava'
+                )}
               </button>
             </div>
             <input
               type="password"
+              aria-label="Strava Access Token"
               value={stravaToken}
               onChange={(e) => setStravaToken(e.target.value)}
               placeholder="Paste Strava token"

@@ -4,7 +4,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
 import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
-import { Play, Square, Pause, Flag, Heart, Sparkles, X } from 'lucide-react'
+import { Play, Square, Pause, Flag, Heart, Sparkles, X, Check } from 'lucide-react'
 
 export default function RunDashboard() {
   const {
@@ -32,6 +32,7 @@ export default function RunDashboard() {
   // AI Coach
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
   const [showAICoach, setShowAICoach] = useState(false)
+  const [isConfirmingStop, setIsConfirmingStop] = useState(false)
   
   // Show AI Coach button after run stops
   useEffect(() => {
@@ -41,6 +42,14 @@ export default function RunDashboard() {
       setShowAICoach(false)
     }
   }, [isRunning, distance, duration])
+
+  // Auto-reset stop confirmation
+  useEffect(() => {
+    if (isConfirmingStop) {
+      const timer = setTimeout(() => setIsConfirmingStop(false), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [isConfirmingStop])
   
   const handleAIAnalysis = async () => {
     const distanceKm = distance / 1000
@@ -218,11 +227,26 @@ export default function RunDashboard() {
                   </button>
                 )}
                 <button
-                  onClick={stopRun}
-                  aria-label="Stop run"
-                  className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-lg shadow-red-500/50 flex items-center justify-center transition-all active:scale-95"
+                  onClick={() => {
+                    if (isConfirmingStop) {
+                      stopRun()
+                      setIsConfirmingStop(false)
+                    } else {
+                      setIsConfirmingStop(true)
+                    }
+                  }}
+                  aria-label={isConfirmingStop ? "Confirm stop run" : "Stop run"}
+                  className={`w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg ${
+                    isConfirmingStop
+                      ? "bg-red-600 shadow-red-600/50 animate-pulse"
+                      : "bg-gradient-to-br from-red-500 to-red-600 shadow-red-500/50"
+                  }`}
                 >
-                  <Square fill="white" size={18} strokeWidth={0} />
+                  {isConfirmingStop ? (
+                    <Check className="text-white" size={24} strokeWidth={3} />
+                  ) : (
+                    <Square fill="white" size={18} strokeWidth={0} />
+                  )}
                 </button>
               </div>
             )}

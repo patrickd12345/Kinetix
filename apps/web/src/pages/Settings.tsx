@@ -25,8 +25,9 @@ export default function Settings() {
         <h1 className="text-2xl font-bold mb-4">Settings</h1>
         <div className="glass rounded-2xl p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Age</label>
+            <label htmlFor="age" className="block text-sm font-medium mb-2">Age</label>
             <input
+              id="age"
               type="number"
               value={userProfile.age}
               onChange={(e) => setUserProfile({ ...userProfile, age: parseInt(e.target.value) || 30 })}
@@ -35,8 +36,9 @@ export default function Settings() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Weight (kg)</label>
+            <label htmlFor="weight" className="block text-sm font-medium mb-2">Weight (kg)</label>
             <input
+              id="weight"
               type="number"
               value={userProfile.weightKg}
               onChange={(e) => setUserProfile({ ...userProfile, weightKg: parseFloat(e.target.value) || 70 })}
@@ -45,8 +47,9 @@ export default function Settings() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Target NPI</label>
+            <label htmlFor="target-npi" className="block text-sm font-medium mb-2">Target NPI</label>
             <input
+              id="target-npi"
               type="number"
               value={targetNPI}
               onChange={(e) => setTargetNPI(parseFloat(e.target.value) || 135)}
@@ -55,8 +58,9 @@ export default function Settings() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Unit System</label>
+            <label htmlFor="unit-system" className="block text-sm font-medium mb-2">Unit System</label>
             <select
+              id="unit-system"
               value={unitSystem}
               onChange={(e) => setUnitSystem(e.target.value as 'metric' | 'imperial')}
               className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
@@ -67,11 +71,13 @@ export default function Settings() {
           </div>
           
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Physio-Pacer Mode</label>
+            <label htmlFor="physio-mode" className="text-sm font-medium">Physio-Pacer Mode</label>
             <button
+              id="physio-mode"
+              role="switch"
               onClick={() => setPhysioMode(!physioMode)}
               aria-label="Toggle Physio-Pacer Mode"
-              aria-pressed={physioMode}
+              aria-checked={physioMode}
               className={`w-12 h-6 rounded-full transition-all ${
                 physioMode ? 'bg-green-500' : 'bg-gray-700'
               }`}
@@ -85,7 +91,7 @@ export default function Settings() {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <div>
-                <div className="text-xs text-gray-400 uppercase">Strava Sync</div>
+                <label htmlFor="strava-token" className="text-xs text-gray-400 uppercase block">Strava Sync</label>
                 <p className="text-[11px] text-gray-500">
                   Paste a Strava personal access token with <code className="text-cyan-400">activity:read_all</code> scope. 
                   Generate at: <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline">strava.com/settings/api</a>
@@ -121,6 +127,7 @@ export default function Settings() {
               </button>
             </div>
             <input
+              id="strava-token"
               type="password"
               value={stravaToken}
               onChange={(e) => setStravaToken(e.target.value)}

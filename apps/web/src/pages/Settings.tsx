@@ -101,6 +101,8 @@ export default function Settings() {
             <label className="text-sm font-medium">Physio-Pacer Mode</label>
             <button
               onClick={() => setPhysioMode(!physioMode)}
+              aria-label="Toggle Physio-Pacer Mode"
+              aria-pressed={physioMode}
               className={`w-12 h-6 rounded-full transition-all ${
                 physioMode ? 'bg-green-500' : 'bg-gray-700'
               }`}

@@ -25,29 +25,29 @@ export default function History() {
       // Seed initial PB from historical fact: September 30th, 2025 run
       // This is idempotent - only runs if PB doesn't exist
       await seedInitialPB(userProfile)
-      
+
       const allRuns = await db.runs.orderBy('date').reverse().toArray()
       setRuns(allRuns)
-      
+
       const runsWithCalculatedKPS = allRuns.map(r => ({
         run: r,
         calculatedKPS: calculateAbsoluteKPS(r, userProfile)
       }))
       const invalidKPS = runsWithCalculatedKPS.filter(({ calculatedKPS }) => !isValidKPS(calculatedKPS))
       setInvalidKPSCount(invalidKPS.length)
-      
+
       // Get PB run (stored fact, not discovered)
       const pbRun = await getPBRun()
-      
+
       if (pbRun) {
-        console.log('✅ PB run:', { 
-          id: pbRun.id, 
-          date: pbRun.date, 
+        console.log('✅ PB run:', {
+          id: pbRun.id,
+          date: pbRun.date,
           distance: pbRun.distance,
           duration: pbRun.duration
         })
       }
-      
+
       const kpsMap = new Map<number, number>()
       const batchSize = 50
       for (let i = 0; i < allRuns.length; i += batchSize) {
@@ -77,7 +77,7 @@ export default function History() {
     if (confirm('Are you sure you want to delete this run?')) {
       try {
         await db.runs.delete(id)
-        await loadRuns()
+        setRuns((prev) => prev.filter((r) => r.id !== id))
       } catch (error) {
         console.error('Error deleting run:', error)
       }
@@ -167,7 +167,7 @@ export default function History() {
           )}
         </div>
 
-        {runs.length === 0 ? (
+        {runs.length === 0 && !loading ? (
           <div className="glass rounded-2xl p-8 text-center">
             <Calendar className="mx-auto mb-4 text-gray-500" size={48} />
             <p className="text-gray-400 mb-2">No runs recorded yet</p>
@@ -336,6 +336,7 @@ export default function History() {
                     <h3 className="text-lg font-black text-cyan-400">{aiResult.title}</h3>
                     <button
                       onClick={clearResult}
+                      aria-label="Close"
                       className="text-gray-400 hover:text-white transition-colors"
                     >
                       <X size={20} />

@@ -1,10 +1,11 @@
 import { RunRecord } from './database'
-import { calculateNPI } from '@kinetix/core'
-import { UserProfile } from '@kinetix/core'
+import { calculateKPS, UserProfile } from '@kinetix/core'
+import { isValidRunForKPS } from './kpsUtils'
 
 export interface StravaActivity {
   id: number
   name: string
+  type: string // 'Run', 'Ride', 'Swim', etc.
   distance: number
   moving_time: number
   elapsed_time: number
@@ -68,9 +69,9 @@ export async function fetchStravaActivities(
           const errorData = await response.json()
           // Extract detailed error information from Strava API
           if (errorData.errors && Array.isArray(errorData.errors)) {
-            const scopeError = errorData.errors.find((e: any) => e.field?.includes('permission'))
+            const scopeError = errorData.errors.find((e: any) => e.field?.includes('permission') || e.field?.includes('scope'))
             if (scopeError) {
-              errorMessage = `Token missing required scope: ${scopeError.field}. Please generate a new token with 'activity:read_all' scope at https://www.strava.com/settings/api`
+              errorMessage = `Token missing required scope. Please generate a new token with 'activity:read_all' scope at https://www.strava.com/settings/api. The error field was: ${scopeError.field}`
             } else {
               errorMessage = errorData.message || errorData.error || errorMessage
             }
@@ -88,11 +89,20 @@ export async function fetchStravaActivities(
     }
 
     const pageResults = (await response.json()) as StravaActivity[]
-    if (!Array.isArray(pageResults) || pageResults.length === 0) {
-      break
+    
+    // Filter to only include runs
+    const runs = pageResults.filter(activity => activity.type === 'Run')
+    
+    if (runs.length === 0) {
+      // If no runs in this page, check if we should continue
+      if (pageResults.length < perPage) {
+        break // No more pages
+      }
+      page += 1
+      continue // Skip to next page
     }
 
-    results.push(...pageResults)
+    results.push(...runs)
     if (pageResults.length < perPage) {
       break
     }
@@ -106,27 +116,48 @@ export async function fetchStravaActivities(
 export function convertStravaToRunRecord(
   activity: StravaActivity,
   userProfile: UserProfile,
-  targetNPI: number
-): RunRecord {
+  targetKPS: number
+): RunRecord | null {
   const duration = activity.moving_time
   const distanceMeters = activity.distance
 
-  const npi = calculateNPI(
+  if (!isValidRunForKPS({ distance: distanceMeters, duration })) {
+    console.warn('Skipping Strava activity with invalid data:', {
+      id: activity.id,
+      name: activity.name,
+      distance: distanceMeters,
+      duration
+    })
+    return null
+  }
+
+  const kps = calculateKPS(
     { distanceKm: distanceMeters / 1000, timeSeconds: duration },
     userProfile
   )
+
+  if (kps <= 0 || isNaN(kps) || !isFinite(kps)) {
+    console.warn('Calculated invalid KPS for Strava activity:', {
+      id: activity.id,
+      name: activity.name,
+      distance: distanceMeters,
+      duration,
+      kps
+    })
+    return null
+  }
 
   return {
     date: activity.start_date,
     distance: distanceMeters,
     duration,
     averagePace: duration / (distanceMeters / 1000 || 1),
-    npi,
-    targetNPI,
+    kps,
+    targetKPS,
     locations: [],
     splits: [],
     heartRate: activity.average_heartrate,
-    notes: activity.name,
+    notes: activity.name || `Strava Activity ${activity.id}`,
     source: 'strava',
   }
 }

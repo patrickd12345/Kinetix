@@ -22,28 +22,67 @@ class RunMetricsCalculator {
         }
     }
     
+    // MARK: - NPI Validation
+    
+    /// Validates that a run has valid data for NPI calculation
+    static func isValidRunForNPI(distanceMeters: Double, durationSeconds: Double) -> Bool {
+        return distanceMeters > 0 &&
+               durationSeconds > 0 &&
+               distanceMeters.isFinite &&
+               durationSeconds.isFinite &&
+               !distanceMeters.isNaN &&
+               !durationSeconds.isNaN
+    }
+    
+    /// Validates that an NPI value is valid
+    static func isValidNPI(_ npi: Double) -> Bool {
+        return npi > 0 && npi.isFinite && !npi.isNaN
+    }
+    
     // MARK: - NPI Calculation
     
     static func calculateNPI(distanceMeters: Double, durationSeconds: Double) -> Double {
-        guard distanceMeters > 0, durationSeconds > 0 else { return 0 }
+        guard isValidRunForNPI(distanceMeters: distanceMeters, durationSeconds: durationSeconds) else {
+            return 0
+        }
 
         let paceSeconds = durationSeconds / (distanceMeters / 1000.0)
+        
+        // Guard against invalid pace calculations
+        guard paceSeconds.isFinite && paceSeconds > 0 && !paceSeconds.isNaN else {
+            return 0
+        }
+        
         let speedKmH = (1000 / paceSeconds) * 3.6
         let factor = pow(distanceMeters / 1000.0, 0.06)
-        return speedKmH * factor * 10.0
+        let npi = speedKmH * factor * 10.0
+        
+        // Validate the result
+        guard isValidNPI(npi) else {
+            return 0
+        }
+        
+        return npi
     }
 
     // MARK: - NPI <-> Pace/Time Conversion
 
     static func paceSeconds(forNPI npi: Double, distanceMeters: Double) -> Double {
-        guard npi > 0, distanceMeters > 0 else { return 0 }
+        guard isValidNPI(npi), distanceMeters > 0 && distanceMeters.isFinite && !distanceMeters.isNaN else {
+            return 0
+        }
 
         let distanceKm = distanceMeters / 1000.0
         let factor = pow(distanceKm, 0.06)
         let speedKmH = npi / (factor * 10.0)
-        guard speedKmH > 0 else { return 0 }
+        guard speedKmH > 0 && speedKmH.isFinite && !speedKmH.isNaN else { return 0 }
 
-        return 3600.0 / speedKmH
+        let pace = 3600.0 / speedKmH
+        guard pace.isFinite && pace > 0 && !pace.isNaN else {
+            return 0
+        }
+        
+        return pace
     }
 
     static func finishTime(fromNPI npi: Double, distanceMeters: Double) -> TimeInterval {
@@ -60,24 +99,30 @@ class RunMetricsCalculator {
         distanceCoveredMeters: Double,
         targetDistanceMeters: Double
     ) -> RaceProjection? {
-        guard currentNPI > 0, targetDistanceMeters > 0 else { return nil }
+        guard isValidNPI(currentNPI), targetDistanceMeters > 0 && targetDistanceMeters.isFinite else {
+            return nil
+        }
+        
         guard targetDistanceMeters >= distanceCoveredMeters else {
             let pace = paceSeconds(forNPI: currentNPI, distanceMeters: targetDistanceMeters)
+            guard pace > 0 else { return nil }
+            
             return RaceProjection(
                 targetDistanceMeters: targetDistanceMeters,
                 predictedFinishTime: elapsedSeconds,
-                goalFinishTime: finishTime(fromNPI: goalNPI, distanceMeters: targetDistanceMeters),
+                goalFinishTime: isValidNPI(goalNPI) ? finishTime(fromNPI: goalNPI, distanceMeters: targetDistanceMeters) : 0,
                 projectedPaceSeconds: pace,
                 progress: 1.0
             )
         }
 
         let projectedFinish = finishTime(fromNPI: currentNPI, distanceMeters: targetDistanceMeters)
-        guard projectedFinish > 0 else { return nil }
+        guard projectedFinish > 0 && projectedFinish.isFinite else { return nil }
 
-        let goalFinish = goalNPI > 0 ? finishTime(fromNPI: goalNPI, distanceMeters: targetDistanceMeters) : 0
+        let goalFinish = isValidNPI(goalNPI) ? finishTime(fromNPI: goalNPI, distanceMeters: targetDistanceMeters) : 0
         let progress = min(max(elapsedSeconds / projectedFinish, 0.0), 1.0)
         let pace = paceSeconds(forNPI: currentNPI, distanceMeters: targetDistanceMeters)
+        guard pace > 0 else { return nil }
 
         return RaceProjection(
             targetDistanceMeters: targetDistanceMeters,

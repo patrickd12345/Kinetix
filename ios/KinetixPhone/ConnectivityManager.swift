@@ -407,17 +407,43 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         guard let modelContext else { return }
         do {
             let payload = try JSONDecoder().decode(RunPayload.self, from: data)
+            
+            // Validate NPI before saving
+            let finalNPI: Double
+            if RunMetricsCalculator.isValidNPI(payload.avgNPI) {
+                finalNPI = payload.avgNPI
+            } else if RunMetricsCalculator.isValidRunForNPI(
+                distanceMeters: payload.distance,
+                durationSeconds: payload.duration
+            ) {
+                // Recalculate NPI if current value is invalid
+                finalNPI = RunMetricsCalculator.calculateNPI(
+                    distanceMeters: payload.distance,
+                    durationSeconds: payload.duration
+                )
+                
+                if !RunMetricsCalculator.isValidNPI(finalNPI) {
+                    print("⚠️ iPhone: Received run with invalid NPI, recalculated value also invalid. Skipping save.")
+                    DiagnosticLogManager.shared.log("Received run with invalid NPI from Watch", category: "sync")
+                    return
+                }
+            } else {
+                print("⚠️ iPhone: Received run with invalid data. Skipping save.")
+                DiagnosticLogManager.shared.log("Received run with invalid data from Watch", category: "sync")
+                return
+            }
+            
             // Check if run already exists
             let descriptor = FetchDescriptor<Run>(predicate: #Predicate { $0.id == payload.id })
             if (try? modelContext.fetch(descriptor).first) == nil {
-                // Create new run from payload
+                // Create new run from payload with validated NPI
                 let run = Run(
                     date: payload.date,
                     source: payload.source,
                     distance: payload.distance,
                     duration: payload.duration,
                     avgPace: payload.avgPace,
-                    avgNPI: payload.avgNPI,
+                    avgNPI: finalNPI,
                     avgHeartRate: payload.avgHeartRate,
                     avgCadence: payload.avgCadence,
                     avgVerticalOscillation: payload.avgVerticalOscillation,
@@ -428,7 +454,7 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                     formSessionId: payload.formSessionId
                 )
                 modelContext.insert(run)
-                print("📱 iPhone: Received and saved run from Watch: \(String(format: "%.2f", payload.distance / 1000)) km")
+                print("📱 iPhone: Received and saved run from Watch: \(String(format: "%.2f", payload.distance / 1000)) km, NPI: \(Int(finalNPI))")
             }
         } catch {
             DiagnosticLogManager.shared.log("Failed to decode incoming run: \(error.localizedDescription)", category: "sync")

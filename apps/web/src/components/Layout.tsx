@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Activity, History, Settings } from 'lucide-react'
+import { Activity, History, MessageCircle, Settings } from 'lucide-react'
 
 interface LayoutProps {
   children: ReactNode
@@ -12,17 +12,50 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = [
     { path: '/', icon: Activity, label: 'Run' },
     { path: '/history', icon: History, label: 'History' },
+    { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950">
-      <div className="container mx-auto px-4 py-4 max-w-7xl">
-        {children}
+      {/* Desktop Sidebar Navigation */}
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 glass border-r border-white/10 backdrop-blur-xl z-40">
+        <div className="w-full p-6">
+          <div className="mb-8">
+            <h1 className="text-xl font-black italic tracking-wider text-white">KINETIX</h1>
+          </div>
+          <nav className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = location.pathname === item.path
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                    isActive
+                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                      : 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
+                  }`}
+                >
+                  <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className={`lg:pl-64 transition-all`}>
+        <div className="container mx-auto px-4 py-4 max-w-7xl">
+          {children}
+        </div>
       </div>
       
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 glass border-t border-white/10 backdrop-blur-xl">
+      {/* Mobile Bottom Navigation */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 glass border-t border-white/10 backdrop-blur-xl z-40">
         <div className="container mx-auto max-w-7xl px-4">
           <div className="flex justify-around items-center h-16">
             {navItems.map((item) => {

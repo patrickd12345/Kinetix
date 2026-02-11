@@ -717,8 +717,22 @@ struct SettingsView: View {
         let duration = (minutes * 60) + seconds
         guard duration > 0 else { return }
         let distanceMeters = distanceKm * 1000
+        
+        // Validate inputs before calculating
+        guard RunMetricsCalculator.isValidRunForNPI(distanceMeters: distanceMeters, durationSeconds: duration) else {
+            print("⚠️ Invalid run data for NPI calculation")
+            return
+        }
+        
         let pace = duration / (distanceMeters / 1000)
         let npi = computeNPI(distanceMeters: distanceMeters, durationSeconds: duration)
+        
+        // Validate NPI before saving
+        guard RunMetricsCalculator.isValidNPI(npi) else {
+            print("⚠️ Calculated invalid NPI: \(npi)")
+            return
+        }
+        
         let run = Run(
             date: npiDate,
             source: "manual",
@@ -733,11 +747,11 @@ struct SettingsView: View {
     }
     
     private func computeNPI(distanceMeters: Double, durationSeconds: Double) -> Double {
-        guard distanceMeters > 0, durationSeconds > 0 else { return 0 }
-        let paceSeconds = durationSeconds / (distanceMeters / 1000.0)
-        let speedKmH = (1000 / paceSeconds) * 3.6
-        let factor = pow(distanceMeters / 1000.0, 0.06)
-        return speedKmH * factor * 10.0
+        // Use the validated calculateNPI function
+        return RunMetricsCalculator.calculateNPI(
+            distanceMeters: distanceMeters,
+            durationSeconds: durationSeconds
+        )
     }
     
     private func generateAISummary() {

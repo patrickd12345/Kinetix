@@ -9,6 +9,10 @@
     {
       "source": "/api/strava/(.*)",
       "destination": "/api/strava-proxy?path=$1"
+    },
+    {
+      "source": "/api/strava-oauth",
+      "destination": "/api/strava-oauth"
     }
   ],
   "headers": [

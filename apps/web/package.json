@@ -8,16 +8,22 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "garmin:import": "tsx scripts/import-garmin.ts"
   },
   "dependencies": {
     "@kinetix/core": "workspace:*",
+    "@types/react-window": "^2.0.0",
+    "dexie": "^3.2.4",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.344.0",
     "react": "^18.2.0",
+    "react-calendar": "^6.0.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.21.1",
-    "zustand": "^4.4.7",
-    "dexie": "^3.2.4",
-    "lucide-react": "^0.344.0"
+    "react-window": "^2.2.5",
+    "recharts": "^3.7.0",
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",
@@ -31,7 +37,9 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.4.35",
+    "adm-zip": "^0.5.10",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vite": "^5.1.4"
   }

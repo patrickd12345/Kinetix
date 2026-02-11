@@ -342,10 +342,20 @@ struct RunTrackingView: View {
             
             // Calculate NPI
             if totalDistance > 100 && duration > 30 {
-                currentNPI = RunMetricsCalculator.calculateNPI(
+                let calculatedNPI = RunMetricsCalculator.calculateNPI(
                     distanceMeters: totalDistance,
                     durationSeconds: duration
                 )
+                
+                // Only update currentNPI if calculation is valid
+                if RunMetricsCalculator.isValidNPI(calculatedNPI) {
+                    currentNPI = calculatedNPI
+                } else {
+                    // Invalid NPI - keep previous value or set to 0
+                    if !RunMetricsCalculator.isValidNPI(currentNPI) {
+                        currentNPI = 0
+                    }
+                }
             }
         }
     }
@@ -374,10 +384,19 @@ struct RunTrackingView: View {
         // Calculate NPI - only if we have distance
         let avgNPI: Double
         if distanceToSave > 0 {
-            avgNPI = RunMetricsCalculator.calculateNPI(
+            let calculatedNPI = RunMetricsCalculator.calculateNPI(
                 distanceMeters: distanceToSave,
                 durationSeconds: elapsedTime
             )
+            
+            // Validate NPI before saving
+            if RunMetricsCalculator.isValidNPI(calculatedNPI) {
+                avgNPI = calculatedNPI
+            } else {
+                // Invalid NPI - use 0 as fallback
+                avgNPI = 0.0
+                print("⚠️ Warning: Calculated invalid NPI for run. Distance: \(distanceToSave)m, Duration: \(elapsedTime)s")
+            }
         } else {
             avgNPI = 0.0 // No NPI if no distance
         }

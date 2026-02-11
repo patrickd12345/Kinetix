@@ -682,11 +682,29 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         let activeDuration = runStateManager.elapsedDuration()
         let avgPace = totalDistance > 0 ? activeDuration / (totalDistance / 1000.0) : 0.0
         
+        // Ensure NPI is valid, recalculate if needed
+        var finalNPI = liveNPI
+        if !RunMetricsCalculator.isValidNPI(finalNPI) && RunMetricsCalculator.isValidRunForNPI(
+            distanceMeters: totalDistance,
+            durationSeconds: activeDuration
+        ) {
+            // Recalculate NPI if current value is invalid
+            finalNPI = RunMetricsCalculator.calculateNPI(
+                distanceMeters: totalDistance,
+                durationSeconds: activeDuration
+            )
+        }
+        
+        // Fallback to 0 if still invalid (shouldn't happen if shouldSaveRun() was called)
+        if !RunMetricsCalculator.isValidNPI(finalNPI) {
+            finalNPI = 0
+        }
+        
         return RunSummary(
             distance: totalDistance,
             duration: activeDuration,
             avgPace: avgPace,
-            avgNPI: liveNPI,
+            avgNPI: finalNPI,
             avgHeartRate: avgHR,
             avgCadence: currentFormMetrics.cadence,
             avgVerticalOscillation: currentFormMetrics.verticalOscillation,
@@ -700,7 +718,20 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
     }
     
     func shouldSaveRun() -> Bool {
-        return totalDistance >= 100 && runStateManager.elapsedDuration() >= 10
+        let duration = runStateManager.elapsedDuration()
+        let hasMinimumDistance = totalDistance >= 100
+        let hasMinimumDuration = duration >= 10
+        
+        // Validate that we can calculate a valid NPI
+        let canCalculateNPI = RunMetricsCalculator.isValidRunForNPI(
+            distanceMeters: totalDistance,
+            durationSeconds: duration
+        )
+        
+        // If we have a calculated NPI, validate it
+        let hasValidNPI = RunMetricsCalculator.isValidNPI(liveNPI)
+        
+        return hasMinimumDistance && hasMinimumDuration && canCalculateNPI && hasValidNPI
     }
     
     // MARK: - Metrics Calculation
@@ -753,20 +784,32 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
             
             // NPI Calculation
             if totalDistance > 100 && duration > 30 {
-                let speedKmH = (1000/paceSeconds) * 3.6
-                let factor = pow((totalDistance/1000.0), 0.06)
-                liveNPI = speedKmH * factor * 10.0
-
-                let targetDistance = 5000.0
-                if let projection = RunMetricsCalculator.projectRaceTime(
-                    currentNPI: liveNPI,
-                    goalNPI: activeTargetNPI,
-                    elapsedSeconds: duration,
-                    distanceCoveredMeters: totalDistance,
-                    targetDistanceMeters: targetDistance
-                ) {
-                    runProgress = projection.progress
-                    timeToBeat = projection.displayString(includeGoal: activeTargetNPI > 0)
+                // Use the validated calculateNPI function
+                let calculatedNPI = RunMetricsCalculator.calculateNPI(
+                    distanceMeters: totalDistance,
+                    durationSeconds: duration
+                )
+                
+                // Only update liveNPI if calculation is valid
+                if RunMetricsCalculator.isValidNPI(calculatedNPI) {
+                    liveNPI = calculatedNPI
+                    
+                    let targetDistance = 5000.0
+                    if let projection = RunMetricsCalculator.projectRaceTime(
+                        currentNPI: liveNPI,
+                        goalNPI: activeTargetNPI,
+                        elapsedSeconds: duration,
+                        distanceCoveredMeters: totalDistance,
+                        targetDistanceMeters: targetDistance
+                    ) {
+                        runProgress = projection.progress
+                        timeToBeat = projection.displayString(includeGoal: activeTargetNPI > 0)
+                    }
+                } else {
+                    // Invalid NPI - keep previous value or set to 0
+                    if !RunMetricsCalculator.isValidNPI(liveNPI) {
+                        liveNPI = 0
+                    }
                 }
             }
         }

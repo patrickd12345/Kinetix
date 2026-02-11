@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { vitePluginOAuth } from './vite-plugin-oauth'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), vitePluginOAuth()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

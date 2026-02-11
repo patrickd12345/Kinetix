@@ -3,6 +3,23 @@ import { useState } from 'react'
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'PASTE_KEY_HERE'
 
+const GEMINI_KEY_HELP = 'Get a free API key at https://aistudio.google.com/apikey and set VITE_GEMINI_API_KEY in apps/web/.env, then restart the dev server.'
+
+function parseGeminiError(status: number, body: string): string {
+  if (status === 400) {
+    try {
+      const data = JSON.parse(body)
+      const reason = data?.error?.details?.[0]?.reason ?? ''
+      const msg = data?.error?.message ?? ''
+      if (reason === 'API_KEY_INVALID' || msg.includes('API key not valid')) return GEMINI_KEY_HELP
+      return msg || body
+    } catch {
+      return body || `Request failed (${status})`
+    }
+  }
+  return body || `Request failed (${status})`
+}
+
 export interface AIResult {
   title: string
   insight: string
@@ -16,13 +33,13 @@ export function useAICoach() {
   const analyzeRun = async (
     distance: number,
     pace: string,
-    npi: number,
+    kps: number,
     target: number,
     duration: number,
     heartRate?: number
   ) => {
-    if (GEMINI_API_KEY.includes('PASTE')) {
-      setError('Please set VITE_GEMINI_API_KEY in your .env file')
+    if (!GEMINI_API_KEY || GEMINI_API_KEY.includes('PASTE')) {
+      setError(GEMINI_KEY_HELP)
       return
     }
 
@@ -35,14 +52,14 @@ export function useAICoach() {
 Distance: ${distance.toFixed(2)} km
 Time: ${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, '0')}
 Pace: ${pace} per km
-NPI (Normalized Performance Index): ${Math.floor(npi)}
-Target NPI: ${Math.round(target)}
+Kinetix Performance Score: ${Math.floor(kps)}
+Target score: ${Math.round(target)}
 ${heartRate ? `Average Heart Rate: ${Math.floor(heartRate)} BPM` : ''}
 
 Provide a JSON response with:
 {
   "title": "A concise scientific title (max 50 chars)",
-  "insight": "Detailed feedback on performance, what went well, areas for improvement, and specific recommendations based on NPI analysis (2-3 sentences)"
+  "insight": "Detailed feedback on performance, what went well, areas for improvement, and specific recommendations based on Kinetix Performance Score analysis (2-3 sentences)"
 }`
 
     try {
@@ -58,11 +75,12 @@ Provide a JSON response with:
         }
       )
 
+      const bodyText = await response.text()
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
+        throw new Error(parseGeminiError(response.status, bodyText))
       }
 
-      const data = await response.json()
+      const data = JSON.parse(bodyText)
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text
 
       if (text) {

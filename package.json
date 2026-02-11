@@ -2,13 +2,14 @@
   "name": "kinetix",
   "version": "1.0.0",
   "private": true,
-  "description": "AI-Powered Running Coach with NPI (Normalized Performance Index)",
+  "description": "AI-Powered Running Coach with Kinetix Performance Score (KPS)",
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
   "scripts": {
     "dev": "pnpm --filter @kinetix/web dev",
+    "dev:rag": "pnpm --filter @kinetix/rag start",
     "build": "pnpm --filter @kinetix/core build && pnpm --filter @kinetix/web build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",

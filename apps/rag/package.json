@@ -8,7 +8,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "index": "node scripts/index-runs.js"
+    "index": "node scripts/index-runs.js",
+    "index-all": "node scripts/index-all-from-json.js"
   },
   "dependencies": {
     "chromadb": "^1.8.1",

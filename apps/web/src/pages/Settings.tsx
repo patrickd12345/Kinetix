@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
 import { importGarminFromZipFile } from '../lib/garminImport'
 import { convertGarminToRunRecord } from '../lib/garmin'
-import { indexRunsAfterSave } from '../lib/ragClient'
+import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
 
 export default function Settings() {
   const {
@@ -23,6 +23,8 @@ export default function Settings() {
   } = useSettingsStore()
   const [importing, setImporting] = useState(false)
   const [importMessage, setImportMessage] = useState<string | null>(null)
+  const [reindexing, setReindexing] = useState(false)
+  const [reindexMessage, setReindexMessage] = useState<string | null>(null)
   const garminZipInputRef = useRef<HTMLInputElement>(null)
   const { initiateOAuth, handleOAuthCallback } = useStravaAuth()
 
@@ -248,6 +250,44 @@ export default function Settings() {
             >
               {importing ? 'Importing…' : 'Import Garmin ZIP'}
             </button>
+          </div>
+
+          <div className="space-y-3">
+            <div className="text-xs text-gray-400 uppercase">RAG (coach context)</div>
+            <p className="text-[11px] text-gray-500 mb-2">
+              Index all your runs into RAG so the coach chat can use them. Run this if the coach has no run data.
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                setReindexMessage(null)
+                try {
+                  setReindexing(true)
+                  const runs = await db.runs.orderBy('date').reverse().toArray()
+                  if (runs.length === 0) {
+                    setReindexMessage('No runs in the app. Import from Strava or Garmin first.')
+                    return
+                  }
+                  const { indexed, errors } = await reindexAllRunsInRAG(runs, userProfile)
+                  setReindexMessage(
+                    errors === 0
+                      ? `Indexed ${indexed} runs in RAG.`
+                      : `Indexed ${indexed} runs, ${errors} failed. Is the RAG service running?`
+                  )
+                } catch (err) {
+                  setReindexMessage(`Error: ${err instanceof Error ? err.message : 'Reindex failed'}.`)
+                } finally {
+                  setReindexing(false)
+                }
+              }}
+              className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition"
+              disabled={reindexing}
+            >
+              {reindexing ? 'Reindexing…' : 'Reindex all runs in RAG'}
+            </button>
+            {reindexMessage && (
+              <div className="text-xs text-gray-300">{reindexMessage}</div>
+            )}
           </div>
         </div>
       </div>

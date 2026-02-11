@@ -11,7 +11,6 @@ import { vectorDB } from './services/vectorDB.js';
 import { getCoachContext } from './services/coachContext.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -101,8 +100,23 @@ app.post('/coach-context', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Kinetix RAG service running on http://localhost:${PORT}`);
-  console.log(`Vector DB path: ${process.env.CHROMA_PATH || './chroma_db'}`);
-  console.log(`Ollama URL: ${process.env.OLLAMA_API_URL || 'http://localhost:11434'}`);
-});
+const basePort = Number(process.env.PORT) || 3001;
+const maxTries = 10;
+
+function tryListen(port) {
+  const server = app.listen(port, () => {
+    console.log(`Kinetix RAG service running on http://localhost:${port}`);
+    console.log(`Vector DB path: ${process.env.CHROMA_PATH || './chroma_db'}`);
+    console.log(`Ollama URL: ${process.env.OLLAMA_API_URL || 'http://localhost:11434'}`);
+  });
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE' && port < basePort + maxTries - 1) {
+      tryListen(port + 1);
+    } else {
+      console.error(err);
+      process.exit(1);
+    }
+  });
+}
+
+tryListen(basePort);

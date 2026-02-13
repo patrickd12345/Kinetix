@@ -1,6 +1,8 @@
 import { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Activity, History, MessageCircle, Settings } from 'lucide-react'
+import { useAuth } from './providers/useAuth'
+import { getProfileLabel } from '../lib/kinetixProfile'
 
 interface LayoutProps {
   children: ReactNode
@@ -8,6 +10,8 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
+  const { profile, session, signOut } = useAuth()
+  const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : session?.user.email ?? 'User'
 
   const navItems = [
     { path: '/', icon: Activity, label: 'Run' },
@@ -23,6 +27,14 @@ export default function Layout({ children }: LayoutProps) {
         <div className="w-full p-6">
           <div className="mb-8">
             <h1 className="text-xl font-black italic tracking-wider text-white">KINETIX</h1>
+            <div className="mt-3 text-xs text-gray-400 truncate">{profileLabel}</div>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="mt-2 text-xs text-cyan-300 hover:text-cyan-200 transition-colors"
+            >
+              Sign out
+            </button>
           </div>
           <nav className="space-y-2">
             {navItems.map((item) => {

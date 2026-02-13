@@ -7,6 +7,8 @@ import { useAICoach } from '../hooks/useAICoach'
 import { getRelativeKPS } from '../lib/kpsUtils'
 import { KPS_SHORT } from '../lib/branding'
 import { Play, Square, Pause, Flag, Heart, Sparkles, X } from 'lucide-react'
+import { useAuth } from '../components/providers/useAuth'
+import { toKinetixUserProfile } from '../lib/kinetixProfile'
 
 export default function RunDashboard() {
   const {
@@ -26,7 +28,12 @@ export default function RunDashboard() {
     stopRun,
   } = useRunStore()
   
-  const { targetKPS, unitSystem, physioMode, userProfile } = useSettingsStore()
+  const { targetKPS, unitSystem, physioMode } = useSettingsStore()
+  const { profile } = useAuth()
+  if (!profile) {
+    throw new Error('Platform profile is required')
+  }
+  const userProfile = toKinetixUserProfile(profile)
   const [relativeKPS, setRelativeKPS] = useState(0)
 
   useLocationTracking()

@@ -9,6 +9,8 @@ import { RunDetails } from '../components/RunDetails'
 import { RunCalendar } from '../components/RunCalendar'
 import { KPS_SHORT } from '../lib/branding'
 import { Trash2, Calendar, MapPin, Clock, TrendingUp, Sparkles, X, AlertTriangle } from 'lucide-react'
+import { useAuth } from '../components/providers/useAuth'
+import { toKinetixUserProfile } from '../lib/kinetixProfile'
 
 export default function History() {
   const [runs, setRuns] = useState<RunRecord[]>([])
@@ -17,10 +19,15 @@ export default function History() {
   const [expandedRuns, setExpandedRuns] = useState<Set<number>>(new Set())
   const [invalidKPSCount, setInvalidKPSCount] = useState(0)
   const runRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const { unitSystem, userProfile } = useSettingsStore()
+  const { unitSystem } = useSettingsStore()
+  const { profile } = useAuth()
+  if (!profile) {
+    throw new Error('Platform profile is required')
+  }
+  const userProfile = toKinetixUserProfile(profile)
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
 
-  const loadRuns = async () => {
+  const loadRuns = useCallback(async () => {
     try {
       // Seed initial PB from historical fact: September 30th, 2025 run
       // This is idempotent - only runs if PB doesn't exist
@@ -67,11 +74,11 @@ export default function History() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [userProfile])
 
   useEffect(() => {
-    loadRuns()
-  }, [userProfile])
+    void loadRuns()
+  }, [loadRuns])
 
   const deleteRun = async (id: number) => {
     if (confirm('Are you sure you want to delete this run?')) {

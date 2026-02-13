@@ -7,11 +7,11 @@ import { useStravaAuth } from '../hooks/useStravaAuth'
 import { importGarminFromZipFile } from '../lib/garminImport'
 import { convertGarminToRunRecord } from '../lib/garmin'
 import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
+import { useAuth } from '../components/providers/useAuth'
+import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
 
 export default function Settings() {
   const {
-    userProfile,
-    setUserProfile,
     targetKPS,
     setTargetKPS,
     unitSystem,
@@ -21,6 +21,12 @@ export default function Settings() {
     stravaToken,
     setStravaToken,
   } = useSettingsStore()
+  const { profile, session } = useAuth()
+  if (!profile) {
+    throw new Error('Platform profile is required')
+  }
+  const userProfile = toKinetixUserProfile(profile)
+  const profileLabel = getProfileLabel(profile, session?.user.email ?? null)
   const [importing, setImporting] = useState(false)
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [reindexing, setReindexing] = useState(false)
@@ -55,24 +61,10 @@ export default function Settings() {
       <div className="max-w-md lg:max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Settings</h1>
         <div className="glass rounded-2xl p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">Age</label>
-            <input
-              type="number"
-              value={userProfile.age}
-              onChange={(e) => setUserProfile({ ...userProfile, age: parseInt(e.target.value) || 30 })}
-              className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">Weight (kg)</label>
-            <input
-              type="number"
-              value={userProfile.weightKg}
-              onChange={(e) => setUserProfile({ ...userProfile, weightKg: parseFloat(e.target.value) || 70 })}
-              className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
-            />
+          <div className="rounded-xl border border-white/10 bg-gray-900/30 p-3">
+            <div className="text-xs text-gray-400 uppercase mb-1">Platform identity</div>
+            <div className="text-sm text-white font-medium">{profileLabel}</div>
+            <div className="text-xs text-gray-500 mt-1">Profile ID: {profile.id}</div>
           </div>
           
           <div>

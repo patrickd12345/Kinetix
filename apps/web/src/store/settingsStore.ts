@@ -1,10 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { UserProfile } from '@kinetix/core'
 
 interface SettingsState {
-  userProfile: UserProfile
-  setUserProfile: (profile: UserProfile) => void
   targetKPS: number
   setTargetKPS: (kps: number) => void
   unitSystem: 'metric' | 'imperial'
@@ -18,12 +15,6 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      userProfile: {
-        age: 30,
-        weightKg: 70,
-      },
-      setUserProfile: (profile) => set({ userProfile: profile }),
-
       targetKPS: 135.0,
       setTargetKPS: (kps) => set({ targetKPS: kps }),
 

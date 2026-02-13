@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useRunStore } from '../store/runStore'
 
 export function useLocationTracking() {
@@ -24,22 +24,37 @@ export function useLocationTracking() {
     }
   }, [])
 
-  // Start/stop tracking based on run state
-  useEffect(() => {
-    if (isRunning && !isPaused) {
-      startTracking()
-    } else if (isPaused) {
-      pauseTracking()
-    } else {
-      stopTracking()
+  const stopTracking = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
     }
-
-    return () => {
-      stopTracking()
+    if (timerRef.current !== null) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
     }
-  }, [isRunning, isPaused])
+    // Reset tracking refs
+    startTimeRef.current = null
+    pausedTimeRef.current = 0
+    lastPauseTimeRef.current = 0
+  }, [])
 
-  const startTracking = () => {
+  const pauseTracking = useCallback(() => {
+    if (timerRef.current !== null) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+    if (startTimeRef.current) {
+      lastPauseTimeRef.current = Date.now()
+      pausedTimeRef.current = (lastPauseTimeRef.current - startTimeRef.current) / 1000
+    }
+  }, [])
+
+  const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       console.warn('Geolocation is not supported by this browser')
       return
@@ -77,35 +92,20 @@ export function useLocationTracking() {
         maximumAge: 0,
       }
     )
-  }
+  }, [updateDuration, updateLocation])
 
-  const pauseTracking = () => {
-    if (timerRef.current !== null) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
+  // Start/stop tracking based on run state
+  useEffect(() => {
+    if (isRunning && !isPaused) {
+      startTracking()
+    } else if (isPaused) {
+      pauseTracking()
+    } else {
+      stopTracking()
     }
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current)
-      watchIdRef.current = null
-    }
-    if (startTimeRef.current) {
-      lastPauseTimeRef.current = Date.now()
-      pausedTimeRef.current = (lastPauseTimeRef.current - startTimeRef.current) / 1000
-    }
-  }
 
-  const stopTracking = () => {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current)
-      watchIdRef.current = null
+    return () => {
+      stopTracking()
     }
-    if (timerRef.current !== null) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
-    // Reset tracking refs
-    startTimeRef.current = null
-    pausedTimeRef.current = 0
-    lastPauseTimeRef.current = 0
-  }
+  }, [isRunning, isPaused, pauseTracking, startTracking, stopTracking])
 }

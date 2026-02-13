@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { calculateKPS, calculateTimeToBeat, calculatePace, calculateDistance } from '@kinetix/core'
 import { useSettingsStore } from './settingsStore'
 import { db, RunRecord } from '../lib/database'
+import { getActiveKinetixUserProfile } from '../lib/authState'
 
 export interface RunState {
   // Running state
@@ -88,9 +89,10 @@ export const useRunStore = create<RunState>((set, get) => ({
     
     // Save run to database if there's data
     if (state.distance > 0 && state.duration > 0) {
+      const userProfile = getActiveKinetixUserProfile()
       const absoluteKPS = calculateKPS(
         { distanceKm: state.distance / 1000, timeSeconds: state.duration },
-        settings.userProfile
+        userProfile
       )
 
       const runRecord: RunRecord = {
@@ -114,14 +116,14 @@ export const useRunStore = create<RunState>((set, get) => ({
         const savedRunRecord: RunRecord = { ...runRecord, id: numericRunId }
 
         import('../lib/kpsUtils').then(({ checkAndUpdatePB }) => {
-          checkAndUpdatePB(savedRunRecord, settings.userProfile).then((isNewPB) => {
+          checkAndUpdatePB(savedRunRecord, userProfile).then((isNewPB) => {
             if (isNewPB) {
               console.log('New Personal Best! This run is now your PB (KPS = 100)')
             }
           })
         })
         import('../lib/ragClient').then(({ indexRunsAfterSave }) => {
-          indexRunsAfterSave([savedRunRecord], settings.userProfile).catch(() => {})
+          indexRunsAfterSave([savedRunRecord], userProfile).catch(() => {})
         })
       }).catch((error) => {
         console.error('Error saving run:', error)
@@ -150,9 +152,10 @@ export const useRunStore = create<RunState>((set, get) => ({
     const newAveragePace = newDistance > 0 ? state.duration / (newDistance / 1000) : 0
     
     const settings = useSettingsStore.getState()
+    const userProfile = getActiveKinetixUserProfile()
     const liveKPS = calculateKPS(
       { distanceKm: newDistance / 1000, timeSeconds: state.duration },
-      settings.userProfile
+      userProfile
     )
 
     const projection = calculateTimeToBeat(
@@ -160,7 +163,7 @@ export const useRunStore = create<RunState>((set, get) => ({
       state.duration,
       newAveragePace,
       settings.targetKPS,
-      settings.userProfile
+      userProfile
     )
 
     set({
@@ -181,9 +184,10 @@ export const useRunStore = create<RunState>((set, get) => ({
     const newAveragePace = state.distance > 0 ? newDuration / (state.distance / 1000) : 0
 
     const settings = useSettingsStore.getState()
+    const userProfile = getActiveKinetixUserProfile()
     const liveKPS = calculateKPS(
       { distanceKm: state.distance / 1000, timeSeconds: newDuration },
-      settings.userProfile
+      userProfile
     )
 
     const projection = calculateTimeToBeat(
@@ -191,7 +195,7 @@ export const useRunStore = create<RunState>((set, get) => ({
       newDuration,
       newAveragePace,
       settings.targetKPS,
-      settings.userProfile
+      userProfile
     )
 
     set({

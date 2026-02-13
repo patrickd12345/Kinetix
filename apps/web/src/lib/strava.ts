@@ -32,8 +32,9 @@ export async function fetchStravaActivities(
   const perPage = 100
   let page = 1
   const results: StravaActivity[] = []
+  let hasMorePages = true
 
-  while (true) {
+  while (hasMorePages) {
     const params = new URLSearchParams({
       per_page: perPage.toString(),
       page: page.toString(),
@@ -96,7 +97,8 @@ export async function fetchStravaActivities(
     if (runs.length === 0) {
       // If no runs in this page, check if we should continue
       if (pageResults.length < perPage) {
-        break // No more pages
+        hasMorePages = false
+        continue
       }
       page += 1
       continue // Skip to next page
@@ -104,7 +106,8 @@ export async function fetchStravaActivities(
 
     results.push(...runs)
     if (pageResults.length < perPage) {
-      break
+      hasMorePages = false
+      continue
     }
 
     page += 1

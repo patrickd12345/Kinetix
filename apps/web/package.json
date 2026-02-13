@@ -9,10 +9,12 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
-    "garmin:import": "tsx scripts/import-garmin.ts"
+    "garmin:import": "tsx scripts/import-garmin.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@kinetix/core": "workspace:*",
+    "@supabase/supabase-js": "^2.57.4",
     "@types/react-window": "^2.0.0",
     "dexie": "^3.2.4",
     "jszip": "^3.10.1",
@@ -32,6 +34,9 @@
     "@typescript-eslint/parser": "^6.15.0",
     "@vercel/node": "^3.0.7",
     "@vitejs/plugin-react": "^4.2.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "autoprefixer": "^10.4.18",
     "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^4.6.0",
@@ -41,6 +46,8 @@
     "tailwindcss": "^3.4.1",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
-    "vite": "^5.1.4"
+    "vite": "^5.1.4",
+    "vitest": "^1.6.1",
+    "jsdom": "^24.1.3"
   }
 }

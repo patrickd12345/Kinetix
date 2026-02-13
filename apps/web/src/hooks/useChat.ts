@@ -2,7 +2,8 @@
 import { useState, useCallback } from 'react'
 import { getCoachContext } from '../lib/ragClient'
 import { getPBRun } from '../lib/kpsUtils'
-import { useSettingsStore } from '../store/settingsStore'
+import { useAuth } from '../components/providers/useAuth'
+import { toKinetixUserProfile } from '../lib/kinetixProfile'
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'PASTE_KEY_HERE'
 const GEMINI_MODEL = 'gemini-2.5-flash-preview-09-2025'
@@ -43,6 +44,7 @@ function buildContents(messages: ChatMessage[]): Array<{ role: string; parts: Ar
 }
 
 export function useChat() {
+  const { profile } = useAuth()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -66,7 +68,10 @@ export function useChat() {
     setError(null)
 
     try {
-      const { userProfile } = useSettingsStore.getState()
+      if (!profile) {
+        throw new Error('Platform profile is required')
+      }
+      const userProfile = toKinetixUserProfile(profile)
       const pbRun = await getPBRun()
       const ragContext = await getCoachContext(trimmed, userProfile, pbRun)
       const systemInstruction =
@@ -113,7 +118,7 @@ export function useChat() {
     } finally {
       setIsLoading(false)
     }
-  }, [messages])
+  }, [messages, profile])
 
   const clearChat = useCallback(() => {
     setMessages([])

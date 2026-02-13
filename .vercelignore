@@ -1,0 +1,26 @@
+# Dependencies (installed on Vercel)
+node_modules
+
+# Archive and legacy (not needed for build)
+archive
+
+# Large assets
+*.zip
+garmin.zip
+garmin-runs.json
+
+# Build outputs (Vercel builds fresh)
+dist
+build
+*.local
+
+# Git and IDE
+.git
+.vercel
+
+# Tests and coverage
+coverage
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx

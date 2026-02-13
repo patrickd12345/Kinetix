@@ -13,6 +13,10 @@
     {
       "source": "/api/strava-oauth",
       "destination": "/api/strava-oauth"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [

@@ -20,6 +20,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: No local ai-core guard
+        run: node scripts/check-no-local-ai-core.mjs
+        working-directory: .
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

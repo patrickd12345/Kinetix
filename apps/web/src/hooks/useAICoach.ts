@@ -1,25 +1,6 @@
 /// <reference types="vite/client" />
 import { useState } from 'react'
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'PASTE_KEY_HERE'
-
-const GEMINI_KEY_HELP = 'Get a free API key at https://aistudio.google.com/apikey and set VITE_GEMINI_API_KEY in apps/web/.env, then restart the dev server.'
-
-function parseGeminiError(status: number, body: string): string {
-  if (status === 400) {
-    try {
-      const data = JSON.parse(body)
-      const reason = data?.error?.details?.[0]?.reason ?? ''
-      const msg = data?.error?.message ?? ''
-      if (reason === 'API_KEY_INVALID' || msg.includes('API key not valid')) return GEMINI_KEY_HELP
-      return msg || body
-    } catch {
-      return body || `Request failed (${status})`
-    }
-  }
-  return body || `Request failed (${status})`
-}
-
 export interface AIResult {
   title: string
   insight: string
@@ -38,11 +19,6 @@ export function useAICoach() {
     duration: number,
     heartRate?: number
   ) => {
-    if (!GEMINI_API_KEY || GEMINI_API_KEY.includes('PASTE')) {
-      setError(GEMINI_KEY_HELP)
-      return
-    }
-
     setIsAnalyzing(true)
     setError(null)
     setAiResult(null)
@@ -63,25 +39,19 @@ Provide a JSON response with:
 }`
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: 'application/json' },
-          }),
-        }
-      )
+      const response = await fetch('/api/ai-coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
 
-      const bodyText = await response.text()
       if (!response.ok) {
-        throw new Error(parseGeminiError(response.status, bodyText))
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(errBody.error || 'Failed to analyze run')
       }
 
-      const data = JSON.parse(bodyText)
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+      const data = await response.json()
+      const text = data.text
 
       if (text) {
         try {

@@ -1,5 +1,7 @@
 # Kinetix RAG Service (`apps/rag`)
 
+**Platform Spine Compliance:** This app does not implement auth or billing; it relies on the platform layer. See [SPINE_CONTRACT.md](../../../SPINE_CONTRACT.md) at the workspace root.
+
 RAG (Retrieval Augmented Generation) backend used by `apps/web` for:
 - indexing runs (`POST /index`)
 - finding similar runs (`POST /similar`)

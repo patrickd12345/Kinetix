@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../../lib/supabaseClient'
+import { supabase, SUPABASE_CONFIG_ERROR } from '../../lib/supabaseClient'
 import {
   fetchPlatformProfile,
   hasActiveEntitlementForUser,
@@ -19,6 +19,7 @@ interface ResolveAccessResult {
 }
 
 async function resolveAccess(userId: string): Promise<ResolveAccessResult> {
+  if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
   const profile = await fetchPlatformProfile(supabase, userId)
 
   if (!profile) {
@@ -79,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const refresh = useCallback(async () => {
+    if (!supabase) return
     const { data, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) {
       setStatus('error')
@@ -89,9 +91,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [hydrateFromSession])
 
   useEffect(() => {
+    if (!supabase) {
+      setStatus('error')
+      setError(SUPABASE_CONFIG_ERROR)
+      return
+    }
+    const client = supabase
     let mounted = true
     const init = async () => {
-      const { data, error: sessionError } = await supabase.auth.getSession()
+      const { data, error: sessionError } = await client.auth.getSession()
       if (!mounted) return
       if (sessionError) {
         setStatus('error')
@@ -104,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     init()
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = client.auth.onAuthStateChange((_event, nextSession) => {
       void hydrateFromSession(nextSession)
     })
 
@@ -115,11 +123,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [hydrateFromSession])
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
+    if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     if (signInError) throw signInError
   }, [])
 
   const signOut = useCallback(async () => {
+    if (!supabase) return
     const { error: signOutError } = await supabase.auth.signOut()
     if (signOutError) throw signOutError
   }, [])

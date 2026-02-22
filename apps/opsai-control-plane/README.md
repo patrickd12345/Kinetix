@@ -1,5 +1,7 @@
 # OpsAI Control Plane
 
+**Platform Spine Compliance:** All cross-cutting concerns (auth, billing) are enforced at the platform layer. See [SPINE_CONTRACT.md](../../../SPINE_CONTRACT.md) at the workspace root.
+
 This control plane surfaces the OpsAI autonomy, Sentry integration, and simulation harness built in the `web/src/ops` workspace.
 
 ## Panels

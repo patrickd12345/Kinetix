@@ -254,6 +254,14 @@ For detailed feature lists and comparisons across platforms:
 - **[Web App Features](FEATURES_WEB.md)** - Complete list of web app features
 - **[Feature Comparison](FEATURES_COMPARISON.md)** - Cross-platform feature comparison
 
+## Platform Spine Compliance
+
+Kinetix complies with the **Platform Spine** architectural contract. All cross-cutting concerns (identity, billing, Stripe) are enforced at the platform layer.
+
+- See **[SPINE_CONTRACT.md](../SPINE_CONTRACT.md)** at the workspace root for the full contract (identity, billing, schema isolation, lifecycle guards).
+- Auth and billing are never app-scoped; this app uses `platform.profiles` and platform entitlements only.
+- Run `pnpm spine:audit` from the workspace root to validate compliance locally; CI runs the same check on PR and push to main.
+
 ## 📝 License
 
 Proprietary / Personal Use.

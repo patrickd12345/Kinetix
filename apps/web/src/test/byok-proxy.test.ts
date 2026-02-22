@@ -2,11 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import chatHandler from '../../api/ai-chat'
 
-const executeAIMock = vi.fn(async () => ({ text: 'ok', raw: {} }))
-
-vi.mock('@bookiji/ai-core', () => ({
-  executeAI: executeAIMock,
+const { executeAIMock } = vi.hoisted(() => ({
+  executeAIMock: vi.fn(async () => ({ text: 'ok', raw: {} })),
 }))
+
+vi.mock('@bookiji/ai-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@bookiji/ai-core')>()
+  return { ...actual, executeAI: executeAIMock }
+})
 
 type MockRes = VercelResponse & { body?: any; headers: Record<string, any>; statusCode?: number }
 

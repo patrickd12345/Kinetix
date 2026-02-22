@@ -19,6 +19,13 @@ module.exports = {
     'plugin:react-hooks/recommended',
   ],
   ignorePatterns: ['dist', 'node_modules', 'api', 'scripts'],
+  overrides: [
+    {
+      files: ['src/test/**/*.ts', 'src/test/**/*.tsx'],
+      parserOptions: { project: null },
+      rules: { '@typescript-eslint/no-explicit-any': 'off' },
+    },
+  ],
   rules: {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     '@typescript-eslint/no-explicit-any': 'off',

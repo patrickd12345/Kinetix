@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+export type WeightSource = 'profile' | 'withings'
+
+export interface WithingsCredentials {
+  accessToken: string
+  refreshToken: string
+  userId: string
+  expiresAt: number
+}
+
 interface SettingsState {
   targetKPS: number
   setTargetKPS: (kps: number) => void
@@ -10,6 +19,12 @@ interface SettingsState {
   setPhysioMode: (enabled: boolean) => void
   stravaToken: string
   setStravaToken: (token: string) => void
+  weightSource: WeightSource
+  setWeightSource: (source: WeightSource) => void
+  withingsCredentials: WithingsCredentials | null
+  setWithingsCredentials: (creds: WithingsCredentials | null) => void
+  lastWithingsWeightKg: number
+  setLastWithingsWeightKg: (kg: number) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -26,6 +41,15 @@ export const useSettingsStore = create<SettingsState>()(
 
       stravaToken: '',
       setStravaToken: (token) => set({ stravaToken: token }),
+
+      weightSource: 'profile',
+      setWeightSource: (source) => set({ weightSource: source }),
+
+      withingsCredentials: null,
+      setWithingsCredentials: (creds) => set({ withingsCredentials: creds }),
+
+      lastWithingsWeightKg: 0,
+      setLastWithingsWeightKg: (kg) => set({ lastWithingsWeightKg: kg }),
     }),
     {
       name: 'kinetix-settings',
@@ -34,6 +58,7 @@ export const useSettingsStore = create<SettingsState>()(
         if (!p) return current
         const out: SettingsState = { ...current, ...p }
         if (p.targetNPI !== undefined) out.targetKPS = p.targetNPI
+        if (p.withingsCredentials && typeof p.withingsCredentials.expiresAt === 'number') out.withingsCredentials = p.withingsCredentials
         return out
       },
     }

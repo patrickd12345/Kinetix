@@ -1,6 +1,7 @@
 import type { UserProfile } from '@kinetix/core'
 import type { PlatformProfileRecord } from './kinetixProfile'
 import { toKinetixUserProfile } from './kinetixProfile'
+import { useSettingsStore } from '../store/settingsStore'
 
 let activePlatformProfile: PlatformProfileRecord | null = null
 
@@ -17,5 +18,10 @@ export function getActiveKinetixUserProfile(): UserProfile {
     throw new Error('Platform profile is required before using Kinetix features.')
   }
 
-  return toKinetixUserProfile(activePlatformProfile)
+  const base = toKinetixUserProfile(activePlatformProfile)
+  const { weightSource, lastWithingsWeightKg } = useSettingsStore.getState()
+  if (weightSource === 'withings' && lastWithingsWeightKg > 0) {
+    return { ...base, weightKg: lastWithingsWeightKg }
+  }
+  return base
 }

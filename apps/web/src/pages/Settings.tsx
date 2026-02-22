@@ -4,6 +4,8 @@ import { fetchStravaActivities, convertStravaToRunRecord } from '../lib/strava'
 import { db, RunRecord } from '../lib/database'
 import { useState, useEffect, useRef } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
+import { useWithingsAuth } from '../hooks/useWithingsAuth'
+import { getWithingsWeight } from '../lib/withings'
 import { importGarminFromZipFile } from '../lib/garminImport'
 import { convertGarminToRunRecord } from '../lib/garmin'
 import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
@@ -20,6 +22,12 @@ export default function Settings() {
     setPhysioMode,
     stravaToken,
     setStravaToken,
+    weightSource,
+    setWeightSource,
+    withingsCredentials,
+    setWithingsCredentials,
+    lastWithingsWeightKg,
+    setLastWithingsWeightKg,
   } = useSettingsStore()
   const { profile, session } = useAuth()
   if (!profile) {
@@ -33,28 +41,50 @@ export default function Settings() {
   const [reindexMessage, setReindexMessage] = useState<string | null>(null)
   const garminZipInputRef = useRef<HTMLInputElement>(null)
   const { initiateOAuth, handleOAuthCallback } = useStravaAuth()
+  const { initiateOAuth: initiateWithingsOAuth, handleOAuthCallback: handleWithingsCallback, disconnect: disconnectWithings } = useWithingsAuth()
+  const [withingsRefreshing, setWithingsRefreshing] = useState(false)
 
-  // Handle OAuth callback
+  // Handle OAuth callback (Strava vs Withings by state param)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const code = urlParams.get('code')
     const error = urlParams.get('error')
+    const state = urlParams.get('state')
 
     if (error) {
       setImportMessage(`Error: ${error}`)
       return
     }
 
-    if (code) {
-      handleOAuthCallback(code)
-        .then(() => {
-          setImportMessage('Successfully connected to Strava!')
+    if (!code) return
+
+    if (state === 'withings') {
+      handleWithingsCallback(code)
+        .then(async () => {
+          setImportMessage('Withings connected. Fetching latest weight…')
+          const creds = useSettingsStore.getState().withingsCredentials
+          if (creds) {
+            const kg = await getWithingsWeight(creds, (c) => useSettingsStore.getState().setWithingsCredentials(c))
+            if (kg != null) useSettingsStore.getState().setLastWithingsWeightKg(kg)
+            setImportMessage(kg != null ? `Withings connected. Weight: ${kg.toFixed(1)} kg` : 'Withings connected. No weight data yet.')
+          } else {
+            setImportMessage('Withings connected.')
+          }
         })
         .catch((err) => {
-          setImportMessage(`Error connecting to Strava: ${err.message}`)
+          setImportMessage(`Error connecting to Withings: ${err.message}`)
         })
+      return
     }
-  }, [handleOAuthCallback])
+
+    handleOAuthCallback(code)
+      .then(() => {
+        setImportMessage('Successfully connected to Strava!')
+      })
+      .catch((err) => {
+        setImportMessage(`Error connecting to Strava: ${err.message}`)
+      })
+  }, [handleOAuthCallback, handleWithingsCallback])
 
   return (
     <div className="pb-20 lg:pb-4">
@@ -77,6 +107,84 @@ export default function Settings() {
             />
           </div>
           
+          <div>
+            <label className="block text-sm font-medium mb-2">Weight for KPS</label>
+            <div className="flex flex-wrap items-center gap-3 mb-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="weightSource"
+                  checked={weightSource === 'profile'}
+                  onChange={() => setWeightSource('profile')}
+                  className="rounded"
+                />
+                <span className="text-sm">Platform profile</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="weightSource"
+                  checked={weightSource === 'withings'}
+                  onChange={() => setWeightSource('withings')}
+                  className="rounded"
+                  disabled={!withingsCredentials}
+                />
+                <span className="text-sm">Withings</span>
+              </label>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-gray-900/30 p-3 space-y-2">
+              <div className="text-xs text-gray-400 uppercase">Withings (smart scale)</div>
+              <p className="text-[11px] text-gray-500">
+                Use your latest Withings scale weight for KPS. Connect and we fetch the most recent measurement.
+              </p>
+              {!withingsCredentials ? (
+                <button
+                  type="button"
+                  onClick={() => initiateWithingsOAuth()}
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition"
+                >
+                  Connect Withings
+                </button>
+              ) : (
+                <>
+                  <p className="text-[11px] text-green-400">Connected to Withings</p>
+                  {lastWithingsWeightKg > 0 && (
+                    <p className="text-sm text-white">Latest weight: {lastWithingsWeightKg.toFixed(1)} kg</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={withingsRefreshing}
+                      onClick={async () => {
+                        if (!withingsCredentials) return
+                        setWithingsRefreshing(true)
+                        try {
+                          const kg = await getWithingsWeight(withingsCredentials, setWithingsCredentials)
+                          if (kg != null) setLastWithingsWeightKg(kg)
+                          setImportMessage(kg != null ? `Weight updated: ${kg.toFixed(1)} kg` : 'No weight data from Withings.')
+                        } catch (e) {
+                          setImportMessage(`Error: ${e instanceof Error ? e.message : 'Failed to fetch weight'}`)
+                        } finally {
+                          setWithingsRefreshing(false)
+                        }
+                      }}
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition disabled:opacity-50"
+                    >
+                      {withingsRefreshing ? 'Refreshing…' : 'Refresh weight'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => disconnectWithings()}
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-2">Unit System</label>
             <select

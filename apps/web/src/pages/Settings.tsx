@@ -31,7 +31,18 @@ export default function Settings() {
   } = useSettingsStore()
   const { profile, session } = useAuth()
   if (!profile) {
-    throw new Error('Platform profile is required')
+    return (
+      <div className="pb-20 lg:pb-4">
+        <div className="max-w-md lg:max-w-2xl mx-auto">
+          <div className="glass rounded-2xl border border-yellow-500/30 p-6 space-y-2">
+            <h1 className="text-lg font-bold text-yellow-300">Loading profile...</h1>
+            <p className="text-sm text-gray-300">
+              Your platform profile is still loading. If this persists, refresh the page.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
   const userProfile = toKinetixUserProfile(profile)
   const profileLabel = getProfileLabel(profile, session?.user.email ?? null)

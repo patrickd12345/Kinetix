@@ -76,7 +76,7 @@
 - ❌ **Map Visualization**: Route data collected but not visualized on map
 - ❌ **Export/Share Runs**: Cannot export to GPX/TCX or share
 - ❌ **Battery Profiles**: No battery management (not applicable for web)
-- ❌ **Activity Presets**: No workout presets (MeBeatMe, Race Mode, etc.)
+- ❌ **Activity Presets**: No workout presets (Kinetix, Race Mode, etc.)
 - ❌ **Watch Connectivity**: Cannot connect to Apple Watch
 - ❌ **Voice Coaching**: No text-to-speech or voice alerts
 - ❌ **Haptic Feedback**: No haptic feedback (browser limitation)

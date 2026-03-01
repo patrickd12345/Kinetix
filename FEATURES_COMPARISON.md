@@ -86,7 +86,7 @@
 ### Workout Features
 
 #### Activity Presets
-- **Watch**: ✅ MeBeatMe, Race Mode, Burner, Form Monitor, Custom
+- **Watch**: ✅ Kinetix, Race Mode, Burner, Form Monitor, Custom
 - **Phone**: ✅ Creates and syncs presets to Watch
 - **Web**: ❌ Not available
 

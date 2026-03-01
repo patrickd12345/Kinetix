@@ -1,5 +1,7 @@
 # Kinetix deployment troubleshooting
 
+Use **patrickd12345/Kinetix** and the **kinetix** Vercel project.
+
 If Kinetix (Vercel) has not deployed since a certain date, check the following.
 
 ## 1. Vercel dashboard
@@ -11,11 +13,28 @@ If Kinetix (Vercel) has not deployed since a certain date, check the following.
   - `pnpm install` or `pnpm run build` failing (e.g. Node/pnpm version, lockfile mismatch).
   - `outputDirectory` in `vercel.json` does not match the actual build output (e.g. `apps/web/dist`).
 
-## 2. Branch and Git connection
+## 2. Branch and Git connection (auto-deploy on push)
 
-- In Vercel: **Settings → Git** and confirm which branch is the **Production Branch** (often `main`).
-- Ensure you push to that branch: `git push origin main` (or your production branch). Pushes to other branches create preview deployments only.
-- If the repo was renamed or the Vercel project was recreated, reconnect the repo in Vercel (Settings → Git → Connect Git Repository).
+Deployment is triggered automatically when you push to the **production branch** only if the project is connected to Git in Vercel.
+
+**Check that auto-deploy is enabled:**
+
+1. **Vercel** → **Kinetix** project → **Settings** → **Git**.
+2. Confirm **Connected Git Repository** shows your repo (e.g. `patrickd12345/Kinetix` or your org/repo). If it says "No Git repository connected", connect it (Connect Git Repository).
+3. Note the **Production Branch** (e.g. `main`). Only pushes to this branch create production deployments and update kinetix.bookiji.com; other branches get preview URLs only.
+4. **Quick test:** From the repo run `git push origin main` (or your production branch) with a small commit (e.g. a doc edit). Within a couple of minutes, **Deployments** should list a new deployment for that commit. If nothing appears, Git integration is missing or the push was to a different branch.
+
+### Check via CLI / script (no dashboard)
+
+From the repo root, run:
+
+```bash
+node scripts/vercel-project-git-check.mjs
+```
+
+Uses your Vercel CLI login (after `vercel login`) or `VERCEL_TOKEN`. Prints whether Git is connected, the repo (e.g. `org/repo`), and the production branch. No dashboard needed.
+
+Optional: `vercel project inspect kinetix` (project id, root dir, Node version) and `vercel list kinetix` (recent deployments).
 
 ## 3. CI workflow (GitHub Actions)
 
@@ -38,6 +57,7 @@ If these fail locally, Vercel will usually fail too. Fix locally then push.
 
 | Check | Where |
 |-------|--------|
+| Auto-deploy on push (Git connected, production branch) | Vercel → Settings → Git |
 | Recent deployments for your branch | Vercel → Project → Deployments |
 | Build error logs | Vercel → Click a failed deployment → Build log |
 | Production branch name | Vercel → Settings → Git |

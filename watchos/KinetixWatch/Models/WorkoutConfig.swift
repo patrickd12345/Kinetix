@@ -80,13 +80,26 @@ public struct BatterySettings: Codable {
 // MARK: - WORKOUT PRESETS
 
 public enum PresetType: String, Codable, CaseIterable, Identifiable {
-    case meBeatMe = "MeBeatMe"
+    case kinetix = "Kinetix"
     case race = "Race Mode"
     case burner = "Burner"
     case formMonitor = "Form Monitor"
     case custom = "Custom"
-    
+
     public var id: String { rawValue }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        // Legacy: decode old stored preset type (pre-rename)
+        if raw == "MeBeatMe" {
+            self = .kinetix
+        } else if let value = PresetType(rawValue: raw) {
+            self = value
+        } else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid PresetType: \(raw)")
+        }
+    }
 }
 
 @Model
@@ -113,7 +126,7 @@ final class WorkoutPreset {
     
     static func builtInPresets() -> [WorkoutPreset] {
         return [
-            WorkoutPreset(id: "preset_mebeatme", name: "MeBeatMe", type: .meBeatMe, targetNPI: 135, batteryProfile: .aggressive, metrics: ["npi", "pace", "projected_time"], audio: true),
+            WorkoutPreset(id: "preset_kinetix", name: "Kinetix", type: .kinetix, targetNPI: 135, batteryProfile: .aggressive, metrics: ["npi", "pace", "projected_time"], audio: true),
             WorkoutPreset(id: "preset_race", name: "Race Mode", type: .race, targetNPI: 150, batteryProfile: .balanced, metrics: ["pace", "dist", "time"], audio: true),
             WorkoutPreset(id: "preset_burner", name: "Burner", type: .burner, targetNPI: 120, batteryProfile: .eco, metrics: ["hr", "cal", "time"], audio: false),
             WorkoutPreset(id: "preset_form_monitor", name: "Form Monitor", type: .formMonitor, targetNPI: 0, batteryProfile: .balanced, metrics: ["form", "symmetry", "instability"], audio: true)

@@ -8,8 +8,14 @@ const supabaseAnonKey =
   import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
   import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
-export const SUPABASE_CONFIG_ERROR =
-  'Missing Supabase env. In apps/web/.env.local set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or NEXT_PUBLIC_* equivalents), then restart the dev server.'
+function getSupabaseConfigError(): string {
+  if (import.meta.env.DEV) {
+    return 'Missing Supabase env. In apps/web/.env.local set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or NEXT_PUBLIC_* equivalents), then restart the dev server.'
+  }
+  return 'Missing Supabase env. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel → Project Settings → Environment Variables (Production), then redeploy.'
+}
+
+export const SUPABASE_CONFIG_ERROR = getSupabaseConfigError()
 
 export const supabase: SupabaseClient | null =
   supabaseUrl && supabaseAnonKey

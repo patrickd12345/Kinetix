@@ -44,22 +44,52 @@ export async function fetchPlatformProfile(
   return (data as PlatformProfileRecord | null) ?? null
 }
 
-export async function hasActiveEntitlementForUser(
+const PGRST_UNDEFINED_COLUMN = '42703'
+
+async function queryEntitlements(
   supabase: SupabaseClient,
-  profileId: string,
-  productKey: string
-): Promise<boolean> {
+  column: string,
+  value: string
+): Promise<{ data: EntitlementRow[]; error: { code?: string; message: string } | null }> {
   const { data, error } = await supabase
     .schema('platform')
     .from('entitlements')
-    .select('status,active,expires_at,ends_at,product,product_key,product_slug')
-    .eq('profile_id', profileId)
+    .select('*')
+    .eq(column, value)
+  return {
+    data: (data ?? []) as EntitlementRow[],
+    error: error as { code?: string; message: string } | null,
+  }
+}
 
-  if (error) {
-    throw new Error(`Failed to load entitlements: ${error.message}`)
+export async function hasActiveEntitlementForUser(
+  supabase: SupabaseClient,
+  profileId: string,
+  productKey: string,
+  /** If provided, used as fallback when entitlements table is keyed by auth user_id instead of profile_id */
+  userId?: string
+): Promise<boolean> {
+  let result = await queryEntitlements(supabase, 'profile_id', profileId)
+
+  if (result.error && userId) {
+    result = await queryEntitlements(supabase, 'user_id', userId)
   }
 
-  const rows = (data ?? []) as EntitlementRow[]
+  if (result.error) {
+    const err = result.error
+    if (err.code === PGRST_UNDEFINED_COLUMN || (err.message && /does not exist/i.test(err.message))) {
+      console.warn(
+        '[platformAuth] Entitlements table schema mismatch (e.g. missing profile_id/user_id):',
+        err.message
+      )
+      return false
+    }
+    throw new Error(
+      `Failed to load entitlements: ${err.message}${err.code ? ` (${err.code})` : ''}`
+    )
+  }
+
+  const rows = result.data
   return rows.some((row) => {
     const key = row.product_key ?? row.product_slug ?? row.product
     return key === productKey && isEntitlementActive(row)

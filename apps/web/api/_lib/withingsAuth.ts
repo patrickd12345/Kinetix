@@ -2,11 +2,11 @@
  * Withings OAuth2: getnonce + signed requesttoken.
  * Token endpoint: POST form-urlencoded to https://wbsapi.withings.net/v2/oauth2
  */
+import crypto from 'node:crypto'
 
 const WITHINGS_API = 'https://wbsapi.withings.net'
 
 function hmacSha256Base64(key: string, message: string): string {
-  import crypto from 'node:crypto'
   return crypto.createHmac('sha256', key).update(message, 'utf8').digest('base64')
 }
 

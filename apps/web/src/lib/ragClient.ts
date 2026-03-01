@@ -100,6 +100,51 @@ async function checkRAGAvailable(): Promise<boolean> {
   return base !== null
 }
 
+/**
+ * Fetch the set of run ids already indexed in RAG. Returns empty set if service unavailable.
+ */
+export async function getIndexedRunIds(): Promise<Set<string>> {
+  try {
+    const base = await getRAGBaseUrl()
+    if (!base) return new Set()
+    const res = await fetch(`${base}/indexed-ids`, { signal: AbortSignal.timeout(5000) })
+    if (!res.ok) return new Set()
+    const data = (await res.json()) as { ids?: string[] }
+    const ids = Array.isArray(data.ids) ? data.ids : []
+    return new Set(ids.map((id) => String(id)))
+  } catch {
+    return new Set()
+  }
+}
+
+function runToRagId(run: RunRecord): string {
+  const id = run.id ?? run.external_id ?? `run-${run.date}-${run.distance}`
+  return String(id)
+}
+
+/**
+ * Sync only runs that are not yet in RAG (differential). Use as the main "Sync" action.
+ */
+export async function syncNewRunsToRAG(
+  runs: RunRecord[],
+  userProfile: UserProfile
+): Promise<{ indexed: number; errors: number; skipped: number }> {
+  const base = await getRAGBaseUrl()
+  if (!base) return { indexed: 0, errors: runs.length, skipped: 0 }
+  const indexedIds = await getIndexedRunIds()
+  const toIndex = runs.filter((run) => !indexedIds.has(runToRagId(run)))
+  let indexed = 0
+  let errors = 0
+  for (const run of toIndex) {
+    const ragRun = runRecordToRAGRun(run, userProfile)
+    const ok = await indexRunInRAG(ragRun)
+    if (ok) indexed += 1
+    else errors += 1
+  }
+  const skipped = runs.length - toIndex.length
+  return { indexed, errors, skipped }
+}
+
 const FALLBACK_CONTEXT =
   "RAG unavailable. No run data. Give general advice only. Do not invent NPI or pace from the user's runs."
 

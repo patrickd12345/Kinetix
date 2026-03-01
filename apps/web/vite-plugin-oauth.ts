@@ -1,29 +1,178 @@
 import type { Plugin } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { loadEnv } from 'vite'
+import {
+  executeAI,
+  BYOK_HEADER_NAME,
+  getByokDecision as coreGetByokDecision,
+  mustRejectByok as coreMustReject,
+  type ByokPolicyConfig,
+} from '@bookiji/ai-core'
+
+const KINETIX_POLICY: ByokPolicyConfig = {
+  allowedSurfaces: [],
+  byokSupported: false,
+  proUsesPlatform: true,
+}
+
+function readByokHeader(headers: Record<string, string | string[] | undefined>): string | null {
+  const v = headers[BYOK_HEADER_NAME.toLowerCase()] ?? headers['x-openai-key']
+  if (typeof v === 'string') return v || null
+  if (Array.isArray(v) && v[0]) return String(v[0])
+  return null
+}
+
+function getByokDecision(surface: string, byokKey: string | null) {
+  return coreGetByokDecision({
+    surface,
+    isPro: false,
+    byokKey,
+    policy: KINETIX_POLICY,
+    mode: (process.env.AI_MODE || '').toLowerCase() === 'local' ? 'local' : 'gateway',
+  })
+}
+
+async function handleAiChat(
+  body: { systemInstruction?: string; contents?: unknown[] },
+  headers: Record<string, string | string[] | undefined>
+): Promise<{ text: string } | { error: string }> {
+  const byokKey = readByokHeader(headers)
+  const decision = getByokDecision('ai-chat', byokKey)
+  if (coreMustReject(decision)) {
+    return { error: 'BYOK is not supported on this endpoint.' }
+  }
+  const { systemInstruction, contents } = body
+  if (!systemInstruction || !contents) {
+    return { error: 'systemInstruction and contents are required.' }
+  }
+  const userContent = Array.isArray(contents)
+    ? contents
+        .map((c: { parts?: { text?: string }[] }) =>
+          Array.isArray(c?.parts)
+            ? c.parts.map((p) => p?.text || '').join('\n').trim()
+            : ''
+        )
+        .filter(Boolean)
+        .join('\n\n')
+    : ''
+  const aiResponse = await executeAI({
+    surface: 'ai-chat',
+    isPro: false,
+    byokKey,
+    policy: KINETIX_POLICY,
+    request: {
+      kind: 'chat',
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.7,
+      maxTokens: 1024,
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: userContent || 'Respond concisely.' },
+      ],
+    },
+  })
+  return { text: aiResponse.text?.trim() || '' }
+}
+
+async function handleAiCoach(
+  body: { prompt?: string },
+  headers: Record<string, string | string[] | undefined>
+): Promise<{ text: string } | { error: string }> {
+  const byokKey = readByokHeader(headers)
+  const decision = getByokDecision('ai-coach', byokKey)
+  if (coreMustReject(decision)) {
+    return { error: 'BYOK is not supported on this endpoint.' }
+  }
+  const prompt = body?.prompt
+  if (!prompt || typeof prompt !== 'string') {
+    return { error: 'prompt is required.' }
+  }
+  const aiResponse = await executeAI({
+    surface: 'ai-coach',
+    isPro: false,
+    byokKey,
+    policy: KINETIX_POLICY,
+    request: {
+      kind: 'chat',
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.7,
+      maxTokens: 400,
+      messages: [
+        { role: 'system', content: 'You are a concise running coach.' },
+        { role: 'user', content: prompt },
+      ],
+    },
+  })
+  return { text: aiResponse.text?.trim() || '' }
+}
+
 import crypto from 'node:crypto'
 
 const WITHINGS_API = 'https://wbsapi.withings.net'
+
+const WITHINGS_RETRY_STATUSES = [502, 503, 504]
+const WITHINGS_RETRY_DELAYS_MS = [1000, 2000, 4000]
 
 function withingsHmac(key: string, message: string): string {
   return crypto.createHmac('sha256', key).update(message, 'utf8').digest('base64')
 }
 
 async function withingsGetNonce(clientId: string, clientSecret: string): Promise<string> {
-  const timestamp = Math.floor(Date.now() / 1000)
-  const toSign = ['getnonce', clientId, String(timestamp)].join(',')
-  const signature = withingsHmac(clientSecret, toSign)
-  const body = new URLSearchParams({ action: 'getnonce', client_id: clientId, timestamp: String(timestamp), signature })
-  const res = await fetch(`${WITHINGS_API}/v2/signature`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  })
-  if (!res.ok) throw new Error(`Withings getnonce: ${res.status}`)
-  const data = await res.json()
-  const nonce = data?.body?.nonce
-  if (!nonce) throw new Error('Withings getnonce: no nonce')
-  return nonce
+  for (let attempt = 0; attempt <= WITHINGS_RETRY_DELAYS_MS.length; attempt++) {
+    const timestamp = Math.floor(Date.now() / 1000)
+    const toSign = ['getnonce', clientId, String(timestamp)].join(',')
+    const signature = withingsHmac(clientSecret, toSign)
+    const body = new URLSearchParams({
+      action: 'getnonce',
+      client_id: clientId,
+      timestamp: String(timestamp),
+      signature,
+    })
+    const res = await fetch(`${WITHINGS_API}/v2/signature`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    })
+    const data = (await res.json().catch(() => ({}))) as {
+      status?: number
+      body?: { nonce?: string; error?: string }
+    }
+    if (!res.ok) {
+      const msg =
+        data?.body?.error ?? (data as { error?: string }).error ?? `Withings getnonce: ${res.status}`
+      throw new Error(String(msg))
+    }
+    if (data?.status !== undefined && data.status !== 0) {
+      const retryable = WITHINGS_RETRY_STATUSES.includes(data.status)
+      if (retryable && attempt < WITHINGS_RETRY_DELAYS_MS.length) {
+        await new Promise((r) => setTimeout(r, WITHINGS_RETRY_DELAYS_MS[attempt]))
+        continue
+      }
+      if (data.status === 503 || data.status === 502 || data.status === 504) {
+        throw new Error(
+          'Withings service is temporarily unavailable. Please try again in a few minutes.'
+        )
+      }
+      const msg = data?.body?.error ?? `Withings getnonce failed (status ${data.status})`
+      throw new Error(String(msg))
+    }
+    const nonce = data?.body?.nonce
+    if (!nonce) {
+      const errFromBody = data?.body?.error
+      const hint = errFromBody
+        ? String(errFromBody)
+        : `Withings getnonce: no nonce (status=${data?.status ?? '?'}, body keys=${
+            data?.body && typeof data.body === 'object'
+              ? Object.keys(data.body).join(',') || 'none'
+              : '?'
+          }). Check client_id and client_secret in .env.local.`
+      throw new Error(hint)
+    }
+    return nonce
+  }
+  throw new Error(
+    'Withings service is temporarily unavailable. Please try again in a few minutes.'
+  )
 }
 
 async function withingsRequestToken(
@@ -39,9 +188,17 @@ async function withingsRequestToken(
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
   })
-  if (!res.ok) throw new Error(`Withings requesttoken: ${res.status}`)
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}))
+    const msg =
+      errBody?.body?.error ?? errBody?.error ?? `Withings requesttoken: ${res.status}`
+    throw new Error(String(msg))
+  }
   const data = await res.json()
-  if (data?.status !== 0 || !data?.body?.access_token) throw new Error(data?.body?.error ?? 'Withings token error')
+  if (data?.status !== 0 || !data?.body?.access_token) {
+    const msg = data?.body?.error ?? data?.error ?? 'Withings token error'
+    throw new Error(String(msg))
+  }
   return {
     access_token: data.body.access_token,
     refresh_token: data.body.refresh_token,
@@ -75,7 +232,7 @@ async function handleWithingsOAuthRequest(req: IncomingMessage, res: ServerRespo
       }
       const clientId = env.VITE_WITHINGS_CLIENT_ID || env.WITHINGS_CLIENT_ID || process.env.VITE_WITHINGS_CLIENT_ID || process.env.WITHINGS_CLIENT_ID
       const clientSecret = env.WITHINGS_CLIENT_SECRET || process.env.WITHINGS_CLIENT_SECRET
-      const redirectUri = redirect_uri || `${req.headers.origin || 'http://localhost:5173'}/settings`
+      const redirectUri = (redirect_uri || `${req.headers.origin || 'http://localhost:5173'}/settings`).replace(/\/$/, '')
       if (!clientId || !clientSecret) {
         res.writeHead(500, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Withings not configured. Set VITE_WITHINGS_CLIENT_ID and WITHINGS_CLIENT_SECRET in .env.local' }))
@@ -96,9 +253,11 @@ async function handleWithingsOAuthRequest(req: IncomingMessage, res: ServerRespo
         expires_in: result.expires_in,
       }))
     } catch (e) {
-      console.error('[OAuth Local] Withings', e)
-      res.writeHead(500, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: e instanceof Error ? e.message : 'Withings OAuth failed' }))
+      const message = e instanceof Error ? e.message : 'Withings OAuth failed'
+      console.error('[OAuth Local] Withings', message, e)
+      const status = message.includes('not configured') || message.includes('required') ? 500 : 400
+      res.writeHead(status, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: message }))
     }
   })
 }
@@ -272,6 +431,115 @@ export function vitePluginOAuth(): Plugin {
       })
       server.middlewares.use('/api/withings-refresh', (req, res, next) => {
         handleWithingsRefreshRequest(req, res, mergedEnv).catch(next)
+      })
+
+      server.middlewares.use('/api/ai-chat', (req, res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*')
+        res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-openai-key')
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200).end()
+          return
+        }
+        if (req.method !== 'POST') {
+          res.writeHead(405, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+        let body = ''
+        req.on('data', (chunk) => { body += chunk.toString() })
+        req.on('end', () => {
+          let parsed: { systemInstruction?: string; contents?: unknown[] }
+          try {
+            parsed = body ? (JSON.parse(body) as { systemInstruction?: string; contents?: unknown[] }) : {}
+          } catch {
+            res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Invalid JSON body' }))
+            return
+          }
+          Object.assign(process.env, mergedEnv)
+          const useLocalAI =
+            !mergedEnv.VERCEL_AI_GATEWAY_ID &&
+            !mergedEnv.VERCEL_VIRTUAL_KEY &&
+            (mergedEnv.OPENAI_API_KEY ||
+              mergedEnv.AI_PROVIDER === 'ollama' ||
+              mergedEnv.OLLAMA_BASE_URL)
+          if (useLocalAI) {
+            process.env.AI_MODE = 'local'
+            if (mergedEnv.OLLAMA_MODEL) {
+              process.env.OPENAI_MODEL = mergedEnv.OLLAMA_MODEL
+            }
+          }
+          const headers: Record<string, string | string[] | undefined> = {}
+          for (const [k, v] of Object.entries(req.headers)) {
+            if (v !== undefined) headers[k.toLowerCase()] = v
+          }
+          handleAiChat(parsed, headers)
+            .then((out) => {
+              if ('error' in out) {
+                res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify(out))
+              } else {
+                res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(out))
+              }
+            })
+            .catch((err: Error & { status?: number }) => {
+              console.error('[vite api] ai-chat', err)
+              const message = err?.message || 'Failed to complete AI request.'
+              res.writeHead(err?.status ?? 500, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: message }))
+            })
+        })
+      })
+      server.middlewares.use('/api/ai-coach', (req, res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*')
+        res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-openai-key')
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200).end()
+          return
+        }
+        if (req.method !== 'POST') {
+          res.writeHead(405, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+        let body = ''
+        req.on('data', (chunk) => { body += chunk.toString() })
+        req.on('end', () => {
+          let parsed: { prompt?: string }
+          try {
+            parsed = body ? (JSON.parse(body) as { prompt?: string }) : {}
+          } catch {
+            res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Invalid JSON body' }))
+            return
+          }
+          Object.assign(process.env, mergedEnv)
+          const useLocalAI =
+            !mergedEnv.VERCEL_AI_GATEWAY_ID &&
+            !mergedEnv.VERCEL_VIRTUAL_KEY &&
+            (mergedEnv.OPENAI_API_KEY ||
+              mergedEnv.AI_PROVIDER === 'ollama' ||
+              mergedEnv.OLLAMA_BASE_URL)
+          if (useLocalAI) {
+            process.env.AI_MODE = 'local'
+            if (mergedEnv.OLLAMA_MODEL) {
+              process.env.OPENAI_MODEL = mergedEnv.OLLAMA_MODEL
+            }
+          }
+          const headers: Record<string, string | string[] | undefined> = {}
+          for (const [k, v] of Object.entries(req.headers)) {
+            if (v !== undefined) headers[k.toLowerCase()] = v
+          }
+          handleAiCoach(parsed, headers)
+            .then((out) => {
+              if ('error' in out) {
+                res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify(out))
+              } else {
+                res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(out))
+              }
+            })
+            .catch((err: Error & { status?: number }) => {
+              console.error('[vite api] ai-coach', err)
+              const message = err?.message || 'Failed to complete AI request.'
+              res.writeHead(err?.status ?? 500, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: message }))
+            })
+        })
       })
     },
   }

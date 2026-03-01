@@ -10,6 +10,7 @@ export interface AuthContextValue {
   profile: PlatformProfileRecord | null
   error: string | null
   signInWithPassword: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   refresh: () => Promise<void>
 }

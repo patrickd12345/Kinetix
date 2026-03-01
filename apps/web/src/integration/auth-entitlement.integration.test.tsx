@@ -23,6 +23,10 @@ const mockState = vi.hoisted(() => {
         state.session = { user: { id: 'profile-1', email } }
         return { data: { session: state.session }, error: null }
       }),
+      signUp: vi.fn(async ({ email }: { email: string; password: string }) => {
+        state.session = { user: { id: 'profile-1', email } }
+        return { data: { session: state.session }, error: null }
+      }),
       signOut: vi.fn(async () => {
         state.session = null
         return { error: null }

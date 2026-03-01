@@ -260,7 +260,7 @@ export default function History() {
                       </div>
                       <div className="text-right ml-4">
                         <div className="text-2xl font-black text-cyan-400">
-                          {Math.round(relativeKPS)}
+                          {Number.isFinite(relativeKPS) ? Math.round(relativeKPS) : '–'}
                         </div>
                         <div className="text-xs text-gray-500 uppercase">{KPS_SHORT}</div>
                         <div className="flex gap-2 mt-2 justify-end">

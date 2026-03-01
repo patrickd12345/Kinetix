@@ -25,6 +25,11 @@ module.exports = {
       parserOptions: { project: null },
       rules: { '@typescript-eslint/no-explicit-any': 'off' },
     },
+    {
+      files: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+      parserOptions: { project: null },
+      rules: { '@typescript-eslint/no-explicit-any': 'off' },
+    },
   ],
   rules: {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],

@@ -30,6 +30,10 @@ Service defaults to `http://localhost:3001`.
 - `LLM_MODEL` (default `llama3.2`)
 - `CHROMA_MODE` (`in-memory` or `persistent`)
 - `CHROMA_PATH` (default `./chroma_db`)
+- `CHROMA_SERVER_URL` / `CHROMA_API_URL` (default `http://localhost:8000`) – Chroma server URL (Node client connects here).
+- `CHROMA_AUTO_START` – If not `0` or `false`, the RAG service will try to start Chroma via Docker when it is not already running (only when Chroma URL is localhost). Set to `0` or `false` to disable.
+- `CHROMA_DOCKER_IMAGE` (default `chromadb/chroma`) – Docker image used when auto-starting Chroma.
+- `OLLAMA_AUTO_START` – If not `0` or `false`, the RAG service will try to start Ollama (`ollama serve`) when it is not already running (only when Ollama URL is localhost). Requires Ollama on PATH. Set to `0` or `false` to disable.
 
 ## API
 

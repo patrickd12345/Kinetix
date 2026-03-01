@@ -32,7 +32,12 @@ async function resolveAccess(userId: string): Promise<ResolveAccessResult> {
   }
 
   setActivePlatformProfile(profile)
-  const entitled = await hasActiveEntitlementForUser(supabase, profile.id, KINETIX_PRODUCT_KEY)
+  const entitled = await hasActiveEntitlementForUser(
+    supabase,
+    profile.id,
+    KINETIX_PRODUCT_KEY,
+    userId
+  )
   if (!entitled) {
     return {
       status: 'forbidden',
@@ -128,6 +133,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (signInError) throw signInError
   }, [])
 
+  const signUp = useCallback(async (email: string, password: string) => {
+    if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
+    const { error: signUpError } = await supabase.auth.signUp({ email, password })
+    if (signUpError) throw signUpError
+  }, [])
+
   const signOut = useCallback(async () => {
     if (!supabase) return
     const { error: signOutError } = await supabase.auth.signOut()
@@ -141,10 +152,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       error,
       signInWithPassword,
+      signUp,
       signOut,
       refresh,
     }),
-    [status, session, profile, error, signInWithPassword, signOut, refresh]
+    [status, session, profile, error, signInWithPassword, signUp, signOut, refresh]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

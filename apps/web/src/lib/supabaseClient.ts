@@ -1,11 +1,15 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? import.meta.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ??
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ?? import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  import.meta.env.VITE_SUPABASE_ANON_KEY ??
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+  import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
 export const SUPABASE_CONFIG_ERROR =
-  'Missing Supabase env. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local (or NEXT_PUBLIC_* equivalents).'
+  'Missing Supabase env. In apps/web/.env.local set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or NEXT_PUBLIC_* equivalents), then restart the dev server.'
 
 export const supabase: SupabaseClient | null =
   supabaseUrl && supabaseAnonKey

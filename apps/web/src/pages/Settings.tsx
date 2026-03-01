@@ -44,7 +44,7 @@ export default function Settings() {
   const { initiateOAuth: initiateWithingsOAuth, handleOAuthCallback: handleWithingsCallback, disconnect: disconnectWithings } = useWithingsAuth()
   const [withingsRefreshing, setWithingsRefreshing] = useState(false)
 
-  // Handle OAuth callback (Strava vs Withings by state param)
+  // Handle OAuth callback (Strava vs Withings by state param). Use sessionStorage so we only exchange the code once (survives React Strict Mode double-mount).
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const code = urlParams.get('code')
@@ -57,6 +57,10 @@ export default function Settings() {
     }
 
     if (!code) return
+
+    const storageKey = state === 'withings' ? 'withings_oauth_code' : 'strava_oauth_code'
+    if (sessionStorage.getItem(storageKey) === code) return
+    sessionStorage.setItem(storageKey, code)
 
     if (state === 'withings') {
       handleWithingsCallback(code)
@@ -73,6 +77,7 @@ export default function Settings() {
         })
         .catch((err) => {
           setImportMessage(`Error connecting to Withings: ${err.message}`)
+          sessionStorage.removeItem(storageKey)
         })
       return
     }
@@ -83,6 +88,7 @@ export default function Settings() {
       })
       .catch((err) => {
         setImportMessage(`Error connecting to Strava: ${err.message}`)
+        sessionStorage.removeItem(storageKey)
       })
   }, [handleOAuthCallback, handleWithingsCallback])
 
@@ -357,7 +363,7 @@ export default function Settings() {
           <div className="space-y-3">
             <div className="text-xs text-gray-400 uppercase">RAG (coach context)</div>
             <p className="text-[11px] text-gray-500 mb-2">
-              Index all your runs into RAG so the coach chat can use them. Run this if the coach has no run data.
+              New runs are synced to RAG automatically on app start. Use “Reindex all” only to repair or after clearing RAG.
             </p>
             <button
               type="button"

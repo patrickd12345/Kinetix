@@ -5,6 +5,8 @@ import { vitePluginOAuth } from './vite-plugin-oauth'
 
 export default defineConfig({
   plugins: [react(), vitePluginOAuth()],
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
+  envDir: __dirname,
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

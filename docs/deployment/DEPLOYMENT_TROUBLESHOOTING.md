@@ -12,6 +12,7 @@ If Kinetix (Vercel) has not deployed since a certain date, check the following.
   - Missing or wrong env vars (e.g. Supabase, Stripe).
   - `pnpm install` or `pnpm run build` failing (e.g. Node/pnpm version, lockfile mismatch).
   - `outputDirectory` in `vercel.json` does not match the actual build output (e.g. `apps/web/dist`).
+  - **"Unsupported environment (bad pnpm and/or Node.js version)"**: The repo requires Node 22.x and pnpm >= 8. `vercel.json` uses `corepack enable pnpm` before install so Vercel uses the version from `package.json` → `packageManager`. If it still fails, set in Vercel → Settings → Environment Variables (Build): `ENABLE_EXPERIMENTAL_COREPACK=1`.
 
 ## 2. Branch and Git connection (auto-deploy on push)
 

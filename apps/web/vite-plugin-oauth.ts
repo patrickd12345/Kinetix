@@ -1,36 +1,8 @@
 import type { Plugin } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { loadEnv } from 'vite'
-import {
-  executeAI,
-  BYOK_HEADER_NAME,
-  getByokDecision as coreGetByokDecision,
-  mustRejectByok as coreMustReject,
-  type ByokPolicyConfig,
-} from '@bookiji/ai-core'
-
-const KINETIX_POLICY: ByokPolicyConfig = {
-  allowedSurfaces: [],
-  byokSupported: false,
-  proUsesPlatform: true,
-}
-
-function readByokHeader(headers: Record<string, string | string[] | undefined>): string | null {
-  const v = headers[BYOK_HEADER_NAME.toLowerCase()] ?? headers['x-openai-key']
-  if (typeof v === 'string') return v || null
-  if (Array.isArray(v) && v[0]) return String(v[0])
-  return null
-}
-
-function getByokDecision(surface: string, byokKey: string | null) {
-  return coreGetByokDecision({
-    surface,
-    isPro: false,
-    byokKey,
-    policy: KINETIX_POLICY,
-    mode: (process.env.AI_MODE || '').toLowerCase() === 'local' ? 'local' : 'gateway',
-  })
-}
+import { getByokDecision, mustReject, readByokHeader } from './api/_lib/ai/byok'
+import { getLLMClient } from './api/_lib/ai/llmClient'
 
 async function handleAiChat(
   body: { systemInstruction?: string; contents?: unknown[] },
@@ -38,7 +10,7 @@ async function handleAiChat(
 ): Promise<{ text: string } | { error: string }> {
   const byokKey = readByokHeader(headers)
   const decision = getByokDecision('ai-chat', byokKey)
-  if (coreMustReject(decision)) {
+  if (mustReject(decision)) {
     return { error: 'BYOK is not supported on this endpoint.' }
   }
   const { systemInstruction, contents } = body
@@ -55,23 +27,15 @@ async function handleAiChat(
         .filter(Boolean)
         .join('\n\n')
     : ''
-  const aiResponse = await executeAI({
-    surface: 'ai-chat',
-    isPro: false,
-    byokKey,
-    policy: KINETIX_POLICY,
-    request: {
-      kind: 'chat',
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      temperature: 0.7,
-      maxTokens: 1024,
-      messages: [
-        { role: 'system', content: systemInstruction },
-        { role: 'user', content: userContent || 'Respond concisely.' },
-      ],
-    },
-  })
-  return { text: aiResponse.text?.trim() || '' }
+  const client = getLLMClient()
+  const { text } = await client.executeChat(
+    [
+      { role: 'system', content: systemInstruction },
+      { role: 'user', content: userContent || 'Respond concisely.' },
+    ],
+    { temperature: 0.7, maxTokens: 1024 }
+  )
+  return { text: text?.trim() || '' }
 }
 
 async function handleAiCoach(
@@ -80,30 +44,22 @@ async function handleAiCoach(
 ): Promise<{ text: string } | { error: string }> {
   const byokKey = readByokHeader(headers)
   const decision = getByokDecision('ai-coach', byokKey)
-  if (coreMustReject(decision)) {
+  if (mustReject(decision)) {
     return { error: 'BYOK is not supported on this endpoint.' }
   }
   const prompt = body?.prompt
   if (!prompt || typeof prompt !== 'string') {
     return { error: 'prompt is required.' }
   }
-  const aiResponse = await executeAI({
-    surface: 'ai-coach',
-    isPro: false,
-    byokKey,
-    policy: KINETIX_POLICY,
-    request: {
-      kind: 'chat',
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      temperature: 0.7,
-      maxTokens: 400,
-      messages: [
-        { role: 'system', content: 'You are a concise running coach.' },
-        { role: 'user', content: prompt },
-      ],
-    },
-  })
-  return { text: aiResponse.text?.trim() || '' }
+  const client = getLLMClient()
+  const { text } = await client.executeChat(
+    [
+      { role: 'system', content: 'You are a concise running coach.' },
+      { role: 'user', content: prompt },
+    ],
+    { temperature: 0.7, maxTokens: 400 }
+  )
+  return { text: text?.trim() || '' }
 }
 
 import crypto from 'node:crypto'
@@ -456,18 +412,6 @@ export function vitePluginOAuth(): Plugin {
             return
           }
           Object.assign(process.env, mergedEnv)
-          const useLocalAI =
-            !mergedEnv.VERCEL_AI_GATEWAY_ID &&
-            !mergedEnv.VERCEL_VIRTUAL_KEY &&
-            (mergedEnv.OPENAI_API_KEY ||
-              mergedEnv.AI_PROVIDER === 'ollama' ||
-              mergedEnv.OLLAMA_BASE_URL)
-          if (useLocalAI) {
-            process.env.AI_MODE = 'local'
-            if (mergedEnv.OLLAMA_MODEL) {
-              process.env.OPENAI_MODEL = mergedEnv.OLLAMA_MODEL
-            }
-          }
           const headers: Record<string, string | string[] | undefined> = {}
           for (const [k, v] of Object.entries(req.headers)) {
             if (v !== undefined) headers[k.toLowerCase()] = v
@@ -510,18 +454,6 @@ export function vitePluginOAuth(): Plugin {
             return
           }
           Object.assign(process.env, mergedEnv)
-          const useLocalAI =
-            !mergedEnv.VERCEL_AI_GATEWAY_ID &&
-            !mergedEnv.VERCEL_VIRTUAL_KEY &&
-            (mergedEnv.OPENAI_API_KEY ||
-              mergedEnv.AI_PROVIDER === 'ollama' ||
-              mergedEnv.OLLAMA_BASE_URL)
-          if (useLocalAI) {
-            process.env.AI_MODE = 'local'
-            if (mergedEnv.OLLAMA_MODEL) {
-              process.env.OPENAI_MODEL = mergedEnv.OLLAMA_MODEL
-            }
-          }
           const headers: Record<string, string | string[] | undefined> = {}
           for (const [k, v] of Object.entries(req.headers)) {
             if (v !== undefined) headers[k.toLowerCase()] = v

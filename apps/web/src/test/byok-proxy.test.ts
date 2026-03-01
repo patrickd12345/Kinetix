@@ -2,14 +2,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import chatHandler from '../../api/ai-chat'
 
-const { executeAIMock } = vi.hoisted(() => ({
-  executeAIMock: vi.fn(async () => ({ text: 'ok', raw: {} })),
-}))
+const executeChatMock = vi.hoisted(() =>
+  vi.fn(async () => ({ text: 'ok' }))
+)
 
-vi.mock('@bookiji/ai-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@bookiji/ai-core')>()
-  return { ...actual, executeAI: executeAIMock }
-})
+vi.mock('../../api/_lib/ai/llmClient', () => ({
+  getLLMClient: () => ({
+    provider: 'ollama',
+    model: 'test',
+    executeChat: executeChatMock,
+  }),
+}))
 
 type MockRes = VercelResponse & { body?: any; headers: Record<string, any>; statusCode?: number }
 
@@ -46,7 +49,7 @@ function createReq(overrides: Partial<VercelRequest>): VercelRequest {
 
 describe('Gemini proxy BYOK enforcement', () => {
   beforeEach(() => {
-    executeAIMock.mockClear()
+    executeChatMock.mockClear()
   })
 
   afterEach(() => {
@@ -64,7 +67,7 @@ describe('Gemini proxy BYOK enforcement', () => {
 
     expect(res.statusCode).toBe(400)
     expect(String(res.body?.error || '')).toMatch(/BYOK/i)
-    expect(executeAIMock).not.toHaveBeenCalled()
+    expect(executeChatMock).not.toHaveBeenCalled()
   })
 
   it('uses server key without placing it in the URL', async () => {
@@ -77,8 +80,11 @@ describe('Gemini proxy BYOK enforcement', () => {
     await chatHandler(req, res)
 
     expect(res.statusCode).toBe(200)
-    expect(executeAIMock).toHaveBeenCalled()
-    const callArgs = executeAIMock.mock.calls[0][0]
-    expect(callArgs.byokKey).toBeNull()
+    expect(executeChatMock).toHaveBeenCalled()
+    const [messages] = executeChatMock.mock.calls[0]
+    expect(messages).toHaveLength(2)
+    expect(messages[0].role).toBe('system')
+    expect(messages[0].content).toBe('sys')
+    expect(messages[1].role).toBe('user')
   })
 })

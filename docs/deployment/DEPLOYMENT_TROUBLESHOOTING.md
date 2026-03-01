@@ -46,3 +46,15 @@ If these fail locally, Vercel will usually fail too. Fix locally then push.
 | Env vars set | Vercel → Settings → Environment Variables |
 
 If builds were failing since Feb 13, fix the cause (often env or build command), then push again or trigger a redeploy from the Vercel dashboard.
+
+## 6. "Profile validation failed" / Missing Supabase env on kinetix.bookiji.com
+
+You do **not** restart Vercel. The app shows that error when `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY` are missing in the **deployment** environment.
+
+1. In **Vercel** → **Kinetix** project → **Settings** → **Environment Variables**.
+2. Add for **Production** (and optionally Preview):
+   - `VITE_SUPABASE_URL` = same as Bookiji Supabase project URL
+   - `VITE_SUPABASE_ANON_KEY` = same as Bookiji anon/public key
+3. **Redeploy**: Deployments → … on latest → **Redeploy** (or push a commit).
+
+Values must match the Bookiji Supabase project for SSO. See [ENV_PARITY.md](./ENV_PARITY.md) for details.

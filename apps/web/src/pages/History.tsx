@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { db, RunRecord } from '../lib/database'
+import { db, RunRecord, getRunsPage, getRunsPageForDate } from '../lib/database'
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAICoach } from '../hooks/useAICoach'
@@ -8,9 +8,11 @@ import { KPSTrendChart } from '../components/KPSTrendChart'
 import { RunDetails } from '../components/RunDetails'
 import { RunCalendar } from '../components/RunCalendar'
 import { KPS_SHORT } from '../lib/branding'
-import { Trash2, Calendar, MapPin, Clock, TrendingUp, Sparkles, X, AlertTriangle } from 'lucide-react'
+import { Trash2, Calendar, MapPin, Clock, TrendingUp, Sparkles, X, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useAuth } from '../components/providers/useAuth'
 import { toKinetixUserProfile } from '../lib/kinetixProfile'
+
+const DEFAULT_PAGE_SIZE = 20
 
 export default function History() {
   const [runs, setRuns] = useState<RunRecord[]>([])
@@ -18,58 +20,48 @@ export default function History() {
   const [relativeKPSMap, setRelativeKPSMap] = useState<Map<number, number>>(new Map())
   const [expandedRuns, setExpandedRuns] = useState<Set<number>>(new Set())
   const [invalidKPSCount, setInvalidKPSCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [totalRuns, setTotalRuns] = useState(0)
   const runRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const scrollToDateRef = useRef<string | null>(null)
   const { unitSystem } = useSettingsStore()
   const { profile } = useAuth()
-  if (!profile) {
-    return (
-      <div className="pb-20 lg:pb-4">
-        <div className="max-w-md lg:max-w-2xl mx-auto">
-          <div className="glass rounded-2xl border border-yellow-500/30 p-6 space-y-2">
-            <h1 className="text-lg font-bold text-yellow-300">Loading profile...</h1>
-            <p className="text-sm text-gray-300">
-              Your platform profile is still loading. If this persists, refresh the page.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-  const userProfile = toKinetixUserProfile(profile)
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
+  const userProfile = profile ? toKinetixUserProfile(profile) : null
+  const totalPages = Math.max(1, Math.ceil(totalRuns / pageSize))
 
-  const loadRuns = useCallback(async () => {
+  const loadRuns = useCallback(async (page: number) => {
+    if (!userProfile) return
     try {
-      // Seed initial PB from historical fact: September 30th, 2025 run
-      // This is idempotent - only runs if PB doesn't exist
+      setLoading(true)
       await seedInitialPB(userProfile)
+      const { items, total } = await getRunsPage(page, pageSize)
+      setRuns(items)
+      setTotalRuns(total)
 
-      const allRuns = await db.runs.orderBy('date').reverse().toArray()
-      setRuns(allRuns)
-
-      const runsWithCalculatedKPS = allRuns.map(r => ({
+      const runsWithCalculatedKPS = items.map(r => ({
         run: r,
         calculatedKPS: calculateAbsoluteKPS(r, userProfile)
       }))
       const invalidKPS = runsWithCalculatedKPS.filter(({ calculatedKPS }) => !isValidKPS(calculatedKPS))
       setInvalidKPSCount(invalidKPS.length)
 
-      // Get PB run (stored fact, not discovered)
-      const pbRun = await getPBRun()
-
-      if (pbRun) {
-        console.log('✅ PB run:', {
-          id: pbRun.id,
-          date: pbRun.date,
-          distance: pbRun.distance,
-          duration: pbRun.duration
-        })
-      }
+      void getPBRun().then((pbRun) => {
+        if (pbRun) {
+          console.log('✅ PB run:', {
+            id: pbRun.id,
+            date: pbRun.date,
+            distance: pbRun.distance,
+            duration: pbRun.duration
+          })
+        }
+      })
 
       const kpsMap = new Map<number, number>()
       const batchSize = 50
-      for (let i = 0; i < allRuns.length; i += batchSize) {
-        const batch = allRuns.slice(i, i + batchSize)
+      for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize)
         await Promise.all(
           batch.map(async (run) => {
             if (run.id) {
@@ -85,17 +77,37 @@ export default function History() {
     } finally {
       setLoading(false)
     }
-  }, [userProfile])
+  }, [userProfile, pageSize])
 
   useEffect(() => {
-    void loadRuns()
-  }, [loadRuns])
+    if (!userProfile) return
+    void loadRuns(currentPage)
+  }, [loadRuns, currentPage, userProfile])
+
+  useEffect(() => {
+    const dateStr = scrollToDateRef.current
+    if (!dateStr || runs.length === 0) return
+    const element = runRefs.current.get(dateStr)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      element.classList.add('ring-2', 'ring-cyan-400', 'ring-offset-2', 'ring-offset-gray-900')
+      setTimeout(() => {
+        element.classList.remove('ring-2', 'ring-cyan-400', 'ring-offset-2', 'ring-offset-gray-900')
+      }, 2000)
+    }
+    scrollToDateRef.current = null
+  }, [runs])
 
   const deleteRun = async (id: number) => {
     if (confirm('Are you sure you want to delete this run?')) {
       try {
         await db.runs.delete(id)
+        const newTotal = totalRuns - 1
+        setTotalRuns(newTotal)
         setRuns((prev) => prev.filter((r) => r.id !== id))
+        if (runs.length === 1 && currentPage > 1) {
+          setCurrentPage((p) => Math.max(1, p - 1))
+        }
       } catch (error) {
         console.error('Error deleting run:', error)
       }
@@ -128,40 +140,42 @@ export default function History() {
     )
   }
 
-  const handleDateSelect = useCallback((date: Date) => {
-    // Find the first run on or after the selected date
+  const handleDateSelect = useCallback(async (date: Date) => {
     const selectedDateStr = date.toISOString().split('T')[0]
-    
-    // Try to find exact match first, then closest after
-    let runIndex = runs.findIndex(run => {
-      const runDateStr = run.date.split('T')[0]
-      return runDateStr === selectedDateStr
-    })
-    
-    // If no exact match, find first run after selected date
-    if (runIndex === -1) {
-      runIndex = runs.findIndex(run => {
-        const runDateStr = run.date.split('T')[0]
-        return runDateStr >= selectedDateStr
-      })
-    }
-    
-    if (runIndex !== -1) {
-      const run = runs[runIndex]
-      const dateKey = run.date.split('T')[0]
+    const runOnPage = runs.find(run => run.date.split('T')[0] === selectedDateStr)
+    if (runOnPage) {
+      const dateKey = runOnPage.date.split('T')[0]
       const element = runRefs.current.get(dateKey)
-      
       if (element) {
-        // Scroll to the element
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        // Highlight the run briefly
         element.classList.add('ring-2', 'ring-cyan-400', 'ring-offset-2', 'ring-offset-gray-900')
         setTimeout(() => {
           element.classList.remove('ring-2', 'ring-cyan-400', 'ring-offset-2', 'ring-offset-gray-900')
         }, 2000)
       }
+      return
     }
-  }, [runs])
+    const targetPage = await getRunsPageForDate(selectedDateStr, pageSize)
+    if (targetPage !== currentPage) {
+      scrollToDateRef.current = selectedDateStr
+      setCurrentPage(targetPage)
+    }
+  }, [runs, pageSize, currentPage])
+
+  if (!profile) {
+    return (
+      <div className="pb-20 lg:pb-4">
+        <div className="max-w-md lg:max-w-2xl mx-auto">
+          <div className="glass rounded-2xl border border-yellow-500/30 p-6 space-y-2">
+            <h1 className="text-lg font-bold text-yellow-300">Loading profile...</h1>
+            <p className="text-sm text-gray-300">
+              Your platform profile is still loading. If this persists, refresh the page.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -178,11 +192,65 @@ export default function History() {
   return (
     <div className="pb-20 lg:pb-4">
       <div className="max-w-md lg:max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
           <h1 className="text-2xl font-bold">Run History</h1>
-          {runs.length > 0 && (
-            <span className="text-sm text-gray-400">{runs.length} runs</span>
-          )}
+          <div className="flex items-center gap-4">
+            {totalRuns > 0 && (
+              <span className="text-sm text-gray-400">
+                {totalRuns} run{totalRuns !== 1 ? 's' : ''}
+                {totalPages > 1 && (
+                  <span className="ml-2 text-gray-500">
+                    · Page {currentPage} of {totalPages}
+                  </span>
+                )}
+              </span>
+            )}
+            {totalPages > 1 && (
+              <nav className="flex items-center gap-1" aria-label="History pagination">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1 || loading}
+                  className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                  .map((p, i, arr) => (
+                    <span key={p}>
+                      {i > 0 && arr[i - 1] !== p - 1 && (
+                        <span className="px-1 text-gray-500">…</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(p)}
+                        disabled={loading}
+                        className={`min-w-[2rem] py-1.5 px-2 rounded-lg text-sm font-medium transition-colors ${
+                          p === currentPage
+                            ? 'bg-cyan-500/30 text-cyan-400 border border-cyan-500/50'
+                            : 'text-gray-400 hover:text-white hover:bg-white/10 border border-transparent'
+                        } disabled:opacity-50 disabled:pointer-events-none`}
+                        aria-label={`Page ${p}`}
+                        aria-current={p === currentPage ? 'page' : undefined}
+                      >
+                        {p}
+                      </button>
+                    </span>
+                  ))}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages || loading}
+                  className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </nav>
+            )}
+          </div>
         </div>
 
         {runs.length === 0 && !loading ? (

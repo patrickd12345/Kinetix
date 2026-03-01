@@ -30,6 +30,41 @@ export default function RunDashboard() {
   
   const { targetKPS, unitSystem, physioMode } = useSettingsStore()
   const { profile } = useAuth()
+  const userProfile = profile ? toKinetixUserProfile(profile) : null
+  const [relativeKPS, setRelativeKPS] = useState(0)
+  useLocationTracking()
+
+  useEffect(() => {
+    if (!userProfile || !(distance > 0 && duration > 0)) {
+      setRelativeKPS(0)
+      return
+    }
+    const tempRun: import('../lib/database').RunRecord = {
+      date: new Date().toISOString(),
+      distance,
+      duration,
+      averagePace,
+      kps: liveKPS,
+      targetKPS,
+      locations: [],
+      splits: [],
+    }
+    getRelativeKPS(tempRun, userProfile).then(setRelativeKPS)
+  }, [distance, duration, liveKPS, averagePace, targetKPS, userProfile])
+
+  const displayKPS = useMemo(() => relativeKPS || liveKPS, [relativeKPS, liveKPS])
+
+  const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
+  const [showAICoach, setShowAICoach] = useState(false)
+
+  useEffect(() => {
+    if (!isRunning && distance > 0 && duration > 0) {
+      setShowAICoach(true)
+    } else {
+      setShowAICoach(false)
+    }
+  }, [isRunning, distance, duration])
+
   if (!profile) {
     return (
       <div className="pb-20 lg:pb-4">
@@ -44,43 +79,6 @@ export default function RunDashboard() {
       </div>
     )
   }
-  const userProfile = toKinetixUserProfile(profile)
-  const [relativeKPS, setRelativeKPS] = useState(0)
-
-  useLocationTracking()
-
-  useEffect(() => {
-    if (distance > 0 && duration > 0) {
-      const tempRun: import('../lib/database').RunRecord = {
-        date: new Date().toISOString(),
-        distance,
-        duration,
-        averagePace,
-        kps: liveKPS,
-        targetKPS,
-        locations: [],
-        splits: [],
-      }
-      getRelativeKPS(tempRun, userProfile).then(setRelativeKPS)
-    } else {
-      setRelativeKPS(0)
-    }
-  }, [distance, duration, liveKPS, averagePace, targetKPS, userProfile])
-
-  const displayKPS = useMemo(() => relativeKPS || liveKPS, [relativeKPS, liveKPS])
-  
-  // AI Coach
-  const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
-  const [showAICoach, setShowAICoach] = useState(false)
-  
-  // Show AI Coach button after run stops
-  useEffect(() => {
-    if (!isRunning && distance > 0 && duration > 0) {
-      setShowAICoach(true)
-    } else {
-      setShowAICoach(false)
-    }
-  }, [isRunning, distance, duration])
   
   const handleAIAnalysis = async () => {
     const distanceKm = distance / 1000

@@ -104,6 +104,8 @@ export default function Settings() {
     )
   }
 
+  const safeUserProfile = toKinetixUserProfile(profile)
+
   return (
     <div className="pb-20 lg:pb-4">
       <div className="max-w-md lg:max-w-2xl mx-auto">
@@ -268,7 +270,7 @@ export default function Settings() {
                     )
 
                     const records = activities
-                      .map((activity) => convertStravaToRunRecord(activity, userProfile, targetKPS))
+                      .map((activity) => convertStravaToRunRecord(activity, safeUserProfile, targetKPS))
                       .filter((record): record is RunRecord => record !== null)
                       .filter((record) => {
                         const key = `${record.date}-${Math.round(record.distance)}`
@@ -281,7 +283,7 @@ export default function Settings() {
                     }
 
                     await db.runs.bulkAdd(records)
-                    await indexRunsAfterSave(records, userProfile)
+                    await indexRunsAfterSave(records, safeUserProfile)
                     setImportMessage(`Imported ${records.length} new run${records.length > 1 ? 's' : ''} from Strava.`)
                   } catch (error) {
                     console.error('Strava import error', error)
@@ -342,14 +344,14 @@ export default function Settings() {
                   const existingIds = new Set((existingGarmin.map(r => r.external_id).filter(Boolean) as string[]))
                   const toAdd = normalizedRuns
                     .filter(r => !existingIds.has(r.external_id))
-                    .map(n => convertGarminToRunRecord(n, userProfile, targetKPS))
+                    .map(n => convertGarminToRunRecord(n, safeUserProfile, targetKPS))
                     .filter((r): r is RunRecord => r !== null)
                   if (toAdd.length === 0) {
                     setImportMessage(`No new runs (${stats.duplicatesSkipped} duplicates skipped).`)
                     return
                   }
                   await db.runs.bulkAdd(toAdd)
-                  await indexRunsAfterSave(toAdd, userProfile)
+                  await indexRunsAfterSave(toAdd, safeUserProfile)
                   setImportMessage(
                     `Imported ${toAdd.length} run${toAdd.length > 1 ? 's' : ''} from Garmin. ` +
                     `Files: ${stats.filesScanned}, running: ${stats.runningActivities}, skipped: ${stats.duplicatesSkipped}.`
@@ -388,7 +390,7 @@ export default function Settings() {
                     setReindexMessage('No runs in the app. Import from Strava or Garmin first.')
                     return
                   }
-                  const { indexed, errors } = await reindexAllRunsInRAG(runs, userProfile)
+                  const { indexed, errors } = await reindexAllRunsInRAG(runs, safeUserProfile)
                   setReindexMessage(
                     errors === 0
                       ? `Indexed ${indexed} runs in RAG.`

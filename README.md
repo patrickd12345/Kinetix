@@ -41,7 +41,7 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 
 - **Standalone Operation**: Runs entirely on Apple Watch (watchOS 10+)
 - **Preset System**: Built-in workout presets:
-  - **MeBeatMe**: Kinetix Performance Score tracking with progress gauge
+  - **Kinetix**: KPS tracking with progress gauge
   - **Race Mode**: Target finish time pacing
   - **Burner**: Fat-burn biomechanics focus
   - **Form Monitor**: Real-time form analysis

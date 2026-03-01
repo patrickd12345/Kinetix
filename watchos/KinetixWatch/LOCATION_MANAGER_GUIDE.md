@@ -32,7 +32,7 @@
 - Calculates pace
 - Calculates distance
 - Rolling 5-second pace average
-- Progress gauge for "MeBeatMe" preset
+- Progress gauge for "Kinetix" preset
 
 ### 5. **Watch Connectivity** (~100 lines)
 - Manages `WCSession` for iPhone communication

@@ -21,7 +21,7 @@
 - ✅ **Left/Right Balance**: Asymmetry detection
 
 ### Workout Presets
-- ✅ **MeBeatMe**: Performance/NPI tracking with progress gauge
+- ✅ **Kinetix**: Performance/NPI tracking with progress gauge
 - ✅ **Race Mode**: Target finish time pacing
 - ✅ **Burner**: Fat-burn biomechanics focus
 - ✅ **Form Monitor**: Real-time form analysis

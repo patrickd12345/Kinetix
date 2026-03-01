@@ -156,7 +156,7 @@ class RunMetricsCalculator {
         return sum / Double(buffer.count)
     }
     
-    // MARK: - Progress Gauge (MeBeatMe preset)
+    // MARK: - Progress Gauge (Kinetix preset)
     
     static func calculateProgress(
         elapsedTime: TimeInterval,

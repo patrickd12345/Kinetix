@@ -204,8 +204,8 @@ struct RunView: View {
                     formMonitorContent
                         .frame(height: 200)
                         .padding(.horizontal, 8)
-                } else if locationManager.currentPreset?.type == .meBeatMe {
-                    // PROGRESS GAUGE FOR MEBEATME
+                } else if locationManager.currentPreset?.type == .kinetix {
+                    // Progress gauge for Kinetix (KPS) preset
                     ZStack {
                         Circle()
                             .stroke(Color.gray.opacity(0.3), lineWidth: 15)

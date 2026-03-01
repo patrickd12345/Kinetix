@@ -39,17 +39,26 @@ export class VectorDB {
   async addRun(run, embedding) {
     if (!this.collection) await this.initialize();
 
+    const dateStr =
+      run.date instanceof Date ? run.date.toISOString() : String(run.date ?? '');
+    const kps = run.avgKPS ?? run.avgNPI ?? 0;
     const metadata = {
-      id: run.id,
-      distance: run.distance,
-      pace: run.avgPace,
-      kps: run.avgKPS ?? run.avgNPI,
-      heartRate: run.avgHeartRate || null,
-      cadence: run.avgCadence || null,
-      formScore: run.formScore || null,
-      date: run.date instanceof Date ? run.date.toISOString() : run.date,
-      duration: run.duration,
+      id: String(run.id),
+      distance: Number(run.distance) || 0,
+      pace: Number(run.avgPace) || 0,
+      kps: Number(kps) || 0,
+      date: dateStr,
+      duration: Number(run.duration) || 0,
     };
+    if (run.avgHeartRate != null && run.avgHeartRate !== '') {
+      metadata.heartRate = Number(run.avgHeartRate);
+    }
+    if (run.avgCadence != null && run.avgCadence !== '') {
+      metadata.cadence = Number(run.avgCadence);
+    }
+    if (run.formScore != null && run.formScore !== '') {
+      metadata.formScore = Number(run.formScore);
+    }
 
     await this.collection.add({
       ids: [String(run.id)],

@@ -10,6 +10,7 @@ function renderWithAuth(value: Partial<AuthContextValue>) {
     profile: null,
     error: null,
     signInWithPassword: async () => {},
+    signUp: async () => {},
     signOut: async () => {},
     refresh: async () => {},
   }
@@ -31,6 +32,7 @@ describe('App entry guards', () => {
       error: null,
       session: { user: { id: 'user-1', email: 'runner@example.com' } } as AuthContextValue['session'],
       signInWithPassword: vi.fn(),
+      signUp: vi.fn(),
       signOut: vi.fn(),
       refresh: vi.fn(),
     })

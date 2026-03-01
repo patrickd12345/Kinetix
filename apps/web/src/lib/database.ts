@@ -64,3 +64,35 @@ class KinetixDatabase extends Dexie {
 }
 
 export const db = new KinetixDatabase()
+
+const RUNS_ORDERED = () => db.runs.orderBy('date').reverse()
+
+/**
+ * Fetch one page of runs (newest first) and total count. Use for History pagination.
+ */
+export async function getRunsPage(
+  page: number,
+  pageSize: number
+): Promise<{ items: RunRecord[]; total: number }> {
+  const total = await db.runs.count()
+  const offset = Math.max(0, (page - 1) * pageSize)
+  const items = await RUNS_ORDERED().offset(offset).limit(pageSize).toArray()
+  return { items, total }
+}
+
+/**
+ * Return 1-based page number that contains the run at or just after the given date (in date-desc order).
+ * Used for date-jump: go to the page that would contain that run.
+ */
+export async function getRunsPageForDate(
+  selectedDateStr: string,
+  pageSize: number
+): Promise<number> {
+  const total = await db.runs.count()
+  if (total === 0) return 1
+  const totalPages = Math.ceil(total / pageSize)
+  const runsWithNewerDate = await db.runs.where('date').above(selectedDateStr).count()
+  const index = runsWithNewerDate
+  const page = Math.min(totalPages, Math.max(1, Math.floor(index / pageSize) + 1))
+  return page
+}

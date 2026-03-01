@@ -3,7 +3,7 @@
   "name": "kinetix",
   "buildCommand": "pnpm install && pnpm --filter @kinetix/core build && pnpm --filter @kinetix/web build",
   "outputDirectory": "apps/web/dist",
-  "installCommand": "pnpm install",
+  "installCommand": "corepack enable pnpm && pnpm install",
   "framework": "vite",
   "rewrites": [
     {

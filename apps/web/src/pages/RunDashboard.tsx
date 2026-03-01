@@ -1,12 +1,12 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRunStore } from '../store/runStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { formatTime, formatDistance, formatPace } from '@kinetix/core'
+import { formatTime, formatDistance, formatPace, timeToAchieveKPS, distanceToAchieveKPS } from '@kinetix/core'
 import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
-import { getRelativeKPS } from '../lib/kpsUtils'
+import { getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS } from '../lib/kpsUtils'
 import { KPS_SHORT } from '../lib/branding'
-import { Play, Square, Pause, Flag, Heart, Sparkles, X } from 'lucide-react'
+import { Play, Square, Pause, Flag, Heart, Sparkles, X, Trophy } from 'lucide-react'
 import { useAuth } from '../components/providers/useAuth'
 import { toKinetixUserProfile } from '../lib/kinetixProfile'
 
@@ -28,7 +28,7 @@ export default function RunDashboard() {
     stopRun,
   } = useRunStore()
   
-  const { targetKPS, unitSystem, physioMode } = useSettingsStore()
+  const { targetKPS, unitSystem, physioMode, beatPBPercent } = useSettingsStore()
   const { profile } = useAuth()
   const userProfile = profile ? toKinetixUserProfile(profile) : null
   const [relativeKPS, setRelativeKPS] = useState(0)
@@ -56,6 +56,59 @@ export default function RunDashboard() {
 
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
   const [showAICoach, setShowAICoach] = useState(false)
+  const [showBeatPBModal, setShowBeatPBModal] = useState(false)
+  type BeatPBOption =
+    | { type: 'distance'; label: string; distanceKm: number; timeSeconds: number }
+    | { type: 'time'; label: string; timeSeconds: number; distanceKm: number }
+  const [beatPBOptions, setBeatPBOptions] = useState<BeatPBOption[] | null>(null)
+  const [beatPBError, setBeatPBError] = useState<string | null>(null)
+
+  const openBeatPB = useCallback(async () => {
+    setBeatPBError(null)
+    setBeatPBOptions(null)
+    setShowBeatPBModal(true)
+    if (!userProfile) {
+      setBeatPBError('Profile required.')
+      return
+    }
+    const pb = await getPB()
+    const pbRun = await getPBRun()
+    if (!pb || !pbRun) {
+      setBeatPBError('No PB set yet. Complete a run and set a PB from History first.')
+      return
+    }
+    const pbAbsoluteKPS = calculateAbsoluteKPS(pbRun, pb.profileSnapshot)
+    if (pbAbsoluteKPS <= 0) {
+      setBeatPBError('PB run has invalid KPS.')
+      return
+    }
+    const targetAbsoluteKPS = pbAbsoluteKPS * (1 + beatPBPercent / 100)
+    const distanceOptions: Array<{ label: string; distanceKm: number }> = [
+      { label: 'Same as PB', distanceKm: pbRun.distance / 1000 },
+      { label: '5 km', distanceKm: 5 },
+      { label: '10 km', distanceKm: 10 },
+      { label: 'Half marathon', distanceKm: 21.0975 },
+    ]
+    const timeOptions: Array<{ label: string; timeSeconds: number }> = [
+      { label: '15 min', timeSeconds: 15 * 60 },
+      { label: '20 min', timeSeconds: 20 * 60 },
+    ]
+    const options: BeatPBOption[] = [
+      ...timeOptions.map(({ label, timeSeconds }) => ({
+        type: 'time' as const,
+        label,
+        timeSeconds,
+        distanceKm: distanceToAchieveKPS(targetAbsoluteKPS, timeSeconds, userProfile),
+      })),
+      ...distanceOptions.map(({ label, distanceKm }) => ({
+        type: 'distance' as const,
+        label,
+        distanceKm,
+        timeSeconds: timeToAchieveKPS(targetAbsoluteKPS, distanceKm, userProfile),
+      })),
+    ]
+    setBeatPBOptions(options)
+  }, [userProfile, beatPBPercent])
 
   useEffect(() => {
     if (!isRunning && distance > 0 && duration > 0) {
@@ -225,6 +278,15 @@ export default function RunDashboard() {
                   <Play fill="white" size={28} className="ml-1" strokeWidth={0} />
                 </button>
                 
+                {/* Beat PB */}
+                <button
+                  onClick={openBeatPB}
+                  className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-amber-400 border border-amber-500/30 hover:border-amber-500/50 hover:bg-amber-500/10 transition-all"
+                >
+                  <Trophy size={14} strokeWidth={2.5} />
+                  BEAT PB
+                </button>
+
                 {/* AI Coach Button */}
                 {showAICoach && (
                   <button
@@ -267,6 +329,59 @@ export default function RunDashboard() {
           </div>
         </div>
         
+        {/* Beat PB Modal */}
+        {showBeatPBModal && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="glass border border-amber-500/30 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-black text-amber-400">Beat PB by {beatPBPercent}%</h3>
+                <button
+                  onClick={() => { setShowBeatPBModal(false); setBeatPBOptions(null); setBeatPBError(null) }}
+                  aria-label="Close"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-sm text-gray-300 mb-4">
+                Run at or faster than these to beat your PB by {beatPBPercent}%:
+              </p>
+              {beatPBError ? (
+                <p className="text-sm text-amber-300 mb-4">{beatPBError}</p>
+              ) : beatPBOptions ? (
+                <ul className="space-y-2 mb-4">
+                  {beatPBOptions.map((opt) => {
+                    const paceSecPerKm = opt.distanceKm > 0 ? opt.timeSeconds / opt.distanceKm : 0
+                    return (
+                      <li key={opt.label} className="flex justify-between items-center text-sm py-2 border-b border-gray-700/50 last:border-0 gap-2">
+                        <span className="text-gray-300">{opt.label}</span>
+                        <span className="text-right">
+                          <span className="font-mono font-bold text-amber-400">
+                            {opt.type === 'time'
+                              ? `${formatDistance(opt.distanceKm * 1000, unitSystem)} ${unitSystem === 'metric' ? 'km' : 'mi'} in ${opt.label}`
+                              : `${formatDistance(opt.distanceKm * 1000, unitSystem)} ${unitSystem === 'metric' ? 'km' : 'mi'} in ${formatTime(opt.timeSeconds)}`}
+                          </span>
+                          <span className="ml-2 text-gray-400 font-mono text-xs">
+                            {paceSecPerKm > 0 ? formatPace(paceSecPerKm, unitSystem) + (unitSystem === 'metric' ? '/km' : '/mi') : '—'}
+                          </span>
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-400">Loading…</p>
+              )}
+              <button
+                onClick={() => { setShowBeatPBModal(false); setBeatPBOptions(null); setBeatPBError(null) }}
+                className="w-full py-2.5 bg-gray-900/50 hover:bg-gray-800 rounded-xl text-white text-sm font-bold border border-gray-700/50 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* AI Coach Modal */}
         {(isAnalyzing || aiResult || error) && (
           <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">

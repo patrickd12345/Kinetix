@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { db, RunRecord, getRunsPage, getRunsPageForDate } from '../lib/database'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { db, RunRecord, getRunsPage, getRunsPageForDate, getRunsInDateRange, RUN_VISIBLE } from '../lib/database'
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAICoach } from '../hooks/useAICoach'
-import { calculateRelativeKPS, getPBRun, isValidKPS, calculateAbsoluteKPS, seedInitialPB } from '../lib/kpsUtils'
+import { getPB, isValidKPS, calculateAbsoluteKPS, seedInitialPB, calculateRelativeKPSSync } from '../lib/kpsUtils'
 import { KPSTrendChart } from '../components/KPSTrendChart'
 import { RunDetails } from '../components/RunDetails'
 import { RunCalendar } from '../components/RunCalendar'
@@ -13,6 +13,11 @@ import { useAuth } from '../components/providers/useAuth'
 import { toKinetixUserProfile } from '../lib/kinetixProfile'
 
 const DEFAULT_PAGE_SIZE = 20
+const CHART_LIMIT = 200
+const DEFAULT_CHART_DAYS = 90
+const CHART_ZOOM_FACTOR = 1.5
+const CHART_MIN_DAYS = 7
+const CHART_MAX_DAYS = 730
 
 export default function History() {
   const [runs, setRuns] = useState<RunRecord[]>([])
@@ -23,12 +28,21 @@ export default function History() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(DEFAULT_PAGE_SIZE)
   const [totalRuns, setTotalRuns] = useState(0)
+  const [pbRunId, setPbRunId] = useState<number | null>(null)
+  const [chartStartDate, setChartStartDate] = useState<string | null>(null)
+  const [chartEndDate, setChartEndDate] = useState<string | null>(null)
+  const [chartRuns, setChartRuns] = useState<RunRecord[]>([])
+  const [chartKPSMap, setChartKPSMap] = useState<Map<number, number>>(new Map())
+  const [chartLoading, setChartLoading] = useState(false)
   const runRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const scrollToDateRef = useRef<string | null>(null)
   const { unitSystem } = useSettingsStore()
   const { profile } = useAuth()
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
-  const userProfile = profile ? toKinetixUserProfile(profile) : null
+  const userProfile = useMemo(
+    () => (profile ? toKinetixUserProfile(profile) : null),
+    [profile]
+  )
   const totalPages = Math.max(1, Math.ceil(totalRuns / pageSize))
 
   const loadRuns = useCallback(async (page: number) => {
@@ -47,31 +61,18 @@ export default function History() {
       const invalidKPS = runsWithCalculatedKPS.filter(({ calculatedKPS }) => !isValidKPS(calculatedKPS))
       setInvalidKPSCount(invalidKPS.length)
 
-      void getPBRun().then((pbRun) => {
-        if (pbRun) {
-          console.log('✅ PB run:', {
-            id: pbRun.id,
-            date: pbRun.date,
-            distance: pbRun.distance,
-            duration: pbRun.duration
-          })
-        }
-      })
+      const pb = await getPB()
+      let pbRun = pb ? (await db.runs.get(pb.runId)) ?? null : null
+      if (pbRun && (pbRun.deleted ?? 0) !== RUN_VISIBLE) pbRun = null
+      setPbRunId(pbRun && pb != null ? pb.runId : null)
 
       const kpsMap = new Map<number, number>()
-      const batchSize = 50
-      for (let i = 0; i < items.length; i += batchSize) {
-        const batch = items.slice(i, i + batchSize)
-        await Promise.all(
-          batch.map(async (run) => {
-            if (run.id) {
-              const relativeKPS = await calculateRelativeKPS(run, userProfile)
-              kpsMap.set(run.id, relativeKPS)
-            }
-          })
-        )
-        setRelativeKPSMap(new Map(kpsMap))
+      for (const run of items) {
+        if (run.id) {
+          kpsMap.set(run.id, calculateRelativeKPSSync(run, userProfile, pb ?? null, pbRun ?? null))
+        }
       }
+      setRelativeKPSMap(kpsMap)
     } catch (error) {
       console.error('❌ Error loading runs:', error)
     } finally {
@@ -83,6 +84,71 @@ export default function History() {
     if (!userProfile) return
     void loadRuns(currentPage)
   }, [loadRuns, currentPage, userProfile])
+
+  // Set initial chart range to last DEFAULT_CHART_DAYS when we have list runs and no range yet
+  useEffect(() => {
+    if (chartEndDate != null || runs.length === 0) return
+    const newest = runs[0]?.date
+    if (!newest) return
+    const end = new Date(newest)
+    const start = new Date(end.getTime() - DEFAULT_CHART_DAYS * 24 * 60 * 60 * 1000)
+    setChartStartDate(start.toISOString())
+    setChartEndDate(end.toISOString())
+  }, [runs, chartEndDate])
+
+  const loadChartRuns = useCallback(async () => {
+    if (!userProfile || !chartStartDate || !chartEndDate) return
+    try {
+      setChartLoading(true)
+      const items = await getRunsInDateRange(chartStartDate, chartEndDate, CHART_LIMIT)
+      setChartRuns(items)
+      const pb = await getPB()
+      let pbRun = pb ? (await db.runs.get(pb.runId)) ?? null : null
+      if (pbRun && (pbRun.deleted ?? 0) !== RUN_VISIBLE) pbRun = null
+      const kpsMap = new Map<number, number>()
+      for (const run of items) {
+        if (run.id) {
+          kpsMap.set(run.id, calculateRelativeKPSSync(run, userProfile, pb ?? null, pbRun ?? null))
+        }
+      }
+      setChartKPSMap(kpsMap)
+    } catch (err) {
+      console.error('Chart load error:', err)
+    } finally {
+      setChartLoading(false)
+    }
+  }, [userProfile, chartStartDate, chartEndDate])
+
+  useEffect(() => {
+    if (!chartStartDate || !chartEndDate || !userProfile) return
+    void loadChartRuns()
+  }, [loadChartRuns, chartStartDate, chartEndDate, userProfile])
+
+  const handleChartZoomOut = useCallback(() => {
+    if (!chartStartDate || !chartEndDate) return
+    const startMs = new Date(chartStartDate).getTime()
+    const endMs = new Date(chartEndDate).getTime()
+    const spanMs = endMs - startMs
+    const spanDays = spanMs / (24 * 60 * 60 * 1000)
+    const newSpanDays = Math.min(CHART_MAX_DAYS, spanDays * CHART_ZOOM_FACTOR)
+    const centerMs = (startMs + endMs) / 2
+    const halfMs = (newSpanDays / 2) * 24 * 60 * 60 * 1000
+    setChartStartDate(new Date(centerMs - halfMs).toISOString())
+    setChartEndDate(new Date(centerMs + halfMs).toISOString())
+  }, [chartStartDate, chartEndDate])
+
+  const handleChartZoomIn = useCallback(() => {
+    if (!chartStartDate || !chartEndDate) return
+    const startMs = new Date(chartStartDate).getTime()
+    const endMs = new Date(chartEndDate).getTime()
+    const spanMs = endMs - startMs
+    const spanDays = spanMs / (24 * 60 * 60 * 1000)
+    const newSpanDays = Math.max(CHART_MIN_DAYS, spanDays / CHART_ZOOM_FACTOR)
+    const centerMs = (startMs + endMs) / 2
+    const halfMs = (newSpanDays / 2) * 24 * 60 * 60 * 1000
+    setChartStartDate(new Date(centerMs - halfMs).toISOString())
+    setChartEndDate(new Date(centerMs + halfMs).toISOString())
+  }, [chartStartDate, chartEndDate])
 
   useEffect(() => {
     const dateStr = scrollToDateRef.current
@@ -280,9 +346,21 @@ export default function History() {
             <div className="lg:grid lg:grid-cols-3 lg:gap-6">
               {/* Left Column: Chart and Calendar */}
               <div className="lg:col-span-1 space-y-6">
-                {/* KPS Trend Chart */}
-                <div>
-                  <KPSTrendChart runs={runs} relativeKPSMap={relativeKPSMap} unitSystem={unitSystem} />
+                {/* KPS Trend Chart (date-range zoom: scroll to zoom in/out over history) */}
+                <div className="relative">
+                  {chartLoading && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-gray-900/60">
+                      <span className="text-sm text-gray-400">Loading chart…</span>
+                    </div>
+                  )}
+                  <KPSTrendChart
+                    runs={chartRuns}
+                    relativeKPSMap={chartKPSMap}
+                    unitSystem={unitSystem}
+                    pbRunId={pbRunId}
+                    onWheelZoomIn={handleChartZoomIn}
+                    onWheelZoomOut={handleChartZoomOut}
+                  />
                 </div>
 
                 {/* Calendar for quick navigation */}

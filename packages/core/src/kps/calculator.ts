@@ -78,6 +78,49 @@ function calculateWeightAdjustment(weightKg: number): number {
   return 1.0 - (weightDiff * adjustmentRate);
 }
 
+const RiegelExponent = 1.06;
+const ReferenceDistanceKm = 10.0;
+
+/**
+ * Given a target KPS and distance, return the time (seconds) needed to achieve that KPS.
+ * Inverse of calculateKPS: useful for "beat PB by X%" run suggestions.
+ */
+export function timeToAchieveKPS(
+  targetKPS: number,
+  distanceKm: number,
+  userProfile: UserProfile,
+  referenceDistanceKm: number = ReferenceDistanceKm
+): number {
+  if (targetKPS <= 0 || distanceKm <= 0) return 0;
+  const ageAdj = calculateAgeAdjustment(userProfile.age);
+  const weightAdj = calculateWeightAdjustment(userProfile.weightKg);
+  const adjustedPace = 36000 / targetKPS;
+  const normalizedPaceSecondsPerKm = adjustedPace / (ageAdj * weightAdj);
+  const normalizedTime = normalizedPaceSecondsPerKm * referenceDistanceKm;
+  const timeSeconds = normalizedTime / Math.pow(referenceDistanceKm / distanceKm, RiegelExponent);
+  return Math.round(timeSeconds);
+}
+
+/**
+ * Given a target KPS and duration (seconds), return the distance (km) needed to achieve that KPS.
+ * Useful for "beat PB" suggestions with a round time (e.g. 15 min).
+ */
+export function distanceToAchieveKPS(
+  targetKPS: number,
+  timeSeconds: number,
+  userProfile: UserProfile,
+  referenceDistanceKm: number = ReferenceDistanceKm
+): number {
+  if (targetKPS <= 0 || timeSeconds <= 0) return 0;
+  const ageAdj = calculateAgeAdjustment(userProfile.age);
+  const weightAdj = calculateWeightAdjustment(userProfile.weightKg);
+  const adjustedPace = 36000 / targetKPS;
+  const normalizedPaceSecondsPerKm = adjustedPace / (ageAdj * weightAdj);
+  const normalizedTime = normalizedPaceSecondsPerKm * referenceDistanceKm;
+  const distanceKm = referenceDistanceKm / Math.pow(normalizedTime / timeSeconds, 1 / RiegelExponent);
+  return Math.round(distanceKm * 1000) / 1000;
+}
+
 /**
  * Calculate KPS from race data
  */

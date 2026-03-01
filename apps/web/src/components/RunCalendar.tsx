@@ -55,13 +55,7 @@ export function RunCalendar({ runs, onDateSelect }: RunCalendarProps) {
     
     if (mostRecentDate && mostRecentRun) {
       // Set to first day of that month for cleaner display
-      const defaultDate = new Date(mostRecentDate.getFullYear(), mostRecentDate.getMonth(), 1)
-      console.log('Calendar default month:', {
-        mostRecentRunDate: mostRecentRun.date,
-        defaultMonth: defaultDate.toISOString(),
-        totalRuns: runs.length
-      })
-      return defaultDate
+      return new Date(mostRecentDate.getFullYear(), mostRecentDate.getMonth(), 1)
     }
     
     // Fallback to current date

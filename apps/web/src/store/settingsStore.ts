@@ -13,6 +13,9 @@ export interface WithingsCredentials {
 interface SettingsState {
   targetKPS: number
   setTargetKPS: (kps: number) => void
+  /** Target % improvement over PB for "Beat PB" run suggestions (e.g. 2 = beat by 2%). */
+  beatPBPercent: number
+  setBeatPBPercent: (pct: number) => void
   unitSystem: 'metric' | 'imperial'
   setUnitSystem: (unit: 'metric' | 'imperial') => void
   physioMode: boolean
@@ -32,6 +35,9 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       targetKPS: 135.0,
       setTargetKPS: (kps) => set({ targetKPS: kps }),
+
+      beatPBPercent: 2,
+      setBeatPBPercent: (pct) => set({ beatPBPercent: Math.max(0.1, Math.min(20, pct)) }),
 
       unitSystem: 'metric',
       setUnitSystem: (unit) => set({ unitSystem: unit }),

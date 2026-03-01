@@ -5,9 +5,7 @@
 
 import { EmbeddingService } from './embeddingService.js';
 import { vectorDB } from './vectorDB.js';
-
-const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434';
-const LLM_MODEL = process.env.LLM_MODEL || 'llama3.2';
+import { getLLMClient } from './ai/llmClient.js';
 
 export class RAGService {
   static async analyzeRunWithRAG(run, targetKPS, options = {}) {
@@ -23,6 +21,7 @@ export class RAGService {
           maxDistance: run.distance * 1.1,
         });
         similarRuns = results.runs;
+        console.info('[RAG]', { retrieved: similarRuns.length });
       } catch (error) {
         console.warn('Vector search failed, continuing without RAG:', error);
       }
@@ -88,37 +87,21 @@ Format as JSON: {"title": "...", "insight": "..."}`;
   }
 
   static async generateResponse(prompt, similarRuns) {
-    const response = await fetch(`${OLLAMA_API_URL}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: LLM_MODEL,
-        prompt,
-        stream: false,
-        options: {
-          temperature: 0.7,
-          top_p: 0.9,
-        },
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = data.response?.trim() || '';
+    const client = getLLMClient();
+    const { text } = await client.executeChat(
+      [{ role: 'user', content: prompt }],
+      { temperature: 0.7, maxTokens: 1024 }
+    );
+    const raw = text?.trim() || '';
     try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (jsonMatch) return JSON.parse(jsonMatch[0]);
     } catch {
       // fallback to text response below
     }
-
     return {
       title: 'Run Analysis',
-      insight: text,
+      insight: raw,
       similarRunsCount: similarRuns.length,
     };
   }

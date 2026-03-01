@@ -25,9 +25,11 @@ Service defaults to `http://localhost:3001`.
 ## Environment Variables
 
 - `PORT` (default `3001`)
-- `OLLAMA_API_URL` (default `http://localhost:11434`)
+- `KINETIX_LLM_PROVIDER` – `ollama` or `gateway`. If unset: `VERCEL=1` -> gateway, else ollama.
+- `OLLAMA_API_URL` / `OLLAMA_BASE_URL` (default `http://localhost:11434`)
+- `OLLAMA_MODEL` / `LLM_MODEL` (default `llama3.2`)
 - `EMBEDDING_MODEL` (default `nomic-embed-text`)
-- `LLM_MODEL` (default `llama3.2`)
+- Gateway (when provider is gateway): `AI_GATEWAY_BASE_URL`, `AI_GATEWAY_API_KEY`, optional `AI_GATEWAY_MODEL`
 - `CHROMA_MODE` (`in-memory` or `persistent`)
 - `CHROMA_PATH` (default `./chroma_db`)
 - `CHROMA_SERVER_URL` / `CHROMA_API_URL` (default `http://localhost:8000`) – Chroma server URL (Node client connects here).

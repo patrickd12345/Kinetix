@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { executeAI } from '@bookiji/ai-core'
-import { getByokDecision, mustReject, readByokHeader, getPolicy } from '../_lib/byok'
+import { getLLMClient } from '../_lib/ai/llmClient'
+import { getByokDecision, mustReject, readByokHeader } from '../_lib/byok'
 
 function setCors(res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const byokKey = readByokHeader(req)
+  const byokKey = readByokHeader(req.headers || {})
   const decision = getByokDecision('ai-chat', byokKey)
   if (mustReject(decision)) {
     return res.status(400).json({ error: 'BYOK is not supported on this endpoint.' })
@@ -42,24 +42,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : ''
 
   try {
-    const aiResponse = await executeAI({
-      surface: 'ai-chat',
-      isPro: false,
-      byokKey,
-      policy: getPolicy(),
-      request: {
-        kind: 'chat',
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-        temperature: 0.7,
-        maxTokens: 1024,
-        messages: [
-          { role: 'system', content: systemInstruction },
-          { role: 'user', content: userContent || 'Respond concisely.' },
-        ],
-      },
-    })
-
-    const text = aiResponse.text?.trim() || ''
+    const client = getLLMClient()
+    const { text } = await client.executeChat(
+      [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: userContent || 'Respond concisely.' },
+      ],
+      { temperature: 0.7, maxTokens: 1024 }
+    )
     return res.status(200).json({ text })
   } catch (error) {
     console.error('[api/ai-chat] AI execution failed:', error)

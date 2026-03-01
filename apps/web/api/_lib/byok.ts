@@ -1,35 +1,13 @@
-import {
+/**
+ * Re-export BYOK helpers from local AI module. No @bookiji dependency.
+ */
+export {
   BYOK_HEADER_NAME,
   readByokHeader,
   isValidByokKeyFormat,
-  getByokDecision as coreGetByokDecision,
-  mustRejectByok as coreMustReject,
+  getByokDecision,
+  mustReject,
+  getPolicy,
   type ByokDecision,
   type ByokPolicyConfig,
-} from '@bookiji/ai-core'
-
-const KINETIX_POLICY: ByokPolicyConfig = {
-  allowedSurfaces: [],
-  byokSupported: false,
-  proUsesPlatform: true,
-}
-
-export { BYOK_HEADER_NAME, readByokHeader, isValidByokKeyFormat }
-
-export function getByokDecision(surface: string, byokKey: string | null): ByokDecision {
-  return coreGetByokDecision({
-    surface,
-    isPro: false,
-    byokKey,
-    policy: KINETIX_POLICY,
-    mode: (process.env.AI_MODE || '').toLowerCase() === 'local' ? 'local' : 'gateway',
-  })
-}
-
-export function mustReject(decision: ByokDecision): boolean {
-  return coreMustReject(decision)
-}
-
-export function getPolicy(): ByokPolicyConfig {
-  return KINETIX_POLICY
-}
+} from './ai/byok'

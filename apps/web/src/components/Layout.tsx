@@ -3,8 +3,10 @@ import { Link, useLocation } from 'react-router-dom'
 import { Activity, History, MessageCircle, Settings } from 'lucide-react'
 import { useAuth } from './providers/useAuth'
 import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
-import { db } from '../lib/database'
+import { getRunsPage } from '../lib/database'
 import { syncNewRunsToRAG } from '../lib/ragClient'
+
+const RAG_SYNC_PAGE_SIZE = 200
 
 interface LayoutProps {
   children: ReactNode
@@ -16,12 +18,18 @@ export default function Layout({ children }: LayoutProps) {
   const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : session?.user.email ?? 'User'
 
   useEffect(() => {
-    if (!profile) return
+    if (!profile || typeof indexedDB === 'undefined') return
     const userProfile = toKinetixUserProfile(profile)
-    db.runs.orderBy('date').reverse().toArray().then((runs) => {
-      if (runs.length === 0) return
-      syncNewRunsToRAG(runs, userProfile).catch(() => {})
-    })
+    const run = () => {
+      getRunsPage(1, RAG_SYNC_PAGE_SIZE)
+        .then(({ items }) => {
+          if (items.length === 0) return
+          syncNewRunsToRAG(items, userProfile).catch(() => {})
+        })
+        .catch(() => {})
+    }
+    const id = window.setTimeout(run, 0)
+    return () => clearTimeout(id)
   }, [profile])
 
   const navItems = [

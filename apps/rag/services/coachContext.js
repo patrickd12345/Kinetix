@@ -110,6 +110,7 @@ export async function getCoachContext(message, userProfile, pbRun) {
   try {
     const embedding = await EmbeddingService.embedText(message || 'running pace');
     const { runs } = await vectorDB.findSimilarRuns(embedding, { topK: 10 });
+    console.info('[RAG]', { retrieved: runs.length });
     parts.push(formatRunsSummary(runs));
   } catch (err) {
     console.warn('Coach context retrieval failed:', err.message);

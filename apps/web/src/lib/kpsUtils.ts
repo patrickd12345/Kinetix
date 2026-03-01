@@ -1,4 +1,4 @@
-import { db, RunRecord, PBRecord } from './database'
+import { db, RunRecord, PBRecord, RUN_VISIBLE } from './database'
 import { UserProfile, calculateKPS } from '@kinetix/core'
 
 /**
@@ -72,6 +72,32 @@ export function calculateAbsoluteKPS(run: RunRecord, userProfile: UserProfile): 
   return isValidKPS(absoluteKPS) ? absoluteKPS : 0
 }
 
+/** KPS above this ratio of current PB is considered a suspicious outlier on import (e.g. bad data). */
+const OUTLIER_KPS_RATIO = 1.25
+
+/**
+ * From a list of runs (e.g. newly imported), return those whose absolute KPS is above 125% of the
+ * current PB. Used to flag possible outliers so the user can confirm logical deletion.
+ * Returns [] if there is no PB or no run has an id.
+ */
+export async function findOutlierRuns(
+  runs: RunRecord[],
+  profile: UserProfile
+): Promise<RunRecord[]> {
+  const pb = await getPB()
+  if (!pb) return []
+  const pbRun = await db.runs.get(pb.runId)
+  if (!pbRun || (pbRun.deleted ?? 0) !== RUN_VISIBLE) return []
+  const pbAbsoluteKPS = calculateAbsoluteKPS(pbRun, pb.profileSnapshot)
+  if (!isValidKPS(pbAbsoluteKPS)) return []
+  const threshold = pbAbsoluteKPS * OUTLIER_KPS_RATIO
+  return runs.filter((r) => {
+    if (!r.id) return false
+    const kps = calculateAbsoluteKPS(r, profile)
+    return isValidKPS(kps) && kps > threshold
+  })
+}
+
 /**
  * Get the stored PB record
  * Returns null if no PB has been set yet
@@ -94,7 +120,7 @@ export async function getPB(): Promise<PBRecord | null> {
 
 /**
  * Get the PB run record
- * Returns null if no PB has been set or if the PB run doesn't exist
+ * Returns null if no PB has been set, the PB run doesn't exist, or the run is logically deleted.
  */
 export async function getPBRun(): Promise<RunRecord | null> {
   const pb = await getPB()
@@ -103,7 +129,8 @@ export async function getPBRun(): Promise<RunRecord | null> {
   }
 
   const run = await db.runs.get(pb.runId)
-  return run || null
+  if (!run || (run.deleted ?? 0) !== RUN_VISIBLE) return null
+  return run
 }
 
 /**
@@ -138,10 +165,9 @@ export async function calculateRelativeKPS(
     return runAbsoluteKPS
   }
 
-  // Get PB run
+  // Get PB run (ignore if logically deleted)
   const pbRun = await db.runs.get(pb.runId)
-  if (!pbRun) {
-    // PB run doesn't exist - return absolute KPS
+  if (!pbRun || (pbRun.deleted ?? 0) !== RUN_VISIBLE) {
     return runAbsoluteKPS
   }
 
@@ -165,6 +191,27 @@ export async function calculateRelativeKPS(
     return runAbsoluteKPS // Fallback to absolute
   }
 
+  return relativeKPS
+}
+
+/**
+ * Sync variant: compute relative KPS when PB and PB run are already loaded.
+ * Use in batch (e.g. History page) to avoid N+1 getPB/getPBRun calls.
+ */
+export function calculateRelativeKPSSync(
+  run: RunRecord,
+  currentProfile: UserProfile,
+  pb: PBRecord | null,
+  pbRun: RunRecord | null
+): number {
+  const runAbsoluteKPS = calculateAbsoluteKPS(run, currentProfile)
+  if (!isValidKPS(runAbsoluteKPS)) return 0
+  if (!pb || !pbRun) return runAbsoluteKPS
+  if (run.id && pb.runId && run.id === pb.runId) return 100
+  const pbAbsoluteKPS = calculateAbsoluteKPS(pbRun, pb.profileSnapshot)
+  if (!isValidKPS(pbAbsoluteKPS)) return runAbsoluteKPS
+  const relativeKPS = (runAbsoluteKPS / pbAbsoluteKPS) * 100
+  if (isNaN(relativeKPS) || !isFinite(relativeKPS)) return runAbsoluteKPS
   return relativeKPS
 }
 
@@ -203,10 +250,9 @@ export async function checkAndUpdatePB(
     return true
   }
 
-  // Get PB run
+  // Get PB run (treat deleted as missing so a new PB can be set)
   const pbRun = await db.runs.get(pb.runId)
-  if (!pbRun) {
-    // PB run doesn't exist - set new run as PB
+  if (!pbRun || (pbRun.deleted ?? 0) !== RUN_VISIBLE) {
     await db.pb.update(pb.id!, {
       runId: newRun.id,
       achievedAt: newRun.date,
@@ -260,15 +306,13 @@ export async function seedInitialPB(currentProfile: UserProfile): Promise<void> 
     return
   }
 
-  // Find the run from 2025-09-30
+  // Find the run from 2025-09-30 (bounded query), exclude logically deleted
   const targetDate = '2025-09-30'
-  const allRuns = await db.runs.toArray()
-
-  // Find all runs on September 30th, 2025
-  const sep30Runs = allRuns.filter(run => {
-    const runDate = run.date.split('T')[0] // Extract YYYY-MM-DD
-    return runDate === targetDate
-  })
+  const raw = await db.runs
+    .where('date')
+    .between(targetDate, `${targetDate}T23:59:59.999Z`, true, true)
+    .toArray()
+  const sep30Runs = raw.filter((r) => (r.deleted ?? 0) === RUN_VISIBLE)
 
   // Fail loudly if multiple runs exist on that date
   if (sep30Runs.length > 1) {
@@ -315,7 +359,7 @@ export async function initializePBFromExistingRuns(currentProfile: UserProfile):
     return
   }
 
-  const allRuns = await db.runs.toArray()
+  const allRuns = (await db.runs.toArray()).filter((r) => (r.deleted ?? 0) === RUN_VISIBLE)
   if (allRuns.length === 0) {
     return
   }

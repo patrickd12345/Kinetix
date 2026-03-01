@@ -1,7 +1,7 @@
 import { useSettingsStore } from '../store/settingsStore'
 import { KINETIX_PERFORMANCE_SCORE } from '../lib/branding'
 import { fetchStravaActivities, convertStravaToRunRecord } from '../lib/strava'
-import { db, RunRecord } from '../lib/database'
+import { db, RunRecord, RUN_VISIBLE } from '../lib/database'
 import { useState, useEffect, useRef } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
 import { useWithingsAuth } from '../hooks/useWithingsAuth'
@@ -11,11 +11,16 @@ import { convertGarminToRunRecord } from '../lib/garmin'
 import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
 import { useAuth } from '../components/providers/useAuth'
 import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
+import { findOutlierRuns, calculateAbsoluteKPS } from '../lib/kpsUtils'
+import { hideRun } from '../lib/database'
+import { formatDistance, formatTime } from '@kinetix/core'
 
 export default function Settings() {
   const {
     targetKPS,
     setTargetKPS,
+    beatPBPercent,
+    setBeatPBPercent,
     unitSystem,
     setUnitSystem,
     physioMode,
@@ -34,6 +39,7 @@ export default function Settings() {
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [reindexing, setReindexing] = useState(false)
   const [reindexMessage, setReindexMessage] = useState<string | null>(null)
+  const [outlierRuns, setOutlierRuns] = useState<RunRecord[] | null>(null)
   const garminZipInputRef = useRef<HTMLInputElement>(null)
   const { initiateOAuth, handleOAuthCallback } = useStravaAuth()
   const { initiateOAuth: initiateWithingsOAuth, handleOAuthCallback: handleWithingsCallback, disconnect: disconnectWithings } = useWithingsAuth()
@@ -86,7 +92,6 @@ export default function Settings() {
       })
   }, [handleOAuthCallback, handleWithingsCallback])
 
-  const userProfile = profile ? toKinetixUserProfile(profile) : null
   const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : ''
 
   if (!profile) {
@@ -108,6 +113,48 @@ export default function Settings() {
 
   return (
     <div className="pb-20 lg:pb-4">
+      {outlierRuns != null && outlierRuns.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-labelledby="outlier-title" aria-modal="true">
+          <div className="glass rounded-2xl border border-amber-500/40 p-6 max-w-md w-full shadow-xl">
+            <h2 id="outlier-title" className="text-lg font-bold text-amber-300 mb-2">Possible outliers</h2>
+            <p className="text-sm text-gray-300 mb-4">
+              These runs have KPS &gt; 125% of your current PB and may be bad data (e.g. GPS glitch). Hide them so they don&apos;t affect your stats?
+            </p>
+            <ul className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+              {outlierRuns.map((run) => (
+                <li key={run.id} className="text-xs text-gray-300 flex justify-between gap-2">
+                  <span>{run.date ? new Date(run.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
+                  <span>{formatDistance(run.distance, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}</span>
+                  <span>{formatTime(run.duration)}</span>
+                  <span className="text-amber-400 font-medium">KPS {Math.round(calculateAbsoluteKPS(run, safeUserProfile))}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setOutlierRuns(null)}
+                className="px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                Keep
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  for (const run of outlierRuns) {
+                    if (run.id) await hideRun(run.id)
+                  }
+                  setImportMessage(`${outlierRuns.length} run(s) hidden from stats (possible outliers).`)
+                  setOutlierRuns(null)
+                }}
+                className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium"
+              >
+                Hide from stats
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-md lg:max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Settings</h1>
         <div className="glass rounded-2xl p-6 space-y-6">
@@ -123,6 +170,20 @@ export default function Settings() {
               type="number"
               value={targetKPS}
               onChange={(e) => setTargetKPS(parseFloat(e.target.value) || 135)}
+              className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Beat PB target %</label>
+            <p className="text-[11px] text-gray-500 mb-1">Used for &quot;Beat PB&quot; run suggestions on the Run view (e.g. 2 = beat PB by 2%).</p>
+            <input
+              type="number"
+              min={0.5}
+              max={20}
+              step={0.5}
+              value={beatPBPercent}
+              onChange={(e) => setBeatPBPercent(parseFloat(e.target.value) || 2)}
               className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
             />
           </div>
@@ -264,7 +325,9 @@ export default function Settings() {
                     }
 
                     // Check for duplicates by comparing date and distance
-                    const existingRuns = await db.runs.where('source').equals('strava').toArray()
+                    const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
+                      (r) => (r.deleted ?? 0) === RUN_VISIBLE
+                    )
                     const existingKeys = new Set(
                       existingRuns.map(run => `${run.date}-${Math.round(run.distance)}`)
                     )
@@ -282,9 +345,15 @@ export default function Settings() {
                       return
                     }
 
-                    await db.runs.bulkAdd(records)
-                    await indexRunsAfterSave(records, safeUserProfile)
-                    setImportMessage(`Imported ${records.length} new run${records.length > 1 ? 's' : ''} from Strava.`)
+                    const added: RunRecord[] = []
+                    for (const r of records) {
+                      const id = await db.runs.add(r)
+                      added.push({ ...r, id: id as number } as RunRecord)
+                    }
+                    await indexRunsAfterSave(added, safeUserProfile)
+                    setImportMessage(`Imported ${added.length} new run${added.length > 1 ? 's' : ''} from Strava.`)
+                    const outliers = await findOutlierRuns(added, safeUserProfile)
+                    if (outliers.length > 0) setOutlierRuns(outliers)
                   } catch (error) {
                     console.error('Strava import error', error)
                     const errorMsg = error instanceof Error ? error.message : 'Failed to import from Strava. Check token.'
@@ -340,7 +409,9 @@ export default function Settings() {
                 try {
                   setImporting(true)
                   const { runs: normalizedRuns, stats } = await importGarminFromZipFile(file, targetKPS)
-                  const existingGarmin = await db.runs.where('source').equals('garmin').toArray()
+                  const existingGarmin = (await db.runs.where('source').equals('garmin').toArray()).filter(
+                    (r) => (r.deleted ?? 0) === RUN_VISIBLE
+                  )
                   const existingIds = new Set((existingGarmin.map(r => r.external_id).filter(Boolean) as string[]))
                   const toAdd = normalizedRuns
                     .filter(r => !existingIds.has(r.external_id))
@@ -350,12 +421,18 @@ export default function Settings() {
                     setImportMessage(`No new runs (${stats.duplicatesSkipped} duplicates skipped).`)
                     return
                   }
-                  await db.runs.bulkAdd(toAdd)
-                  await indexRunsAfterSave(toAdd, safeUserProfile)
+                  const added: RunRecord[] = []
+                  for (const r of toAdd) {
+                    const id = await db.runs.add(r)
+                    added.push({ ...r, id: id as number } as RunRecord)
+                  }
+                  await indexRunsAfterSave(added, safeUserProfile)
                   setImportMessage(
-                    `Imported ${toAdd.length} run${toAdd.length > 1 ? 's' : ''} from Garmin. ` +
+                    `Imported ${added.length} run${added.length > 1 ? 's' : ''} from Garmin. ` +
                     `Files: ${stats.filesScanned}, running: ${stats.runningActivities}, skipped: ${stats.duplicatesSkipped}.`
                   )
+                  const outliers = await findOutlierRuns(added, safeUserProfile)
+                  if (outliers.length > 0) setOutlierRuns(outliers)
                 } catch (err) {
                   console.error('Garmin import error', err)
                   setImportMessage(`Error: ${err instanceof Error ? err.message : 'Garmin import failed'}.`)
@@ -385,7 +462,7 @@ export default function Settings() {
                 setReindexMessage(null)
                 try {
                   setReindexing(true)
-                  const runs = await db.runs.orderBy('date').reverse().toArray()
+                  const runs = await db.runs.orderBy('date').reverse().filter((r) => (r.deleted ?? 0) === RUN_VISIBLE).toArray()
                   if (runs.length === 0) {
                     setReindexMessage('No runs in the app. Import from Strava or Garmin first.')
                     return

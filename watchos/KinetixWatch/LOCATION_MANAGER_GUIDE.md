@@ -1,7 +1,7 @@
 # LocationManager - What It Does
 
 ## Overview
-`LocationManager` is currently a **945-line "god object"** that handles way too many responsibilities. Here's what it's doing:
+Active app targets: **watchos/KinetixWatch** (watch app) and **ios/KinetixPhone** (iPhone companion). `LocationManager` is currently a **945-line "god object"** that handles way too many responsibilities. Here's what it's doing:
 
 ## Responsibilities (Too Many!)
 
@@ -28,7 +28,7 @@
 - Saves/loads recovery data
 
 ### 4. **Metrics Calculation** (~100 lines)
-- Calculates NPI (Normalized Performance Index)
+- Calculates KPS (Kinetix Performance Score; internal metric NPI)
 - Calculates pace
 - Calculates distance
 - Rolling 5-second pace average

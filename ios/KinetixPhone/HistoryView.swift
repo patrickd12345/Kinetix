@@ -36,7 +36,7 @@ struct RunRow: View {
                 Spacer()
                 Label(formatDuration(run.duration), systemImage: "stopwatch")
                 Spacer()
-                Label("\(Int(run.avgNPI)) NPI", systemImage: "bolt")
+                Label("\(Int(run.avgNPI)) KPS", systemImage: "bolt")
                     .foregroundColor(.cyan)
                 if run.source != "recorded" {
                     Spacer()
@@ -78,7 +78,7 @@ struct RunDetailView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Summary Card
                     VStack {
-                        Text("NPI SCORE").font(.caption).bold().foregroundColor(.gray)
+                        Text("KPS").font(.caption).bold().foregroundColor(.gray)
                         Text("\(Int(run.avgNPI))")
                             .font(.system(size: 60, weight: .black, design: .rounded))
                             .foregroundColor(.cyan)

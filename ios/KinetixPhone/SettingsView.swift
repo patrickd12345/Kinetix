@@ -585,9 +585,9 @@ struct SettingsView: View {
                 }
             }
             HStack {
-                Text("Target NPI")
+                Text("Target KPS")
                     .frame(width: 120, alignment: .leading)
-                TextField("Target NPI", text: $targetNPIText)
+                TextField("Target KPS", text: $targetNPIText)
                     .keyboardType(.decimalPad)
             }
             Button("Save Profile") {
@@ -596,7 +596,7 @@ struct SettingsView: View {
         } header: {
             Text("Runner Profile")
         } footer: {
-            Text("Used for AI summaries, training distribution, and future pace/power estimates. Target NPI is used for AI analysis comparisons.")
+            Text("Used for AI summaries, training distribution, and future pace/power estimates. Target KPS is used for AI analysis comparisons.")
         }
     }
     
@@ -617,12 +617,12 @@ struct SettingsView: View {
                 addManualRun()
             }
             if let npiResult {
-                Text("Computed NPI \(Int(npiResult)) added to history")
+                Text("Computed KPS \(Int(npiResult)) added to history")
                     .font(.caption)
                     .foregroundColor(.green)
             }
         } header: {
-            Text("Find My NPI")
+            Text("Find My KPS")
         } footer: {
             Text("Creates a manual workout entry tagged as imported. Great for race results or treadmill sessions.")
         }
@@ -768,7 +768,7 @@ struct SettingsView: View {
         
         let summary = """
         Past \(recentRuns.count) workouts: \(String(format: "%.1f", totalDistance)) km total.
-        Avg NPI \(Int(avgNPI)), best \(Int(bestNPI)).
+        Avg KPS \(Int(avgNPI)), best \(Int(bestNPI)).
         Stability \(Int(stabilityScore)) / cadence \(Int(cadence)) spm.
         Focus on smoother ground contact and even strides. Recovery days every 3rd run.
         """

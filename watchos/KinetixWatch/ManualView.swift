@@ -22,7 +22,7 @@ struct ManualView: View {
                 .padding(.bottom, 5)
                 
                 HStack { Image(systemName: "book.fill").foregroundColor(.cyan); Text("USER MANUAL").font(.headline).bold() }.padding(.bottom, 5)
-                ManualCard(icon: "waveform.path.ecg", color: .cyan, title: "WHAT IS NPI?", desc: "Normalized Performance Index. Speed adjusted for fatigue.")
+                ManualCard(icon: "waveform.path.ecg", color: .cyan, title: "WHAT IS KPS?", desc: "Kinetix Performance Score. Speed adjusted for fatigue.")
                 ManualCard(icon: "flag.fill", color: .orange, title: "DYNAMIC FINISH", desc: "The time shown is how long to beat your Target if you hold current pace.")
                 ManualCard(icon: "heart.fill", color: .red, title: "PHYSIO-PACER", desc: "Detects cardiac drift. If HR spikes while pace is flat, suggests recovery speed.")
                 Text("v1.0 • Kinetix Labs").font(.footnote).foregroundColor(.gray).frame(maxWidth: .infinity).padding(.top, 20)

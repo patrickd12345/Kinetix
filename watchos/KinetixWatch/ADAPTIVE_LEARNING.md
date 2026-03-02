@@ -98,7 +98,7 @@ The system uses **implicit feedback** - it doesn't ask you to rate recommendatio
 
 Potential improvements:
 - Explicit feedback (thumbs up/down on recommendations)
-- Learning from run outcomes (did you hit your NPI target?)
+- Learning from run outcomes (did you hit your KPS target?)
 - Personalized optimal ranges per user profile
 - Export learning data for analysis
 

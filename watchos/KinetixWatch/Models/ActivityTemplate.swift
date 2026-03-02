@@ -12,7 +12,7 @@ public enum ActivityGoalType: String, Codable, CaseIterable, Identifiable {
     
     var displayName: String {
         switch self {
-        case .efficiency: return "Efficiency / NPI"
+        case .efficiency: return "Efficiency / KPS"
         case .race: return "Race"
         case .burner: return "Burner"
         case .formMonitor: return "Form Monitor"
@@ -37,7 +37,7 @@ public enum ActivityScreenType: String, Codable, CaseIterable, Identifiable {
         case .bubble: return "Form Bubble"
         case .metrics: return "Metrics Grid"
         case .pace: return "Pace"
-        case .npi: return "NPI"
+        case .npi: return "KPS"
         case .map: return "Route"
         case .coach: return "Coach"
         case .history: return "History"

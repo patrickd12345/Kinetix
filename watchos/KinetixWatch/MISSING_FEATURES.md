@@ -25,7 +25,7 @@
 - Share sheets for sending runs to other apps/services.
 
 ### 4. Onboarding & Tutorial
-- First-run walkthrough explaining NPI, feedback cues, and presets.
+- First-run walkthrough explaining KPS, feedback cues, and presets.
 - Link to detailed docs for form coaching and battery profiles.
 
 ### 5. Battery Optimization Warnings

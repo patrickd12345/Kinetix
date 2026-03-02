@@ -225,7 +225,7 @@ struct RunView: View {
                                 .italic()
                                 .foregroundColor(locationManager.liveNPI >= targetNPI ? .green : .white)
                             
-                            Text("NPI")
+                            Text("KPS")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.gray)
                             
@@ -254,7 +254,7 @@ struct RunView: View {
                             .foregroundColor(locationManager.liveNPI >= targetNPI ? .green : .white)
                             .contentTransition(.numericText())
                         
-                        Text("INDEX").font(.system(size: 8, weight: .bold)).tracking(2).foregroundColor(.gray).offset(y: -5)
+                        Text("KPS").font(.system(size: 8, weight: .bold)).tracking(2).foregroundColor(.gray).offset(y: -5)
                         
                         // DYNAMIC PROJECTION
                         if locationManager.isRunning, let proj = locationManager.timeToBeat {

@@ -17,7 +17,7 @@ struct RunDetailView: View {
                     
                     HStack {
                         VStack {
-                            Text("NPI")
+                            Text("KPS")
                                 .font(.caption2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.gray)

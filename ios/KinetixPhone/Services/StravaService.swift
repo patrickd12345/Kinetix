@@ -253,7 +253,7 @@ public class StravaService: NSObject {
         let activityName = "Run - \(String(format: "%.2f", distanceKm)) km"
         
         // Build description with NPI
-        var description = "NPI: \(String(format: "%.1f", run.avgNPI))\n"
+        var description = "KPS: \(String(format: "%.1f", run.avgNPI))\n"
         description += "Distance: \(String(format: "%.2f", distanceKm)) km\n"
         description += "Duration: \(durationHours):\(String(format: "%02d", durationMinutes))"
         

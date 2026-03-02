@@ -65,7 +65,7 @@ struct RunTrackingView: View {
                     
                     // NPI (Star Feature!)
                     VStack(spacing: 8) {
-                        Text("NPI")
+                        Text("KPS")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Text(String(format: "%.1f", currentNPI))

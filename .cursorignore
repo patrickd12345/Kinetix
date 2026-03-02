@@ -1,0 +1,6 @@
+# Don't index dependency trees (most of the 29k files)
+node_modules/
+**/node_modules/
+
+# Don't index git history
+.git/

@@ -15,6 +15,10 @@
       "destination": "/api/strava-oauth"
     },
     {
+      "source": "/api/strava-refresh",
+      "destination": "/api/strava-refresh"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

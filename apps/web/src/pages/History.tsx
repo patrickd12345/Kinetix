@@ -87,13 +87,20 @@ export default function History() {
 
   // Set initial chart range to last DEFAULT_CHART_DAYS when we have list runs and no range yet
   useEffect(() => {
-    if (chartEndDate != null || runs.length === 0) return
+    if (runs.length === 0) return
     const newest = runs[0]?.date
     if (!newest) return
-    const end = new Date(newest)
-    const start = new Date(end.getTime() - DEFAULT_CHART_DAYS * 24 * 60 * 60 * 1000)
-    setChartStartDate(start.toISOString())
-    setChartEndDate(end.toISOString())
+    if (chartEndDate == null) {
+      const end = new Date(newest)
+      const start = new Date(end.getTime() - DEFAULT_CHART_DAYS * 24 * 60 * 60 * 1000)
+      setChartStartDate(start.toISOString())
+      setChartEndDate(end.toISOString())
+      return
+    }
+    // Extend chart end date if the list now has a newer run (e.g. after Strava sync or delayed refetch)
+    if (newest > chartEndDate) {
+      setChartEndDate(newest)
+    }
   }, [runs, chartEndDate])
 
   const loadChartRuns = useCallback(async () => {
@@ -123,6 +130,28 @@ export default function History() {
     if (!chartStartDate || !chartEndDate || !userProfile) return
     void loadChartRuns()
   }, [loadChartRuns, chartStartDate, chartEndDate, userProfile])
+
+  // Refetch when app/tab becomes visible or when a run is saved (handles race when user navigates before save completes)
+  useEffect(() => {
+    if (!userProfile) return
+    const refresh = () => {
+      void loadRuns(currentPage)
+      if (chartStartDate && chartEndDate) void loadChartRuns()
+    }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    const onRunSaved = () => refresh()
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('kinetix:runSaved', onRunSaved)
+    // One-time refetch after 5s to pick up runs added by Strava sync on startup
+    const delayedRefresh = window.setTimeout(refresh, 5000)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('kinetix:runSaved', onRunSaved)
+      clearTimeout(delayedRefresh)
+    }
+  }, [loadRuns, loadChartRuns, currentPage, userProfile, chartStartDate, chartEndDate])
 
   const handleChartZoomOut = useCallback(() => {
     if (!chartStartDate || !chartEndDate) return

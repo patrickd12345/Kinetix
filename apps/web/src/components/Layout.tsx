@@ -1,10 +1,12 @@
-import { ReactNode, useEffect } from 'react'
+import { ReactNode, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Activity, History, MessageCircle, Settings } from 'lucide-react'
 import { useAuth } from './providers/useAuth'
+import { useSettingsStore } from '../store/settingsStore'
 import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
 import { getRunsPage } from '../lib/database'
 import { syncNewRunsToRAG } from '../lib/ragClient'
+import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
 
 const RAG_SYNC_PAGE_SIZE = 200
 
@@ -15,6 +17,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const { profile, session, signOut } = useAuth()
+  const { stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated } = useSettingsStore()
   const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : session?.user.email ?? 'User'
 
   useEffect(() => {
@@ -31,6 +34,51 @@ export default function Layout({ children }: LayoutProps) {
     const id = window.setTimeout(run, 0)
     return () => clearTimeout(id)
   }, [profile])
+
+  // Sync new runs from Strava on app startup (e.g. Garmin->Strava run).
+  // Uses persisted credentials (with refresh) or legacy token. Runs at 0, 500, 1500, 2500, 4000, 5000 ms
+  // so that Zustand persist rehydration (async) has time to restore stravaCredentials.
+  const stravaSyncDoneRef = useRef(false)
+  useEffect(() => {
+    if (!profile || typeof indexedDB === 'undefined') return
+    stravaSyncDoneRef.current = false
+    const userProfile = toKinetixUserProfile(profile)
+
+    const runSync = async () => {
+      if (stravaSyncDoneRef.current) return
+      const token = await getValidStravaToken()
+      if (!token?.trim() || stravaSyncDoneRef.current) {
+        if (useSettingsStore.getState().stravaCredentials ?? useSettingsStore.getState().stravaToken?.trim()) {
+          console.log('[Strava] Startup sync skipped: no valid token yet (refresh may have failed or rehydration pending)')
+        }
+        return
+      }
+      stravaSyncDoneRef.current = true
+      console.log('[Strava] Startup sync running...')
+      syncStravaRuns(token, userProfile, targetKPS)
+        .then((r) => {
+          if (r.added.length > 0) {
+            console.log('[Strava] Imported', r.added.length, 'run(s) on startup')
+            setStravaSyncError(null)
+          }
+          if (r.error) setStravaSyncError(r.error)
+        })
+        .catch((e) => setStravaSyncError(e instanceof Error ? e.message : 'Strava sync failed'))
+    }
+    runSync()
+    const t1 = window.setTimeout(runSync, 500)
+    const t2 = window.setTimeout(runSync, 1500)
+    const t3 = window.setTimeout(runSync, 2500)
+    const t4 = window.setTimeout(runSync, 4000)
+    const t5 = window.setTimeout(runSync, 5000)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+      clearTimeout(t4)
+      clearTimeout(t5)
+    }
+  }, [profile, stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated])
 
   const navItems = [
     { path: '/', icon: Activity, label: 'Run' },

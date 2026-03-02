@@ -60,7 +60,7 @@ export function resolveModel(env: NodeJS.ProcessEnv, provider: LLMProvider): str
   return env.OLLAMA_MODEL || env.LLM_MODEL || 'llama3.2'
 }
 
-async function executeOllama(
+async function executeOllamaGenerate(
   baseUrl: string,
   model: string,
   messages: ChatMessage[],
@@ -89,7 +89,55 @@ async function executeOllama(
     throw err
   }
   const data = (await res.json()) as { response?: string }
-  return { text: (data.response || '').trim() }
+  let text = (data.response || '').trim()
+  const systemPrefix = messages.find((m) => m.role === 'system')?.content?.slice(0, 80) ?? ''
+  if (systemPrefix && text.startsWith(systemPrefix.slice(0, 60))) {
+    text = text.slice(text.indexOf('\n\n') + 2).trim()
+  }
+  return { text }
+}
+
+async function executeOllama(
+  baseUrl: string,
+  model: string,
+  messages: ChatMessage[],
+  options: ExecuteChatOptions
+): Promise<{ text: string }> {
+  const ollamaMessages = messages.map((m) => ({
+    role: m.role === 'system' ? ('system' as const) : m.role === 'model' ? ('assistant' as const) : ('user' as const),
+    content: m.content,
+  }))
+  const res = await fetch(`${baseUrl}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      messages: ollamaMessages,
+      stream: false,
+      options: {
+        temperature: options.temperature ?? 0.7,
+        top_p: 0.9,
+      },
+    }),
+    signal: AbortSignal.timeout(60000),
+  })
+  if (res.ok) {
+    const data = (await res.json()) as { message?: { role?: string; content?: string } }
+    const text = data.message?.content?.trim() ?? ''
+    return { text }
+  }
+  if (res.status === 500) {
+    try {
+      return await executeOllamaGenerate(baseUrl, model, messages, options)
+    } catch (fallbackErr) {
+      const err = new Error(`Ollama API error: 500 (chat failed; generate fallback also failed)`) as Error & { status?: number }
+      err.status = 500
+      throw err
+    }
+  }
+  const err = new Error(`Ollama API error: ${res.status}`) as Error & { status?: number }
+  err.status = res.status
+  throw err
 }
 
 async function executeGateway(

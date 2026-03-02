@@ -135,57 +135,101 @@ app.post('/coach-context', async (req, res) => {
 
 const basePort = Number(process.env.PORT) || 3001;
 const maxTries = 10;
-const CHROMA_URL = process.env.CHROMA_SERVER_URL || process.env.CHROMA_API_URL || 'http://localhost:8000';
+function getChromaUrl() {
+  return process.env.CHROMA_SERVER_URL || process.env.CHROMA_API_URL || 'http://localhost:8000';
+}
 const CHROMA_AUTO_START = process.env.CHROMA_AUTO_START !== '0' && process.env.CHROMA_AUTO_START !== 'false';
 const OLLAMA_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434';
 const OLLAMA_AUTO_START = process.env.OLLAMA_AUTO_START !== '0' && process.env.OLLAMA_AUTO_START !== 'false';
 
-async function chromaHeartbeat() {
-  try {
-    const res = await fetch(`${CHROMA_URL}/api/v1/heartbeat`, { signal: AbortSignal.timeout(2000) });
-    return res.ok;
-  } catch {
+async function chromaHeartbeat(url) {
+  const base = url || getChromaUrl();
+  for (const path of ['/api/v2/heartbeat', '/api/v1/heartbeat']) {
     try {
-      const res = await fetch(`${CHROMA_URL}/api/v2/heartbeat`, { signal: AbortSignal.timeout(2000) });
-      return res.ok;
+      const res = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(2000) });
+      if (res.ok) return true;
     } catch {
-      return false;
+      /* try next */
     }
   }
+  return false;
 }
 
 const CHROMA_CONTAINER_NAME = 'kinetix-chroma';
 
 function runDocker(args) {
   return new Promise((resolve) => {
-    const child = spawn('docker', args, { stdio: 'ignore' });
-    child.on('error', () => resolve(false));
-    child.on('close', (code) => resolve(code === 0));
+    const child = spawn('docker', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stderr = '';
+    child.stderr?.on('data', (d) => { stderr += d.toString(); });
+    child.on('error', (err) => {
+      console.warn('[RAG] Docker spawn error:', err.message);
+      resolve({ ok: false, stderr: '' });
+    });
+    child.on('close', (code) => {
+      if (code !== 0 && stderr.trim()) {
+        console.warn('[RAG] Docker command failed:', args.join(' '), '|', stderr.trim().slice(0, 200));
+      }
+      resolve({ ok: code === 0, stderr });
+    });
   });
 }
 
 async function startChromaWithDocker() {
   const image = process.env.CHROMA_DOCKER_IMAGE || 'chromadb/chroma';
-  const ok = await runDocker([
-    'run',
-    '-d',
-    '--rm',
-    '-p',
-    '8000:8000',
-    '--name',
-    CHROMA_CONTAINER_NAME,
-    image,
-  ]);
-  if (ok) return true;
-  const started = await runDocker(['start', CHROMA_CONTAINER_NAME]);
-  return started;
+  const ports = [8000, 8001, 8002];
+
+  for (const port of ports) {
+    await runDocker(['rm', '-f', CHROMA_CONTAINER_NAME]);
+    const { ok, stderr } = await runDocker([
+      'run',
+      '-d',
+      '--rm',
+      '-p',
+      `${port}:8000`,
+      '--name',
+      CHROMA_CONTAINER_NAME,
+      image,
+    ]);
+    if (ok) {
+      const url = `http://localhost:${port}`;
+      process.env.CHROMA_API_URL = url;
+      process.env.CHROMA_SERVER_URL = url;
+      return url;
+    }
+    const isNetworkingError = stderr.includes('external connectivity') || stderr.includes('port is already allocated');
+    if (!isNetworkingError) {
+      const started = await runDocker(['start', CHROMA_CONTAINER_NAME]);
+      if (started.ok) return getChromaUrl();
+      break;
+    }
+  }
+  return null;
+}
+
+function startChromaWithPython() {
+  return new Promise((resolve) => {
+    const chromaPath = process.env.CHROMA_PATH || './chroma_db';
+    const args = ['run', '--path', chromaPath, '--port', '8000'];
+
+    const child = spawn('chroma', args, { stdio: 'ignore', cwd: process.cwd() });
+    child.on('error', () => {
+      const py = process.platform === 'win32' ? 'py' : 'python3';
+      const fallback = spawn(py, ['-m', 'chromadb.cli.app', ...args], { stdio: 'ignore', cwd: process.cwd() });
+      fallback.on('error', () => resolve(false));
+      fallback.unref();
+      resolve(true);
+    });
+    child.unref();
+    resolve(true);
+  });
 }
 
 async function ensureChromaRunning() {
   if (!CHROMA_AUTO_START) return;
   let host;
   try {
-    host = new URL(CHROMA_URL).hostname;
+    host = new URL(getChromaUrl()).hostname;
   } catch {
     return;
   }
@@ -197,20 +241,27 @@ async function ensureChromaRunning() {
     return;
   }
   console.log('[RAG] Chroma not detected. Attempting to start via Docker...');
-  const started = await startChromaWithDocker();
-  if (!started) {
-    console.warn('[RAG] Could not start Chroma (is Docker running?). RAG will return 503 until Chroma is available.');
-    return;
+  let chromaUrl = await startChromaWithDocker();
+  if (!chromaUrl) {
+    console.log('[RAG] Docker failed. Trying Python chroma run...');
+    const pyStarted = await startChromaWithPython();
+    if (!pyStarted) {
+      console.warn(
+        '[RAG] Could not start Chroma. Options: 1) Run Docker 2) Install Chroma (pip install chromadb) and run: chroma run --path ./chroma_db 3) Set CHROMA_AUTO_START=0 to disable. RAG vector features will return 503 until Chroma is available.'
+      );
+      return;
+    }
+    chromaUrl = getChromaUrl();
   }
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 1000));
-    if (await chromaHeartbeat()) {
-      console.log('[RAG] Chroma server started.');
+    if (await chromaHeartbeat(chromaUrl)) {
+      console.log('[RAG] Chroma server started.', chromaUrl !== 'http://localhost:8000' ? `(${chromaUrl})` : '');
       return;
     }
   }
-  console.warn('[RAG] Chroma container started but not ready in time. RAG may return 503 until it responds.');
+  console.warn('[RAG] Chroma started but not ready in time. It may become available shortly.');
 }
 
 async function ollamaHealth() {
@@ -255,7 +306,7 @@ async function ensureOllamaRunning() {
 function tryListen(port) {
   const server = app.listen(port, () => {
     console.log(`Kinetix RAG service running on http://localhost:${port}`);
-    console.log(`Chroma: ${CHROMA_URL} (auto-start: ${CHROMA_AUTO_START})`);
+    console.log(`Chroma: ${getChromaUrl()} (auto-start: ${CHROMA_AUTO_START})`);
     console.log(`Ollama: ${OLLAMA_URL} (auto-start: ${OLLAMA_AUTO_START})`);
   });
   server.on('error', (err) => {

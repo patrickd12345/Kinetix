@@ -9,19 +9,35 @@ const CHROMA_MODE = process.env.CHROMA_MODE || 'in-memory';
 const CHROMA_PATH = process.env.CHROMA_PATH || './chroma_db';
 const COLLECTION_NAME = 'kinetix_runs';
 
+function getChromaApiUrl() {
+  return process.env.CHROMA_API_URL || process.env.CHROMA_SERVER_URL;
+}
+
+function createChromaClient() {
+  const url = getChromaApiUrl();
+  if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+    return new ChromaClient({ path: url });
+  }
+  try {
+    if (CHROMA_MODE === 'persistent') {
+      return new ChromaClient({ path: CHROMA_PATH });
+    }
+    return new ChromaClient();
+  } catch (error) {
+    console.warn('ChromaClient init error, trying default:', error);
+    return new ChromaClient();
+  }
+}
+
 export class VectorDB {
   constructor() {
-    try {
-      if (CHROMA_MODE === 'persistent') {
-        this.client = new ChromaClient({ path: CHROMA_PATH });
-      } else {
-        this.client = new ChromaClient();
-      }
-    } catch (error) {
-      console.warn('ChromaClient init error, trying default:', error);
-      this.client = new ChromaClient();
-    }
+    this._client = null;
     this.collection = null;
+  }
+
+  get client() {
+    if (!this._client) this._client = createChromaClient();
+    return this._client;
   }
 
   async initialize() {

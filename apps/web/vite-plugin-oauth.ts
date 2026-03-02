@@ -210,8 +210,13 @@ async function handleWithingsOAuthRequest(req: IncomingMessage, res: ServerRespo
       }))
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Withings OAuth failed'
-      console.error('[OAuth Local] Withings', message, e)
-      const status = message.includes('not configured') || message.includes('required') ? 500 : 400
+      const isServiceUnavailable = message.includes('temporarily unavailable')
+      if (isServiceUnavailable) {
+        console.warn('[OAuth Local] Withings:', message)
+      } else {
+        console.error('[OAuth Local] Withings', message, e)
+      }
+      const status = message.includes('not configured') || message.includes('required') ? 500 : isServiceUnavailable ? 503 : 400
       res.writeHead(status, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: message }))
     }
@@ -262,9 +267,15 @@ async function handleWithingsRefreshRequest(req: IncomingMessage, res: ServerRes
         expires_in: result.expires_in,
       }))
     } catch (e) {
-      console.error('[OAuth Local] Withings refresh', e)
-      res.writeHead(500, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: e instanceof Error ? e.message : 'Withings refresh failed' }))
+      const message = e instanceof Error ? e.message : 'Withings refresh failed'
+      const isServiceUnavailable = message.includes('temporarily unavailable')
+      if (isServiceUnavailable) {
+        console.warn('[OAuth Local] Withings refresh:', message)
+      } else {
+        console.error('[OAuth Local] Withings refresh', e)
+      }
+      res.writeHead(isServiceUnavailable ? 503 : 500, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: message }))
     }
   })
 }
@@ -364,6 +375,67 @@ async function handleOAuthRequest(req: IncomingMessage, res: ServerResponse, env
   })
 }
 
+async function handleStravaRefreshRequest(req: IncomingMessage, res: ServerResponse, env: Record<string, string>) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200).end()
+    return
+  }
+  if (req.method !== 'POST') {
+    res.writeHead(405, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ error: 'Method not allowed' }))
+    return
+  }
+  let body = ''
+  req.on('data', (chunk) => { body += chunk.toString() })
+  req.on('end', async () => {
+    try {
+      const { refresh_token } = JSON.parse(body || '{}')
+      if (!refresh_token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'refresh_token required' }))
+        return
+      }
+      const clientSecret = env.STRAVA_CLIENT_SECRET || process.env.STRAVA_CLIENT_SECRET
+      const clientId = env.STRAVA_CLIENT_ID || process.env.STRAVA_CLIENT_ID || '157217'
+      if (!clientSecret) {
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Strava not configured. Set STRAVA_CLIENT_SECRET.' }))
+        return
+      }
+      const refreshRes = await fetch('https://www.strava.com/oauth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: clientId,
+          client_secret: clientSecret,
+          grant_type: 'refresh_token',
+          refresh_token,
+        }),
+      })
+      if (!refreshRes.ok) {
+        const errData = await refreshRes.json().catch(() => ({}))
+        res.writeHead(refreshRes.status, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: errData.message || 'Strava refresh failed' }))
+        return
+      }
+      const data = await refreshRes.json()
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_at: data.expires_at,
+      }))
+    } catch (e) {
+      console.error('[OAuth Local] Strava refresh', e)
+      res.writeHead(500, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: e instanceof Error ? e.message : 'Strava refresh failed' }))
+    }
+  })
+}
+
 export function vitePluginOAuth(): Plugin {
   return {
     name: 'vite-plugin-oauth',
@@ -381,6 +453,9 @@ export function vitePluginOAuth(): Plugin {
       
       server.middlewares.use('/api/strava-oauth', (req, res, next) => {
         handleOAuthRequest(req, res, mergedEnv).catch(next)
+      })
+      server.middlewares.use('/api/strava-refresh', (req, res, next) => {
+        handleStravaRefreshRequest(req, res, mergedEnv).catch(next)
       })
       server.middlewares.use('/api/withings-oauth', (req, res, next) => {
         handleWithingsOAuthRequest(req, res, mergedEnv).catch(next)

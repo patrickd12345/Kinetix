@@ -1,6 +1,6 @@
 import { useSettingsStore } from '../store/settingsStore'
 import { KINETIX_PERFORMANCE_SCORE } from '../lib/branding'
-import { fetchStravaActivities, convertStravaToRunRecord } from '../lib/strava'
+import { fetchStravaActivities, convertStravaToRunRecord, getValidStravaToken } from '../lib/strava'
 import { db, RunRecord, RUN_VISIBLE } from '../lib/database'
 import { useState, useEffect, useRef } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
@@ -27,6 +27,10 @@ export default function Settings() {
     setPhysioMode,
     stravaToken,
     setStravaToken,
+    stravaCredentials,
+    setStravaCredentials,
+    stravaSyncError,
+    setStravaSyncError,
     weightSource,
     setWeightSource,
     withingsCredentials,
@@ -301,7 +305,7 @@ export default function Settings() {
                 <p className="text-[11px] text-gray-500 mb-2">
                   Connect your Strava account to import your running history.
                 </p>
-                {!stravaToken ? (
+                {!stravaCredentials && !stravaToken?.trim() ? (
                   <button
                     onClick={initiateOAuth}
                     className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-full transition mb-2"
@@ -317,7 +321,12 @@ export default function Settings() {
                   setImportMessage(null)
                   try {
                     setImporting(true)
-                    const activities = await fetchStravaActivities(stravaToken)
+                    const token = await getValidStravaToken()
+                    if (!token) {
+                      setImportMessage('Connect Strava first or refresh your token.')
+                      return
+                    }
+                    const activities = await fetchStravaActivities(token)
                     
                     if (activities.length === 0) {
                       setImportMessage('No running activities found in your Strava history.')
@@ -358,12 +367,18 @@ export default function Settings() {
                     console.error('Strava import error', error)
                     const errorMsg = error instanceof Error ? error.message : 'Failed to import from Strava. Check token.'
                     setImportMessage(`Error: ${errorMsg}`)
+                    const isAuthErr = String(errorMsg).includes('401') || String(errorMsg).toLowerCase().includes('unauthorized')
+                    if (isAuthErr) {
+                      setStravaCredentials(null)
+                      setStravaToken('')
+                      setStravaSyncError('Token expired. Disconnect and reconnect Strava.')
+                    }
                   } finally {
                     setImporting(false)
                   }
                 }}
                 className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition"
-                disabled={importing || !stravaToken.trim()}
+                disabled={importing || (!stravaCredentials && !stravaToken?.trim())}
               >
                 {importing ? 'Importing…' : 'Import from Strava'}
               </button>
@@ -372,17 +387,29 @@ export default function Settings() {
               type="password"
               value={stravaToken}
               onChange={(e) => setStravaToken(e.target.value)}
-              placeholder={stravaToken ? "Token connected via OAuth" : "Or paste token manually"}
+              placeholder={(stravaCredentials || stravaToken) ? 'Connected via OAuth' : 'Or paste token manually'}
               className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-sm"
-              disabled={!!stravaToken}
+              disabled={!!stravaCredentials}
             />
-            {stravaToken && (
+            {(stravaCredentials || stravaToken) && (
               <button
-                onClick={() => setStravaToken('')}
+                onClick={() => {
+                  setStravaCredentials(null)
+                  setStravaToken('')
+                  setStravaSyncError(null)
+                }}
                 className="text-xs text-red-400 hover:text-red-300"
               >
                 Disconnect
               </button>
+            )}
+            {stravaSyncError && (
+              <div className="text-xs text-amber-400">
+                Startup sync: {stravaSyncError}
+                {stravaSyncError.includes('expired') || stravaSyncError.includes('reconnect') ? (
+                  <span className="block mt-1">Click Disconnect above, then Connect with Strava to fix.</span>
+                ) : null}
+              </div>
             )}
             {importMessage && (
               <div className={`text-xs ${importMessage.startsWith('Error:') ? 'text-red-400' : 'text-gray-300'}`}>

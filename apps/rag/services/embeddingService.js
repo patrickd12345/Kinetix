@@ -43,20 +43,37 @@ export class EmbeddingService {
   }
 
   static async embedText(text) {
-    const response = await fetch(`${OLLAMA_API_URL}/api/embeddings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: EMBEDDING_MODEL,
-        prompt: text,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status}`);
+    const url = `${OLLAMA_API_URL}/api/embed`;
+    const body = { model: EMBEDDING_MODEL, input: text };
+    const attempt = async () => {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(60000),
+      });
+      if (!response.ok) {
+        const errBody = await response.text();
+        const err = new Error(`Ollama API error: ${response.status}${errBody ? ` - ${errBody.slice(0, 200)}` : ''}`);
+        err.status = response.status;
+        throw err;
+      }
+      const data = await response.json();
+      const emb = data.embeddings?.[0] ?? data.embedding;
+      if (!emb || !Array.isArray(emb)) {
+        throw new Error('Ollama embeddings response missing embeddings array');
+      }
+      return emb;
+    };
+    try {
+      return await attempt();
+    } catch (e) {
+      if (e?.status === 500) {
+        await new Promise((r) => setTimeout(r, 2000));
+        return await attempt();
+      }
+      throw e;
     }
-    const data = await response.json();
-    return data.embedding;
   }
 
   static async isAvailable() {
@@ -68,7 +85,8 @@ export class EmbeddingService {
       if (!response.ok) return false;
       const data = await response.json();
       const models = data.models?.map((m) => m.name) || [];
-      return models.some((name) => name.includes(EMBEDDING_MODEL));
+      const hasModel = models.some((name) => name.includes(EMBEDDING_MODEL) || EMBEDDING_MODEL.includes(name));
+      return hasModel;
     } catch {
       return false;
     }

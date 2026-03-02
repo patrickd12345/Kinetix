@@ -115,6 +115,10 @@ export const useRunStore = create<RunState>((set, get) => ({
 
         const savedRunRecord: RunRecord = { ...runRecord, id: numericRunId }
 
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
+        }
+
         import('../lib/kpsUtils').then(({ checkAndUpdatePB }) => {
           checkAndUpdatePB(savedRunRecord, userProfile).then((isNewPB) => {
             if (isNewPB) {

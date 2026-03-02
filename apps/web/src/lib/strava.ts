@@ -1,6 +1,45 @@
-import { RunRecord } from './database'
+import { db, RunRecord, RUN_VISIBLE } from './database'
 import { calculateKPS, UserProfile } from '@kinetix/core'
 import { isValidRunForKPS } from './kpsUtils'
+import { useSettingsStore } from '../store/settingsStore'
+
+/** Refresh if token expires within 1 hour. Returns valid access token or empty string. */
+export async function getValidStravaToken(): Promise<string> {
+  const { stravaCredentials, stravaToken, setStravaCredentials } = useSettingsStore.getState()
+  if (stravaCredentials) {
+    const now = Math.floor(Date.now() / 1000)
+    const bufferSec = 3600
+    if (stravaCredentials.expiresAt > now + bufferSec) {
+      return stravaCredentials.accessToken
+    }
+    try {
+      const res = await fetch('/api/strava-refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: stravaCredentials.refreshToken }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.warn('[Strava] Token refresh failed:', (err as { error?: string }).error)
+        setStravaCredentials(null)
+        return ''
+      }
+      const data = (await res.json()) as { access_token: string; refresh_token: string; expires_at: number }
+      const creds = {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt: data.expires_at,
+      }
+      setStravaCredentials(creds)
+      return creds.accessToken
+    } catch (e) {
+      console.warn('[Strava] Token refresh error:', e)
+      setStravaCredentials(null)
+      return ''
+    }
+  }
+  return stravaToken?.trim() ?? ''
+}
 
 export interface StravaActivity {
   id: number
@@ -162,5 +201,75 @@ export function convertStravaToRunRecord(
     heartRate: activity.average_heartrate,
     notes: activity.name || `Strava Activity ${activity.id}`,
     source: 'strava',
+  }
+}
+
+export type SyncStravaResult = { added: RunRecord[]; error?: string }
+
+/**
+ * Fetch new runs from Strava, dedupe against existing DB, add them, index in RAG.
+ * Call on app startup when Strava is connected.
+ */
+export async function syncStravaRuns(
+  token: string,
+  userProfile: UserProfile,
+  targetKPS: number
+): Promise<SyncStravaResult> {
+  if (!token?.trim()) return { added: [] }
+  try {
+    const activities = await fetchStravaActivities(token)
+    if (activities.length === 0) {
+      if (typeof console !== 'undefined') console.log('[Strava] No run activities returned from API')
+      return { added: [] }
+    }
+    if (typeof console !== 'undefined') console.log('[Strava] Fetched', activities.length, 'run(s) from API')
+
+    const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
+      (r) => (r.deleted ?? 0) === RUN_VISIBLE
+    )
+    const existingKeys = new Set(
+      existingRuns.map((r) => `${r.date}-${Math.round(r.distance)}`)
+    )
+
+    const records = activities
+      .map((a) => convertStravaToRunRecord(a, userProfile, targetKPS))
+      .filter((r): r is RunRecord => r !== null)
+      .filter((r) => {
+        const key = `${r.date}-${Math.round(r.distance)}`
+        return !existingKeys.has(key)
+      })
+
+    if (records.length === 0) {
+      if (activities.length > 0 && typeof console !== 'undefined') {
+        console.log('[Strava] All', activities.length, 'run(s) already in history (no new runs to add)')
+      }
+      return { added: [] }
+    }
+    if (typeof console !== 'undefined') console.log('[Strava] Adding', records.length, 'new run(s)')
+
+    const added: RunRecord[] = []
+    for (const r of records) {
+      const id = await db.runs.add(r)
+      added.push({ ...r, id: id as number } as RunRecord)
+    }
+
+    const { indexRunsAfterSave } = await import('./ragClient')
+    await indexRunsAfterSave(added, userProfile)
+
+    if (added.length > 0 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
+    }
+    return { added }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Strava sync failed'
+    console.error('[Strava] sync on startup:', msg, err)
+    const isAuthError = typeof msg === 'string' && (msg.includes('401') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('token'))
+    if (isAuthError && typeof window !== 'undefined') {
+      const { setStravaCredentials, setStravaToken, setStravaSyncError } = useSettingsStore.getState()
+      setStravaCredentials(null)
+      setStravaToken('')
+      setStravaSyncError('Connection expired. Disconnect and reconnect Strava in Settings.')
+    }
+    return { added: [], error: msg }
   }
 }

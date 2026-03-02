@@ -10,6 +10,12 @@ export interface WithingsCredentials {
   expiresAt: number
 }
 
+export interface StravaCredentials {
+  accessToken: string
+  refreshToken: string
+  expiresAt: number
+}
+
 interface SettingsState {
   targetKPS: number
   setTargetKPS: (kps: number) => void
@@ -22,6 +28,12 @@ interface SettingsState {
   setPhysioMode: (enabled: boolean) => void
   stravaToken: string
   setStravaToken: (token: string) => void
+  stravaCredentials: StravaCredentials | null
+  setStravaCredentials: (creds: StravaCredentials | null) => void
+  stravaSyncError: string | null
+  setStravaSyncError: (msg: string | null) => void
+  /** Set to true when persisted state has been rehydrated from storage (so Strava sync can run). */
+  settingsRehydrated: boolean
   weightSource: WeightSource
   setWeightSource: (source: WeightSource) => void
   withingsCredentials: WithingsCredentials | null
@@ -47,6 +59,12 @@ export const useSettingsStore = create<SettingsState>()(
 
       stravaToken: '',
       setStravaToken: (token) => set({ stravaToken: token }),
+      stravaCredentials: null,
+      setStravaCredentials: (creds) => set({ stravaCredentials: creds, stravaSyncError: null }),
+      stravaSyncError: null,
+      setStravaSyncError: (msg) => set({ stravaSyncError: msg }),
+
+      settingsRehydrated: false,
 
       weightSource: 'profile',
       setWeightSource: (source) => set({ weightSource: source }),
@@ -59,13 +77,22 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'kinetix-settings',
+      partialize: (state) => {
+        const { settingsRehydrated: _, ...rest } = state
+        return rest
+      },
       merge: (persisted, current) => {
         const p = persisted as (Partial<SettingsState> & { targetNPI?: number }) | undefined
         if (!p) return current
         const out: SettingsState = { ...current, ...p }
         if (p.targetNPI !== undefined) out.targetKPS = p.targetNPI
         if (p.withingsCredentials && typeof p.withingsCredentials.expiresAt === 'number') out.withingsCredentials = p.withingsCredentials
+        if (p.stravaCredentials && typeof p.stravaCredentials.expiresAt === 'number') out.stravaCredentials = p.stravaCredentials
+        out.stravaSyncError = null
         return out
+      },
+      onRehydrateStorage: () => (state, err) => {
+        if (!err && state) useSettingsStore.setState({ settingsRehydrated: true })
       },
     }
   )

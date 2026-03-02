@@ -8,12 +8,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test ./scripts/strava-to-googledrive.test.js ./scripts/strava-to-googledrive.integration.test.js ./src/services/stravaService.test.js",
-    "lint": "eslint \"src/**/*.{js,jsx}\" \"scripts/**/*.js\""
+    "lint": "eslint \"src/**/*.{js,jsx}\" \"scripts/**/*.js\"",
+    "e2e": "PLAYWRIGHT_E2E=1 playwright test"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "@supabase/supabase-js": "^2.45.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

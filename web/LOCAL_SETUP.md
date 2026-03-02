@@ -39,6 +39,19 @@ The app will open at `http://localhost:5173` (or similar port)
 - All AI processing happens on your machine
 - No data leaves your computer
 
+### 5. Quality Checks (quick pass)
+
+```bash
+# Lint + unit/integration tests
+npm run lint
+npm test
+
+# Optional e2e smoke (requires Playwright browser install)
+PLAYWRIGHT_E2E=1 PLAYWRIGHT_PORT=5000 npm run e2e
+```
+
+If the e2e dev server cannot bind to the default port, override with `PLAYWRIGHT_PORT` or point to an already running app using `PLAYWRIGHT_BASE_URL=http://localhost:5173`.
+
 ## Configuration
 
 ### Custom Ollama URL
@@ -109,7 +122,6 @@ If you want to use a deployed webapp with local Ollama:
 ---
 
 **For deployment options, see `DEPLOYMENT.md`**
-
 
 
 

@@ -39,6 +39,8 @@ struct SettingsView: View {
     @State private var stravaExporting = false
     @State private var showingStravaExport = false
     @State private var stravaDays = 90
+    @State private var stravaImporting = false
+    @State private var stravaImportDays = 180
     
     @State private var ollamaURL: String = "http://localhost:11434"
     @State private var ollamaModel: String = "llama3.2"
@@ -211,6 +213,24 @@ struct SettingsView: View {
                     Spacer()
                     Text("Strava")
                         .foregroundColor(.secondary)
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Stepper("Import days: \(stravaImportDays)", value: $stravaImportDays, in: 1...365)
+                    Button {
+                        Task { await importStravaRuns() }
+                    } label: {
+                        HStack {
+                            if stravaImporting {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Importing...")
+                            } else {
+                                Label("Import Strava runs", systemImage: "arrow.down.circle")
+                            }
+                        }
+                    }
+                    .disabled(stravaImporting)
                 }
                 
                 Button {
@@ -898,6 +918,82 @@ struct SettingsView: View {
             showingSaveConfirmation = true
         }
     }
+
+    private func importStravaRuns() async {
+        stravaImporting = true
+        defer { stravaImporting = false }
+        
+        do {
+            guard let tokens = try CloudTokenStorage.shared.getTokens(provider: "strava") else {
+                throw StravaError.authenticationFailed("Not connected to Strava")
+            }
+            
+            // Ensure token is valid
+            var accessToken = tokens.accessToken
+            if !CloudTokenStorage.shared.isTokenValid(provider: "strava") {
+                let newTokens = try await StravaService.shared.refreshAccessToken(refreshToken: tokens.refreshToken)
+                try CloudTokenStorage.shared.storeTokens(
+                    provider: "strava",
+                    accessToken: newTokens.accessToken,
+                    refreshToken: newTokens.refreshToken,
+                    expiresAt: newTokens.expiresAt
+                )
+                accessToken = newTokens.accessToken
+            }
+            
+            // Fetch activities and convert to runs
+            let activities = try await StravaService.shared.fetchActivities(accessToken: accessToken, days: stravaImportDays)
+            let formatter = ISO8601DateFormatter()
+            let existingKeys = Set(runs.map { runKey(date: $0.date, distance: $0.distance) })
+            
+            var imported = 0
+            for activity in activities {
+                guard activity.type == "Run" || activity.sport_type == "Run" else { continue }
+                guard activity.distance > 0, activity.moving_time > 0 else { continue }
+                guard let startDate = formatter.date(from: activity.start_date) else { continue }
+                
+                let distanceKm = activity.distance / 1000.0
+                let paceSecondsPerKm = Double(activity.moving_time) / distanceKm
+                let speedKmH = 3600.0 / paceSecondsPerKm
+                let factor = pow(distanceKm, 0.06)
+                let npi = speedKmH * factor * 10.0
+                
+                let key = runKey(date: startDate, distance: activity.distance)
+                if existingKeys.contains(key) { continue }
+                
+                let newRun = Run(
+                    date: startDate,
+                    source: "strava",
+                    distance: activity.distance,
+                    duration: TimeInterval(activity.moving_time),
+                    avgPace: paceSecondsPerKm,
+                    avgNPI: npi,
+                    avgHeartRate: activity.average_heartrate ?? 0,
+                    avgCadence: activity.average_cadence.map { $0 * 2 },
+                    avgVerticalOscillation: nil,
+                    avgGroundContactTime: nil,
+                    avgStrideLength: nil,
+                    formScore: nil,
+                    routeData: [],
+                    formSessionId: nil,
+                    elevationGain: activity.total_elevation_gain
+                )
+                
+                modelContext.insert(newRun)
+                imported += 1
+            }
+            
+            try? modelContext.save()
+            
+            saveConfirmationMessage = imported > 0
+                ? "Imported \(imported) runs from the last \(stravaImportDays) days"
+                : "No new runs found in the last \(stravaImportDays) days"
+            showingSaveConfirmation = true
+        } catch {
+            saveConfirmationMessage = "Import failed: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
+    }
     
     private func exportStravaToGoogleDrive() async {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -1025,4 +1121,11 @@ private extension Array where Element == Double {
         guard !isEmpty else { return nil }
         return reduce(0, +) / Double(count)
     }
+}
+
+private func runKey(date: Date, distance: Double) -> String {
+    // Dedup by minute-level timestamp + rounded distance meters
+    let minuteBucket = Int(date.timeIntervalSince1970 / 60)
+    let roundedDistance = Int(distance.rounded())
+    return "\(minuteBucket)_\(roundedDistance)"
 }

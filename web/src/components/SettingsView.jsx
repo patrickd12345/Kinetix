@@ -5,6 +5,9 @@ import { calculateNPIFromRace } from '../utils/npiCalculator';
 import { RAGIndexer } from './RAGIndexer';
 import { stravaService } from '../services/stravaService';
 import { cloudSyncService } from '../storage/sync/cloudSyncService';
+import { StorageService } from '../storage/local/storageService';
+import { Run } from '../models/Run';
+import { supabaseSyncService } from '../services/supabaseSyncService';
 
 /**
  * Settings view
@@ -24,11 +27,18 @@ export function SettingsView({ settings, onSave, onNavigate }) {
   const [stravaExporting, setStravaExporting] = useState(false);
   const [showStravaExport, setShowStravaExport] = useState(false);
   const [stravaDays, setStravaDays] = useState(90);
+  const [stravaImportDays, setStravaImportDays] = useState(180);
+  const [stravaImporting, setStravaImporting] = useState(false);
+  const [stravaImportStatus, setStravaImportStatus] = useState('');
+  const [supabaseUser, setSupabaseUser] = useState(null);
+  const [supabaseSyncing, setSupabaseSyncing] = useState(false);
+  const supabaseReady = supabaseSyncService.isConfigured();
   
   // Check Strava connection on mount
   useEffect(() => {
     const tokens = stravaService.getStoredTokens();
     setIsStravaConnected(tokens !== null);
+    supabaseSyncService.getUser().then(setSupabaseUser).catch(() => setSupabaseUser(null));
   }, []);
 
   const handleStravaCallback = async (code) => {
@@ -133,6 +143,74 @@ export function SettingsView({ settings, onSave, onNavigate }) {
     }
   };
 
+  const handleSupabaseSignIn = async () => {
+    try {
+      await supabaseSyncService.signInWithGoogle();
+    } catch (error) {
+      alert(`Supabase sign-in failed: ${error.message}`);
+    }
+  };
+
+  const handleSupabaseSignOut = async () => {
+    await supabaseSyncService.signOut();
+    setSupabaseUser(null);
+  };
+
+  const handleSupabaseSync = async () => {
+    setSupabaseSyncing(true);
+    try {
+      const user = await supabaseSyncService.getUser();
+      setSupabaseUser(user);
+      if (!user) {
+        alert('Please connect Supabase first.');
+        return;
+      }
+      const pushed = await supabaseSyncService.pushRuns();
+      const pulled = await supabaseSyncService.pullRuns();
+      alert(`Sync complete: pushed ${pushed}, pulled ${pulled}`);
+    } catch (error) {
+      alert(`Sync failed: ${error.message}`);
+    } finally {
+      setSupabaseSyncing(false);
+    }
+  };
+
+  const handleStravaImport = async () => {
+    try {
+      setStravaImporting(true);
+      setStravaImportStatus('');
+
+      const tokens = stravaService.getStoredTokens();
+      if (!tokens) {
+        alert('Please connect Strava first');
+        return;
+      }
+
+      const accessToken = await stravaService.getValidAccessToken();
+      const activities = await stravaService.fetchActivities(accessToken, stravaImportDays);
+      const runs = stravaService.convertToRuns(activities);
+
+      if (!runs.length) {
+        setStravaImportStatus(`No runs found in the last ${stravaImportDays} days`);
+        return;
+      }
+
+      let imported = 0;
+      for (const runData of runs) {
+        const run = Run.fromJSON ? Run.fromJSON(runData) : new Run(runData);
+        const saved = await StorageService.saveRun(run);
+        if (saved) imported++;
+      }
+
+      setStravaImportStatus(`✅ Imported ${imported} runs from the last ${stravaImportDays} days`);
+    } catch (error) {
+      console.error('Strava import failed:', error);
+      setStravaImportStatus(`❌ Failed to import: ${error.message}`);
+    } finally {
+      setStravaImporting(false);
+    }
+  };
+
   const handleSave = () => {
     onSave({
       targetNPI,
@@ -177,6 +255,7 @@ export function SettingsView({ settings, onSave, onNavigate }) {
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
+            data-testid="settings-back"
             onClick={() => onNavigate('home')}
             className="glass rounded-xl p-3 border border-white/10 hover:border-orange-500/30 transition-all"
           >
@@ -286,15 +365,72 @@ export function SettingsView({ settings, onSave, onNavigate }) {
 
           {/* Strava Integration */}
           <div className="glass rounded-2xl p-6 border border-orange-500/20">
+          <div className="flex items-center gap-3 mb-4">
+            <Activity className="text-orange-400" size={20} />
+            <h2 className="text-lg font-bold text-white">Strava</h2>
+          </div>
+
+          {/* Supabase Sync */}
+          <div className="glass rounded-2xl p-6 border border-green-500/20">
             <div className="flex items-center gap-3 mb-4">
-              <Activity className="text-orange-400" size={20} />
-              <h2 className="text-lg font-bold text-white">Strava</h2>
+              <Database className="text-green-400" size={20} />
+              <h2 className="text-lg font-bold text-white">Cloud Sync (Supabase)</h2>
             </div>
-            <p className="text-sm text-gray-400 mb-4">
-              {isStravaConnected 
-                ? 'Connected to Strava. Your runs are automatically synced.'
-                : 'Connect Strava to automatically sync your runs and export historical data.'}
-            </p>
+            {!supabaseReady ? (
+              <p className="text-sm text-gray-400">Configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable.</p>
+            ) : (
+              <>
+                <p className="text-sm text-gray-400 mb-3">
+                  {supabaseUser
+                    ? `Connected as ${supabaseUser.email || supabaseUser.id}`
+                    : 'Sign in to sync runs across devices.'}
+                </p>
+                <div className="flex gap-3 mb-3">
+                  {!supabaseUser ? (
+                    <button
+                      onClick={handleSupabaseSignIn}
+                      className="flex-1 py-3 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-500/30 hover:to-green-600/30 border border-green-500/30 rounded-xl text-green-300 font-bold transition-all flex items-center justify-center gap-2"
+                    >
+                      <Database size={16} />
+                      Connect Supabase
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSupabaseSignOut}
+                      className="py-3 px-4 bg-gray-900/50 hover:bg-gray-800 rounded-xl text-gray-300 font-bold border border-gray-700/50 transition-all"
+                    >
+                      Disconnect
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSupabaseSync}
+                    disabled={!supabaseUser || supabaseSyncing}
+                    className="flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 rounded-xl text-white font-bold shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {supabaseSyncing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <Download size={16} />
+                        Sync now
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Uploads local runs (upsert) and pulls cloud runs using last-write-wins on updated_at.
+                </p>
+              </>
+            )}
+          </div>
+          <p className="text-sm text-gray-400 mb-4">
+            {isStravaConnected 
+              ? 'Connected to Strava. Your runs are automatically synced.'
+              : 'Connect Strava to automatically sync your runs and export historical data.'}
+          </p>
             {!isStravaConnected ? (
               <button
                 onClick={handleConnectStrava}
@@ -304,21 +440,63 @@ export function SettingsView({ settings, onSave, onNavigate }) {
                 Connect Strava
               </button>
             ) : (
-              <div className="space-y-2">
-                <button
-                  onClick={() => setShowStravaExport(true)}
-                  disabled={stravaExporting}
-                  className="w-full py-3 bg-gradient-to-r from-orange-500/20 to-orange-600/20 hover:from-orange-500/30 hover:to-orange-600/30 border border-orange-500/30 rounded-xl text-orange-400 font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <Download size={16} />
-                  {stravaExporting ? 'Exporting...' : 'Export to Google Drive'}
-                </button>
-                <button
-                  onClick={handleDisconnectStrava}
-                  className="w-full py-2 bg-gray-900/50 hover:bg-gray-800 border border-gray-700/50 rounded-xl text-gray-300 font-bold transition-all text-sm"
-                >
-                  Disconnect Strava
-                </button>
+              <div className="space-y-3">
+                <div className="glass rounded-xl p-4 border border-white/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-white">Import Strava runs</div>
+                      <div className="text-xs text-gray-400">Pull historical runs directly into Kinetix</div>
+                    </div>
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={stravaImportDays}
+                      onChange={(e) => setStravaImportDays(Number(e.target.value) || 1)}
+                      className="w-20 bg-gray-900/50 text-white p-2 rounded-lg border border-gray-700/50 focus:border-orange-500/50 focus:outline-none text-sm"
+                      aria-label="Strava import days"
+                    />
+                  </div>
+                  <button
+                    onClick={handleStravaImport}
+                    disabled={stravaImporting}
+                    className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 rounded-xl text-white font-bold shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {stravaImporting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Download size={16} />
+                        Import last {stravaImportDays} days
+                      </>
+                    )}
+                  </button>
+                  {stravaImportStatus && (
+                    <div className="text-xs text-gray-300">
+                      {stravaImportStatus}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setShowStravaExport(true)}
+                    disabled={stravaExporting}
+                    className="w-full py-3 bg-gradient-to-r from-orange-500/20 to-orange-600/20 hover:from-orange-500/30 hover:to-orange-600/30 border border-orange-500/30 rounded-xl text-orange-400 font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <Download size={16} />
+                    {stravaExporting ? 'Exporting...' : 'Export to Google Drive'}
+                  </button>
+                  <button
+                    onClick={handleDisconnectStrava}
+                    className="w-full py-2 bg-gray-900/50 hover:bg-gray-800 border border-gray-700/50 rounded-xl text-gray-300 font-bold transition-all text-sm"
+                  >
+                    Disconnect Strava
+                  </button>
+                </div>
               </div>
             )}
           </div>

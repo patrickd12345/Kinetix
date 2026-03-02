@@ -29,6 +29,9 @@ const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID;
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET;
 const STRAVA_ACCESS_TOKEN = process.env.STRAVA_ACCESS_TOKEN;
 const STRAVA_REFRESH_TOKEN = process.env.STRAVA_REFRESH_TOKEN;
+const STRAVA_DAYS = Number.isFinite(Number(process.env.STRAVA_DAYS))
+  ? Math.max(1, Number(process.env.STRAVA_DAYS))
+  : 90;
 
 // Google Drive API configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -132,19 +135,19 @@ async function exchangeStravaCodeForToken(code) {
 }
 
 /**
- * Fetch last 90 days of activities from Strava
+ * Fetch recent activities from Strava (default 90 days)
  */
 async function fetchLast90DaysActivities(accessToken) {
   const now = new Date();
-  const ninetyDaysAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
-  const afterTimestamp = Math.floor(ninetyDaysAgo.getTime() / 1000);
+  const cutoff = new Date(now.getTime() - (STRAVA_DAYS * 24 * 60 * 60 * 1000));
+  const afterTimestamp = Math.floor(cutoff.getTime() / 1000);
 
   let page = 1;
   let allActivities = [];
   let hasMore = true;
 
-  console.log('\n📥 Fetching last 90 days of activities from Strava...');
-  console.log(`   Date range: ${ninetyDaysAgo.toISOString().split('T')[0]} to ${now.toISOString().split('T')[0]}`);
+  console.log(`\n📥 Fetching last ${STRAVA_DAYS} days of activities from Strava...`);
+  console.log(`   Date range: ${cutoff.toISOString().split('T')[0]} to ${now.toISOString().split('T')[0]}`);
 
   while (hasMore) {
     const url = `${STRAVA_API_URL}/athlete/activities?page=${page}&per_page=200&after=${afterTimestamp}`;
@@ -164,9 +167,9 @@ async function fetchLast90DaysActivities(accessToken) {
       // Check if we've gone past 90 days
       const oldestActivity = activities[activities.length - 1];
       const oldestDate = new Date(oldestActivity.start_date);
-      if (oldestDate < ninetyDaysAgo) {
-        // Filter to only include activities within 90 days
-        const filtered = activities.filter(a => new Date(a.start_date) >= ninetyDaysAgo);
+      if (oldestDate < cutoff) {
+        // Filter to only include activities within range
+        const filtered = activities.filter(a => new Date(a.start_date) >= cutoff);
         allActivities = allActivities.concat(filtered);
         hasMore = false;
       } else {

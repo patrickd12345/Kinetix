@@ -24,6 +24,9 @@ const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID;
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET;
 const STRAVA_ACCESS_TOKEN = process.env.STRAVA_ACCESS_TOKEN;
 const STRAVA_REFRESH_TOKEN = process.env.STRAVA_REFRESH_TOKEN;
+const STRAVA_DAYS = Number.isFinite(Number(process.env.STRAVA_DAYS))
+  ? Math.max(1, Number(process.env.STRAVA_DAYS))
+  : null; // null = all time
 
 /**
  * Get Strava access token (OAuth flow or use existing)
@@ -143,15 +146,24 @@ async function exchangeCodeForToken(code) {
  * Fetch all activities from Strava
  */
 async function fetchActivities(accessToken, options = {}) {
-  const { perPage = 200, maxPages = null } = options;
+  const { perPage = 200, maxPages = null, afterDays = null } = options;
   let page = 1;
   let allActivities = [];
   let hasMore = true;
 
   console.log('\n📥 Fetching activities from Strava...');
 
+  const afterTimestamp = afterDays
+    ? Math.floor((Date.now() - afterDays * 24 * 60 * 60 * 1000) / 1000)
+    : null;
+
   while (hasMore && (!maxPages || page <= maxPages)) {
-    const url = `${STRAVA_API_URL}/athlete/activities?page=${page}&per_page=${perPage}`;
+    const url = new URL(`${STRAVA_API_URL}/athlete/activities`);
+    url.searchParams.set('page', page.toString());
+    url.searchParams.set('per_page', perPage.toString());
+    if (afterTimestamp) {
+      url.searchParams.set('after', afterTimestamp.toString());
+    }
     const response = await fetch(url, {
       headers: { 'Authorization': `Bearer ${accessToken}` },
     });
@@ -292,10 +304,11 @@ async function main() {
     // Get access token
     const accessToken = await getAccessToken();
 
-    // Fetch activities
+    // Fetch activities (optionally limited by STRAVA_DAYS)
     const activities = await fetchActivities(accessToken, {
       perPage: 200,
       maxPages: null, // Fetch all
+      afterDays: STRAVA_DAYS,
     });
 
     // Convert to runs

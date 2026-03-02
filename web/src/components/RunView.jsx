@@ -119,7 +119,10 @@ export function RunView({ settings, onSave, onCancel }) {
           <h1 className="text-2xl font-black italic tracking-tight text-cyan-400">
             KINETIX
           </h1>
-          <div className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${getStatusColor()}`}>
+          <div
+            className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${getStatusColor()}`}
+            data-testid="run-status"
+          >
             {getStatusText()}
           </div>
         </div>
@@ -262,6 +265,7 @@ export function RunView({ settings, onSave, onCancel }) {
           {!isRunning && !isPaused && (
             <button
               onClick={handleStart}
+              data-testid="run-start"
               className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 shadow-2xl shadow-green-500/50 flex items-center justify-center transition-all duration-300 active:scale-95"
             >
               <Play fill="white" size={28} className="ml-1" strokeWidth={0} />

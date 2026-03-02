@@ -50,7 +50,7 @@ node scripts/strava-import.js
 ### 3. Import Runs
 
 The script will:
-1. ✅ Fetch all your Strava activities
+1. ✅ Fetch your Strava activities (all by default; set `STRAVA_DAYS=180` to limit to last N days)
 2. ✅ Filter for running activities
 3. ✅ Convert to Kinetix Run format
 4. ✅ Calculate NPI for each run
@@ -212,7 +212,6 @@ const runs = convertToRuns(activities).filter(run => {
 ---
 
 **Ready to import your Strava runs?** 🚀
-
 
 
 

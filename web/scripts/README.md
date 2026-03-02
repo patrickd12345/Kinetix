@@ -11,6 +11,7 @@ One-shot import of Strava runs into Kinetix database.
 # Set credentials
 export STRAVA_CLIENT_ID=your_client_id
 export STRAVA_CLIENT_SECRET=your_client_secret
+export STRAVA_DAYS=180 # optional, limit to last N days (omit for all)
 
 # Run import
 node scripts/strava-import.js
@@ -44,6 +45,9 @@ export GOOGLE_CLIENT_SECRET=your_google_client_secret
 
 # Run export
 node scripts/strava-to-googledrive.js
+
+# Run tests (converter + token flows)
+npm test
 ```
 
 See `STRAVA_TO_GOOGLEDRIVE.md` for full instructions.
@@ -56,8 +60,6 @@ Export runs from browser IndexedDB to JSON.
 - Run in browser console
 - Or use as bookmarklet
 - Downloads runs as JSON file
-
-
 
 
 

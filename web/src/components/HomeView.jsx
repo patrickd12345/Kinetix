@@ -139,6 +139,7 @@ export function HomeView({ onNavigate, onStartRun }) {
         <div className="grid grid-cols-2 gap-4 mb-8">
           <button
             onClick={onStartRun}
+            data-testid="home-start-run"
             className="glass rounded-2xl p-6 border border-green-500/20 hover:border-green-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20 group"
           >
             <div className="flex items-center justify-between mb-2">
@@ -155,6 +156,7 @@ export function HomeView({ onNavigate, onStartRun }) {
 
           <button
             onClick={() => onNavigate('history')}
+            data-testid="home-history"
             className="glass rounded-2xl p-6 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 group"
           >
             <div className="flex items-center justify-between mb-2">
@@ -213,6 +215,7 @@ export function HomeView({ onNavigate, onStartRun }) {
         {/* Settings Link */}
         <button
           onClick={() => onNavigate('settings')}
+          data-testid="home-settings"
           className="w-full glass rounded-xl p-4 border border-white/10 hover:border-orange-500/30 transition-all duration-300 flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">

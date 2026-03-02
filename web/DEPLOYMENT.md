@@ -79,6 +79,17 @@ npm run build
 
 Output will be in `web/dist/` directory.
 
+## Pre-Deploy Checks
+
+Run locally before pushing:
+
+```bash
+npm run lint
+npm test
+# Optional: e2e smoke (requires Playwright browser install)
+PLAYWRIGHT_E2E=1 PLAYWRIGHT_PORT=5000 npm run e2e
+```
+
 ## Important Notes
 
 ### Geolocation API
@@ -135,4 +146,3 @@ Output will be in `web/dist/` directory.
 - ✅ Vercel configuration ready
 - ⚠️ No hosting deployed yet
 - ⚠️ Ollama needs to be configured (local or hosted)
-

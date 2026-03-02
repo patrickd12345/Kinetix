@@ -2,6 +2,8 @@
 
 One-shot export of your last 90 days of Strava runs to Google Drive.
 
+Tests are included: run `npm test` to cover converter math and token flows (Strava/Google mocked); see `scripts/` for test files.
+
 ## Quick Start
 
 ### 1. Get Strava API Credentials
@@ -30,6 +32,9 @@ export STRAVA_CLIENT_SECRET=your_strava_client_secret
 # Set Google credentials
 export GOOGLE_CLIENT_ID=your_google_client_id
 export GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Optional: set range (defaults to 90 days)
+export STRAVA_DAYS=180
 
 # Run the script
 node scripts/strava-to-googledrive.js
@@ -134,6 +139,8 @@ The exported JSON file contains an array of run objects:
 - ⚠️ **Never commit** your credentials or tokens to git
 - ⚠️ **Access tokens expire** - use refresh tokens for long-term access
 - ⚠️ **Store tokens securely** - use environment variables or a secrets manager
+- A local backup JSON is written next to `web/scripts/`; Google Drive upload targets the "Kinetix" folder.
+- Strava rate limits: 600 requests per 15 minutes; the script pauses between pages.
 
 ## Example Output
 
@@ -176,5 +183,3 @@ The exported JSON file contains an array of run objects:
 ---
 
 **Ready to export your Strava runs?** 🚀
-
-

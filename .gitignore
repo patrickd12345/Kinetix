@@ -3,6 +3,8 @@ node_modules/
 
 # Build / cache
 dist/
+# Vercel build copies apps/web/api to root; do not commit
+/api/
 .vite/
 *.tsbuildinfo
 

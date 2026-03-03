@@ -1,10 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // #region agent log
-  console.log('[OAuth] Request received:', { method: req.method, hasCode: !!req.body?.code, hasRedirectUri: !!req.body?.redirect_uri })
-  // #endregion
-  
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -22,24 +18,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { code, redirect_uri } = body
 
   if (!code) {
-    // #region agent log
-    console.error('[OAuth] Missing authorization code')
-    // #endregion
     return res.status(400).json({ error: 'Authorization code required' })
   }
 
   // Get client secret from environment variable
   const clientSecret = process.env.STRAVA_CLIENT_SECRET
   const clientId = process.env.STRAVA_CLIENT_ID || '157217'
-
-  // #region agent log
-  console.log('[OAuth] Configuration:', { 
-    hasClientSecret: !!clientSecret, 
-    clientId, 
-    codeLength: code?.length || 0,
-    redirectUri: redirect_uri || req.headers.origin + '/settings'
-  })
-  // #endregion
 
   if (!clientSecret) {
     console.error('[OAuth] STRAVA_CLIENT_SECRET not configured')
@@ -56,10 +40,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       redirect_uri: redirect_uri || `${req.headers.origin}/settings`,
     }
 
-    // #region agent log
-    console.log('[OAuth] Exchanging token:', { url: tokenExchangeUrl, hasCode: !!code, redirectUri: tokenExchangeBody.redirect_uri })
-    // #endregion
-
     // Exchange authorization code for access token
     const response = await fetch(tokenExchangeUrl, {
       method: 'POST',
@@ -68,10 +48,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       body: JSON.stringify(tokenExchangeBody),
     })
-
-    // #region agent log
-    console.log('[OAuth] Strava response:', { status: response.status, statusText: response.statusText, ok: response.ok })
-    // #endregion
 
     if (!response.ok) {
       const errorData = (await response.json().catch(() => ({}))) as { message?: string; errors?: Array<{ field?: string; code?: string }> }
@@ -84,11 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const data = await response.json()
-    
-    // #region agent log
-    console.log('[OAuth] Token exchange success:', { hasAccessToken: !!data.access_token, hasRefreshToken: !!data.refresh_token })
-    // #endregion
-    
+
     // Return access token and refresh token
     res.status(200).json({
       access_token: data.access_token,

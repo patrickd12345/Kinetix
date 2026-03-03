@@ -72,13 +72,7 @@ export default function Settings() {
     if (!code) return
 
     const storageKey = state === 'withings' ? 'withings_oauth_code' : 'strava_oauth_code'
-    if (sessionStorage.getItem(storageKey) === code) {
-      // #region agent log
-      console.log('[Strava OAuth Debug] Early return: code already in sessionStorage', { storageKey, state })
-      fetch('http://127.0.0.1:7929/ingest/f44e7bb9-8ee0-4b93-b48d-0966c77edead',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7ad594'},body:JSON.stringify({sessionId:'7ad594',location:'Settings.tsx:OAuthEffect',message:'Early return: code already seen',data:{storageKey,state},timestamp:Date.now(),hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
-      return
-    }
+    if (sessionStorage.getItem(storageKey) === code) return
     sessionStorage.setItem(storageKey, code)
 
     if (state === 'withings') {
@@ -101,10 +95,6 @@ export default function Settings() {
       return
     }
 
-    // #region agent log
-    console.log('[Strava OAuth Debug] Calling handleOAuthCallback', { codeLen: code?.length, state })
-    fetch('http://127.0.0.1:7929/ingest/f44e7bb9-8ee0-4b93-b48d-0966c77edead',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7ad594'},body:JSON.stringify({sessionId:'7ad594',location:'Settings.tsx:OAuthEffect',message:'Calling handleOAuthCallback',data:{codeLen:code?.length,state},timestamp:Date.now(),hypothesisId:'F'})}).catch(()=>{});
-    // #endregion
     handleOAuthCallback(code)
       .then(() => {
         setImportMessage('Successfully connected to Strava!')

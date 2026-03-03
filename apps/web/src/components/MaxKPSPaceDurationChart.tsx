@@ -47,10 +47,15 @@ export default function MaxKPSPaceDurationChart({
   )
 
   const [selectedPoint, setSelectedPoint] = useState<MaxKPSPaceDurationPoint | null>(null)
+  const [selectedTooltipPosition, setSelectedTooltipPosition] = useState<{
+    x: number
+    y: number
+  } | null>(null)
 
   useEffect(() => {
     if (points.length === 0) {
       setSelectedPoint(null)
+      setSelectedTooltipPosition(null)
       return
     }
 
@@ -98,6 +103,7 @@ export default function MaxKPSPaceDurationChart({
         onClick={(event) => {
           event.stopPropagation()
           setSelectedPoint(payload)
+          setSelectedTooltipPosition({ x: cx, y: cy })
         }}
         style={{ cursor: 'pointer' }}
       >
@@ -129,13 +135,16 @@ export default function MaxKPSPaceDurationChart({
       <div
         role="application"
         aria-label={`Chart: max ${KPS_SHORT} pace over duration`}
-        className="h-[340px]"
+        className="relative h-[340px]"
       >
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={points}
             margin={{ top: 10, right: 16, left: 0, bottom: 12 }}
-            onClick={() => setSelectedPoint(null)}
+            onClick={() => {
+              setSelectedPoint(null)
+              setSelectedTooltipPosition(null)
+            }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" opacity={0.35} />
             <XAxis
@@ -181,6 +190,35 @@ export default function MaxKPSPaceDurationChart({
             />
           </LineChart>
         </ResponsiveContainer>
+
+        {selectedPoint && selectedTooltipPosition && (
+          <div
+            className="pointer-events-none absolute z-20 min-w-[180px] max-w-[230px] rounded-lg border border-cyan-500/40 bg-gray-950/95 px-3 py-2 shadow-xl"
+            style={
+              selectedTooltipPosition.y < 84
+                ? {
+                    left: selectedTooltipPosition.x,
+                    top: selectedTooltipPosition.y + 12,
+                    transform: 'translateX(-50%)',
+                  }
+                : {
+                    left: selectedTooltipPosition.x,
+                    top: selectedTooltipPosition.y - 12,
+                    transform: 'translate(-50%, -100%)',
+                  }
+            }
+          >
+            <p className="text-[11px] text-gray-400">{selectedPoint.dateFormatted}</p>
+            <p className="text-sm font-bold text-cyan-300">
+              {KPS_SHORT}: {Math.round(selectedPoint.kps)}
+            </p>
+            <p className="text-[11px] text-gray-200">{selectedPoint.paceLabel}</p>
+            <p className="text-[11px] text-gray-400">
+              {selectedPoint.durationLabel} • {selectedPoint.distanceDisplay.toFixed(2)}{' '}
+              {selectedPoint.distanceUnitLabel}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 rounded-xl border border-violet-500/20 bg-black/30 p-4">

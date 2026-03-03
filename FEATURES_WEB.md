@@ -15,6 +15,8 @@
 - ✅ **Heart Rate Simulation**: Simulated heart rate (placeholder for future sensor integration)
 - ✅ **Time to Beat**: Projected time to reach target NPI
 - ✅ **Progress Tracking**: Visual progress indicator toward target NPI
+- ✅ **Menu Charts Section**: Dedicated `/menu` page for informative charts
+- ✅ **Max KPS Pace/Duration Chart**: Pace-over-duration graph using max KPS per duration bucket with click-to-view point tooltips
 
 ### Homepage / Dashboard
 - ✅ **NPI Showcase**: Prominent display of Best, Average, and Target NPI

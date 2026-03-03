@@ -38,6 +38,35 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         let session = WCSession.default
         checkApplicationContextForRunState(session: session)
     }
+
+    func syncWithingsWeightToWatch(_ kg: Double) {
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+
+        let syncedAt = Date().timeIntervalSince1970
+        let payload: [String: Any] = [
+            "withingsWeightKg": kg,
+            "withingsWeightSyncedAt": syncedAt,
+        ]
+
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil)
+        }
+
+        do {
+            var context = session.applicationContext
+            context["withingsWeightKg"] = kg
+            context["withingsWeightSyncedAt"] = syncedAt
+            try session.updateApplicationContext(context)
+        } catch {
+            DiagnosticLogManager.shared.log("Failed to push Withings weight: \(error.localizedDescription)", category: "sync")
+        }
+    }
+
+    func syncStoredWithingsWeightToWatch() {
+        let storedWeight = UserDefaults.standard.double(forKey: "lastWithingsWeightKg")
+        syncWithingsWeightToWatch(storedWeight)
+    }
     
     func setupSession() {
         if WCSession.isSupported() {
@@ -67,6 +96,8 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         DispatchQueue.main.async {
             // Update connection status based on actual connectivity
             self.updateConnectionStatus(session: session)
+            // Push latest known Withings weight to watch on reconnect.
+            self.syncStoredWithingsWeightToWatch()
         }
     }
     
@@ -91,6 +122,11 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             
             if let request = message["requestActivities"] as? Bool, request {
                 self.pushActivitiesToWatch()
+                return
+            }
+
+            if let request = message["requestWithingsWeight"] as? Bool, request {
+                self.syncStoredWithingsWeightToWatch()
                 return
             }
             

@@ -22,6 +22,9 @@ interface SettingsState {
   /** Target % improvement over PB for "Beat PB" run suggestions (e.g. 2 = beat by 2%). */
   beatPBPercent: number
   setBeatPBPercent: (pct: number) => void
+  /** Number of recent runs used for "Beat recents" (e.g. 10 = last 10 runs). */
+  beatRecentsCount: number
+  setBeatRecentsCount: (n: number) => void
   unitSystem: 'metric' | 'imperial'
   setUnitSystem: (unit: 'metric' | 'imperial') => void
   physioMode: boolean
@@ -53,6 +56,9 @@ export const useSettingsStore = create<SettingsState>()(
 
       beatPBPercent: 2,
       setBeatPBPercent: (pct) => set({ beatPBPercent: Math.max(0.1, Math.min(20, pct)) }),
+
+      beatRecentsCount: 10,
+      setBeatRecentsCount: (n) => set({ beatRecentsCount: Math.max(2, Math.min(50, n)) }),
 
       unitSystem: 'metric',
       setUnitSystem: (unit) => set({ unitSystem: unit }),

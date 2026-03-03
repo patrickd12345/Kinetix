@@ -5,6 +5,8 @@ struct HomeView: View {
     @ObservedObject var locationManager: LocationManager
     @Binding var navigationPath: [String]
     @State private var recovery: RunRecoveryData?
+    @AppStorage("weightUnit") private var weightUnit = "lbs"
+    private let kgToLbs = 2.20462
     
     var body: some View {
         ScrollView {
@@ -17,6 +19,12 @@ struct HomeView: View {
                 Text("Choose where to go")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.gray)
+
+                if locationManager.latestSyncedWeightKg > 0 {
+                    Text("Latest weight: \(formatWeight(locationManager.latestSyncedWeightKg)) \(weightUnit)")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.mint)
+                }
                 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     HomeTile(title: "Activities", systemImage: "figure.run", accent: .cyan) {
@@ -49,7 +57,13 @@ struct HomeView: View {
         }
         .onAppear {
             recovery = locationManager.checkForRecovery()
+            locationManager.requestLatestWithingsWeightSync()
         }
+    }
+
+    private func formatWeight(_ kg: Double) -> String {
+        let value = weightUnit == "lbs" ? kg * kgToLbs : kg
+        return String(format: "%.1f", value)
     }
 }
 

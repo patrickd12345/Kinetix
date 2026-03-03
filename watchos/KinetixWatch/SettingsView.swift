@@ -10,6 +10,7 @@ struct SettingsView: View {
     @AppStorage("globalSonicFeedbackEnabled") private var globalSonicFeedbackEnabled = true
     @AppStorage("skipHomeScreen") private var skipHomeScreen = false
     @AppStorage("weightUnit") private var weightUnit = "lbs"
+    private let kgToLbs = 2.20462
     
     var body: some View {
         List {
@@ -78,6 +79,35 @@ struct SettingsView: View {
                 Toggle("Sonic Audio Feedback", isOn: $globalSonicFeedbackEnabled)
                 Toggle("Haptics Feedback", isOn: $globalHapticsEnabled)
             }
+
+            Section(header: Text("WITHINGS")) {
+                if locationManager.latestSyncedWeightKg > 0 {
+                    HStack {
+                        Text("Latest")
+                        Spacer()
+                        Text("\(formatWeight(locationManager.latestSyncedWeightKg)) \(weightUnit)")
+                            .foregroundColor(.cyan)
+                    }
+
+                    if let updatedAt = locationManager.latestSyncedWeightUpdatedAt {
+                        HStack {
+                            Text("Updated")
+                            Spacer()
+                            Text(updatedAt, style: .relative)
+                                .foregroundColor(.gray)
+                                .font(.caption2)
+                        }
+                    }
+                } else {
+                    Text("No synced weight yet")
+                        .foregroundColor(.gray)
+                        .font(.caption)
+                }
+
+                Button("Request Latest Sync") {
+                    locationManager.requestLatestWithingsWeightSync()
+                }
+            }
             
             Section(header: Text("FORM COACH")) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -136,5 +166,13 @@ struct SettingsView: View {
                 #endif
             }
         }
+        .onAppear {
+            locationManager.requestLatestWithingsWeightSync()
+        }
+    }
+
+    private func formatWeight(_ kg: Double) -> String {
+        let value = weightUnit == "lbs" ? kg * kgToLbs : kg
+        return String(format: "%.1f", value)
     }
 }

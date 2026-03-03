@@ -94,6 +94,7 @@ struct MainTabView: View {
             if let latestKg = result.latestKg {
                 lastWithingsWeightKg = latestKg
                 try applyWithingsWeightToProfile(latestKg)
+                ConnectivityManager.shared.syncWithingsWeightToWatch(latestKg)
             }
             if result.imported > 0 {
                 print("📱 Withings startup sync imported \(result.imported) weight entr\(result.imported == 1 ? "y" : "ies").")

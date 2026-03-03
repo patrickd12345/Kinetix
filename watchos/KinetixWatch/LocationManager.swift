@@ -85,6 +85,12 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var timeToBeat: String? = nil
     @Published var heartRate: Double = 0.0
     @Published var recommendedPace: Double = 0.0
+    @Published var latestSyncedWeightKg: Double = UserDefaults.standard.double(forKey: "lastWithingsWeightKg")
+    @Published var latestSyncedWeightUpdatedAt: Date? = {
+        let ts = UserDefaults.standard.double(forKey: "lastWithingsWeightSyncedAt")
+        guard ts > 0 else { return nil }
+        return Date(timeIntervalSince1970: ts)
+    }()
     
     // GPS Status (delegated to GPSManager)
     @Published var gpsStatus: GPSStatus = .unknown
@@ -220,6 +226,7 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
             print("⌚️ Watch: Session activated (State: \(activationState.rawValue))")
             // Ensure iPhone has latest run state upon activation
             self.notifyPhoneRunStateChanged(isRunning: self.isRunning)
+            self.requestLatestWithingsWeightSync()
         }
     }
     
@@ -230,6 +237,9 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         if let data = message["batteryProfiles"] as? Data {
             handleIncomingBatteryProfiles(data)
         }
+        if let rawWeight = message["withingsWeightKg"] {
+            handleIncomingWithingsWeight(rawWeight, syncedAt: message["withingsWeightSyncedAt"])
+        }
     }
     
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
@@ -238,6 +248,9 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         }
         if let data = applicationContext["batteryProfiles"] as? Data {
             handleIncomingBatteryProfiles(data)
+        }
+        if let rawWeight = applicationContext["withingsWeightKg"] {
+            handleIncomingWithingsWeight(rawWeight, syncedAt: applicationContext["withingsWeightSyncedAt"])
         }
     }
     
@@ -298,6 +311,11 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         guard let session = session, session.isReachable else { return }
         session.sendMessage(["requestActivities": true], replyHandler: nil)
     }
+
+    func requestLatestWithingsWeightSync() {
+        guard let session = session, session.isReachable else { return }
+        session.sendMessage(["requestWithingsWeight": true], replyHandler: nil)
+    }
     
     private func handleIncomingActivities(_ data: Data) {
         guard let modelContext else { return }
@@ -350,6 +368,25 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         } catch {
             print("Failed to decode battery profiles: \(error.localizedDescription)")
         }
+    }
+
+    private func handleIncomingWithingsWeight(_ value: Any, syncedAt: Any?) {
+        guard let parsedKg = parseDouble(value) else { return }
+        let timestamp = parseDouble(syncedAt) ?? Date().timeIntervalSince1970
+        DispatchQueue.main.async {
+            self.latestSyncedWeightKg = parsedKg
+            self.latestSyncedWeightUpdatedAt = timestamp > 0 ? Date(timeIntervalSince1970: timestamp) : nil
+            UserDefaults.standard.set(parsedKg, forKey: "lastWithingsWeightKg")
+            UserDefaults.standard.set(timestamp, forKey: "lastWithingsWeightSyncedAt")
+        }
+    }
+
+    private func parseDouble(_ value: Any?) -> Double? {
+        if let d = value as? Double { return d }
+        if let i = value as? Int { return Double(i) }
+        if let n = value as? NSNumber { return n.doubleValue }
+        if let s = value as? String { return Double(s) }
+        return nil
     }
     
     private func upsertBatteryProfile(from payload: BatteryProfilePayload, context: ModelContext) {

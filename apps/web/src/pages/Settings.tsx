@@ -22,6 +22,8 @@ export default function Settings() {
     setTargetKPS,
     beatPBPercent,
     setBeatPBPercent,
+    beatRecentsCount,
+    setBeatRecentsCount,
     unitSystem,
     setUnitSystem,
     physioMode,
@@ -229,6 +231,19 @@ export default function Settings() {
               step={0.5}
               value={beatPBPercent}
               onChange={(e) => setBeatPBPercent(parseFloat(e.target.value) || 2)}
+              className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Beat recents: last N runs</label>
+            <p className="text-[11px] text-gray-500 mb-1">Used for &quot;Beat recents&quot; on the Run view (best of last N runs, then beat by the % above).</p>
+            <input
+              type="number"
+              min={2}
+              max={50}
+              value={beatRecentsCount}
+              onChange={(e) => setBeatRecentsCount(parseInt(e.target.value, 10) || 10)}
               className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
             />
           </div>

@@ -4,9 +4,11 @@ import { useSettingsStore } from '../store/settingsStore'
 import { formatTime, formatDistance, formatPace, timeToAchieveKPS, distanceToAchieveKPS } from '@kinetix/core'
 import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
-import { getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS } from '../lib/kpsUtils'
+import { getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS } from '../lib/kpsUtils'
+import { getRunsPage } from '../lib/database'
+import { getProfileForRun } from '../lib/authState'
 import { KPS_SHORT } from '../lib/branding'
-import { Play, Square, Pause, Flag, Heart, Sparkles, X, Trophy } from 'lucide-react'
+import { Play, Square, Pause, Flag, Heart, Sparkles, X, Trophy, TrendingUp } from 'lucide-react'
 import { useAuth } from '../components/providers/useAuth'
 import { toKinetixUserProfile } from '../lib/kinetixProfile'
 
@@ -28,7 +30,7 @@ export default function RunDashboard() {
     stopRun,
   } = useRunStore()
   
-  const { targetKPS, unitSystem, physioMode, beatPBPercent } = useSettingsStore()
+  const { targetKPS, unitSystem, physioMode, beatPBPercent, beatRecentsCount } = useSettingsStore()
   const { profile } = useAuth()
   const userProfile = profile ? toKinetixUserProfile(profile) : null
   const [relativeKPS, setRelativeKPS] = useState(0)
@@ -62,6 +64,9 @@ export default function RunDashboard() {
     | { type: 'time'; label: string; timeSeconds: number; distanceKm: number }
   const [beatPBOptions, setBeatPBOptions] = useState<BeatPBOption[] | null>(null)
   const [beatPBError, setBeatPBError] = useState<string | null>(null)
+  const [showBeatRecentsModal, setShowBeatRecentsModal] = useState(false)
+  const [beatRecentsOptions, setBeatRecentsOptions] = useState<BeatPBOption[] | null>(null)
+  const [beatRecentsError, setBeatRecentsError] = useState<string | null>(null)
 
   const openBeatPB = useCallback(async () => {
     setBeatPBError(null)
@@ -92,6 +97,7 @@ export default function RunDashboard() {
     const timeOptions: Array<{ label: string; timeSeconds: number }> = [
       { label: '15 min', timeSeconds: 15 * 60 },
       { label: '20 min', timeSeconds: 20 * 60 },
+      { label: '30 min', timeSeconds: 30 * 60 },
     ]
     const options: BeatPBOption[] = [
       ...timeOptions.map(({ label, timeSeconds }) => ({
@@ -109,6 +115,61 @@ export default function RunDashboard() {
     ]
     setBeatPBOptions(options)
   }, [userProfile, beatPBPercent])
+
+  const openBeatRecents = useCallback(async () => {
+    setBeatRecentsError(null)
+    setBeatRecentsOptions(null)
+    setShowBeatRecentsModal(true)
+    if (!userProfile) {
+      setBeatRecentsError('Profile required.')
+      return
+    }
+    const { items: recentRuns } = await getRunsPage(1, beatRecentsCount)
+    const meaningful = recentRuns.filter(isMeaningfulRunForKPS)
+    if (meaningful.length === 0) {
+      setBeatRecentsError(`No meaningful runs in the last ${beatRecentsCount}. Complete at least one run first.`)
+      return
+    }
+    let bestKPS = 0
+    for (const run of meaningful) {
+      const profileForRun = await getProfileForRun(run)
+      const kps = calculateAbsoluteKPS(run, profileForRun)
+      if (isValidKPS(kps) && kps > bestKPS) bestKPS = kps
+    }
+    if (bestKPS <= 0) {
+      setBeatRecentsError('Could not compute KPS for recent runs.')
+      return
+    }
+    const targetAbsoluteKPS = bestKPS * (1 + beatPBPercent / 100)
+    const referenceRun = meaningful[0]
+    const referenceDistanceKm = referenceRun.distance / 1000
+    const distanceOptions: Array<{ label: string; distanceKm: number }> = [
+      { label: 'Same as recent', distanceKm: referenceDistanceKm },
+      { label: '5 km', distanceKm: 5 },
+      { label: '10 km', distanceKm: 10 },
+      { label: 'Half marathon', distanceKm: 21.0975 },
+    ]
+    const timeOptions: Array<{ label: string; timeSeconds: number }> = [
+      { label: '15 min', timeSeconds: 15 * 60 },
+      { label: '20 min', timeSeconds: 20 * 60 },
+      { label: '30 min', timeSeconds: 30 * 60 },
+    ]
+    const options: BeatPBOption[] = [
+      ...timeOptions.map(({ label, timeSeconds }) => ({
+        type: 'time' as const,
+        label,
+        timeSeconds,
+        distanceKm: distanceToAchieveKPS(targetAbsoluteKPS, timeSeconds, userProfile),
+      })),
+      ...distanceOptions.map(({ label, distanceKm }) => ({
+        type: 'distance' as const,
+        label,
+        distanceKm,
+        timeSeconds: timeToAchieveKPS(targetAbsoluteKPS, distanceKm, userProfile),
+      })),
+    ]
+    setBeatRecentsOptions(options)
+  }, [userProfile, beatPBPercent, beatRecentsCount])
 
   useEffect(() => {
     if (!isRunning && distance > 0 && duration > 0) {
@@ -278,6 +339,14 @@ export default function RunDashboard() {
                   <Trophy size={14} strokeWidth={2.5} />
                   BEAT PB
                 </button>
+                {/* Beat recents */}
+                <button
+                  onClick={openBeatRecents}
+                  className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-violet-400 border border-violet-500/30 hover:border-violet-500/50 hover:bg-violet-500/10 transition-all"
+                >
+                  <TrendingUp size={14} strokeWidth={2.5} />
+                  BEAT RECENTS
+                </button>
 
                 {/* AI Coach Button */}
                 {showAICoach && (
@@ -366,6 +435,59 @@ export default function RunDashboard() {
               )}
               <button
                 onClick={() => { setShowBeatPBModal(false); setBeatPBOptions(null); setBeatPBError(null) }}
+                className="w-full py-2.5 bg-gray-900/50 hover:bg-gray-800 rounded-xl text-white text-sm font-bold border border-gray-700/50 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Beat recents Modal */}
+        {showBeatRecentsModal && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="glass border border-violet-500/30 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-black text-violet-400">Beat last {beatRecentsCount} by {beatPBPercent}%</h3>
+                <button
+                  onClick={() => { setShowBeatRecentsModal(false); setBeatRecentsOptions(null); setBeatRecentsError(null) }}
+                  aria-label="Close"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-sm text-gray-300 mb-4">
+                Run at or faster than these to beat your recent PB (best of last {beatRecentsCount} runs) by {beatPBPercent}%:
+              </p>
+              {beatRecentsError ? (
+                <p className="text-sm text-violet-300 mb-4">{beatRecentsError}</p>
+              ) : beatRecentsOptions ? (
+                <ul className="space-y-2 mb-4">
+                  {beatRecentsOptions.map((opt) => {
+                    const paceSecPerKm = opt.distanceKm > 0 ? opt.timeSeconds / opt.distanceKm : 0
+                    return (
+                      <li key={opt.label} className="flex justify-between items-center text-sm py-2 border-b border-gray-700/50 last:border-0 gap-2">
+                        <span className="text-gray-300">{opt.label}</span>
+                        <span className="text-right">
+                          <span className="font-mono font-bold text-violet-400">
+                            {opt.type === 'time'
+                              ? `${formatDistance(opt.distanceKm * 1000, unitSystem)} ${unitSystem === 'metric' ? 'km' : 'mi'} in ${opt.label}`
+                              : `${formatDistance(opt.distanceKm * 1000, unitSystem)} ${unitSystem === 'metric' ? 'km' : 'mi'} in ${formatTime(opt.timeSeconds)}`}
+                          </span>
+                          <span className="ml-2 text-gray-400 font-mono text-xs">
+                            {paceSecPerKm > 0 ? formatPace(paceSecPerKm, unitSystem) + (unitSystem === 'metric' ? '/km' : '/mi') : '—'}
+                          </span>
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-400">Loading…</p>
+              )}
+              <button
+                onClick={() => { setShowBeatRecentsModal(false); setBeatRecentsOptions(null); setBeatRecentsError(null) }}
                 className="w-full py-2.5 bg-gray-900/50 hover:bg-gray-800 rounded-xl text-white text-sm font-bold border border-gray-700/50 transition-all"
               >
                 Close

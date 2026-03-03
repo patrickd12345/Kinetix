@@ -898,6 +898,7 @@ struct SettingsView: View {
             if let latest = sync.latestKg {
                 lastWithingsWeightKg = latest
                 try applyWithingsWeightToProfile(latest)
+                ConnectivityManager.shared.syncWithingsWeightToWatch(latest)
             }
 
             saveConfirmationMessage = "Connected to Withings. Imported \(sync.imported) recent weight entr\(sync.imported == 1 ? "y" : "ies")."
@@ -927,6 +928,7 @@ struct SettingsView: View {
                 if weightSource == "withings" {
                     try applyWithingsWeightToProfile(latest)
                 }
+                ConnectivityManager.shared.syncWithingsWeightToWatch(latest)
                 saveConfirmationMessage = "Latest Withings weight: \(displayWeight(latest)) \(weightUnit)."
             } else {
                 saveConfirmationMessage = "No recent weight found from Withings."
@@ -956,6 +958,7 @@ struct SettingsView: View {
                 if weightSource == "withings" {
                     try applyWithingsWeightToProfile(latest)
                 }
+                ConnectivityManager.shared.syncWithingsWeightToWatch(latest)
             }
             saveConfirmationMessage = "Synced \(sync.imported) weight entr\(sync.imported == 1 ? "y" : "ies") from Withings."
             showingSaveConfirmation = true
@@ -977,6 +980,7 @@ struct SettingsView: View {
         isWithingsConnected = false
         weightSource = "profile"
         lastWithingsWeightKg = 0
+        ConnectivityManager.shared.syncWithingsWeightToWatch(0)
         saveConfirmationMessage = "Withings disconnected."
         showingSaveConfirmation = true
     }
@@ -1017,6 +1021,7 @@ struct SettingsView: View {
                 if weightSource == "withings" {
                     try applyWithingsWeightToProfile(latest)
                 }
+                ConnectivityManager.shared.syncWithingsWeightToWatch(latest)
             }
             saveConfirmationMessage = "Imported \(inserted) weight entr\(inserted == 1 ? "y" : "ies")."
             showingSaveConfirmation = true

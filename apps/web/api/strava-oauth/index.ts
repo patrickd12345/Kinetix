@@ -18,7 +18,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { code, redirect_uri } = req.body
+  const body = (typeof req.body === 'object' && req.body !== null ? req.body : {}) as { code?: string; redirect_uri?: string }
+  const { code, redirect_uri } = body
 
   if (!code) {
     // #region agent log
@@ -73,10 +74,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // #endregion
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+      const errorData = (await response.json().catch(() => ({}))) as { message?: string; errors?: Array<{ field?: string; code?: string }> }
       console.error('[OAuth] Strava token exchange error:', errorData)
+      const stravaMsg = errorData?.message ?? (Array.isArray(errorData?.errors) && errorData.errors[0]?.code ? errorData.errors.map((e) => e.code).join(', ') : null)
       return res.status(response.status).json({
-        error: 'Failed to exchange authorization code',
+        error: stravaMsg || 'Failed to exchange authorization code',
         details: errorData,
       })
     }

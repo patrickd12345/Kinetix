@@ -65,7 +65,7 @@ export default function Layout({ children }: LayoutProps) {
       }
       stravaSyncDoneRef.current = true
       console.log('[Strava] Startup sync running...')
-      syncStravaRuns(token, targetKPS)
+      syncStravaRuns(token, targetKPS, { recentDays: 90 })
         .then((r) => {
           if (r.added.length > 0) {
             console.log('[Strava] Imported', r.added.length, 'run(s) on startup')

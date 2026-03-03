@@ -10,7 +10,7 @@ The app now uses OAuth2 flow to get Strava tokens with the correct `activity:rea
 2. Find your **Client ID** (you already have: `157217`)
 3. Click "Show" next to **Client Secret** and copy it
 4. Scroll down to **Authorization Callback Domain**
-5. Add your domain (e.g., `your-app.vercel.app` or `localhost` for local dev)
+5. Set to your production domain only (e.g. `kinetix.bookiji.com`). Localhost is whitelisted by Strava.
 6. Save the application
 
 ### 2. Set Environment Variables in Vercel
@@ -19,6 +19,9 @@ The app now uses OAuth2 flow to get Strava tokens with the correct `activity:rea
 # Required for OAuth token exchange
 STRAVA_CLIENT_SECRET=your_client_secret_here
 STRAVA_CLIENT_ID=157217  # Optional, defaults to 157217
+
+# Required for production: OAuth redirect must match Strava callback domain
+VITE_STRAVA_REDIRECT_URI=https://kinetix.bookiji.com/settings
 ```
 
 To set in Vercel:
@@ -37,11 +40,10 @@ Or via Vercel dashboard:
 Create `apps/web/.env.local`:
 ```bash
 VITE_STRAVA_CLIENT_ID=157217
-VITE_STRAVA_REDIRECT_URI=http://localhost:5173/settings
 STRAVA_CLIENT_SECRET=your_client_secret_here
 ```
 
-**Important:** The `STRAVA_CLIENT_SECRET` must be set in `.env.local` for local development. The Vite dev server includes a plugin that handles the OAuth endpoint locally, so you don't need Vercel CLI for local testing.
+**Important:** The `STRAVA_CLIENT_SECRET` must be set in `.env.local` for local development. The Vite dev server includes a plugin that handles the OAuth endpoint locally. Do not set `VITE_STRAVA_REDIRECT_URI` locally; the app uses `window.location.origin` so localhost works automatically.
 
 ### 4. How It Works
 

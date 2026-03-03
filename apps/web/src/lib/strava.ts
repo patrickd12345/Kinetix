@@ -85,22 +85,32 @@ export async function fetchStravaActivities(
     // Use proxy in development (Vite dev server) and production (Vercel serverless function)
     const apiUrl = `/api/strava/athlete/activities?${params.toString()}`
 
-    const response = await fetch(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      mode: 'cors',
-    }).catch((fetchError) => {
-      // CORS or network error
-      if (fetchError instanceof TypeError) {
-        const errorMsg = fetchError.message.includes('CORS') || fetchError.message.includes('Failed to fetch')
-          ? 'CORS error: Strava API blocks direct browser requests. Use dev server proxy or add backend proxy.'
-          : fetchError.message
-        throw new Error(errorMsg)
-      }
-      throw fetchError
-    })
+    const doFetch = async (): Promise<Response> => {
+      const res = await fetch(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+      }).catch((fetchError) => {
+        if (fetchError instanceof TypeError) {
+          const errorMsg = fetchError.message.includes('CORS') || fetchError.message.includes('Failed to fetch')
+            ? 'CORS error: Strava API blocks direct browser requests. Use dev server proxy or add backend proxy.'
+            : fetchError.message
+          throw new Error(errorMsg)
+        }
+        throw fetchError
+      })
+      return res
+    }
+
+    let response = await doFetch()
+
+    // Retry once after 60s when rate limited (Strava: 200/15min, 2000/day)
+    if (response.status === 429) {
+      await new Promise((r) => setTimeout(r, 60_000))
+      response = await doFetch()
+    }
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
@@ -108,8 +118,9 @@ export async function fetchStravaActivities(
       try {
         if (contentType.includes('application/json')) {
           const errorData = await response.json()
-          // Extract detailed error information from Strava API
-          if (errorData.errors && Array.isArray(errorData.errors)) {
+          if (response.status === 429) {
+            errorMessage = 'Rate limit reached. Sync will retry on next app load.'
+          } else if (errorData.errors && Array.isArray(errorData.errors)) {
             const scopeError = errorData.errors.find((e: any) => e.field?.includes('permission') || e.field?.includes('scope'))
             if (scopeError) {
               errorMessage = `Token missing required scope. Please generate a new token with 'activity:read_all' scope at https://www.strava.com/settings/api. The error field was: ${scopeError.field}`
@@ -125,6 +136,9 @@ export async function fetchStravaActivities(
         }
       } catch (parseError) {
         // Error parsing failed, use default message
+      }
+      if (response.status === 429 || (typeof errorMessage === 'string' && /rate limit/i.test(errorMessage))) {
+        errorMessage = 'Rate limit reached. Sync will retry on next app load.'
       }
       throw new Error(`Strava API error: ${errorMessage}`)
     }
@@ -151,6 +165,8 @@ export async function fetchStravaActivities(
     }
 
     page += 1
+    // Throttle to avoid burst (Strava: 100 read/15min)
+    await new Promise((r) => setTimeout(r, 200))
   }
 
   return results
@@ -208,17 +224,27 @@ export function convertStravaToRunRecord(
 
 export type SyncStravaResult = { added: RunRecord[]; error?: string }
 
+export interface SyncStravaOptions {
+  /** Limit to activities from the last N days (reduces API calls on startup). */
+  recentDays?: number
+}
+
 /**
  * Fetch new runs from Strava, dedupe against existing DB, add them, index in RAG.
  * Call on app startup when Strava is connected.
  */
 export async function syncStravaRuns(
   token: string,
-  targetKPS: number
+  targetKPS: number,
+  options?: SyncStravaOptions
 ): Promise<SyncStravaResult> {
   if (!token?.trim()) return { added: [] }
   try {
-    const activities = await fetchStravaActivities(token)
+    const afterEpoch =
+      options?.recentDays != null
+        ? Math.floor(Date.now() / 1000) - options.recentDays * 86400
+        : undefined
+    const activities = await fetchStravaActivities(token, afterEpoch)
     if (activities.length === 0) {
       if (typeof console !== 'undefined') console.log('[Strava] No run activities returned from API')
       return { added: [] }
@@ -270,7 +296,8 @@ export async function syncStravaRuns(
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Strava sync failed'
     console.error('[Strava] sync on startup:', msg, err)
-    const isAuthError = typeof msg === 'string' && (msg.includes('401') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('token'))
+    const isRateLimit = typeof msg === 'string' && /rate limit/i.test(msg)
+    const isAuthError = !isRateLimit && typeof msg === 'string' && (msg.includes('401') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('token'))
     if (isAuthError && typeof window !== 'undefined') {
       const { setStravaCredentials, setStravaToken, setStravaSyncError } = useSettingsStore.getState()
       setStravaCredentials(null)

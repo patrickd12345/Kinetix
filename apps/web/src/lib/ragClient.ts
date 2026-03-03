@@ -6,6 +6,7 @@
 import type { RunRecord } from './database'
 import type { UserProfile } from '@kinetix/core'
 import { calculateAbsoluteKPS } from './kpsUtils'
+import { getProfileForRun } from './authState'
 
 const RAG_PORTS = [3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010]
 let cachedRAGBaseUrl: string | null = null
@@ -82,15 +83,14 @@ export async function indexRunInRAG(ragRun: RAGRunShape): Promise<boolean> {
 
 /**
  * After saving runs (live, Strava, or Garmin), index them in RAG. Best-effort.
+ * Uses weight-at-run-date for KPS so historical runs are indexed with correct KPS.
  */
-export async function indexRunsAfterSave(
-  runs: RunRecord[],
-  userProfile: UserProfile
-): Promise<void> {
+export async function indexRunsAfterSave(runs: RunRecord[]): Promise<void> {
   const available = await checkRAGAvailable()
   if (!available || runs.length === 0) return
   for (const run of runs) {
-    const ragRun = runRecordToRAGRun(run, userProfile)
+    const profile = await getProfileForRun(run)
+    const ragRun = runRecordToRAGRun(run, profile)
     await indexRunInRAG(ragRun)
   }
 }
@@ -191,17 +191,16 @@ export async function getCoachContext(
 
 /**
  * Reindex all runs into RAG. Use after initial setup or to fix missing indexes.
+ * Uses weight at run date for each run's KPS.
  */
-export async function reindexAllRunsInRAG(
-  runs: RunRecord[],
-  userProfile: UserProfile
-): Promise<{ indexed: number; errors: number }> {
+export async function reindexAllRunsInRAG(runs: RunRecord[]): Promise<{ indexed: number; errors: number }> {
   let indexed = 0
   let errors = 0
   const base = await getRAGBaseUrl()
   if (!base) return { indexed: 0, errors: runs.length }
   for (const run of runs) {
-    const ragRun = runRecordToRAGRun(run, userProfile)
+    const profile = await getProfileForRun(run)
+    const ragRun = runRecordToRAGRun(run, profile)
     const ok = await indexRunInRAG(ragRun)
     if (ok) indexed += 1
     else errors += 1

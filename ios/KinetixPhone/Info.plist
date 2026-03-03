@@ -29,9 +29,9 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Kinetix uses speech recognition to understand your questions.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Kinetix needs location access to track your runs and calculate NPI.</string>
+	<string>Kinetix needs location access to track your runs and calculate KPS.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Kinetix needs location access to track your runs and calculate NPI.</string>
+	<string>Kinetix needs location access to track your runs and calculate KPS.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Kinetix needs health data access to track your heart rate during runs.</string>
 	<key>NSHealthUpdateUsageDescription</key>
@@ -64,6 +64,10 @@
 	<string>157217</string>
 	<key>STRAVA_CLIENT_SECRET</key>
 	<string>3652b26562c819e1a13ebb34e517e707dab939b2</string>
+	<key>WITHINGS_CLIENT_ID</key>
+	<string></string>
+	<key>WITHINGS_CLIENT_SECRET</key>
+	<string></string>
 	<key>GOOGLE_CLIENT_ID</key>
 	<string>915406480058-s855cf6s4dqipjskfqh0egqq1hui6frn.apps.googleusercontent.com</string>
 	<key>GOOGLE_CLIENT_SECRET</key>

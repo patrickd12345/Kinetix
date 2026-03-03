@@ -163,11 +163,11 @@ class AICoach: ObservableObject {
         You are Kinetix AI, an intelligent running coach. Analyze this run:
         - Distance: \(String(format: "%.2f", distance)) km
         - Average Pace: \(pace) per km
-        - NPI: \(Int(npi)) (Target: \(Int(targetNPI)))
+        - KPS: \(Int(npi)) (Target: \(Int(targetNPI)))
         
         Provide a concise analysis with:
         1. A brief, scientific-sounding title (max 8 words)
-        2. Key insights on performance, comparing to target NPI
+        2. Key insights on performance, comparing to target KPS
         3. Specific recommendations for improvement
         
         Format as JSON: {"title": "...", "insight": "..."}
@@ -210,16 +210,16 @@ class AICoach: ObservableObject {
         
         if npiDiff > 10 {
             title = "Strong Performance Above Target"
-            insight = "Your NPI of \(Int(npi)) is \(Int(npiDiff)) points above your target of \(Int(targetNPI)). Excellent work! You're performing well above expectations."
+            insight = "Your KPS of \(Int(npi)) is \(Int(npiDiff)) points above your target of \(Int(targetNPI)). Excellent work! You're performing well above expectations."
         } else if npiDiff > 0 {
             title = "Target Achieved"
-            insight = "Your NPI of \(Int(npi)) meets your target of \(Int(targetNPI)). Great consistency! You're on track with your goals."
+            insight = "Your KPS of \(Int(npi)) meets your target of \(Int(targetNPI)). Great consistency! You're on track with your goals."
         } else if npiDiff > -10 {
             title = "Near Target Performance"
-            insight = "Your NPI of \(Int(npi)) is \(Int(abs(npiDiff))) points below target. You're close! Focus on maintaining consistent pace."
+            insight = "Your KPS of \(Int(npi)) is \(Int(abs(npiDiff))) points below target. You're close! Focus on maintaining consistent pace."
         } else {
             title = "Below Target - Room for Improvement"
-            insight = "Your NPI of \(Int(npi)) is \(Int(abs(npiDiff))) points below target. Consider focusing on pace consistency and training volume."
+            insight = "Your KPS of \(Int(npi)) is \(Int(abs(npiDiff))) points below target. Consider focusing on pace consistency and training volume."
         }
         
         insight += " Your \(String(format: "%.2f", distance)) km run at \(pace)/km shows good effort."

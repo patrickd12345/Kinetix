@@ -1,6 +1,7 @@
 import { db, RunRecord, RUN_VISIBLE } from './database'
 import { calculateKPS, UserProfile } from '@kinetix/core'
-import { isValidRunForKPS } from './kpsUtils'
+import { isMeaningfulRunForKPS } from './kpsUtils'
+import { getProfileForRunDate } from './authState'
 import { useSettingsStore } from '../store/settingsStore'
 
 /** Refresh if token expires within 1 hour. Returns valid access token or empty string. */
@@ -163,8 +164,8 @@ export function convertStravaToRunRecord(
   const duration = activity.moving_time
   const distanceMeters = activity.distance
 
-  if (!isValidRunForKPS({ distance: distanceMeters, duration })) {
-    console.warn('Skipping Strava activity with invalid data:', {
+  if (!isMeaningfulRunForKPS({ distance: distanceMeters, duration })) {
+    console.warn('Skipping Strava activity (too short for meaningful KPS):', {
       id: activity.id,
       name: activity.name,
       distance: distanceMeters,
@@ -201,6 +202,7 @@ export function convertStravaToRunRecord(
     heartRate: activity.average_heartrate,
     notes: activity.name || `Strava Activity ${activity.id}`,
     source: 'strava',
+    weightKg: userProfile.weightKg,
   }
 }
 
@@ -212,7 +214,6 @@ export type SyncStravaResult = { added: RunRecord[]; error?: string }
  */
 export async function syncStravaRuns(
   token: string,
-  userProfile: UserProfile,
   targetKPS: number
 ): Promise<SyncStravaResult> {
   if (!token?.trim()) return { added: [] }
@@ -231,8 +232,14 @@ export async function syncStravaRuns(
       existingRuns.map((r) => `${r.date}-${Math.round(r.distance)}`)
     )
 
-    const records = activities
-      .map((a) => convertStravaToRunRecord(a, userProfile, targetKPS))
+    const records = (
+      await Promise.all(
+        activities.map(async (a) => {
+          const profileForDate = await getProfileForRunDate(a.start_date)
+          return convertStravaToRunRecord(a, profileForDate, targetKPS)
+        })
+      )
+    )
       .filter((r): r is RunRecord => r !== null)
       .filter((r) => {
         const key = `${r.date}-${Math.round(r.distance)}`
@@ -254,7 +261,7 @@ export async function syncStravaRuns(
     }
 
     const { indexRunsAfterSave } = await import('./ragClient')
-    await indexRunsAfterSave(added, userProfile)
+    await indexRunsAfterSave(added)
 
     if (added.length > 0 && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('kinetix:runSaved'))

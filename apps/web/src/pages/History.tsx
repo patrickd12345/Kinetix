@@ -3,12 +3,13 @@ import { db, RunRecord, getRunsPage, getRunsPageForDate, getRunsInDateRange, RUN
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAICoach } from '../hooks/useAICoach'
-import { getPB, isValidKPS, calculateAbsoluteKPS, seedInitialPB, calculateRelativeKPSSync } from '../lib/kpsUtils'
+import { getPB, isValidKPS, calculateAbsoluteKPS, seedInitialPB, calculateRelativeKPSSync, isMeaningfulRunForKPS } from '../lib/kpsUtils'
+import { getProfileForRun } from '../lib/authState'
 import { KPSTrendChart } from '../components/KPSTrendChart'
 import { RunDetails } from '../components/RunDetails'
 import { RunCalendar } from '../components/RunCalendar'
 import { KPS_SHORT } from '../lib/branding'
-import { Trash2, Calendar, MapPin, Clock, TrendingUp, Sparkles, X, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Trash2, Calendar, MapPin, Clock, TrendingUp, Sparkles, X, AlertTriangle, ChevronLeft, ChevronRight, Scale } from 'lucide-react'
 import { useAuth } from '../components/providers/useAuth'
 import { toKinetixUserProfile } from '../lib/kinetixProfile'
 
@@ -18,6 +19,12 @@ const DEFAULT_CHART_DAYS = 90
 const CHART_ZOOM_FACTOR = 1.5
 const CHART_MIN_DAYS = 7
 const CHART_MAX_DAYS = 730
+const KG_TO_LBS = 2.20462
+
+function formatWeight(kg: number, unit: 'kg' | 'lbs'): string {
+  if (unit === 'lbs') return `${(kg * KG_TO_LBS).toFixed(1)} lbs`
+  return `${kg.toFixed(1)} kg`
+}
 
 export default function History() {
   const [runs, setRuns] = useState<RunRecord[]>([])
@@ -29,6 +36,7 @@ export default function History() {
   const [pageSize] = useState(DEFAULT_PAGE_SIZE)
   const [totalRuns, setTotalRuns] = useState(0)
   const [pbRunId, setPbRunId] = useState<number | null>(null)
+  const [pbRunDate, setPbRunDate] = useState<string | null>(null)
   const [chartStartDate, setChartStartDate] = useState<string | null>(null)
   const [chartEndDate, setChartEndDate] = useState<string | null>(null)
   const [chartRuns, setChartRuns] = useState<RunRecord[]>([])
@@ -36,7 +44,7 @@ export default function History() {
   const [chartLoading, setChartLoading] = useState(false)
   const runRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const scrollToDateRef = useRef<string | null>(null)
-  const { unitSystem } = useSettingsStore()
+  const { unitSystem, weightUnit } = useSettingsStore()
   const { profile } = useAuth()
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
   const userProfile = useMemo(
@@ -54,24 +62,23 @@ export default function History() {
       setRuns(items)
       setTotalRuns(total)
 
-      const runsWithCalculatedKPS = items.map(r => ({
-        run: r,
-        calculatedKPS: calculateAbsoluteKPS(r, userProfile)
-      }))
-      const invalidKPS = runsWithCalculatedKPS.filter(({ calculatedKPS }) => !isValidKPS(calculatedKPS))
-      setInvalidKPSCount(invalidKPS.length)
-
       const pb = await getPB()
       let pbRun = pb ? (await db.runs.get(pb.runId)) ?? null : null
       if (pbRun && (pbRun.deleted ?? 0) !== RUN_VISIBLE) pbRun = null
       setPbRunId(pbRun && pb != null ? pb.runId : null)
+      setPbRunDate(pbRun?.date ?? null)
 
       const kpsMap = new Map<number, number>()
+      let invalidKPS = 0
       for (const run of items) {
+        const profileForRun = await getProfileForRun(run)
+        const calculatedKPS = calculateAbsoluteKPS(run, profileForRun)
+        if (!isValidKPS(calculatedKPS)) invalidKPS += 1
         if (run.id) {
-          kpsMap.set(run.id, calculateRelativeKPSSync(run, userProfile, pb ?? null, pbRun ?? null))
+          kpsMap.set(run.id, calculateRelativeKPSSync(run, profileForRun, pb ?? null, pbRun ?? null))
         }
       }
+      setInvalidKPSCount(invalidKPS)
       setRelativeKPSMap(kpsMap)
     } catch (error) {
       console.error('❌ Error loading runs:', error)
@@ -108,14 +115,16 @@ export default function History() {
     try {
       setChartLoading(true)
       const items = await getRunsInDateRange(chartStartDate, chartEndDate, CHART_LIMIT)
-      setChartRuns(items)
+      const meaningfulRuns = items.filter((r) => isMeaningfulRunForKPS(r))
+      setChartRuns(meaningfulRuns)
       const pb = await getPB()
       let pbRun = pb ? (await db.runs.get(pb.runId)) ?? null : null
       if (pbRun && (pbRun.deleted ?? 0) !== RUN_VISIBLE) pbRun = null
       const kpsMap = new Map<number, number>()
-      for (const run of items) {
+      for (const run of meaningfulRuns) {
         if (run.id) {
-          kpsMap.set(run.id, calculateRelativeKPSSync(run, userProfile, pb ?? null, pbRun ?? null))
+          const profileForRun = await getProfileForRun(run)
+          kpsMap.set(run.id, calculateRelativeKPSSync(run, profileForRun, pb ?? null, pbRun ?? null))
         }
       }
       setChartKPSMap(kpsMap)
@@ -257,6 +266,14 @@ export default function History() {
     }
   }, [runs, pageSize, currentPage])
 
+  const handleScrollToReferenceRun = useCallback((dateKey: string) => {
+    handleDateSelect(new Date(dateKey + 'T12:00:00'))
+    const halfDays = Math.floor(DEFAULT_CHART_DAYS / 2) * 24 * 60 * 60 * 1000
+    const center = new Date(dateKey + 'T12:00:00').getTime()
+    setChartStartDate(new Date(center - halfDays).toISOString())
+    setChartEndDate(new Date(center + halfDays).toISOString())
+  }, [handleDateSelect])
+
   if (!profile) {
     return (
       <div className="pb-20 lg:pb-4">
@@ -387,8 +404,11 @@ export default function History() {
                     relativeKPSMap={chartKPSMap}
                     unitSystem={unitSystem}
                     pbRunId={pbRunId}
+                    referenceRunDateKey={pbRunDate?.split('T')[0] ?? null}
+                    referenceRunDateFormatted={pbRunDate ? new Date(pbRunDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null}
                     onWheelZoomIn={handleChartZoomIn}
                     onWheelZoomOut={handleChartZoomOut}
+                    onScrollToReferenceRun={handleScrollToReferenceRun}
                   />
                 </div>
 
@@ -442,11 +462,15 @@ export default function History() {
                             <TrendingUp size={12} />
                             {formatPace(run.averagePace, unitSystem)}
                           </div>
+                          <div className="flex items-center gap-1">
+                            <Scale size={12} />
+                            {run.weightKg != null && run.weightKg > 0 ? formatWeight(run.weightKg, weightUnit) : '–'}
+                          </div>
                         </div>
                       </div>
                       <div className="text-right ml-4">
                         <div className="text-2xl font-black text-cyan-400">
-                          {Number.isFinite(relativeKPS) ? Math.round(relativeKPS) : '–'}
+                          {isMeaningfulRunForKPS(run) && Number.isFinite(relativeKPS) ? Math.round(relativeKPS) : '–'}
                         </div>
                         <div className="text-xs text-gray-500 uppercase">{KPS_SHORT}</div>
                         <div className="flex gap-2 mt-2 justify-end">

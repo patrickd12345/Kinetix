@@ -32,3 +32,16 @@ final class DiagnosticLogEntry {
         self.message = message
     }
 }
+
+@Model
+final class WeightEntry {
+    @Attribute(.unique) var dateUnix: Int
+    var recordedAt: Date
+    var kg: Double
+
+    init(dateUnix: Int, recordedAt: Date, kg: Double) {
+        self.dateUnix = dateUnix
+        self.recordedAt = recordedAt
+        self.kg = kg
+    }
+}

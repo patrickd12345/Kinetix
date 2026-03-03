@@ -1,4 +1,5 @@
 import type { WithingsCredentials } from '../store/settingsStore'
+import type { WeightEntry } from './database'
 
 const WITHINGS_MEASURE_URL = 'https://wbsapi.withings.net/measure'
 
@@ -110,4 +111,54 @@ export async function getWithingsWeight(
   if (valid !== creds) onNewCredentials?.(valid)
   const kg = await fetchLatestWeightFromWithings(valid.accessToken)
   return kg
+}
+
+/**
+ * Fetch recent weight measurements from Withings and return as WeightEntry[].
+ * Used on startup to append new weigh-ins to the weight history table without re-importing JSON.
+ */
+export async function fetchRecentWithingsWeights(
+  accessToken: string,
+  daysBack: number = 30
+): Promise<WeightEntry[]> {
+  const end = Math.floor(Date.now() / 1000)
+  const start = end - daysBack * 24 * 3600
+  const body = new URLSearchParams({
+    action: 'getmeas',
+    startdate: String(start),
+    enddate: String(end),
+    meastypes: String(WEIGHT_TYPE),
+  })
+
+  const res = await fetch(WITHINGS_MEASURE_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: body.toString(),
+  })
+
+  if (!res.ok) return []
+
+  const json = (await res.json()) as {
+    body?: { measuregrps?: Array<{ measures?: WithingsMeasure[]; date: string | number }> }
+  }
+  const groups = json?.body?.measuregrps ?? []
+  const entries: WeightEntry[] = []
+
+  for (const g of groups) {
+    const w = g.measures?.find((m) => m.type === WEIGHT_TYPE)
+    if (!w) continue
+    const exp = typeof w.unit === 'number' ? w.unit : WEIGHT_UNIT_EXP
+    const kg = w.value * Math.pow(10, exp)
+    const dateUnix = typeof g.date === 'number' ? g.date : parseInt(String(g.date), 10) || 0
+    entries.push({
+      dateUnix,
+      date: new Date(dateUnix * 1000).toISOString(),
+      kg: Math.round(kg * 100) / 100,
+    })
+  }
+
+  return entries.sort((a, b) => b.dateUnix - a.dateUnix)
 }

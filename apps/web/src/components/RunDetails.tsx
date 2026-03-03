@@ -1,7 +1,10 @@
 import { RunRecord } from '../lib/database'
 import { KPS_SHORT } from '../lib/branding'
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
-import { MapPin, TrendingUp, Heart, Activity, Zap } from 'lucide-react'
+import { useSettingsStore } from '../store/settingsStore'
+import { MapPin, TrendingUp, Heart, Activity, Zap, Scale } from 'lucide-react'
+
+const KG_TO_LBS = 2.20462
 
 interface RunDetailsProps {
   run: RunRecord
@@ -10,6 +13,7 @@ interface RunDetailsProps {
 }
 
 export function RunDetails({ run, relativeKPS, unitSystem }: RunDetailsProps) {
+  const weightUnit = useSettingsStore((s) => s.weightUnit)
   const hasSplits = run.splits && run.splits.length > 0
   const hasLocations = run.locations && run.locations.length > 0
   const hasHeartRate = run.heartRate !== undefined
@@ -45,6 +49,18 @@ export function RunDetails({ run, relativeKPS, unitSystem }: RunDetailsProps) {
             {Math.round(relativeKPS)}
           </div>
         </div>
+
+        {run.weightKg != null && run.weightKg > 0 && (
+          <div className="glass rounded-lg p-3">
+            <div className="flex items-center gap-1 mb-1">
+              <Scale size={12} className="text-cyan-400" />
+              <span className="text-xs text-gray-400 uppercase">Weight used</span>
+            </div>
+            <div className="text-xl font-black text-cyan-400">
+              {weightUnit === 'lbs' ? (run.weightKg! * KG_TO_LBS).toFixed(1) : run.weightKg!.toFixed(1)} {weightUnit}
+            </div>
+          </div>
+        )}
         
         {hasHeartRate && (
           <div className="glass rounded-lg p-3">

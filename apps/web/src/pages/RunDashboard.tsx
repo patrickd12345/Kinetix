@@ -167,21 +167,13 @@ export default function RunDashboard() {
 
         {/* Main Gauge Area */}
         <div className="glass rounded-2xl p-6 mb-4">
-          {/* Target Badge */}
-          <div className="flex items-center justify-center mb-4">
-            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full glass border border-cyan-500/20">
-              <span className="text-xs font-semibold text-gray-400 uppercase">TARGET</span>
-              <span className="text-sm font-black text-cyan-400">{Math.round(targetKPS)}</span>
-            </div>
-          </div>
-
           {/* Progress Circle */}
           <div className="relative flex items-center justify-center mb-4">
             <svg className="w-48 h-48 transform -rotate-90">
               <defs>
                 <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor={displayKPS >= targetKPS ? "#4ade80" : "#22d3ee"} />
-                  <stop offset="100%" stopColor={displayKPS >= targetKPS ? "#16a34a" : "#06b6d4"} />
+                  <stop offset="0%" stopColor="#22d3ee" />
+                  <stop offset="100%" stopColor="#06b6d4" />
                 </linearGradient>
               </defs>
               <circle cx="96" cy="96" r="84" stroke="#1a1a1a" strokeWidth="8" fill="transparent" opacity="0.5" />
@@ -194,14 +186,14 @@ export default function RunDashboard() {
                 strokeDashoffset={2 * Math.PI * 84 * (1 - Math.min(Math.max(progress, 0), 1))}
                 className="transition-all duration-700 ease-out"
                 strokeLinecap="round"
-                style={{ filter: `drop-shadow(0 0 8px ${displayKPS >= targetKPS ? 'rgba(34, 197, 94, 0.5)' : 'rgba(6, 182, 212, 0.5)'})` }}
+                style={{ filter: 'drop-shadow(0 0 8px rgba(6, 182, 212, 0.5))' }}
               />
             </svg>
             
             {/* Kinetix Performance Score - Centered */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
-                <span className={`text-6xl font-black italic tracking-tight ${displayKPS >= targetKPS ? 'text-green-400' : 'text-white'}`}>
+                <span className="text-6xl font-black italic tracking-tight text-white">
                   {Math.floor(displayKPS)}
                 </span>
                 <div className="text-xs font-bold tracking-[0.3em] text-gray-400 uppercase mt-2">{KPS_SHORT}</div>

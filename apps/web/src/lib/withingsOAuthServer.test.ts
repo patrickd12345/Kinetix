@@ -41,7 +41,7 @@ describe('withingsOAuthServer', () => {
       const { withingsGetNonce } = await import('./withingsOAuthServer')
 
       await expect(withingsGetNonce(clientId, clientSecret)).rejects.toThrow(
-        'Withings service is temporarily unavailable. Please try again in a few minutes.'
+        /Withings returned an error \(503/
       )
       expect(mockFetch).toHaveBeenCalledTimes(4)
     },

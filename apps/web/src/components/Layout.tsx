@@ -1,12 +1,14 @@
 import { ReactNode, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Activity, History, MessageCircle, Settings } from 'lucide-react'
+import { Activity, History, MessageCircle, Settings, Scale } from 'lucide-react'
 import { useAuth } from './providers/useAuth'
 import { useSettingsStore } from '../store/settingsStore'
 import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
 import { getRunsPage } from '../lib/database'
 import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
+import { ensureValidWithingsAccess, fetchRecentWithingsWeights } from '../lib/withings'
+import { bulkPutWeightEntries } from '../lib/database'
 
 const RAG_SYNC_PAGE_SIZE = 200
 
@@ -17,7 +19,16 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const { profile, session, signOut } = useAuth()
-  const { stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated } = useSettingsStore()
+  const {
+    stravaCredentials,
+    stravaToken,
+    targetKPS,
+    setStravaSyncError,
+    settingsRehydrated,
+    withingsCredentials,
+    setWithingsCredentials,
+    setLastWithingsWeightKg,
+  } = useSettingsStore()
   const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : session?.user.email ?? 'User'
 
   useEffect(() => {
@@ -42,7 +53,6 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => {
     if (!profile || typeof indexedDB === 'undefined') return
     stravaSyncDoneRef.current = false
-    const userProfile = toKinetixUserProfile(profile)
 
     const runSync = async () => {
       if (stravaSyncDoneRef.current) return
@@ -55,7 +65,7 @@ export default function Layout({ children }: LayoutProps) {
       }
       stravaSyncDoneRef.current = true
       console.log('[Strava] Startup sync running...')
-      syncStravaRuns(token, userProfile, targetKPS)
+      syncStravaRuns(token, targetKPS)
         .then((r) => {
           if (r.added.length > 0) {
             console.log('[Strava] Imported', r.added.length, 'run(s) on startup')
@@ -80,9 +90,36 @@ export default function Layout({ children }: LayoutProps) {
     }
   }, [profile, stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated])
 
+  // Sync recent Withings weights into weight history on startup so new weigh-ins appear without re-importing JSON.
+  const withingsWeightSyncDoneRef = useRef(false)
+  useEffect(() => {
+    if (!settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') return
+    if (withingsWeightSyncDoneRef.current) return
+    withingsWeightSyncDoneRef.current = true
+
+    const run = async () => {
+      try {
+        const valid = await ensureValidWithingsAccess(withingsCredentials)
+        if (valid !== withingsCredentials) setWithingsCredentials(valid)
+        const entries = await fetchRecentWithingsWeights(valid.accessToken, 30)
+        if (entries.length === 0) return
+        const { latestKg } = await bulkPutWeightEntries(entries)
+        if (latestKg != null) setLastWithingsWeightKg(latestKg)
+        if (entries.length > 0 && typeof console !== 'undefined') {
+          console.log('[Withings] Synced', entries.length, 'recent weight(s) into history')
+        }
+      } catch {
+        withingsWeightSyncDoneRef.current = false
+      }
+    }
+    const t = window.setTimeout(run, 2000)
+    return () => clearTimeout(t)
+  }, [settingsRehydrated, withingsCredentials, setWithingsCredentials, setLastWithingsWeightKg])
+
   const navItems = [
     { path: '/', icon: Activity, label: 'Run' },
     { path: '/history', icon: History, label: 'History' },
+    { path: '/weight-history', icon: Scale, label: 'Weight' },
     { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ]

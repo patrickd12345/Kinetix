@@ -395,7 +395,7 @@ struct RunTrackingView: View {
             } else {
                 // Invalid NPI - use 0 as fallback
                 avgNPI = 0.0
-                print("⚠️ Warning: Calculated invalid NPI for run. Distance: \(distanceToSave)m, Duration: \(elapsedTime)s")
+                print("⚠️ Warning: Calculated invalid KPS for run. Distance: \(distanceToSave)m, Duration: \(elapsedTime)s")
             }
         } else {
             avgNPI = 0.0 // No NPI if no distance

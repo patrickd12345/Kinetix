@@ -67,12 +67,12 @@ describe('convertStravaToRunRecord', () => {
 
 describe('syncStravaRuns', () => {
   it('returns added: [] when token is empty', async () => {
-    const result = await syncStravaRuns('', mockUserProfile, 135)
+    const result = await syncStravaRuns('', 135)
     expect(result.added).toEqual([])
   })
 
   it('returns added: [] when token is whitespace', async () => {
-    const result = await syncStravaRuns('   ', mockUserProfile, 135)
+    const result = await syncStravaRuns('   ', 135)
     expect(result.added).toEqual([])
   })
 
@@ -88,7 +88,7 @@ describe('syncStravaRuns', () => {
       return originalFetch(input)
     }) as typeof fetch
 
-    const result = await syncStravaRuns('fake-token', mockUserProfile, 135)
+    const result = await syncStravaRuns('fake-token', 135)
 
     globalThis.fetch = originalFetch
     expect(result.added).toEqual([])
@@ -111,7 +111,7 @@ describe('syncStravaRuns', () => {
       return originalFetch(input)
     }) as typeof fetch
 
-    const result = await syncStravaRuns('fake-token', mockUserProfile, 135)
+    const result = await syncStravaRuns('fake-token', 135)
 
     globalThis.fetch = originalFetch
     expect(fetchCallCount).toBeGreaterThanOrEqual(1)

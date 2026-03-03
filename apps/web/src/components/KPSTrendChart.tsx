@@ -3,6 +3,11 @@ import { KINETIX_PERFORMANCE_SCORE, KPS_SHORT } from '../lib/branding'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Dot, Brush } from 'recharts'
 import { formatTime, formatDistance } from '@kinetix/core'
 import { RunRecord } from '../lib/database'
+import { useSettingsStore } from '../store/settingsStore'
+
+const KG_TO_LBS = 2.20462
+/** KPS is 0–100 scale (PB = 100); clamp so Y-axis never shows garbage. */
+const KPS_DOMAIN: [number, number] = [0, 120]
 
 interface KPSTrendData {
   runId?: number
@@ -12,6 +17,8 @@ interface KPSTrendData {
   isPB: boolean
   distance: number
   duration: number
+  /** Weight (kg) used for this run's KPS calculation. */
+  weightKg?: number
 }
 
 interface KPSTrendChartProps {
@@ -20,9 +27,15 @@ interface KPSTrendChartProps {
   unitSystem: 'metric' | 'imperial'
   /** Overall PB run id; only this run gets the green dot (KPS = 100). */
   pbRunId?: number | null
+  /** Reference (PB) run date YYYY-MM-DD; when set, legend shows "Reference: <date>" even if PB is outside chart range. */
+  referenceRunDateKey?: string | null
+  /** Formatted reference run date for legend (e.g. "Jan 15, 2024"). */
+  referenceRunDateFormatted?: string | null
   /** When set, wheel zoom changes history range (zoom out = more history) instead of brush. */
   onWheelZoomIn?: () => void
   onWheelZoomOut?: () => void
+  /** Called when user clicks the reference run date in the legend; dateKey is YYYY-MM-DD. */
+  onScrollToReferenceRun?: (dateKey: string) => void
 }
 
 export function KPSTrendChart({
@@ -30,9 +43,13 @@ export function KPSTrendChart({
   relativeKPSMap,
   unitSystem,
   pbRunId = null,
+  referenceRunDateKey: referenceRunDateKeyProp = null,
+  referenceRunDateFormatted: referenceRunDateFormattedProp = null,
   onWheelZoomIn,
   onWheelZoomOut,
+  onScrollToReferenceRun,
 }: KPSTrendChartProps) {
+  const weightUnit = useSettingsStore((s) => s.weightUnit)
   const chartData = useMemo<KPSTrendData[]>(() => {
     if (runs.length === 0) return []
 
@@ -41,7 +58,10 @@ export function KPSTrendChart({
     )
 
     return sortedRuns.map((run) => {
-      const relativeKPS = run.id ? (relativeKPSMap.get(run.id) ?? run.kps) : run.kps
+      const raw = run.id ? (relativeKPSMap.get(run.id) ?? run.kps) : run.kps
+      const kps = Number.isFinite(raw) && typeof raw === 'number'
+        ? Math.max(KPS_DOMAIN[0], Math.min(KPS_DOMAIN[1], raw))
+        : 0
       return {
         runId: run.id,
         date: run.date,
@@ -49,10 +69,11 @@ export function KPSTrendChart({
           month: 'short',
           day: 'numeric'
         }),
-        kps: relativeKPS,
+        kps,
         isPB: run.id != null && run.id === pbRunId,
         distance: run.distance,
         duration: run.duration,
+        weightKg: run.weightKg,
       }
     })
   }, [runs, relativeKPSMap, pbRunId])
@@ -72,6 +93,13 @@ export function KPSTrendChart({
       (d, i) => i >= brushStartIndex && i <= brushEndIndex && d.isPB
     )
   }, [chartData, brushStartIndex, brushEndIndex])
+
+  const referenceRunEntry = useMemo(
+    () => chartData.find((d) => d.isPB),
+    [chartData]
+  )
+  const referenceRunDateKey = referenceRunEntry?.date?.split('T')[0] ?? referenceRunDateKeyProp
+  const referenceRunDateFormatted = referenceRunEntry?.dateFormatted ?? referenceRunDateFormattedProp
 
   const handleWheelZoom = useCallback(
     (e: React.WheelEvent) => {
@@ -142,6 +170,11 @@ export function KPSTrendChart({
           <p className="text-xs text-gray-300">
             {formatDistance(data.distance, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'} • {formatTime(data.duration)}
           </p>
+          {data.weightKg != null && data.weightKg > 0 && (
+            <p className="text-xs text-gray-400 mt-1">
+              Weight used: {weightUnit === 'lbs' ? (data.weightKg * KG_TO_LBS).toFixed(1) : data.weightKg.toFixed(1)} {weightUnit}
+            </p>
+          )}
         </div>
       )
     }
@@ -155,7 +188,7 @@ export function KPSTrendChart({
           <h3 className="text-lg font-black text-white mb-1">{KINETIX_PERFORMANCE_SCORE} Trend</h3>
           <p className="text-xs text-gray-400">Your performance over time</p>
         </div>
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
             <span className="text-gray-400">{KPS_SHORT}</span>
@@ -165,6 +198,18 @@ export function KPSTrendChart({
               <div className="w-2 h-2 rounded-full bg-green-400"></div>
               <span className="text-gray-400">PB</span>
             </div>
+          )}
+          {referenceRunDateKey && referenceRunDateFormatted && onScrollToReferenceRun && (
+            <span className="text-gray-400">
+              Reference:{' '}
+              <button
+                type="button"
+                onClick={() => onScrollToReferenceRun(referenceRunDateKey)}
+                className="text-cyan-400 hover:text-cyan-300 underline underline-offset-1 transition-colors"
+              >
+                {referenceRunDateFormatted}
+              </button>
+            </span>
           )}
           <span className="text-gray-500">{onWheelZoomOut ? 'Scroll to zoom history' : 'Scroll to zoom'}</span>
         </div>
@@ -196,7 +241,7 @@ export function KPSTrendChart({
             stroke="#6b7280"
             fontSize={10}
             tick={{ fill: '#9ca3af' }}
-            domain={['dataMin - 5', 'dataMax + 5']}
+            domain={KPS_DOMAIN}
           />
           <Tooltip content={<CustomTooltip />} />
           <ReferenceLine y={100} stroke="#10b981" strokeDasharray="2 2" opacity={0.5} />

@@ -1,12 +1,17 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor<Run>(\.date, order: .reverse)]) private var runs: [Run]
+    @Query(sort: [SortDescriptor<WeightEntry>(\.recordedAt, order: .reverse)]) private var weightEntries: [WeightEntry]
     @Query private var profiles: [RunnerProfile]
     @Query(sort: [SortDescriptor<CustomBatteryProfile>(\.name)]) private var batteryProfiles: [CustomBatteryProfile]
+    @AppStorage("weightUnit") private var weightUnit: String = "lbs"
+    @AppStorage("weightSource") private var weightSource: String = "profile"
+    @AppStorage("lastWithingsWeightKg") private var lastWithingsWeightKg: Double = 0
     
     @State private var weightText: String = ""
     @State private var birthDate: Date = Date()
@@ -39,6 +44,10 @@ struct SettingsView: View {
     @State private var stravaExporting = false
     @State private var showingStravaExport = false
     @State private var stravaDays = 90
+    @State private var isWithingsConnected = false
+    @State private var withingsRefreshing = false
+    @State private var withingsSyncing = false
+    @State private var showingWeightImportPicker = false
     
     @State private var ollamaURL: String = "http://localhost:11434"
     @State private var ollamaModel: String = "llama3.2"
@@ -49,11 +58,13 @@ struct SettingsView: View {
     @State private var showingApiKeySaved = false
     
     private let sexOptions = ["unspecified", "female", "male", "nonbinary"]
+    private let kgToLbs = 2.20462
     
     var body: some View {
         NavigationStack {
             List {
                 profileSection
+                withingsSection
                 cloudStorageSection
                 stravaSection
                 aiSettingsSection
@@ -91,11 +102,33 @@ struct SettingsView: View {
                 }
             }
             .onAppear {
+                normalizeWeightUnitIfNeeded()
                 bootstrapProfile()
+                checkWithingsConnection()
                 updateCloudSyncStatus()
                 loadOllamaSettings()
                 loadGeminiApiKey()
                 checkOllamaAvailability()
+            }
+            .onChange(of: weightUnit) { oldValue, newValue in
+                guard oldValue != newValue else { return }
+                convertDisplayedWeight(from: oldValue, to: newValue)
+            }
+            .fileImporter(
+                isPresented: $showingWeightImportPicker,
+                allowedContentTypes: [.json],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let url = urls.first else { return }
+                    Task {
+                        await importWeightHistoryJSON(from: url)
+                    }
+                case .failure(let error):
+                    saveConfirmationMessage = "Weight import failed: \(error.localizedDescription)"
+                    showingSaveConfirmation = true
+                }
             }
             .sheet(isPresented: $showingCloudAuth) {
                 // OAuth will be handled by CloudSyncService
@@ -199,6 +232,105 @@ struct SettingsView: View {
             Text("Cloud Storage")
         } footer: {
             Text("Sync your runs to Google Drive for backup and cross-device access.")
+        }
+    }
+
+    private var withingsSection: some View {
+        Section {
+            Picker("Weight Source", selection: $weightSource) {
+                Text("Profile").tag("profile")
+                Text("Withings").tag("withings")
+            }
+            .pickerStyle(.segmented)
+
+            HStack {
+                if isWithingsConnected {
+                    Label("Connected", systemImage: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                } else {
+                    Label("Not Connected", systemImage: "xmark.circle")
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                Text("Withings")
+                    .foregroundColor(.secondary)
+            }
+
+            if lastWithingsWeightKg > 0 {
+                HStack {
+                    Text("Latest Weight")
+                    Spacer()
+                    Text("\(displayWeight(lastWithingsWeightKg)) \(weightUnit)")
+                        .foregroundColor(.cyan)
+                }
+            }
+
+            if !weightEntries.isEmpty {
+                HStack {
+                    Text("History Entries")
+                    Spacer()
+                    Text("\(weightEntries.count)")
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            if isWithingsConnected {
+                Button {
+                    Task { await refreshWithingsWeight() }
+                } label: {
+                    HStack {
+                        if withingsRefreshing {
+                            ProgressView().scaleEffect(0.8)
+                            Text("Refreshing...")
+                        } else {
+                            Label("Refresh Weight", systemImage: "arrow.clockwise")
+                        }
+                    }
+                }
+                .disabled(withingsRefreshing || withingsSyncing)
+
+                Button {
+                    Task { await syncRecentWithingsWeights() }
+                } label: {
+                    HStack {
+                        if withingsSyncing {
+                            ProgressView().scaleEffect(0.8)
+                            Text("Syncing...")
+                        } else {
+                            Label("Sync Last 30 Days", systemImage: "waveform.path.ecg")
+                        }
+                    }
+                }
+                .disabled(withingsSyncing || withingsRefreshing)
+
+                Button(role: .destructive) {
+                    disconnectWithings()
+                } label: {
+                    Label("Disconnect", systemImage: "xmark.circle")
+                }
+            } else {
+                Button {
+                    connectWithings()
+                } label: {
+                    Label("Connect Withings", systemImage: "scalemass")
+                }
+            }
+
+            NavigationLink {
+                WeightHistoryView()
+            } label: {
+                Label("Weight History", systemImage: "chart.xyaxis.line")
+            }
+
+            Button {
+                showingWeightImportPicker = true
+            } label: {
+                Label("Import Weight History (JSON)", systemImage: "square.and.arrow.down")
+            }
+        } header: {
+            Text("Withings")
+        } footer: {
+            Text("Connect your Withings smart scale to sync recent weigh-ins. Weight history is stored on-device and shown using your selected unit.")
         }
     }
     
@@ -572,8 +704,14 @@ struct SettingsView: View {
     
     private var profileSection: some View {
         Section {
+            Picker("Weight Unit", selection: $weightUnit) {
+                Text("kg").tag("kg")
+                Text("lbs").tag("lbs")
+            }
+            .pickerStyle(.segmented)
+
             HStack {
-                Text("Weight (kg)")
+                Text("Weight (\(weightUnit))")
                     .frame(width: 120, alignment: .leading)
                 TextField("Weight", text: $weightText)
                     .keyboardType(.decimalPad)
@@ -596,7 +734,7 @@ struct SettingsView: View {
         } header: {
             Text("Runner Profile")
         } footer: {
-            Text("Used for AI summaries, training distribution, and future pace/power estimates. Target KPS is used for AI analysis comparisons.")
+            Text("Used for AI summaries, training distribution, and future pace/power estimates. Target KPS is used for AI analysis comparisons. Weight is stored in kg.")
         }
     }
     
@@ -678,18 +816,264 @@ struct SettingsView: View {
         let cutoff = Calendar.current.date(byAdding: .day, value: -42, to: Date()) ?? Date()
         return runs.filter { $0.date >= cutoff }
     }
+
+    private func normalizeWeightUnitIfNeeded() {
+        if weightUnit != "kg" && weightUnit != "lbs" {
+            weightUnit = "lbs"
+        }
+    }
+
+    private func formatWeightForDisplay(_ weightKg: Double) -> String {
+        let displayWeight = weightUnit == "lbs" ? weightKg * kgToLbs : weightKg
+        return String(format: "%.1f", displayWeight)
+    }
+
+    private func parseEnteredWeightToKg() -> Double? {
+        guard let entered = Double(weightText), entered > 0 else { return nil }
+        if weightUnit == "lbs" {
+            return entered / kgToLbs
+        }
+        return entered
+    }
+
+    private func convertDisplayedWeight(from oldUnit: String, to newUnit: String) {
+        guard let currentDisplayWeight = Double(weightText), currentDisplayWeight > 0 else { return }
+        let oldIsLbs = oldUnit == "lbs"
+        let newIsLbs = newUnit == "lbs"
+        let asKg = oldIsLbs ? (currentDisplayWeight / kgToLbs) : currentDisplayWeight
+        let converted = newIsLbs ? (asKg * kgToLbs) : asKg
+        weightText = String(format: "%.1f", converted)
+    }
+
+    private func displayWeight(_ kg: Double) -> String {
+        formatWeightForDisplay(kg)
+    }
+
+    private func checkWithingsConnection() {
+        isWithingsConnected = CloudTokenStorage.shared.hasTokens(provider: "withings")
+        if !isWithingsConnected && weightSource == "withings" {
+            weightSource = "profile"
+        }
+        if lastWithingsWeightKg <= 0, let latest = weightEntries.first?.kg {
+            lastWithingsWeightKg = latest
+        }
+    }
+
+    private func connectWithings() {
+        Task {
+            await connectWithingsAsync()
+        }
+    }
+
+    @MainActor
+    private func connectWithingsAsync() async {
+        guard WithingsService.shared.areCredentialsConfigured() else {
+            saveConfirmationMessage = "Withings integration is not configured. Add WITHINGS_CLIENT_ID and WITHINGS_CLIENT_SECRET to Info.plist."
+            showingSaveConfirmation = true
+            return
+        }
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            saveConfirmationMessage = "Could not find view controller for authentication"
+            showingSaveConfirmation = true
+            return
+        }
+
+        withingsRefreshing = true
+        defer { withingsRefreshing = false }
+
+        do {
+            let tokens = try await WithingsService.shared.authenticate(presentingViewController: rootViewController)
+            try CloudTokenStorage.shared.storeTokens(
+                provider: "withings",
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                expiresAt: tokens.expiresAt
+            )
+            isWithingsConnected = true
+            weightSource = "withings"
+
+            let sync = try await WithingsService.shared.syncRecentWeights(modelContext: modelContext, daysBack: 30)
+            if let latest = sync.latestKg {
+                lastWithingsWeightKg = latest
+                try applyWithingsWeightToProfile(latest)
+            }
+
+            saveConfirmationMessage = "Connected to Withings. Imported \(sync.imported) recent weight entr\(sync.imported == 1 ? "y" : "ies")."
+            showingSaveConfirmation = true
+        } catch {
+            saveConfirmationMessage = "Withings connect failed: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
+    }
+
+    @MainActor
+    private func refreshWithingsWeight() async {
+        guard isWithingsConnected else {
+            saveConfirmationMessage = "Connect Withings first."
+            showingSaveConfirmation = true
+            return
+        }
+
+        withingsRefreshing = true
+        defer { withingsRefreshing = false }
+
+        do {
+            let tokens = try await WithingsService.shared.ensureValidAccessToken()
+            let latest = try await WithingsService.shared.fetchLatestWeightKg(accessToken: tokens.accessToken)
+            if let latest {
+                lastWithingsWeightKg = latest
+                if weightSource == "withings" {
+                    try applyWithingsWeightToProfile(latest)
+                }
+                saveConfirmationMessage = "Latest Withings weight: \(displayWeight(latest)) \(weightUnit)."
+            } else {
+                saveConfirmationMessage = "No recent weight found from Withings."
+            }
+            showingSaveConfirmation = true
+        } catch {
+            saveConfirmationMessage = "Failed to refresh Withings weight: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
+    }
+
+    @MainActor
+    private func syncRecentWithingsWeights() async {
+        guard isWithingsConnected else {
+            saveConfirmationMessage = "Connect Withings first."
+            showingSaveConfirmation = true
+            return
+        }
+
+        withingsSyncing = true
+        defer { withingsSyncing = false }
+
+        do {
+            let sync = try await WithingsService.shared.syncRecentWeights(modelContext: modelContext, daysBack: 30)
+            if let latest = sync.latestKg {
+                lastWithingsWeightKg = latest
+                if weightSource == "withings" {
+                    try applyWithingsWeightToProfile(latest)
+                }
+            }
+            saveConfirmationMessage = "Synced \(sync.imported) weight entr\(sync.imported == 1 ? "y" : "ies") from Withings."
+            showingSaveConfirmation = true
+        } catch {
+            saveConfirmationMessage = "Withings sync failed: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
+    }
+
+    private func disconnectWithings() {
+        do {
+            try CloudTokenStorage.shared.removeTokens(provider: "withings")
+        } catch {
+            saveConfirmationMessage = "Failed to disconnect Withings: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+            return
+        }
+
+        isWithingsConnected = false
+        weightSource = "profile"
+        lastWithingsWeightKg = 0
+        saveConfirmationMessage = "Withings disconnected."
+        showingSaveConfirmation = true
+    }
+
+    @MainActor
+    private func applyWithingsWeightToProfile(_ kg: Double) throws {
+        guard kg > 0 else { return }
+        let profile = profiles.first ?? RunnerProfile()
+        profile.weightKg = kg
+        if profiles.isEmpty {
+            modelContext.insert(profile)
+        }
+        weightText = formatWeightForDisplay(kg)
+        try modelContext.save()
+    }
+
+    @MainActor
+    private func importWeightHistoryJSON(from url: URL) async {
+        let hasScopedAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasScopedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let samples = try parseWeightSamplesFromJSON(data)
+            guard !samples.isEmpty else {
+                saveConfirmationMessage = "No valid weight entries found in JSON."
+                showingSaveConfirmation = true
+                return
+            }
+
+            let inserted = try WithingsService.shared.importWeightSamples(samples, modelContext: modelContext)
+            if let latest = samples.first?.kg {
+                lastWithingsWeightKg = latest
+                if weightSource == "withings" {
+                    try applyWithingsWeightToProfile(latest)
+                }
+            }
+            saveConfirmationMessage = "Imported \(inserted) weight entr\(inserted == 1 ? "y" : "ies")."
+            showingSaveConfirmation = true
+        } catch {
+            saveConfirmationMessage = "Weight import failed: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
+    }
+
+    private func parseWeightSamplesFromJSON(_ data: Data) throws -> [WithingsWeightSample] {
+        guard let array = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] else {
+            throw WithingsError.networkError("Expected an array of weight entries")
+        }
+
+        var samples: [WithingsWeightSample] = []
+        samples.reserveCapacity(array.count)
+
+        for item in array {
+            guard let kg = parseNumeric(item["kg"]), kg > 0 else { continue }
+
+            var dateUnix: Int?
+            if let unix = item["dateUnix"] as? Int {
+                dateUnix = unix
+            } else if let unixString = item["dateUnix"] as? String, let parsed = Int(unixString) {
+                dateUnix = parsed
+            } else if let isoDate = item["date"] as? String,
+                      let parsedDate = ISO8601DateFormatter().date(from: isoDate) {
+                dateUnix = Int(parsedDate.timeIntervalSince1970)
+            }
+
+            guard let finalUnix = dateUnix, finalUnix > 0 else { continue }
+            let recordedAt = Date(timeIntervalSince1970: TimeInterval(finalUnix))
+            samples.append(WithingsWeightSample(dateUnix: finalUnix, recordedAt: recordedAt, kg: kg))
+        }
+
+        return samples.sorted(by: { $0.dateUnix > $1.dateUnix })
+    }
+
+    private func parseNumeric(_ value: Any?) -> Double? {
+        if let doubleValue = value as? Double { return doubleValue }
+        if let intValue = value as? Int { return Double(intValue) }
+        if let number = value as? NSNumber { return number.doubleValue }
+        if let stringValue = value as? String { return Double(stringValue) }
+        return nil
+    }
     
     private func bootstrapProfile() {
         guard let profile = profiles.first else {
             let newProfile = RunnerProfile()
             modelContext.insert(newProfile)
-            weightText = String(format: "%.1f", newProfile.weightKg)
+            weightText = formatWeightForDisplay(newProfile.weightKg)
             birthDate = newProfile.dateOfBirth
             sex = newProfile.sex
             targetNPIText = String(format: "%.0f", newProfile.targetNPI)
             return
         }
-        weightText = String(format: "%.1f", profile.weightKg)
+        weightText = formatWeightForDisplay(profile.weightKg)
         birthDate = profile.dateOfBirth
         sex = profile.sex
         targetNPIText = String(format: "%.0f", profile.targetNPI)
@@ -697,7 +1081,9 @@ struct SettingsView: View {
     
     private func saveProfile() {
         let profile = profiles.first ?? RunnerProfile()
-        profile.weightKg = Double(weightText) ?? profile.weightKg
+        if let weightInKg = parseEnteredWeightToKg() {
+            profile.weightKg = weightInKg
+        }
         profile.dateOfBirth = birthDate
         profile.sex = sex
         profile.targetNPI = Double(targetNPIText) ?? profile.targetNPI
@@ -720,7 +1106,7 @@ struct SettingsView: View {
         
         // Validate inputs before calculating
         guard RunMetricsCalculator.isValidRunForNPI(distanceMeters: distanceMeters, durationSeconds: duration) else {
-            print("⚠️ Invalid run data for NPI calculation")
+            print("⚠️ Invalid run data for KPS calculation")
             return
         }
         
@@ -729,7 +1115,7 @@ struct SettingsView: View {
         
         // Validate NPI before saving
         guard RunMetricsCalculator.isValidNPI(npi) else {
-            print("⚠️ Calculated invalid NPI: \(npi)")
+            print("⚠️ Calculated invalid KPS: \(npi)")
             return
         }
         
@@ -1031,6 +1417,48 @@ struct SettingsView: View {
             saveConfirmationMessage = "Export failed: \(error.localizedDescription)"
             showingSaveConfirmation = true
         }
+    }
+}
+
+struct WeightHistoryView: View {
+    @Query(sort: [SortDescriptor<WeightEntry>(\.recordedAt, order: .reverse)]) private var entries: [WeightEntry]
+    @AppStorage("weightUnit") private var weightUnit: String = "lbs"
+    private let kgToLbs = 2.20462
+
+    var body: some View {
+        List {
+            if entries.isEmpty {
+                ContentUnavailableView(
+                    "No Weight Entries",
+                    systemImage: "scalemass",
+                    description: Text("Connect Withings or import JSON to populate weight history.")
+                )
+            } else {
+                ForEach(entries) { entry in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text("Unix: \(entry.dateUnix)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Text("\(formatWeight(entry.kg)) \(weightUnit)")
+                            .font(.headline)
+                            .foregroundColor(.cyan)
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+        }
+        .navigationTitle("Weight History")
+    }
+
+    private func formatWeight(_ kg: Double) -> String {
+        let value = weightUnit == "lbs" ? kg * kgToLbs : kg
+        return String(format: "%.2f", value)
     }
 }
 

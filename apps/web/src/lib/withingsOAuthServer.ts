@@ -9,8 +9,9 @@ export const WITHINGS_API = 'https://wbsapi.withings.net'
 const WITHINGS_RETRY_STATUSES = [502, 503, 504]
 const WITHINGS_RETRY_DELAYS_MS = [1000, 2000, 4000]
 
+/** HMAC SHA-256 with client secret; Withings expects the signature as hex (not base64). */
 export function withingsHmac(key: string, message: string): string {
-  return crypto.createHmac('sha256', key).update(message, 'utf8').digest('base64')
+  return crypto.createHmac('sha256', key).update(message, 'utf8').digest('hex')
 }
 
 export async function withingsGetNonce(clientId: string, clientSecret: string): Promise<string> {
@@ -46,7 +47,7 @@ export async function withingsGetNonce(clientId: string, clientSecret: string): 
       }
       if (data.status === 503 || data.status === 502 || data.status === 504) {
         throw new Error(
-          'Withings service is temporarily unavailable. Please try again in a few minutes.'
+          'Withings returned an error (503/502/504). This can mean the service is busy or your credentials are invalid—check VITE_WITHINGS_CLIENT_ID and WITHINGS_CLIENT_SECRET in .env.local.'
         )
       }
       const msg = data?.body?.error ?? `Withings getnonce failed (status ${data.status})`

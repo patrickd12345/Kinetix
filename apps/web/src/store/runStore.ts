@@ -105,6 +105,7 @@ export const useRunStore = create<RunState>((set, get) => ({
         locations: state.locations,
         splits: state.splits,
         heartRate: state.heartRate > 70 ? state.heartRate : undefined,
+        weightKg: userProfile.weightKg,
       }
 
       db.runs.add(runRecord).then(async (runId) => {
@@ -127,7 +128,7 @@ export const useRunStore = create<RunState>((set, get) => ({
           })
         })
         import('../lib/ragClient').then(({ indexRunsAfterSave }) => {
-          indexRunsAfterSave([savedRunRecord], userProfile).catch(() => {})
+          indexRunsAfterSave([savedRunRecord]).catch(() => {})
         })
       }).catch((error) => {
         console.error('Error saving run:', error)

@@ -40,6 +40,9 @@ interface SettingsState {
   setWithingsCredentials: (creds: WithingsCredentials | null) => void
   lastWithingsWeightKg: number
   setLastWithingsWeightKg: (kg: number) => void
+  /** Display unit for weight (weight history table, etc.). Default lbs. */
+  weightUnit: 'kg' | 'lbs'
+  setWeightUnit: (unit: 'kg' | 'lbs') => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -74,6 +77,9 @@ export const useSettingsStore = create<SettingsState>()(
 
       lastWithingsWeightKg: 0,
       setLastWithingsWeightKg: (kg) => set({ lastWithingsWeightKg: kg }),
+
+      weightUnit: 'lbs',
+      setWeightUnit: (unit) => set({ weightUnit: unit }),
     }),
     {
       name: 'kinetix-settings',

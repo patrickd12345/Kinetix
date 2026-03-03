@@ -7,7 +7,7 @@
 import { calculateKPS } from '@kinetix/core'
 import type { UserProfile } from '@kinetix/core'
 import type { RunRecord } from './database'
-import { isValidRunForKPS } from './kpsUtils'
+import { isMeaningfulRunForKPS } from './kpsUtils'
 
 export const GARMIN_SOURCE = 'garmin' as const
 
@@ -149,7 +149,7 @@ export function convertGarminToRunRecord(
   userProfile: UserProfile,
   targetKPS: number
 ): RunRecord | null {
-  if (!isValidRunForKPS({ distance: normalized.distance, duration: normalized.duration })) {
+  if (!isMeaningfulRunForKPS({ distance: normalized.distance, duration: normalized.duration })) {
     return null
   }
   const kps = calculateKPS(
@@ -170,6 +170,7 @@ export function convertGarminToRunRecord(
     heartRate: normalized.heartRate,
     notes: normalized.notes,
     source: GARMIN_SOURCE,
+    weightKg: userProfile.weightKg,
   }
 }
 

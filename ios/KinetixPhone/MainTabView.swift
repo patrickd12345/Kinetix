@@ -1,9 +1,13 @@
 import SwiftUI
+import SwiftData
 
 struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var connectivity = ConnectivityManager.shared
     @State private var selectedTab: Int = 0
+    @AppStorage("weightSource") private var weightSource: String = "profile"
+    @AppStorage("lastWithingsWeightKg") private var lastWithingsWeightKg: Double = 0
+    @AppStorage("withingsLastStartupSyncAt") private var withingsLastStartupSyncAt: Double = 0
     
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -50,6 +54,10 @@ struct MainTabView: View {
                 print("📱 Found active run on appear, switching to Dashboard")
                 selectedTab = 1
             }
+
+            Task {
+                await syncWithingsWeightsOnStartupIfNeeded()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             // Check for run state when app comes to foreground
@@ -69,6 +77,42 @@ struct MainTabView: View {
                 }
             }
         }
+    }
+
+    @MainActor
+    private func syncWithingsWeightsOnStartupIfNeeded() async {
+        guard weightSource == "withings" else { return }
+        let now = Date().timeIntervalSince1970
+        let minInterval: TimeInterval = 4 * 60 * 60
+        guard now - withingsLastStartupSyncAt >= minInterval else { return }
+        guard CloudTokenStorage.shared.hasTokens(provider: "withings") else { return }
+
+        withingsLastStartupSyncAt = now
+
+        do {
+            let result = try await WithingsService.shared.syncRecentWeights(modelContext: modelContext, daysBack: 30)
+            if let latestKg = result.latestKg {
+                lastWithingsWeightKg = latestKg
+                try applyWithingsWeightToProfile(latestKg)
+            }
+            if result.imported > 0 {
+                print("📱 Withings startup sync imported \(result.imported) weight entr\(result.imported == 1 ? "y" : "ies").")
+            }
+        } catch {
+            print("⚠️ Withings startup sync failed: \(error.localizedDescription)")
+        }
+    }
+
+    @MainActor
+    private func applyWithingsWeightToProfile(_ kg: Double) throws {
+        guard kg > 0 else { return }
+        let descriptor = FetchDescriptor<RunnerProfile>()
+        if let profile = try modelContext.fetch(descriptor).first {
+            profile.weightKg = kg
+        } else {
+            modelContext.insert(RunnerProfile(weightKg: kg))
+        }
+        try modelContext.save()
     }
 }
 

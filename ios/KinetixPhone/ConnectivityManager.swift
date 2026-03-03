@@ -423,8 +423,8 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                 )
                 
                 if !RunMetricsCalculator.isValidNPI(finalNPI) {
-                    print("⚠️ iPhone: Received run with invalid NPI, recalculated value also invalid. Skipping save.")
-                    DiagnosticLogManager.shared.log("Received run with invalid NPI from Watch", category: "sync")
+                    print("⚠️ iPhone: Received run with invalid KPS, recalculated value also invalid. Skipping save.")
+                    DiagnosticLogManager.shared.log("Received run with invalid KPS from Watch", category: "sync")
                     return
                 }
             } else {
@@ -454,7 +454,7 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                     formSessionId: payload.formSessionId
                 )
                 modelContext.insert(run)
-                print("📱 iPhone: Received and saved run from Watch: \(String(format: "%.2f", payload.distance / 1000)) km, NPI: \(Int(finalNPI))")
+                print("📱 iPhone: Received and saved run from Watch: \(String(format: "%.2f", payload.distance / 1000)) km, KPS: \(Int(finalNPI))")
             }
         } catch {
             DiagnosticLogManager.shared.log("Failed to decode incoming run: \(error.localizedDescription)", category: "sync")

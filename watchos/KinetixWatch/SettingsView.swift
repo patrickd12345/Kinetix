@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage("globalHapticsEnabled") private var globalHapticsEnabled = true
     @AppStorage("globalSonicFeedbackEnabled") private var globalSonicFeedbackEnabled = true
     @AppStorage("skipHomeScreen") private var skipHomeScreen = false
+    @AppStorage("weightUnit") private var weightUnit = "lbs"
     
     var body: some View {
         List {
@@ -32,7 +33,7 @@ struct SettingsView: View {
             }
             Section(header: Text("GOALS")) {
                 VStack(spacing: 8) {
-                    Text("TARGET NPI").font(.system(size: 12, weight: .bold)).foregroundColor(.gray)
+                    Text("TARGET KPS").font(.system(size: 12, weight: .bold)).foregroundColor(.gray)
                     
                     // Fine Adjustment (+/- 1)
                     HStack {
@@ -117,6 +118,10 @@ struct SettingsView: View {
                 Picker("Units", selection: $unitSystem) { 
                     Text("Metric").tag("metric")
                     Text("Imperial").tag("imperial") 
+                }
+                Picker("Weight", selection: $weightUnit) {
+                    Text("kg").tag("kg")
+                    Text("lbs").tag("lbs")
                 }
                 
                 Toggle("Skip Home on Launch", isOn: $skipHomeScreen)

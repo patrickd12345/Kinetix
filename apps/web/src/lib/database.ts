@@ -23,6 +23,8 @@ export interface RunRecord {
   source?: string
   /** 0 = visible, 1 = hidden (logical delete). Omit/undefined treated as 0. */
   deleted?: 0 | 1
+  /** Weight (kg) used for KPS when this run was saved. Avoids querying weight history on every display. */
+  weightKg?: number
 }
 
 /**
@@ -41,9 +43,17 @@ export interface PBRecord {
   profileSnapshot: UserProfile // Profile (age, weight) used when PB was set
 }
 
+/** One weight measurement (e.g. from Withings). dateUnix is unique per measurement. */
+export interface WeightEntry {
+  dateUnix: number
+  date: string // ISO
+  kg: number
+}
+
 class KinetixDatabase extends Dexie {
   runs!: Table<RunRecord>
   pb!: Table<PBRecord>
+  weightHistory!: Table<WeightEntry>
 
   constructor() {
     super('KinetixDB')
@@ -75,6 +85,11 @@ class KinetixDatabase extends Dexie {
         const d = run.date ?? ''
         if (d.startsWith('2025-10-18') || d.startsWith('2026-10-18')) run.deleted = 1
       })
+    })
+    this.version(6).stores({
+      runs: '++id, date, kps, distance, source, external_id, deleted',
+      pb: '++id, runId, achievedAt',
+      weightHistory: 'dateUnix, date',
     })
   }
 }
@@ -150,4 +165,97 @@ export async function hideRun(runId: number): Promise<void> {
   if (isPB) {
     await db.pb.clear()
   }
+}
+
+/**
+ * Import weight entries (e.g. from Withings history JSON). Uses put so duplicates by dateUnix are overwritten.
+ * Returns count of entries written and the latest kg (newest entry).
+ */
+export async function bulkPutWeightEntries(entries: WeightEntry[]): Promise<{ count: number; latestKg: number | null }> {
+  if (entries.length === 0) return { count: 0, latestKg: null }
+  await db.weightHistory.bulkPut(entries)
+  const sorted = [...entries].sort((a, b) => b.dateUnix - a.dateUnix)
+  const latest = sorted[0]
+  return { count: entries.length, latestKg: latest?.kg ?? null }
+}
+
+/**
+ * Get weight history count (for display).
+ */
+export async function getWeightHistoryCount(): Promise<number> {
+  return db.weightHistory.count()
+}
+
+/**
+ * Get one page of weight history, newest first. For paginated list.
+ */
+export async function getWeightHistoryPage(
+  page: number,
+  pageSize: number
+): Promise<{ items: WeightEntry[]; total: number }> {
+  const total = await db.weightHistory.count()
+  const offset = Math.max(0, (page - 1) * pageSize)
+  const items = await db.weightHistory
+    .orderBy('dateUnix')
+    .reverse()
+    .offset(offset)
+    .limit(pageSize)
+    .toArray()
+  return { items, total }
+}
+
+/**
+ * Get weight entries in date range, ascending by date (for charts or list).
+ */
+export async function getWeightHistoryInRange(
+  startDate: string,
+  endDate: string,
+  limit: number
+): Promise<WeightEntry[]> {
+  const raw = await db.weightHistory
+    .where('date')
+    .between(startDate, endDate, true, true)
+    .limit(limit)
+    .toArray()
+  return raw.sort((a, b) => a.dateUnix - b.dateUnix)
+}
+
+/**
+ * Get the weight (kg) that was in effect on or before a given date.
+ * Used for KPS: each run should use the user's weight at the time of the run, not today's weight.
+ * Returns null if no weight history entry exists on or before that date (caller uses current profile weight).
+ */
+export async function getWeightAtDate(runDate: string): Promise<number | null> {
+  const entries = await db.weightHistory
+    .where('date')
+    .between('1970-01-01', runDate, true, true)
+    .toArray()
+  if (entries.length === 0) return null
+  const latest = entries.reduce((a, b) => (a.date > b.date ? a : b))
+  return latest.kg
+}
+
+/**
+ * Backfill weightKg on runs that don't have it, using weight history. Run once after importing
+ * weight history or for legacy runs. Call from the app (Settings); requires IndexedDB.
+ */
+export async function backfillRunWeights(): Promise<{ updated: number; skipped: number }> {
+  const runs = await db.runs.toArray()
+  let updated = 0
+  let skipped = 0
+  for (const run of runs) {
+    if (run.weightKg != null && run.weightKg > 0) {
+      skipped += 1
+      continue
+    }
+    if (!run.id) continue
+    const weight = await getWeightAtDate(run.date)
+    if (weight != null && weight > 0) {
+      await db.runs.update(run.id, { weightKg: weight })
+      updated += 1
+    } else {
+      skipped += 1
+    }
+  }
+  return { updated, skipped }
 }

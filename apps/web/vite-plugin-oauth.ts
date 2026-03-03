@@ -69,8 +69,9 @@ const WITHINGS_API = 'https://wbsapi.withings.net'
 const WITHINGS_RETRY_STATUSES = [502, 503, 504]
 const WITHINGS_RETRY_DELAYS_MS = [1000, 2000, 4000]
 
+/** Withings expects signature as hex (see developer.withings.com sign-your-requests). */
 function withingsHmac(key: string, message: string): string {
-  return crypto.createHmac('sha256', key).update(message, 'utf8').digest('base64')
+  return crypto.createHmac('sha256', key).update(message, 'utf8').digest('hex')
 }
 
 async function withingsGetNonce(clientId: string, clientSecret: string): Promise<string> {

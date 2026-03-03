@@ -1,5 +1,6 @@
 import { db, RunRecord, PBRecord, RUN_VISIBLE } from './database'
 import { UserProfile, calculateKPS } from '@kinetix/core'
+import { getProfileForRun } from './authState'
 
 /**
  * KPS UTILITIES - ARCHITECTURAL INVARIANTS
@@ -22,6 +23,10 @@ import { UserProfile, calculateKPS } from '@kinetix/core'
  *    - PB stores the profile snapshot used when it was set
  *    - Historical PBs are not rewritten when profile changes
  *
+ * 5. WEIGHT-AT-RUN-DATE RULE
+ *    - KPS for a run MUST use the user's weight at the time of that run (from weight history).
+ *    - Callers use getProfileForRunDate(run.date) so historical runs are not distorted by today's weight.
+ *
  * 4. FORBIDDEN BEHAVIOR
  *    - Any function that "finds" a baseline by scanning runs
  *    - Any logic that reorders PB based on recalculated KPS
@@ -34,6 +39,10 @@ import { UserProfile, calculateKPS } from '@kinetix/core'
  * - Seeding is idempotent and only runs once
  */
 
+/** Minimum distance (m) and duration (s) for a run to be treated as meaningful for KPS. Filters GPS glitches / accidental recordings. */
+export const MIN_RUN_DISTANCE_M = 200
+export const MIN_RUN_DURATION_S = 60
+
 /**
  * Validate that a run has valid data for KPS calculation
  */
@@ -45,6 +54,17 @@ export function isValidRunForKPS(run: { distance: number; duration: number }): b
     !isNaN(run.duration) &&
     isFinite(run.distance) &&
     isFinite(run.duration)
+  )
+}
+
+/**
+ * True if the run is long enough to produce a meaningful KPS (avoids huge chart spikes from 0.01 km / 3s junk).
+ */
+export function isMeaningfulRunForKPS(run: { distance: number; duration: number }): boolean {
+  return (
+    isValidRunForKPS(run) &&
+    run.distance >= MIN_RUN_DISTANCE_M &&
+    run.duration >= MIN_RUN_DURATION_S
   )
 }
 
@@ -77,13 +97,9 @@ const OUTLIER_KPS_RATIO = 1.25
 
 /**
  * From a list of runs (e.g. newly imported), return those whose absolute KPS is above 125% of the
- * current PB. Used to flag possible outliers so the user can confirm logical deletion.
- * Returns [] if there is no PB or no run has an id.
+ * current PB. Uses weight at run date for each run's KPS. Returns [] if no PB or no run has an id.
  */
-export async function findOutlierRuns(
-  runs: RunRecord[],
-  profile: UserProfile
-): Promise<RunRecord[]> {
+export async function findOutlierRuns(runs: RunRecord[]): Promise<RunRecord[]> {
   const pb = await getPB()
   if (!pb) return []
   const pbRun = await db.runs.get(pb.runId)
@@ -91,11 +107,14 @@ export async function findOutlierRuns(
   const pbAbsoluteKPS = calculateAbsoluteKPS(pbRun, pb.profileSnapshot)
   if (!isValidKPS(pbAbsoluteKPS)) return []
   const threshold = pbAbsoluteKPS * OUTLIER_KPS_RATIO
-  return runs.filter((r) => {
-    if (!r.id) return false
-    const kps = calculateAbsoluteKPS(r, profile)
-    return isValidKPS(kps) && kps > threshold
-  })
+  const result: RunRecord[] = []
+  for (const r of runs) {
+    if (!r.id) continue
+    const profileForRun = await getProfileForRun(r)
+    const kps = calculateAbsoluteKPS(r, profileForRun)
+    if (isValidKPS(kps) && kps > threshold) result.push(r)
+  }
+  return result
 }
 
 /**

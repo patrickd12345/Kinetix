@@ -21,6 +21,9 @@ Thumbs.db
 npm-debug.log*
 pnpm-debug.log*
 
+# Large data files (do not commit)
+garmin.zip
+
 # IDE (optional)
 .idea/
 *.xcuserstate

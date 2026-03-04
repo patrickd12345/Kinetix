@@ -1,7 +1,7 @@
 {
   "version": 2,
   "name": "kinetix",
-  "buildCommand": "npx pnpm@8 --filter @kinetix/core build && npx pnpm@8 --filter @kinetix/web build && cp -r apps/web/api api",
+  "buildCommand": "npx pnpm@8 --filter @kinetix/core build && npx pnpm@8 --filter @kinetix/web build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "npx pnpm@8 install",
   "framework": "vite",

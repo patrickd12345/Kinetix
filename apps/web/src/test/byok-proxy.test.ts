@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import chatHandler from '../../api/ai-chat'
+import chatHandler from '@api/ai-chat'
 
 const executeChatMock = vi.hoisted(() =>
   vi.fn(async () => ({ text: 'ok' }))
 )
 
-vi.mock('../../api/_lib/ai/llmClient', () => ({
+vi.mock('@api/_lib/ai/llmClient', () => ({
   getLLMClient: () => ({
     provider: 'ollama',
     model: 'test',

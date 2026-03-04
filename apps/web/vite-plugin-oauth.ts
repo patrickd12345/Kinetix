@@ -1,8 +1,8 @@
 import type { Plugin } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { loadEnv } from 'vite'
-import { getByokDecision, mustReject, readByokHeader } from './api/_lib/ai/byok'
-import { getLLMClient } from './api/_lib/ai/llmClient'
+import { getByokDecision, mustReject, readByokHeader } from '../../api/_lib/ai/byok'
+import { getLLMClient } from '../../api/_lib/ai/llmClient'
 
 async function handleAiChat(
   body: { systemInstruction?: string; contents?: unknown[] },

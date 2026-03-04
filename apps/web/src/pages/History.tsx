@@ -3,7 +3,7 @@ import { db, RunRecord, getRunsPage, getRunsPageForDate, getRunsInDateRange, RUN
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAICoach } from '../hooks/useAICoach'
-import { getPB, isValidKPS, calculateAbsoluteKPS, seedInitialPB, calculateRelativeKPSSync, isMeaningfulRunForKPS } from '../lib/kpsUtils'
+import { getPB, isValidKPS, calculateAbsoluteKPS, ensurePBInitialized, calculateRelativeKPSSync, isMeaningfulRunForKPS } from '../lib/kpsUtils'
 import { getProfileForRun } from '../lib/authState'
 import { KPSTrendChart } from '../components/KPSTrendChart'
 import { RunDetails } from '../components/RunDetails'
@@ -57,7 +57,7 @@ export default function History() {
     if (!userProfile) return
     try {
       setLoading(true)
-      await seedInitialPB(userProfile)
+      await ensurePBInitialized(userProfile)
       const { items, total } = await getRunsPage(page, pageSize)
       setRuns(items)
       setTotalRuns(total)
@@ -233,7 +233,7 @@ export default function History() {
   const handleAnalyzeRun = async (run: RunRecord) => {
     const distanceKm = run.distance / 1000
     const paceString = formatPace(run.averagePace, unitSystem)
-    const relativeKPS = run.id ? (relativeKPSMap.get(run.id) ?? run.kps) : run.kps
+    const relativeKPS = run.id ? (relativeKPSMap.get(run.id) ?? 0) : 0
     await analyzeRun(
       distanceKm,
       paceString,
@@ -423,7 +423,7 @@ export default function History() {
                 {/* Virtualized Run List */}
                 <div className="space-y-3 lg:max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500 scrollbar-track-gray-800">
               {runs.map((run) => {
-                const relativeKPS = run.id ? (relativeKPSMap.get(run.id) ?? run.kps) : run.kps
+                const relativeKPS = run.id ? (relativeKPSMap.get(run.id) ?? 0) : 0
                 const isExpanded = run.id ? expandedRuns.has(run.id) : false
                 const dateKey = run.date.split('T')[0]
                 

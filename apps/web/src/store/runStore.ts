@@ -90,17 +90,11 @@ export const useRunStore = create<RunState>((set, get) => ({
     // Save run to database if there's data
     if (state.distance > 0 && state.duration > 0) {
       const userProfile = getActiveKinetixUserProfile()
-      const absoluteKPS = calculateKPS(
-        { distanceKm: state.distance / 1000, timeSeconds: state.duration },
-        userProfile
-      )
-
       const runRecord: RunRecord = {
         date: new Date().toISOString(),
         distance: state.distance,
         duration: state.duration,
         averagePace: state.averagePace,
-        kps: absoluteKPS,
         targetKPS: settings.targetKPS,
         locations: state.locations,
         splits: state.splits,

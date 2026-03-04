@@ -90,6 +90,22 @@
 - **With Ollama**: Full AI analysis
 - **Without Ollama**: Rule-based analysis (still works!)
 
+## KPS (Kinetix Performance Score) - Non-Negotiable Invariants
+
+**1. KPS is ALWAYS age-weight graded.** This is the essence of KPS and is non-negotiable for all future development.
+
+- Every KPS display, comparison, chart, or ranking MUST use `calculateAbsoluteKPS(run, profile)` with a profile that includes age and weight.
+- Use `getProfileForRun(run)` or `getProfileForRunDate(run.date)` to obtain the correct profile (weight at run date).
+- Stored `run.kps` is a cache only; it MUST NOT be used for display or comparison.
+
+**2. The all-time PB has KPS = 100. Any other run's KPS is a ratio of that one.**
+
+- The PB run ALWAYS displays KPS = 100, by definition.
+- Other runs: displayed KPS = (run_absolute / pb_absolute) * 100.
+- Use `calculateRelativeKPS` / `calculateRelativeKPSSync` for display; never raw absolute KPS for user-facing KPS.
+
+See `KPS_CONTRACT.md`, `apps/web/src/lib/kpsUtils.ts`, and `packages/core/src/kps/calculator.ts` for the full invariant documentation.
+
 ## Summary
 
 You have **3 platforms**:

@@ -7,15 +7,24 @@ import { getProfileForRun } from './authState'
  *
  * NON-NEGOTIABLE RULES:
  *
+ * 0. AGE-WEIGHT-GRADED (FOUNDATIONAL - NEVER DEVIATE)
+ *    - KPS is ALWAYS age-weight graded. This is the essence of KPS.
+ *    - Every KPS display, comparison, chart, or ranking MUST use calculateAbsoluteKPS(run, profile)
+ *    - Profile MUST include age and weight (via getProfileForRun / getProfileForRunDate).
+ *    - KPS is DERIVED at runtime and MUST NOT be persisted as authoritative run data.
+ *    - Any legacy run.kps field is non-authoritative and MUST NOT be used for display/comparison.
+ *    - No exception. No negotiation. Non-negotiable for all future development.
+ *
  * 1. PB IS A FACT, NOT A CALCULATION
  *    - PB is stored explicitly (runId + profile snapshot)
  *    - PB is NEVER rediscovered by scanning runs
  *    - PB only changes when a strictly better run occurs
  *
- * 2. BASELINE RULE
- *    - The PB run ALWAYS displays KPS = 100
- *    - This is by definition, not by calculation
+ * 2. PB = 100, ALL OTHERS ARE RATIOS (NON-NEGOTIABLE)
+ *    - The all-time PB run ALWAYS has KPS = 100. By definition.
+ *    - Any other run's displayed KPS is a RATIO of that PB: (run_absolute / pb_absolute) * 100
  *    - No heuristic, scan, or comparison may override this
+ *    - Use calculateRelativeKPS / calculateRelativeKPSSync for display; never raw absolute KPS
  *
  * 3. KPS STORAGE RULE
  *    - Runs store only raw facts: distance, duration, date
@@ -28,6 +37,8 @@ import { getProfileForRun } from './authState'
  *    - Callers use getProfileForRunDate(run.date) so historical runs are not distorted by today's weight.
  *
  * 4. FORBIDDEN BEHAVIOR
+ *    - Using run.kps for display, comparison, charts, or ranking (violates rule 0)
+ *    - Displaying raw absolute KPS to users instead of relative KPS (violates rule 2)
  *    - Any function that "finds" a baseline by scanning runs
  *    - Any logic that reorders PB based on recalculated KPS
  *    - Any date-based or ID-based hacks
@@ -153,6 +164,16 @@ export async function getPBRun(): Promise<RunRecord | null> {
 }
 
 /**
+ * Ensure PB exists before any user-facing relative KPS display.
+ * Uses historical seeding first, then legacy fallback selection when needed.
+ */
+export async function ensurePBInitialized(currentProfile: UserProfile): Promise<void> {
+  const existing = await getPB()
+  if (existing) return
+  await initializePBFromExistingRuns(currentProfile)
+}
+
+/**
  * Calculate relative KPS for a run
  *
  * INVARIANT: PB run ALWAYS returns 100, by definition
@@ -180,14 +201,14 @@ export async function calculateRelativeKPS(
   // Get PB record
   const pb = await getPB()
   if (!pb) {
-    // No PB set yet - return absolute KPS
-    return runAbsoluteKPS
+    // Strict invariant mode: no PB means no valid relative KPS scale.
+    return 0
   }
 
   // Get PB run (ignore if logically deleted)
   const pbRun = await db.runs.get(pb.runId)
   if (!pbRun || (pbRun.deleted ?? 0) !== RUN_VISIBLE) {
-    return runAbsoluteKPS
+    return 0
   }
 
   // INVARIANT: PB run always returns 100, by definition
@@ -199,15 +220,14 @@ export async function calculateRelativeKPS(
   const pbAbsoluteKPS = calculateAbsoluteKPS(pbRun, pb.profileSnapshot)
 
   if (!isValidKPS(pbAbsoluteKPS)) {
-    // Invalid PB KPS - return absolute KPS as fallback
-    return runAbsoluteKPS
+    return 0
   }
 
   // Calculate relative KPS
   const relativeKPS = (runAbsoluteKPS / pbAbsoluteKPS) * 100
 
   if (isNaN(relativeKPS) || !isFinite(relativeKPS)) {
-    return runAbsoluteKPS // Fallback to absolute
+    return 0
   }
 
   return relativeKPS
@@ -225,12 +245,12 @@ export function calculateRelativeKPSSync(
 ): number {
   const runAbsoluteKPS = calculateAbsoluteKPS(run, currentProfile)
   if (!isValidKPS(runAbsoluteKPS)) return 0
-  if (!pb || !pbRun) return runAbsoluteKPS
+  if (!pb || !pbRun) return 0
   if (run.id && pb.runId && run.id === pb.runId) return 100
   const pbAbsoluteKPS = calculateAbsoluteKPS(pbRun, pb.profileSnapshot)
-  if (!isValidKPS(pbAbsoluteKPS)) return runAbsoluteKPS
+  if (!isValidKPS(pbAbsoluteKPS)) return 0
   const relativeKPS = (runAbsoluteKPS / pbAbsoluteKPS) * 100
-  if (isNaN(relativeKPS) || !isFinite(relativeKPS)) return runAbsoluteKPS
+  if (isNaN(relativeKPS) || !isFinite(relativeKPS)) return 0
   return relativeKPS
 }
 

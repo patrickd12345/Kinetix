@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   CartesianGrid,
   Dot,
@@ -8,15 +8,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import type { RunRecord } from '../lib/database'
 import { KPS_SHORT } from '../lib/branding'
-import {
-  buildMaxKPSPaceDurationPoints,
-  type MaxKPSPaceDurationPoint,
-} from '../lib/maxKpsPaceChart'
+import type { MaxKPSPaceDurationPoint } from '../lib/maxKpsPaceChart'
 
 interface MaxKPSPaceDurationChartProps {
-  runs: RunRecord[]
+  points: MaxKPSPaceDurationPoint[]
   unitSystem: 'metric' | 'imperial'
 }
 
@@ -38,13 +34,9 @@ function formatPaceTick(paceSeconds: number): string {
 }
 
 export default function MaxKPSPaceDurationChart({
-  runs,
+  points,
   unitSystem,
 }: MaxKPSPaceDurationChartProps) {
-  const points = useMemo(
-    () => buildMaxKPSPaceDurationPoints(runs, unitSystem),
-    [runs, unitSystem]
-  )
 
   const [selectedPoint, setSelectedPoint] = useState<MaxKPSPaceDurationPoint | null>(null)
   const [selectedTooltipPosition, setSelectedTooltipPosition] = useState<{
@@ -81,10 +73,19 @@ export default function MaxKPSPaceDurationChart({
     )
   }
 
-  const chartMinPace = Math.min(...points.map((point) => point.paceSeconds))
-  const chartMaxPace = Math.max(...points.map((point) => point.paceSeconds))
-  const pacePadding = Math.max(20, (chartMaxPace - chartMinPace) * 0.2)
-  const yDomain: [number, number] = [chartMinPace - pacePadding, chartMaxPace + pacePadding]
+  // Reasonable pace bounds (2:00–15:00 min/km or 3:13–24:08 min/mi) to avoid absurd Y-axis labels from bad data
+  const PACE_MIN = unitSystem === 'metric' ? 120 : 193
+  const PACE_MAX = unitSystem === 'metric' ? 900 : 1450
+
+  const rawMin = Math.min(...points.map((point) => point.paceSeconds))
+  const rawMax = Math.max(...points.map((point) => point.paceSeconds))
+  const chartMinPace = Math.max(PACE_MIN, Math.min(rawMin, PACE_MAX))
+  const chartMaxPace = Math.min(PACE_MAX, Math.max(rawMax, PACE_MIN))
+  const pacePadding = Math.max(20, Math.max(60, chartMaxPace - chartMinPace) * 0.2)
+  const yDomain: [number, number] = [
+    Math.max(PACE_MIN, chartMinPace - pacePadding),
+    Math.min(PACE_MAX, chartMaxPace + pacePadding),
+  ]
 
   const ClickableDot = ({
     cx,

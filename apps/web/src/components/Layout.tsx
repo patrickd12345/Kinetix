@@ -120,7 +120,7 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/', icon: Activity, label: 'Run' },
     { path: '/history', icon: History, label: 'History' },
     { path: '/weight-history', icon: Scale, label: 'Weight' },
-    { path: '/menu', icon: BarChart3, label: 'Menu' },
+    { path: '/menu', icon: BarChart3, label: 'Charts' },
     { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ]

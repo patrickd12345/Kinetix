@@ -22,6 +22,7 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
   - Converts directly into predicted finish times for **any** race distance (from a mile to an ultramarathon)
   - Generates infinite "beat yourself" scenarios by recalculating projected finish times every few seconds based on live Kinetix Performance Score
   - Translates the score into target paces/splits so you always know how fast you need to run to stay on goal
+  - Contract and invariants: see `KPS_CONTRACT.md` (non-negotiable behavior for age/weight grading and PB-relative display)
 - **Comprehensive Biomechanics Tracking**:
   - Cadence (Steps per minute)
   - Vertical Oscillation (Bounce)

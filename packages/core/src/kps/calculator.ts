@@ -13,11 +13,14 @@ export interface RunData {
 }
 
 /**
- * Calculate KPS (Kinetix Performance Score) using Riegel formula with age and weight normalization
- * Allows comparison across distances, ages, and weight variations
+ * Calculate KPS (Kinetix Performance Score) using Riegel formula with age and weight normalization.
+ *
+ * INVARIANT (NON-NEGOTIABLE): KPS is ALWAYS age-weight graded. Every caller MUST pass a UserProfile
+ * with age and weight. There are no exceptions. Stored/cached KPS values must not be used for
+ * display or comparison without recalculation using the appropriate profile for that run's date.
  *
  * @param runData - The run data (distance and time)
- * @param userProfile - User profile with age and weight for normalization
+ * @param userProfile - User profile with age and weight for normalization (REQUIRED)
  * @param referenceDistanceKm - Standard reference distance (default: 10K)
  * @returns Kinetix Performance Score
  */

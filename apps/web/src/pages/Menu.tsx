@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BarChart3 } from 'lucide-react'
 import MaxKPSPaceDurationChart from '../components/MaxKPSPaceDurationChart'
-import { db, RUN_VISIBLE, type RunRecord } from '../lib/database'
+import { db, RUN_VISIBLE } from '../lib/database'
 import { useSettingsStore } from '../store/settingsStore'
+import { buildMaxKPSPaceDurationPoints } from '../lib/maxKpsPaceChart'
+import type { MaxKPSPaceDurationPoint } from '../lib/maxKpsPaceChart'
+import { getProfileForRun } from '../lib/authState'
+import { useAuth } from '../components/providers/useAuth'
+import { toKinetixUserProfile } from '../lib/kinetixProfile'
+import { ensurePBInitialized } from '../lib/kpsUtils'
 
 function MenuSkeleton() {
   return (
@@ -16,31 +22,39 @@ function MenuSkeleton() {
 }
 
 export default function Menu() {
-  const [runs, setRuns] = useState<RunRecord[]>([])
+  const [points, setPoints] = useState<MaxKPSPaceDurationPoint[]>([])
   const [loading, setLoading] = useState(true)
   const unitSystem = useSettingsStore((s) => s.unitSystem)
+  const { profile } = useAuth()
+  const userProfile = profile ? toKinetixUserProfile(profile) : null
 
   const loadRuns = useCallback(async () => {
     if (typeof indexedDB === 'undefined') {
-      setRuns([])
+      setPoints([])
       setLoading(false)
       return
     }
     setLoading(true)
     try {
+      if (!userProfile) {
+        setPoints([])
+        return
+      }
+      await ensurePBInitialized(userProfile)
       const allRuns = await db.runs
         .orderBy('date')
         .reverse()
         .filter((run) => (run.deleted ?? 0) === RUN_VISIBLE)
         .toArray()
-      setRuns(allRuns)
+      const pts = await buildMaxKPSPaceDurationPoints(allRuns, unitSystem, getProfileForRun)
+      setPoints(pts)
     } catch (error) {
       console.error('Error loading menu charts data:', error)
-      setRuns([])
+      setPoints([])
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [unitSystem, userProfile])
 
   useEffect(() => {
     void loadRuns()
@@ -67,7 +81,7 @@ export default function Menu() {
         <div className="mb-4">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <BarChart3 size={26} className="text-violet-400" />
-            Menu
+            Charts
           </h1>
           <p className="text-sm text-gray-400 mt-1">
             Informative performance charts powered by your run history.
@@ -77,7 +91,7 @@ export default function Menu() {
         {loading ? (
           <MenuSkeleton />
         ) : (
-          <MaxKPSPaceDurationChart runs={runs} unitSystem={unitSystem} />
+          <MaxKPSPaceDurationChart points={points} unitSystem={unitSystem} />
         )}
       </div>
     </div>

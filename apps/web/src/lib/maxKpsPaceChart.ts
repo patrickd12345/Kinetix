@@ -1,5 +1,12 @@
 import { formatPace, formatTime } from '@kinetix/core'
 import { type RunRecord } from './database'
+import {
+  calculateRelativeKPSSync,
+  getPB,
+  getPBRun,
+  isValidKPS,
+} from './kpsUtils'
+import type { UserProfile } from '@kinetix/core'
 
 const SEC_PER_KM_TO_SEC_PER_MI = 1.60934
 const M_TO_KM = 1000
@@ -25,14 +32,17 @@ export interface MaxKPSPaceDurationPoint {
   distanceUnitLabel: 'km' | 'mi'
 }
 
-function isValidPerformanceRun(run: RunRecord): boolean {
+// Reasonable pace: 2:00–15:00 min/km (120–900 s/km). Filters out bad data (e.g. pace stored as duration).
+const PACE_SEC_PER_KM_MIN = 120
+const PACE_SEC_PER_KM_MAX = 900
+
+function isValidPerformanceRunRaw(run: RunRecord): boolean {
   return (
-    Number.isFinite(run.kps) &&
-    run.kps > 0 &&
     Number.isFinite(run.duration) &&
     run.duration > 0 &&
     Number.isFinite(run.averagePace) &&
-    run.averagePace > 0 &&
+    run.averagePace >= PACE_SEC_PER_KM_MIN &&
+    run.averagePace <= PACE_SEC_PER_KM_MAX &&
     Number.isFinite(run.distance) &&
     run.distance > 0
   )
@@ -65,68 +75,99 @@ function toDistanceDisplay(
   return { value: (distanceMeters / M_TO_KM) * KM_TO_MI, unit: 'mi' }
 }
 
+type GetProfileForRun = (run: RunRecord) => Promise<UserProfile>
+
+function toChartPoint(
+  run: RunRecord,
+  kps: number,
+  bucketStart: number,
+  bucketSeconds: number,
+  unitSystem: 'metric' | 'imperial'
+): MaxKPSPaceDurationPoint {
+  const date = new Date(run.date)
+  const distance = toDistanceDisplay(run.distance, unitSystem)
+  return {
+    runId: run.id,
+    bucketStartSeconds: bucketStart,
+    bucketEndSeconds: bucketStart + bucketSeconds,
+    bucketLabel: `${formatTime(bucketStart)} - ${formatTime(bucketStart + bucketSeconds)}`,
+    durationSeconds: run.duration,
+    durationMinutes: run.duration / 60,
+    durationLabel: formatTime(run.duration),
+    paceSeconds: toPaceSecondsForUnit(run.averagePace, unitSystem),
+    paceLabel: formatAxisPaceLabel(run.averagePace, unitSystem),
+    kps,
+    date: run.date,
+    dateFormatted: date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }),
+    distanceMeters: run.distance,
+    distanceDisplay: distance.value,
+    distanceUnitLabel: distance.unit,
+  }
+}
+
 /**
  * Builds chart points where each duration bucket contributes only its max-KPS run.
+ * KPS is ALWAYS age-weight graded (invariant 0) and RELATIVE to PB (invariant 2: PB = 100).
+ * Pass getProfileForRun for production use.
+ *
+ * @param getProfileForRun - When provided, uses age-weight graded relative KPS. Required for display.
+ * @param bucketSeconds - Optional. Default 300 (5 min).
  */
-export function buildMaxKPSPaceDurationPoints(
+export async function buildMaxKPSPaceDurationPoints(
   runs: RunRecord[],
   unitSystem: 'metric' | 'imperial',
+  getProfileForRun: GetProfileForRun,
   bucketSeconds = MAX_KPS_DURATION_BUCKET_SECONDS
-): MaxKPSPaceDurationPoint[] {
+): Promise<MaxKPSPaceDurationPoint[]> {
+  if (!getProfileForRun) {
+    throw new Error('buildMaxKPSPaceDurationPoints requires getProfileForRun (age-weight invariant).')
+  }
   if (bucketSeconds <= 0 || runs.length === 0) return []
 
-  const bestByBucket = new Map<number, RunRecord>()
+  return await buildMaxKPSPaceDurationPointsAsync(runs, unitSystem, bucketSeconds, getProfileForRun)
+}
+
+async function buildMaxKPSPaceDurationPointsAsync(
+  runs: RunRecord[],
+  unitSystem: 'metric' | 'imperial',
+  bucketSeconds: number,
+  getProfileForRun: GetProfileForRun
+): Promise<MaxKPSPaceDurationPoint[]> {
+  const pb = await getPB()
+  const pbRun = await getPBRun()
+
+  const bestByBucket = new Map<number, { run: RunRecord; relativeKPS: number }>()
 
   for (const run of runs) {
-    if (!isValidPerformanceRun(run)) continue
+    if (!isValidPerformanceRunRaw(run)) continue
+
+    const profile = await getProfileForRun(run)
+    const relativeKPS = calculateRelativeKPSSync(run, profile, pb, pbRun)
+    if (!isValidKPS(relativeKPS)) continue
 
     const bucketStart = Math.floor(run.duration / bucketSeconds) * bucketSeconds
-    const currentBest = bestByBucket.get(bucketStart)
+    const current = bestByBucket.get(bucketStart)
 
-    if (!currentBest) {
-      bestByBucket.set(bucketStart, run)
-      continue
-    }
-
-    // Keep the strongest run for each duration bucket.
-    // Tie-breakers prefer faster pace then newer date.
     const shouldReplace =
-      run.kps > currentBest.kps ||
-      (run.kps === currentBest.kps && run.averagePace < currentBest.averagePace) ||
-      (run.kps === currentBest.kps &&
-        run.averagePace === currentBest.averagePace &&
-        run.date > currentBest.date)
+      !current ||
+      relativeKPS > current.relativeKPS ||
+      (relativeKPS === current.relativeKPS && run.averagePace < current.run.averagePace) ||
+      (relativeKPS === current.relativeKPS &&
+        run.averagePace === current.run.averagePace &&
+        run.date > current.run.date)
 
     if (shouldReplace) {
-      bestByBucket.set(bucketStart, run)
+      bestByBucket.set(bucketStart, { run, relativeKPS })
     }
   }
 
   return [...bestByBucket.entries()]
     .sort(([a], [b]) => a - b)
-    .map(([bucketStart, run]) => {
-      const date = new Date(run.date)
-      const distance = toDistanceDisplay(run.distance, unitSystem)
-      return {
-        runId: run.id,
-        bucketStartSeconds: bucketStart,
-        bucketEndSeconds: bucketStart + bucketSeconds,
-        bucketLabel: `${formatTime(bucketStart)} - ${formatTime(bucketStart + bucketSeconds)}`,
-        durationSeconds: run.duration,
-        durationMinutes: run.duration / 60,
-        durationLabel: formatTime(run.duration),
-        paceSeconds: toPaceSecondsForUnit(run.averagePace, unitSystem),
-        paceLabel: formatAxisPaceLabel(run.averagePace, unitSystem),
-        kps: run.kps,
-        date: run.date,
-        dateFormatted: date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-        distanceMeters: run.distance,
-        distanceDisplay: distance.value,
-        distanceUnitLabel: distance.unit,
-      }
-    })
+    .map(([bucketStart, { run, relativeKPS }]) =>
+      toChartPoint(run, relativeKPS, bucketStart, bucketSeconds, unitSystem)
+    )
 }

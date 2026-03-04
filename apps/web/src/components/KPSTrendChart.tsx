@@ -58,7 +58,7 @@ export function KPSTrendChart({
     )
 
     return sortedRuns.map((run) => {
-      const raw = run.id ? (relativeKPSMap.get(run.id) ?? run.kps) : run.kps
+      const raw = run.id ? (relativeKPSMap.get(run.id) ?? 0) : 0
       const kps = Number.isFinite(raw) && typeof raw === 'number'
         ? Math.max(KPS_DOMAIN[0], Math.min(KPS_DOMAIN[1], raw))
         : 0

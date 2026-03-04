@@ -1,5 +1,5 @@
 import { db, RunRecord, RUN_VISIBLE } from './database'
-import { calculateKPS, UserProfile } from '@kinetix/core'
+import { UserProfile } from '@kinetix/core'
 import { isMeaningfulRunForKPS } from './kpsUtils'
 import { getProfileForRunDate } from './authState'
 import { useSettingsStore } from '../store/settingsStore'
@@ -190,28 +190,11 @@ export function convertStravaToRunRecord(
     return null
   }
 
-  const kps = calculateKPS(
-    { distanceKm: distanceMeters / 1000, timeSeconds: duration },
-    userProfile
-  )
-
-  if (kps <= 0 || isNaN(kps) || !isFinite(kps)) {
-    console.warn('Calculated invalid KPS for Strava activity:', {
-      id: activity.id,
-      name: activity.name,
-      distance: distanceMeters,
-      duration,
-      kps
-    })
-    return null
-  }
-
   return {
     date: activity.start_date,
     distance: distanceMeters,
     duration,
     averagePace: duration / (distanceMeters / 1000 || 1),
-    kps,
     targetKPS,
     locations: [],
     splits: [],

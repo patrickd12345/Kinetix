@@ -23,7 +23,6 @@ export interface GarminImportResult {
   stats: GarminImportStats
 }
 
-const DEFAULT_KPS = 100
 const DEFAULT_TARGET_KPS = 135
 
 /**
@@ -52,7 +51,7 @@ export async function importGarminFromZipFile(
     stats.filesScanned += 1
     try {
       const text = await entry.async('string')
-      const { runs, totalActivities } = parseSummarizedActivitiesJson(text, targetKPS, DEFAULT_KPS)
+      const { runs, totalActivities } = parseSummarizedActivitiesJson(text, targetKPS)
       stats.activitiesParsed += totalActivities
       stats.runningActivities += runs.length
       for (const run of runs) {

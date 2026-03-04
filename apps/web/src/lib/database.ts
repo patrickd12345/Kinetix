@@ -13,7 +13,8 @@ export interface RunRecord {
   distance: number // meters
   duration: number // seconds
   averagePace: number // seconds per km
-  kps: number // Kinetix Performance Score (absolute)
+  /** Legacy cached absolute KPS (deprecated). KPS is now derived dynamically and this field is not authoritative. */
+  kps?: number
   targetKPS: number
   locations: Array<{ lat: number; lon: number; timestamp: number }>
   splits: Array<{ distance: number; time: number; pace: number }>
@@ -90,6 +91,15 @@ class KinetixDatabase extends Dexie {
       runs: '++id, date, kps, distance, source, external_id, deleted',
       pb: '++id, runId, achievedAt',
       weightHistory: 'dateUnix, date',
+    })
+    this.version(7).stores({
+      runs: '++id, date, distance, source, external_id, deleted',
+      pb: '++id, runId, achievedAt',
+      weightHistory: 'dateUnix, date',
+    }).upgrade((tx) => {
+      return tx.table('runs').toCollection().modify((run: Record<string, unknown>) => {
+        if ('kps' in run) delete run.kps
+      })
     })
   }
 }

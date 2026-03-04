@@ -4,7 +4,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { formatTime, formatDistance, formatPace, timeToAchieveKPS, distanceToAchieveKPS } from '@kinetix/core'
 import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
-import { getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS } from '../lib/kpsUtils'
+import { ensurePBInitialized, getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS } from '../lib/kpsUtils'
 import { getRunsPage } from '../lib/database'
 import { getProfileForRun } from '../lib/authState'
 import { KPS_SHORT } from '../lib/branding'
@@ -46,15 +46,17 @@ export default function RunDashboard() {
       distance,
       duration,
       averagePace,
-      kps: liveKPS,
       targetKPS,
       locations: [],
       splits: [],
     }
-    getRelativeKPS(tempRun, userProfile).then(setRelativeKPS)
+    ensurePBInitialized(userProfile)
+      .then(() => getRelativeKPS(tempRun, userProfile))
+      .then(setRelativeKPS)
+      .catch(() => setRelativeKPS(0))
   }, [distance, duration, liveKPS, averagePace, targetKPS, userProfile])
 
-  const displayKPS = useMemo(() => relativeKPS || liveKPS, [relativeKPS, liveKPS])
+  const displayKPS = useMemo(() => relativeKPS, [relativeKPS])
 
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
   const [showAICoach, setShowAICoach] = useState(false)

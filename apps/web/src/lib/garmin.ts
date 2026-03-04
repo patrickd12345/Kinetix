@@ -18,7 +18,6 @@ export interface GarminNormalizedRun {
   distance: number
   duration: number
   averagePace: number
-  kps: number
   targetKPS: number
   locations: Array<{ lat: number; lon: number; timestamp: number }>
   splits: Array<{ distance: number; time: number; pace: number }>
@@ -73,8 +72,7 @@ function getString(value: unknown): string | undefined {
  */
 export function normalizeGarminActivity(
   raw: GarminActivityRaw,
-  targetKPS: number,
-  defaultKPS: number
+  targetKPS: number
 ): GarminNormalizedRun | null {
   const activityTypeVal = raw.activityType
   const typeStr =
@@ -131,7 +129,6 @@ export function normalizeGarminActivity(
     distance: distanceMeters,
     duration: durationSeconds,
     averagePace,
-    kps: defaultKPS,
     targetKPS,
     locations: [],
     splits: [],
@@ -163,7 +160,6 @@ export function convertGarminToRunRecord(
     distance: normalized.distance,
     duration: normalized.duration,
     averagePace: normalized.averagePace,
-    kps,
     targetKPS,
     locations: normalized.locations,
     splits: normalized.splits,
@@ -209,8 +205,7 @@ function toActivityArray(data: unknown): unknown[] {
  */
 export function parseSummarizedActivitiesJson(
   json: string,
-  targetKPS: number,
-  defaultKPS: number
+  targetKPS: number
 ): ParseSummarizedActivitiesResult {
   let data: unknown
   try {
@@ -225,7 +220,7 @@ export function parseSummarizedActivitiesJson(
   const runs: GarminNormalizedRun[] = []
   for (const item of arr) {
     if (item != null && typeof item === 'object') {
-      const run = normalizeGarminActivity(item as GarminActivityRaw, targetKPS, defaultKPS)
+      const run = normalizeGarminActivity(item as GarminActivityRaw, targetKPS)
       if (run) runs.push(run)
     }
   }

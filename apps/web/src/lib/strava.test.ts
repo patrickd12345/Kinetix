@@ -42,7 +42,7 @@ describe('convertStravaToRunRecord', () => {
     expect(run!.distance).toBe(5000)
     expect(run!.duration).toBe(1500)
     expect(run!.source).toBe('strava')
-    expect(run!.kps).toBeGreaterThan(0)
+    expect(run!.weightKg).toBe(mockUserProfile.weightKg)
   })
 
   it('uses start_date so today runs have today in date', () => {

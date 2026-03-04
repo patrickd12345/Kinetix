@@ -55,7 +55,7 @@ export function runRecordToRAGRun(run: RunRecord, userProfile: UserProfile): RAG
     distance: run.distance,
     duration: run.duration,
     avgPace: run.averagePace,
-    avgKPS: calculateAbsoluteKPS(run, userProfile) || run.kps,
+    avgKPS: calculateAbsoluteKPS(run, userProfile),
     avgHeartRate: run.heartRate ?? null,
     avgCadence: null,
     formScore: null,
@@ -165,12 +165,13 @@ export async function getCoachContext(
     } = { message }
     if (userProfile) body.userProfile = userProfile
     if (pbRun && pbRun.distance && pbRun.duration) {
+      const pbAvgKPS = userProfile ? calculateAbsoluteKPS(pbRun, userProfile) : undefined
       body.pbRun = {
         distance: pbRun.distance,
         duration: pbRun.duration,
         averagePace: pbRun.averagePace,
-        avgKPS: pbRun.kps,
-        kps: pbRun.kps,
+        avgKPS: pbAvgKPS,
+        kps: pbAvgKPS,
       }
     }
     const base = await getRAGBaseUrl()

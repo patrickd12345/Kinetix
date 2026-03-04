@@ -2,7 +2,7 @@
  * Strava sync tests: convertStravaToRunRecord and syncStravaRuns (mocked fetch).
  * Run with: pnpm test (from repo root or apps/web).
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import type { StravaActivity } from './strava'
 import { convertStravaToRunRecord, syncStravaRuns } from './strava'
 import type { UserProfile } from '@kinetix/core'

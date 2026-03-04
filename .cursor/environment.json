@@ -1,0 +1,7 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "install": "pnpm config set store-dir /home/ubuntu/.pnpm-store --global && pnpm install && pnpm --filter @kinetix/web test && pnpm --filter @kinetix/web build"
+}

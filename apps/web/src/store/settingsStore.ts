@@ -90,7 +90,8 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'kinetix-settings',
       partialize: (state) => {
-        const { settingsRehydrated: _, ...rest } = state
+        const { settingsRehydrated: _rehydrated, ...rest } = state
+        void _rehydrated
         return rest
       },
       merge: (persisted, current) => {

@@ -17,6 +17,7 @@
 | **Run History** | ✅ | ✅ | ✅ |
 | **Settings Management** | ⚠️ (Limited) | ✅ | ✅ |
 | **Map Visualization** | ❌ | ⚠️ (Limited) | ❌ |
+| **Charts Menu (/menu)** | ❌ | ❌ | ✅ |
 | **Export/Share** | ❌ | ❌ | ❌ |
 
 **Legend**: ✅ = Full Support | ⚠️ = Partial/Limited | ❌ = Not Available
@@ -175,6 +176,11 @@
 - **Watch**: ❌ Route data collected but not visualized
 - **Phone**: ⚠️ Limited map visualization
 - **Web**: ❌ Route data collected but not visualized
+
+#### Charts Menu (/menu)
+- **Watch**: ❌ Not available
+- **Phone**: ❌ Not available
+- **Web**: ✅ Dedicated informative charts page with max KPS pace-over-duration chart and click point tooltips
 
 #### Progress Indicators
 - **Watch**: ✅ Visual progress gauges

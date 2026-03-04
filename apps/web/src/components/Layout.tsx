@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Activity, History, MessageCircle, Settings, Scale } from 'lucide-react'
+import { Activity, History, MessageCircle, Settings, Scale, BarChart3 } from 'lucide-react'
 import { useAuth } from './providers/useAuth'
 import { useSettingsStore } from '../store/settingsStore'
 import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
@@ -120,6 +120,7 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/', icon: Activity, label: 'Run' },
     { path: '/history', icon: History, label: 'History' },
     { path: '/weight-history', icon: Scale, label: 'Weight' },
+    { path: '/menu', icon: BarChart3, label: 'Menu' },
     { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ]

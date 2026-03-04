@@ -5,6 +5,7 @@ import History from './pages/History'
 import Chat from './pages/Chat'
 import Settings from './pages/Settings'
 import WeightHistory from './pages/WeightHistory'
+import Menu from './pages/Menu'
 import Login from './pages/Login'
 import EntitlementRequired from './pages/EntitlementRequired'
 import { useAuth } from './components/providers/useAuth'
@@ -80,6 +81,7 @@ function ProtectedRoutes() {
         <Route path="/" element={<RunDashboard />} />
         <Route path="/history" element={<History />} />
         <Route path="/weight-history" element={<WeightHistory />} />
+        <Route path="/menu" element={<Menu />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

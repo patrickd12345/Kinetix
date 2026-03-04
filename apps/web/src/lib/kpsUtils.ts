@@ -44,10 +44,10 @@ import { getProfileForRun } from './authState'
  *    - Any date-based or ID-based hacks
  *    - Any hybrid logic mixing stored and recalculated KPS
  *
- * HISTORICAL INITIALIZATION:
- * - The run from 2025-09-30 is declared as the initial PB
- * - This is seeded via seedInitialPB() function
- * - Seeding is idempotent and only runs once
+ * PB INITIALIZATION:
+ * - PB anchor is the lifetime best absolute KPS run (age-weight graded)
+ * - Derived from visible runs using profile-at-run-date
+ * - Reconciled by ensurePBInitialized() so PB=100 remains globally consistent
  */
 
 /** Minimum distance (m) and duration (s) for a run to be treated as meaningful for KPS. Filters GPS glitches / accidental recordings. */
@@ -168,9 +168,51 @@ export async function getPBRun(): Promise<RunRecord | null> {
  * Uses historical seeding first, then legacy fallback selection when needed.
  */
 export async function ensurePBInitialized(currentProfile: UserProfile): Promise<void> {
+  void currentProfile // retained for call-site compatibility
+
+  const allRuns = (await db.runs.toArray()).filter(
+    (r) => (r.deleted ?? 0) === RUN_VISIBLE && !!r.id
+  )
+  if (allRuns.length === 0) return
+
+  let bestRun: RunRecord | null = null
+  let bestProfile: UserProfile | null = null
+  let bestAbsolute = 0
+
+  for (const run of allRuns) {
+    const profileForRun = await getProfileForRun(run)
+    const abs = calculateAbsoluteKPS(run, profileForRun)
+    if (isValidKPS(abs) && abs > bestAbsolute) {
+      bestAbsolute = abs
+      bestRun = run
+      bestProfile = profileForRun
+    }
+  }
+
+  if (!bestRun?.id || !bestProfile) return
+
   const existing = await getPB()
-  if (existing) return
-  await initializePBFromExistingRuns(currentProfile)
+  if (!existing) {
+    await db.pb.add({
+      runId: bestRun.id,
+      achievedAt: bestRun.date,
+      profileSnapshot: bestProfile,
+    })
+    return
+  }
+
+  if (
+    existing.runId !== bestRun.id ||
+    existing.achievedAt !== bestRun.date ||
+    existing.profileSnapshot.age !== bestProfile.age ||
+    existing.profileSnapshot.weightKg !== bestProfile.weightKg
+  ) {
+    await db.pb.update(existing.id!, {
+      runId: bestRun.id,
+      achievedAt: bestRun.date,
+      profileSnapshot: bestProfile,
+    })
+  }
 }
 
 /**
@@ -328,100 +370,19 @@ export async function checkAndUpdatePB(
 }
 
 /**
- * Seed initial PB from historical fact: September 30th, 2025 run
- *
- * HISTORICAL INITIALIZATION STEP:
- * This function declares the authoritative PB: the run performed on 2025-09-30.
- * This is a data decision, not a heuristic or inference.
- *
- * INVARIANT: Idempotent - if PB already exists, does nothing.
- *
- * @param currentProfile - Current user profile (used as snapshot since historical profile unavailable)
+ * Legacy entrypoint retained for compatibility.
+ * PB is now derived from lifetime-best run via ensurePBInitialized().
  */
 export async function seedInitialPB(currentProfile: UserProfile): Promise<void> {
-  // Check if PB already exists - idempotent guard
-  const existingPB = await getPB()
-  if (existingPB) {
-    return
-  }
-
-  // Find the run from 2025-09-30 (bounded query), exclude logically deleted
-  const targetDate = '2025-09-30'
-  const raw = await db.runs
-    .where('date')
-    .between(targetDate, `${targetDate}T23:59:59.999Z`, true, true)
-    .toArray()
-  const sep30Runs = raw.filter((r) => (r.deleted ?? 0) === RUN_VISIBLE)
-
-  // Fail loudly if multiple runs exist on that date
-  if (sep30Runs.length > 1) {
-    const errorMsg = `MULTIPLE RUNS FOUND ON ${targetDate}. Manual selection required. Found ${sep30Runs.length} runs: ${sep30Runs.map(r => `ID ${r.id}`).join(', ')}`
-    throw new Error(errorMsg)
-  }
-
-  // Fail loudly if no run found
-  if (sep30Runs.length === 0) {
-    throw new Error(`NO RUN FOUND ON ${targetDate}. Cannot seed PB.`)
-  }
-
-  // Exactly one run found - this is our PB
-  const pbRun = sep30Runs[0]
-
-  if (!pbRun.id) {
-    throw new Error('PB RUN HAS NO ID. Cannot seed PB.')
-  }
-
-  // Create PB record
-  await db.pb.add({
-    runId: pbRun.id,
-    achievedAt: pbRun.date,
-    profileSnapshot: currentProfile
-  })
+  await ensurePBInitialized(currentProfile)
 }
 
 /**
- * Initialize PB from existing runs if no PB is set
- * This is a one-time migration for existing data
- *
- * @deprecated Use seedInitialPB() instead
+ * Initialize/reconcile PB from existing runs.
+ * @deprecated Use ensurePBInitialized() directly.
  */
 export async function initializePBFromExistingRuns(currentProfile: UserProfile): Promise<void> {
-  try {
-    await seedInitialPB(currentProfile)
-    return
-  } catch {
-    // If seeding fails (no Sep 30 run), fall back to old logic
-  }
-
-  const pb = await getPB()
-  if (pb) {
-    return
-  }
-
-  const allRuns = (await db.runs.toArray()).filter((r) => (r.deleted ?? 0) === RUN_VISIBLE)
-  if (allRuns.length === 0) {
-    return
-  }
-
-  // Find run with highest absolute KPS using current profile
-  let bestRun: RunRecord | null = null
-  let bestKPS = 0
-
-  for (const run of allRuns) {
-    const kps = calculateAbsoluteKPS(run, currentProfile)
-    if (isValidKPS(kps) && kps > bestKPS && run.id) {
-      bestKPS = kps
-      bestRun = run
-    }
-  }
-
-  if (bestRun && bestRun.id) {
-    await db.pb.add({
-      runId: bestRun.id,
-      achievedAt: bestRun.date,
-      profileSnapshot: currentProfile
-    })
-  }
+  await ensurePBInitialized(currentProfile)
 }
 
 /**

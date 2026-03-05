@@ -28,6 +28,8 @@ interface RunControlsPanelProps {
   isRunning: boolean
   isPaused: boolean
   showAICoach: boolean
+  isActionLocked: boolean
+  isAiAnalyzing: boolean
   startRun: () => void
   pauseRun: () => void
   resumeRun: () => void
@@ -178,6 +180,8 @@ export function RunControlsPanel({
   isRunning,
   isPaused,
   showAICoach,
+  isActionLocked,
+  isAiAnalyzing,
   startRun,
   pauseRun,
   resumeRun,
@@ -193,14 +197,16 @@ export function RunControlsPanel({
           <button
             onClick={startRun}
             aria-label="Start run"
-            className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 shadow-lg shadow-green-500/50 flex items-center justify-center transition-all active:scale-95"
+            disabled={isActionLocked}
+            className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 shadow-lg shadow-green-500/50 flex items-center justify-center transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Play fill="white" size={28} className="ml-1" strokeWidth={0} />
           </button>
 
           <button
             onClick={openBeatPB}
-            className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-amber-400 border border-amber-500/30 hover:border-amber-500/50 hover:bg-amber-500/10 transition-all"
+            disabled={isActionLocked}
+            className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-amber-400 border border-amber-500/30 hover:border-amber-500/50 hover:bg-amber-500/10 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Trophy size={14} strokeWidth={2.5} />
             BEAT PB
@@ -208,7 +214,8 @@ export function RunControlsPanel({
 
           <button
             onClick={openBeatRecents}
-            className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-violet-400 border border-violet-500/30 hover:border-violet-500/50 hover:bg-violet-500/10 transition-all"
+            disabled={isActionLocked}
+            className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-violet-400 border border-violet-500/30 hover:border-violet-500/50 hover:bg-violet-500/10 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <TrendingUp size={14} strokeWidth={2.5} />
             BEAT RECENTS
@@ -217,7 +224,8 @@ export function RunControlsPanel({
           {showAICoach && (
             <button
               onClick={handleAIAnalysis}
-              className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-cyan-400 border border-cyan-500/30 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all"
+              disabled={isActionLocked || isAiAnalyzing}
+              className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-cyan-400 border border-cyan-500/30 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Sparkles size={14} strokeWidth={2.5} />
               ASK AI COACH
@@ -230,7 +238,8 @@ export function RunControlsPanel({
             <button
               onClick={resumeRun}
               aria-label="Resume run"
-              className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/50 flex items-center justify-center transition-all active:scale-95"
+              disabled={isActionLocked}
+              className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/50 flex items-center justify-center transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Play fill="white" size={22} className="ml-1" strokeWidth={0} />
             </button>
@@ -238,7 +247,8 @@ export function RunControlsPanel({
             <button
               onClick={pauseRun}
               aria-label="Pause run"
-              className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 shadow-lg shadow-yellow-500/50 flex items-center justify-center transition-all active:scale-95"
+              disabled={isActionLocked}
+              className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 shadow-lg shadow-yellow-500/50 flex items-center justify-center transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Pause fill="white" size={20} strokeWidth={0} />
             </button>
@@ -246,7 +256,8 @@ export function RunControlsPanel({
           <button
             onClick={stopRun}
             aria-label="Stop run"
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-lg shadow-red-500/50 flex items-center justify-center transition-all active:scale-95"
+            disabled={isActionLocked}
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-lg shadow-red-500/50 flex items-center justify-center transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Square fill="white" size={18} strokeWidth={0} />
           </button>

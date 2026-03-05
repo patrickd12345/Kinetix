@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useRunStore } from '../store/runStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { formatPace, timeToAchieveKPS, distanceToAchieveKPS } from '@kinetix/core'
@@ -67,6 +67,8 @@ export default function RunDashboard() {
   const [showBeatRecentsModal, setShowBeatRecentsModal] = useState(false)
   const [beatRecentsOptions, setBeatRecentsOptions] = useState<BeatTargetOption[] | null>(null)
   const [beatRecentsError, setBeatRecentsError] = useState<string | null>(null)
+  const [isActionLocked, setIsActionLocked] = useState(false)
+  const actionLockRef = useRef(false)
 
   const openBeatPB = useCallback(async () => {
     setBeatPBError(null)
@@ -179,6 +181,20 @@ export default function RunDashboard() {
     }
   }, [isRunning, distance, duration])
 
+  const runGuardedAction = async (action: () => void | Promise<void>) => {
+    if (actionLockRef.current) return
+    actionLockRef.current = true
+    setIsActionLocked(true)
+    try {
+      await action()
+    } finally {
+      window.setTimeout(() => {
+        actionLockRef.current = false
+        setIsActionLocked(false)
+      }, 350)
+    }
+  }
+
   if (!profile) {
     return (
       <div className="pb-20 lg:pb-4">
@@ -205,6 +221,34 @@ export default function RunDashboard() {
       duration,
       heartRate > 70 ? heartRate : undefined
     )
+  }
+
+  const handleStartRun = () => {
+    void runGuardedAction(() => startRun())
+  }
+
+  const handlePauseRun = () => {
+    void runGuardedAction(() => pauseRun())
+  }
+
+  const handleResumeRun = () => {
+    void runGuardedAction(() => resumeRun())
+  }
+
+  const handleStopRun = () => {
+    void runGuardedAction(() => stopRun())
+  }
+
+  const handleOpenBeatPB = () => {
+    void runGuardedAction(() => openBeatPB())
+  }
+
+  const handleOpenBeatRecents = () => {
+    void runGuardedAction(() => openBeatRecents())
+  }
+
+  const handleGuardedAIAnalysis = () => {
+    void runGuardedAction(() => handleAIAnalysis())
   }
 
   const closeBeatPBModal = () => {
@@ -241,13 +285,15 @@ export default function RunDashboard() {
                 isRunning={isRunning}
                 isPaused={isPaused}
                 showAICoach={showAICoach}
-                startRun={startRun}
-                pauseRun={pauseRun}
-                resumeRun={resumeRun}
-                stopRun={stopRun}
-                openBeatPB={openBeatPB}
-                openBeatRecents={openBeatRecents}
-                handleAIAnalysis={handleAIAnalysis}
+                isActionLocked={isActionLocked}
+                isAiAnalyzing={isAnalyzing}
+                startRun={handleStartRun}
+                pauseRun={handlePauseRun}
+                resumeRun={handleResumeRun}
+                stopRun={handleStopRun}
+                openBeatPB={handleOpenBeatPB}
+                openBeatRecents={handleOpenBeatRecents}
+                handleAIAnalysis={handleGuardedAIAnalysis}
               />
             </div>
           </div>

@@ -21,10 +21,26 @@ export interface AiHandlerSuccess {
 
 type HeaderMap = Record<string, string | string[] | undefined>
 
+function hasAuthorizationHeader(headers: HeaderMap): boolean {
+  const value = headers.authorization ?? headers.Authorization
+  if (typeof value === 'string') return value.trim().length > 0
+  if (Array.isArray(value)) return value.some((v) => String(v).trim().length > 0)
+  return false
+}
+
+function isApiAuthRequired(): boolean {
+  const raw = process.env.KINETIX_API_REQUIRE_AUTH
+  return raw === '1' || raw === 'true'
+}
+
 export async function handleAiChatRequest(
   body: AiChatBody,
   headers: HeaderMap
 ): Promise<AiHandlerSuccess | AiHandlerError> {
+  if (isApiAuthRequired() && !hasAuthorizationHeader(headers)) {
+    return { error: 'Authorization header is required.', status: 401 }
+  }
+
   const byokKey = readByokHeader(headers)
   const decision = getByokDecision('ai-chat', byokKey)
   if (mustReject(decision)) {
@@ -63,6 +79,10 @@ export async function handleAiCoachRequest(
   body: AiCoachBody,
   headers: HeaderMap
 ): Promise<AiHandlerSuccess | AiHandlerError> {
+  if (isApiAuthRequired() && !hasAuthorizationHeader(headers)) {
+    return { error: 'Authorization header is required.', status: 401 }
+  }
+
   const byokKey = readByokHeader(headers)
   const decision = getByokDecision('ai-coach', byokKey)
   if (mustReject(decision)) {

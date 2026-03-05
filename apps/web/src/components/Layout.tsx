@@ -126,8 +126,8 @@ export default function Layout({ children }: LayoutProps) {
   ]
 
   const webShellV2 =
-    import.meta.env.VITE_WEB_SHELL_V2 === '1' ||
-    import.meta.env.VITE_WEB_SHELL_V2 === 'true'
+    import.meta.env.VITE_WEB_SHELL_V2 !== '0' &&
+    import.meta.env.VITE_WEB_SHELL_V2 !== 'false'
 
   if (webShellV2) {
     return (

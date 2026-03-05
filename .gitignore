@@ -20,9 +20,13 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+apps/web/test-results/
+apps/web/playwright-report/
 
 # Large data files (do not commit)
 garmin.zip
+supabase/.temp/platform_data_dump.sql
+supabase/.temp/platform_data_dump_after_seed.sql
 
 # IDE (optional)
 .idea/

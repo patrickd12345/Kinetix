@@ -1,15 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { getLLMClient } from '../_lib/ai/llmClient'
-import { getByokDecision, mustReject, readByokHeader } from '../_lib/byok'
-
-function setCors(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-openai-key')
-}
+import { applyCors } from '../_lib/cors'
+import { handleAiCoachRequest } from '../_lib/ai/requestHandlers'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCors(res)
+  const cors = applyCors(req, res, {
+    methods: ['POST', 'OPTIONS'],
+    headers: ['Content-Type', 'Authorization', 'x-openai-key'],
+  })
+
+  if (!cors.allowed) {
+    return res.status(403).json({ error: 'Origin not allowed' })
+  }
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
@@ -19,27 +20,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const byokKey = readByokHeader(req.headers || {})
-  const decision = getByokDecision('ai-coach', byokKey)
-  if (mustReject(decision)) {
-    return res.status(400).json({ error: 'BYOK is not supported on this endpoint.' })
-  }
-
-  const { prompt } = req.body || {}
-  if (!prompt || typeof prompt !== 'string') {
-    return res.status(400).json({ error: 'prompt is required.' })
-  }
-
   try {
-    const client = getLLMClient()
-    const { text } = await client.executeChat(
-      [
-        { role: 'system', content: 'You are a concise running coach.' },
-        { role: 'user', content: prompt },
-      ],
-      { temperature: 0.7, maxTokens: 400 }
-    )
-    return res.status(200).json({ text: text?.trim() || '' })
+    const result = await handleAiCoachRequest(req.body || {}, req.headers || {})
+    if ('error' in result) {
+      return res.status(result.status ?? 400).json({ error: result.error })
+    }
+    return res.status(200).json(result)
   } catch (error) {
     console.error('[api/ai-coach] AI execution failed:', error)
     const status = (error as any)?.status || 500

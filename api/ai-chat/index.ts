@@ -1,14 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { applyCors } from '../_lib/cors'
 import { handleAiChatRequest } from '../_lib/ai/requestHandlers'
 
-function setCors(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-openai-key')
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCors(res)
+  const cors = applyCors(req, res, {
+    methods: ['POST', 'OPTIONS'],
+    headers: ['Content-Type', 'Authorization', 'x-openai-key'],
+  })
+
+  if (!cors.allowed) {
+    return res.status(403).json({ error: 'Origin not allowed' })
+  }
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()

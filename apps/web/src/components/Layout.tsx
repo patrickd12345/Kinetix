@@ -125,6 +125,110 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/settings', icon: Settings, label: 'Settings' },
   ]
 
+  const webShellV2 =
+    import.meta.env.VITE_WEB_SHELL_V2 === '1' ||
+    import.meta.env.VITE_WEB_SHELL_V2 === 'true'
+
+  if (webShellV2) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 to-black text-white">
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur">
+          <div className="mx-auto max-w-7xl px-4 py-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="text-xl font-black tracking-wide">KINETIX</h1>
+                <p className="text-xs text-slate-400">Web dashboard</p>
+              </div>
+              <div className="hidden md:flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = location.pathname === item.path
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all ${
+                        isActive
+                          ? 'bg-cyan-500/20 text-cyan-300'
+                          : 'text-slate-300 hover:bg-white/10'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="hidden sm:block max-w-[180px] truncate text-xs text-slate-400">
+                  {profileLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void signOut()}
+                  className="rounded-md border border-cyan-500/30 px-3 py-1.5 text-xs font-medium text-cyan-300 hover:bg-cyan-500/10"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-7xl px-4 py-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
+            <aside className="hidden lg:block">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2">
+                <nav className="space-y-1">
+                  {navItems.map((item) => {
+                    const Icon = item.icon
+                    const isActive = location.pathname === item.path
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all ${
+                          isActive
+                            ? 'bg-cyan-500/20 text-cyan-300'
+                            : 'text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <Icon size={16} />
+                        <span>{item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+            </aside>
+            <main className="min-w-0">{children}</main>
+          </div>
+        </div>
+
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/95 backdrop-blur md:hidden">
+          <div className="mx-auto flex h-14 max-w-7xl items-center justify-around px-2">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = location.pathname === item.path
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex flex-col items-center gap-1 rounded px-2 py-1 text-[10px] ${
+                    isActive ? 'text-cyan-300' : 'text-slate-400'
+                  }`}
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950">
       {/* Desktop Sidebar Navigation */}

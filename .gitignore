@@ -23,6 +23,8 @@ pnpm-debug.log*
 
 # Large data files (do not commit)
 garmin.zip
+supabase/.temp/platform_data_dump.sql
+supabase/.temp/platform_data_dump_after_seed.sql
 
 # IDE (optional)
 .idea/

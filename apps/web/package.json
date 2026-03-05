@@ -12,8 +12,8 @@
         "garmin:import": "tsx scripts/import-garmin.ts",
         "withings:weights": "tsx scripts/download-withings-weights.ts",
         "test": "pnpm --filter @kinetix/core build && vitest run",
-        "test:e2e": "playwright test",
-        "test:e2e:headed": "playwright test --headed"
+        "test:e2e": "pnpm exec playwright test",
+        "test:e2e:headed": "pnpm exec playwright test --headed"
     },
     "dependencies": {
         "@kinetix/core": "workspace:*",

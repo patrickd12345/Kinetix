@@ -145,7 +145,12 @@ async function buildMaxKPSPaceDurationPointsAsync(
   for (const run of runs) {
     if (!isValidPerformanceRunRaw(run)) continue
 
-    const profile = await getProfileForRun(run)
+    let profile: UserProfile
+    try {
+      profile = await getProfileForRun(run)
+    } catch {
+      continue
+    }
     const relativeKPS = calculateRelativeKPSSync(run, profile, pb, pbRun)
     if (!isValidKPS(relativeKPS)) continue
 
@@ -165,9 +170,10 @@ async function buildMaxKPSPaceDurationPointsAsync(
     }
   }
 
-  return [...bestByBucket.entries()]
+  const result = [...bestByBucket.entries()]
     .sort(([a], [b]) => a - b)
     .map(([bucketStart, { run, relativeKPS }]) =>
       toChartPoint(run, relativeKPS, bucketStart, bucketSeconds, unitSystem)
     )
+  return result
 }

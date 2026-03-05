@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   CartesianGrid,
   Dot,
   Line,
   LineChart,
-  ResponsiveContainer,
   XAxis,
   YAxis,
 } from 'recharts'
@@ -43,8 +42,29 @@ export default function MaxKPSPaceDurationChart({
     x: number
     y: number
   } | null>(null)
-  const chartContainerRef = useRef<HTMLDivElement | null>(null)
-  const [chartReady, setChartReady] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [dimensions, setDimensions] = useState({ width: 500, height: 340 })
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const MIN_DELTA = 5
+    const update = () => {
+      const rect = el.getBoundingClientRect()
+      const w = rect.width > 0 ? Math.round(rect.width) : el.offsetWidth || 500
+      const h = rect.height > 0 ? Math.round(rect.height) : 340
+      if (w > 0 && h > 0) {
+        setDimensions((prev) => {
+          if (Math.abs(prev.width - w) < MIN_DELTA && Math.abs(prev.height - h) < MIN_DELTA) return prev
+          return { width: w, height: h }
+        })
+      }
+    }
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    update()
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     if (points.length === 0) {
@@ -62,30 +82,16 @@ export default function MaxKPSPaceDurationChart({
     })
   }, [points])
 
-  useEffect(() => {
-    const el = chartContainerRef.current
-    if (!el) return
-
-    const updateReady = () => {
-      const rect = el.getBoundingClientRect()
-      setChartReady(rect.width > 0 && rect.height > 0)
-    }
-
-    updateReady()
-    if (typeof ResizeObserver === 'undefined') return
-
-    const observer = new ResizeObserver(updateReady)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
   const paceUnitLabel = unitSystem === 'metric' ? 'min/km' : 'min/mi'
 
   if (points.length === 0) {
     return (
-      <div className="glass rounded-2xl p-8 border border-white/10 text-center">
-        <p className="text-gray-300 mb-1">No performance data yet for this chart.</p>
-        <p className="text-xs text-gray-500">
+      <div
+        data-testid="charts-empty-state"
+        className="glass rounded-2xl p-8 border border-violet-500/20 text-center"
+      >
+        <p className="text-lg font-semibold text-slate-200 mb-2">No performance data yet for this chart.</p>
+        <p className="text-sm text-slate-400">
           Finish a few runs and this view will display max {KPS_SHORT} by duration bucket.
         </p>
       </div>
@@ -96,8 +102,11 @@ export default function MaxKPSPaceDurationChart({
   const PACE_MIN = unitSystem === 'metric' ? 120 : 193
   const PACE_MAX = unitSystem === 'metric' ? 900 : 1450
 
-  const rawMin = Math.min(...points.map((point) => point.paceSeconds))
-  const rawMax = Math.max(...points.map((point) => point.paceSeconds))
+  const validPaces = points
+    .map((p) => p.paceSeconds)
+    .filter((v) => Number.isFinite(v) && v > 0)
+  const rawMin = validPaces.length > 0 ? Math.min(...validPaces) : PACE_MIN
+  const rawMax = validPaces.length > 0 ? Math.max(...validPaces) : PACE_MAX
   const chartMinPace = Math.max(PACE_MIN, Math.min(rawMin, PACE_MAX))
   const chartMaxPace = Math.min(PACE_MAX, Math.max(rawMax, PACE_MIN))
   const pacePadding = Math.max(20, Math.max(60, chartMaxPace - chartMinPace) * 0.2)
@@ -106,7 +115,7 @@ export default function MaxKPSPaceDurationChart({
     Math.min(PACE_MAX, chartMaxPace + pacePadding),
   ]
 
-  const ClickableDot = ({
+  const ClickableDot = useCallback(({
     cx,
     cy,
     payload,
@@ -138,10 +147,10 @@ export default function MaxKPSPaceDurationChart({
         {isSelected && <circle cx={cx} cy={cy} r={11} fill="#22d3ee" opacity={0.2} />}
       </g>
     )
-  }
+  }, [selectedPoint, setSelectedPoint, setSelectedTooltipPosition])
 
   return (
-    <div className="glass rounded-2xl p-6 border border-violet-500/20">
+    <div data-testid="charts-max-kps-pace" className="glass rounded-2xl p-6 border border-violet-500/20">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h3 className="text-lg font-black text-white">Max {KPS_SHORT} on Pace vs Duration</h3>
@@ -153,21 +162,23 @@ export default function MaxKPSPaceDurationChart({
       </div>
 
       <div
-        ref={chartContainerRef}
+        ref={containerRef}
         role="application"
         aria-label={`Chart: max ${KPS_SHORT} pace over duration`}
-        className="relative h-[340px] min-h-[340px] min-w-0"
+        className="relative w-full"
+        style={{ minWidth: 320, width: '100%', height: 340 }}
       >
-        {chartReady && (
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <LineChart
-              data={points}
-              margin={{ top: 10, right: 16, left: 0, bottom: 12 }}
-              onClick={() => {
-                setSelectedPoint(null)
-                setSelectedTooltipPosition(null)
-              }}
-            >
+        {dimensions.width > 0 && (
+          <LineChart
+            width={dimensions.width}
+            height={dimensions.height}
+            data={points}
+            margin={{ top: 10, right: 16, left: 0, bottom: 12 }}
+            onClick={() => {
+              setSelectedPoint(null)
+              setSelectedTooltipPosition(null)
+            }}
+          >
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" opacity={0.35} />
               <XAxis
                 type="number"
@@ -207,11 +218,10 @@ export default function MaxKPSPaceDurationChart({
                 strokeWidth={2}
                 dot={<ClickableDot />}
                 activeDot={false}
-                animationDuration={600}
+                isAnimationActive={false}
                 connectNulls
               />
-            </LineChart>
-          </ResponsiveContainer>
+          </LineChart>
         )}
 
         {selectedPoint && selectedTooltipPosition && (

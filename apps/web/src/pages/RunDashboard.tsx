@@ -33,7 +33,9 @@ export default function RunDashboard() {
   
   const { targetKPS, unitSystem, physioMode, beatPBPercent, beatRecentsCount } = useSettingsStore()
   const { profile } = useAuth()
-  const userProfile = profile ? toKinetixUserProfile(profile) : null
+  const userProfile = useMemo(() => {
+    return profile ? toKinetixUserProfile(profile) : null
+  }, [profile])
   const [relativeKPS, setRelativeKPS] = useState(0)
   useLocationTracking()
 

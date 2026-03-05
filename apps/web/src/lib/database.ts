@@ -246,6 +246,31 @@ export async function getWeightAtDate(runDate: string): Promise<number | null> {
 }
 
 /**
+ * Batch weight lookup for many run dates. One IndexedDB query instead of N.
+ * Returns Map<runDate, weightKg>. Use for chart builds with many runs.
+ */
+export async function getWeightsForDates(runDates: string[]): Promise<Map<string, number>> {
+  const unique = [...new Set(runDates)]
+  if (unique.length === 0) return new Map()
+  const maxDate = unique.reduce((a, b) => (a > b ? a : b))
+  const entries = await db.weightHistory
+    .where('date')
+    .between('1970-01-01', maxDate, true, true)
+    .toArray()
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date))
+  const result = new Map<string, number>()
+  for (const d of unique) {
+    let best: WeightEntry | null = null
+    for (const e of sorted) {
+      if (e.date <= d) best = e
+      else break
+    }
+    if (best != null && best.kg > 0) result.set(d, best.kg)
+  }
+  return result
+}
+
+/**
  * Backfill weightKg on runs that don't have it, using weight history. Run once after importing
  * weight history or for legacy runs. Call from the app (Settings); requires IndexedDB.
  */

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   CartesianGrid,
   Dot,
@@ -43,6 +43,8 @@ export default function MaxKPSPaceDurationChart({
     x: number
     y: number
   } | null>(null)
+  const chartContainerRef = useRef<HTMLDivElement | null>(null)
+  const [chartReady, setChartReady] = useState(false)
 
   useEffect(() => {
     if (points.length === 0) {
@@ -59,6 +61,23 @@ export default function MaxKPSPaceDurationChart({
       )
     })
   }, [points])
+
+  useEffect(() => {
+    const el = chartContainerRef.current
+    if (!el) return
+
+    const updateReady = () => {
+      const rect = el.getBoundingClientRect()
+      setChartReady(rect.width > 0 && rect.height > 0)
+    }
+
+    updateReady()
+    if (typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(updateReady)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const paceUnitLabel = unitSystem === 'metric' ? 'min/km' : 'min/mi'
 
@@ -134,63 +153,66 @@ export default function MaxKPSPaceDurationChart({
       </div>
 
       <div
+        ref={chartContainerRef}
         role="application"
         aria-label={`Chart: max ${KPS_SHORT} pace over duration`}
-        className="relative h-[340px]"
+        className="relative h-[340px] min-h-[340px] min-w-0"
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={points}
-            margin={{ top: 10, right: 16, left: 0, bottom: 12 }}
-            onClick={() => {
-              setSelectedPoint(null)
-              setSelectedTooltipPosition(null)
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" opacity={0.35} />
-            <XAxis
-              type="number"
-              dataKey="durationMinutes"
-              stroke="#6b7280"
-              tick={{ fill: '#9ca3af', fontSize: 11 }}
-              domain={['dataMin - 2', 'dataMax + 2']}
-              tickFormatter={formatDurationTick}
-              label={{
-                value: 'Duration',
-                position: 'insideBottom',
-                offset: -6,
-                fill: '#9ca3af',
-                fontSize: 12,
+        {chartReady && (
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+            <LineChart
+              data={points}
+              margin={{ top: 10, right: 16, left: 0, bottom: 12 }}
+              onClick={() => {
+                setSelectedPoint(null)
+                setSelectedTooltipPosition(null)
               }}
-            />
-            <YAxis
-              type="number"
-              dataKey="paceSeconds"
-              stroke="#6b7280"
-              tick={{ fill: '#9ca3af', fontSize: 11 }}
-              tickFormatter={formatPaceTick}
-              domain={yDomain}
-              reversed
-              label={{
-                value: `Pace (${paceUnitLabel})`,
-                angle: -90,
-                position: 'insideLeft',
-                fill: '#9ca3af',
-                fontSize: 12,
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey="paceSeconds"
-              stroke="#8b5cf6"
-              strokeWidth={2}
-              dot={<ClickableDot />}
-              activeDot={false}
-              animationDuration={600}
-              connectNulls
-            />
-          </LineChart>
-        </ResponsiveContainer>
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" opacity={0.35} />
+              <XAxis
+                type="number"
+                dataKey="durationMinutes"
+                stroke="#6b7280"
+                tick={{ fill: '#9ca3af', fontSize: 11 }}
+                domain={['dataMin - 2', 'dataMax + 2']}
+                tickFormatter={formatDurationTick}
+                label={{
+                  value: 'Duration',
+                  position: 'insideBottom',
+                  offset: -6,
+                  fill: '#9ca3af',
+                  fontSize: 12,
+                }}
+              />
+              <YAxis
+                type="number"
+                dataKey="paceSeconds"
+                stroke="#6b7280"
+                tick={{ fill: '#9ca3af', fontSize: 11 }}
+                tickFormatter={formatPaceTick}
+                domain={yDomain}
+                reversed
+                label={{
+                  value: `Pace (${paceUnitLabel})`,
+                  angle: -90,
+                  position: 'insideLeft',
+                  fill: '#9ca3af',
+                  fontSize: 12,
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="paceSeconds"
+                stroke="#8b5cf6"
+                strokeWidth={2}
+                dot={<ClickableDot />}
+                activeDot={false}
+                animationDuration={600}
+                connectNulls
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
 
         {selectedPoint && selectedTooltipPosition && (
           <div

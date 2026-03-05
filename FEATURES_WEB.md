@@ -65,7 +65,7 @@
 ### UI/UX
 - ✅ **Modern Design**: Dark theme with glassmorphism effects
 - ✅ **Responsive Layout**: Works on desktop and mobile
-- ✅ **Web Shell v2**: Desktop-first header/sidebar with mobile bottom navigation fallback
+- ✅ **Web Shell Navigation**: Desktop-first header/sidebar with mobile bottom navigation
 - ✅ **Smooth Animations**: Transitions and progress indicators
 - ✅ **Status Indicators**: Visual feedback for GPS and run state
 - ✅ **Error Handling**: User-friendly error messages

@@ -1,67 +1,8 @@
 import type { Plugin } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { loadEnv } from 'vite'
-import { getByokDecision, mustReject, readByokHeader } from '../../api/_lib/ai/byok'
-import { getLLMClient } from '../../api/_lib/ai/llmClient'
+import { handleAiChatRequest, handleAiCoachRequest } from '../../api/_lib/ai/requestHandlers'
 import { withingsRequestToken } from './src/lib/withingsOAuthServer'
-
-async function handleAiChat(
-  body: { systemInstruction?: string; contents?: unknown[] },
-  headers: Record<string, string | string[] | undefined>
-): Promise<{ text: string } | { error: string }> {
-  const byokKey = readByokHeader(headers)
-  const decision = getByokDecision('ai-chat', byokKey)
-  if (mustReject(decision)) {
-    return { error: 'BYOK is not supported on this endpoint.' }
-  }
-  const { systemInstruction, contents } = body
-  if (!systemInstruction || !contents) {
-    return { error: 'systemInstruction and contents are required.' }
-  }
-  const userContent = Array.isArray(contents)
-    ? contents
-        .map((c: { parts?: { text?: string }[] }) =>
-          Array.isArray(c?.parts)
-            ? c.parts.map((p) => p?.text || '').join('\n').trim()
-            : ''
-        )
-        .filter(Boolean)
-        .join('\n\n')
-    : ''
-  const client = getLLMClient()
-  const { text } = await client.executeChat(
-    [
-      { role: 'system', content: systemInstruction },
-      { role: 'user', content: userContent || 'Respond concisely.' },
-    ],
-    { temperature: 0.7, maxTokens: 1024 }
-  )
-  return { text: text?.trim() || '' }
-}
-
-async function handleAiCoach(
-  body: { prompt?: string },
-  headers: Record<string, string | string[] | undefined>
-): Promise<{ text: string } | { error: string }> {
-  const byokKey = readByokHeader(headers)
-  const decision = getByokDecision('ai-coach', byokKey)
-  if (mustReject(decision)) {
-    return { error: 'BYOK is not supported on this endpoint.' }
-  }
-  const prompt = body?.prompt
-  if (!prompt || typeof prompt !== 'string') {
-    return { error: 'prompt is required.' }
-  }
-  const client = getLLMClient()
-  const { text } = await client.executeChat(
-    [
-      { role: 'system', content: 'You are a concise running coach.' },
-      { role: 'user', content: prompt },
-    ],
-    { temperature: 0.7, maxTokens: 400 }
-  )
-  return { text: text?.trim() || '' }
-}
 
 async function handleWithingsOAuthRequest(req: IncomingMessage, res: ServerResponse, env: Record<string, string>) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -391,10 +332,12 @@ export function vitePluginOAuth(): Plugin {
           for (const [k, v] of Object.entries(req.headers)) {
             if (v !== undefined) headers[k.toLowerCase()] = v
           }
-          handleAiChat(parsed, headers)
+          handleAiChatRequest(parsed, headers)
             .then((out) => {
               if ('error' in out) {
-                res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify(out))
+                res
+                  .writeHead(out.status ?? 400, { 'Content-Type': 'application/json' })
+                  .end(JSON.stringify({ error: out.error }))
               } else {
                 res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(out))
               }
@@ -433,10 +376,12 @@ export function vitePluginOAuth(): Plugin {
           for (const [k, v] of Object.entries(req.headers)) {
             if (v !== undefined) headers[k.toLowerCase()] = v
           }
-          handleAiCoach(parsed, headers)
+          handleAiCoachRequest(parsed, headers)
             .then((out) => {
               if ('error' in out) {
-                res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify(out))
+                res
+                  .writeHead(out.status ?? 400, { 'Content-Type': 'application/json' })
+                  .end(JSON.stringify({ error: out.error }))
               } else {
                 res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(out))
               }

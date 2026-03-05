@@ -2,6 +2,11 @@ import type { Plugin } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { loadEnv } from 'vite'
 import { handleAiChatRequest, handleAiCoachRequest } from '../../api/_lib/ai/requestHandlers'
+import {
+  exchangeStravaCodeForToken,
+  refreshStravaAccessToken,
+  StravaAuthError,
+} from '../../api/_lib/stravaAuth'
 import { withingsRequestToken } from './src/lib/withingsOAuthServer'
 
 async function handleWithingsOAuthRequest(req: IncomingMessage, res: ServerResponse, env: Record<string, string>) {
@@ -168,36 +173,12 @@ async function handleOAuthRequest(req: IncomingMessage, res: ServerResponse, env
         return
       }
 
-      const tokenExchangeUrl = 'https://www.strava.com/oauth/token'
-      const tokenExchangeBody = {
-        client_id: clientId,
-        client_secret: clientSecret,
+      const data = await exchangeStravaCodeForToken({
         code,
-        grant_type: 'authorization_code',
-        redirect_uri: redirect_uri || `${req.headers.origin}/settings`,
-      }
-
-      const response = await fetch(tokenExchangeUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(tokenExchangeBody),
+        clientId,
+        clientSecret,
+        redirectUri: redirect_uri || `${req.headers.origin}/settings`,
       })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('[OAuth Local] Strava token exchange error:', errorData)
-        res.writeHead(response.status, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({
-          error: 'Failed to exchange authorization code',
-          details: errorData,
-        }))
-        return
-      }
-
-      const data = await response.json()
-
 
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({
@@ -206,6 +187,15 @@ async function handleOAuthRequest(req: IncomingMessage, res: ServerResponse, env
         expires_at: data.expires_at,
       }))
     } catch (error) {
+      if (error instanceof StravaAuthError) {
+        console.error('[OAuth Local] Strava token exchange error:', error.details ?? error.message)
+        res.writeHead(error.status, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({
+          error: error.message,
+          details: error.details,
+        }))
+        return
+      }
       console.error('[OAuth Local] Token exchange error:', error)
       res.writeHead(500, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({
@@ -246,23 +236,11 @@ async function handleStravaRefreshRequest(req: IncomingMessage, res: ServerRespo
         res.end(JSON.stringify({ error: 'Strava not configured. Set STRAVA_CLIENT_SECRET.' }))
         return
       }
-      const refreshRes = await fetch('https://www.strava.com/oauth/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          client_id: clientId,
-          client_secret: clientSecret,
-          grant_type: 'refresh_token',
-          refresh_token,
-        }),
+      const data = await refreshStravaAccessToken({
+        refreshToken: refresh_token,
+        clientId,
+        clientSecret,
       })
-      if (!refreshRes.ok) {
-        const errData = await refreshRes.json().catch(() => ({}))
-        res.writeHead(refreshRes.status, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: errData.message || 'Strava refresh failed' }))
-        return
-      }
-      const data = await refreshRes.json()
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({
         access_token: data.access_token,
@@ -270,6 +248,11 @@ async function handleStravaRefreshRequest(req: IncomingMessage, res: ServerRespo
         expires_at: data.expires_at,
       }))
     } catch (e) {
+      if (e instanceof StravaAuthError) {
+        res.writeHead(e.status, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: e.message }))
+        return
+      }
       console.error('[OAuth Local] Strava refresh', e)
       res.writeHead(500, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: e instanceof Error ? e.message : 'Strava refresh failed' }))

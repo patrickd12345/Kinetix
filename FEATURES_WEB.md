@@ -26,6 +26,7 @@
 
 ### Run Tracking View
 - ✅ **Large NPI Display**: NPI as the star feature with circular progress gauge
+- ✅ **Desktop Panel Layout**: Two-column desktop dashboard with live metrics and controls
 - ✅ **Real-time Metrics**: Pace, distance, time, heart rate
 - ✅ **GPS Status**: Real-time GPS status indicator (ready/searching/poor/denied)
 - ✅ **Time to Beat**: Dynamic projection of time needed to hit target
@@ -64,6 +65,7 @@
 ### UI/UX
 - ✅ **Modern Design**: Dark theme with glassmorphism effects
 - ✅ **Responsive Layout**: Works on desktop and mobile
+- ✅ **Web Shell Navigation**: Desktop-first header/sidebar with mobile bottom navigation
 - ✅ **Smooth Animations**: Transitions and progress indicators
 - ✅ **Status Indicators**: Visual feedback for GPS and run state
 - ✅ **Error Handling**: User-friendly error messages
@@ -109,7 +111,7 @@
 
 ---
 
-**Last Updated**: 2025-01-XX
+**Last Updated**: 2026-03-05
 **Platform**: Modern Browsers (Chrome, Firefox, Safari, Edge)
 **Status**: In Development
 

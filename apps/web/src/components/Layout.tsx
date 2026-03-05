@@ -9,8 +9,11 @@ import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
 import { ensureValidWithingsAccess, fetchRecentWithingsWeights } from '../lib/withings'
 import { bulkPutWeightEntries } from '../lib/database'
+import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
 
 const RAG_SYNC_PAGE_SIZE = 200
+const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
+const WITHINGS_STARTUP_RETRY_DELAYS_MS = [2000, 5000] as const
 
 interface LayoutProps {
   children: ReactNode
@@ -34,16 +37,16 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => {
     if (!profile || typeof indexedDB === 'undefined') return
     const userProfile = toKinetixUserProfile(profile)
-    const run = () => {
+    const run = async () => {
       getRunsPage(1, RAG_SYNC_PAGE_SIZE)
         .then(({ items }) => {
           if (items.length === 0) return
           syncNewRunsToRAG(items, userProfile).catch(() => {})
         })
         .catch(() => {})
+      return true
     }
-    const id = window.setTimeout(run, 0)
-    return () => clearTimeout(id)
+    return scheduleStartupAttempts([0], run)
   }, [profile])
 
   // Sync new runs from Strava on app startup (e.g. Garmin->Strava run).
@@ -54,40 +57,34 @@ export default function Layout({ children }: LayoutProps) {
     if (!profile || typeof indexedDB === 'undefined') return
     stravaSyncDoneRef.current = false
 
-    const runSync = async () => {
-      if (stravaSyncDoneRef.current) return
+    const runSync = async (attempt: number) => {
+      if (stravaSyncDoneRef.current) return true
       const token = await getValidStravaToken()
-      if (!token?.trim() || stravaSyncDoneRef.current) {
-        if (useSettingsStore.getState().stravaCredentials ?? useSettingsStore.getState().stravaToken?.trim()) {
+      if (!token?.trim()) {
+        const isLastAttempt = attempt === STRAVA_STARTUP_RETRY_DELAYS_MS.length - 1
+        if (
+          isLastAttempt &&
+          (useSettingsStore.getState().stravaCredentials ?? useSettingsStore.getState().stravaToken?.trim())
+        ) {
           console.log('[Strava] Startup sync skipped: no valid token yet (refresh may have failed or rehydration pending)')
         }
-        return
+        return false
       }
       stravaSyncDoneRef.current = true
       console.log('[Strava] Startup sync running...')
-      syncStravaRuns(token, targetKPS, { recentDays: 90 })
-        .then((r) => {
-          if (r.added.length > 0) {
-            console.log('[Strava] Imported', r.added.length, 'run(s) on startup')
-            setStravaSyncError(null)
-          }
-          if (r.error) setStravaSyncError(r.error)
-        })
-        .catch((e) => setStravaSyncError(e instanceof Error ? e.message : 'Strava sync failed'))
+      try {
+        const r = await syncStravaRuns(token, targetKPS, { recentDays: 90 })
+        if (r.added.length > 0) {
+          console.log('[Strava] Imported', r.added.length, 'run(s) on startup')
+          setStravaSyncError(null)
+        }
+        if (r.error) setStravaSyncError(r.error)
+      } catch (e) {
+        setStravaSyncError(e instanceof Error ? e.message : 'Strava sync failed')
+      }
+      return true
     }
-    runSync()
-    const t1 = window.setTimeout(runSync, 500)
-    const t2 = window.setTimeout(runSync, 1500)
-    const t3 = window.setTimeout(runSync, 2500)
-    const t4 = window.setTimeout(runSync, 4000)
-    const t5 = window.setTimeout(runSync, 5000)
-    return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
-      clearTimeout(t3)
-      clearTimeout(t4)
-      clearTimeout(t5)
-    }
+    return scheduleStartupAttempts([...STRAVA_STARTUP_RETRY_DELAYS_MS], runSync)
   }, [profile, stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated])
 
   // Sync recent Withings weights into weight history on startup so new weigh-ins appear without re-importing JSON.
@@ -95,25 +92,29 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => {
     if (!settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') return
     if (withingsWeightSyncDoneRef.current) return
-    withingsWeightSyncDoneRef.current = true
 
     const run = async () => {
+      if (withingsWeightSyncDoneRef.current) return true
       try {
         const valid = await ensureValidWithingsAccess(withingsCredentials)
         if (valid !== withingsCredentials) setWithingsCredentials(valid)
         const entries = await fetchRecentWithingsWeights(valid.accessToken, 30)
-        if (entries.length === 0) return
+        if (entries.length === 0) {
+          withingsWeightSyncDoneRef.current = true
+          return true
+        }
         const { latestKg } = await bulkPutWeightEntries(entries)
         if (latestKg != null) setLastWithingsWeightKg(latestKg)
         if (entries.length > 0 && typeof console !== 'undefined') {
           console.log('[Withings] Synced', entries.length, 'recent weight(s) into history')
         }
+        withingsWeightSyncDoneRef.current = true
+        return true
       } catch {
-        withingsWeightSyncDoneRef.current = false
+        return false
       }
     }
-    const t = window.setTimeout(run, 2000)
-    return () => clearTimeout(t)
+    return scheduleStartupAttempts([...WITHINGS_STARTUP_RETRY_DELAYS_MS], run)
   }, [settingsRehydrated, withingsCredentials, setWithingsCredentials, setLastWithingsWeightKg])
 
   const navItems = [
@@ -126,74 +127,98 @@ export default function Layout({ children }: LayoutProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950">
-      {/* Desktop Sidebar Navigation */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 glass border-r border-white/10 backdrop-blur-xl z-40">
-        <div className="w-full p-6">
-          <div className="mb-8">
-            <h1 className="text-xl font-black italic tracking-wider text-white">KINETIX</h1>
-            <div className="mt-3 text-xs text-gray-400 truncate">{profileLabel}</div>
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="mt-2 text-xs text-cyan-300 hover:text-cyan-200 transition-colors"
-            >
-              Sign out
-            </button>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 to-black text-white">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur">
+        <div className="mx-auto max-w-7xl px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-xl font-black tracking-wide">KINETIX</h1>
+              <p className="text-xs text-slate-400">Web dashboard</p>
+            </div>
+            <div className="hidden md:flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = location.pathname === item.path
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all ${
+                      isActive
+                        ? 'bg-cyan-500/20 text-cyan-300'
+                        : 'text-slate-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:block max-w-[180px] truncate text-xs text-slate-400">
+                {profileLabel}
+              </span>
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="rounded-md border border-cyan-500/30 px-3 py-1.5 text-xs font-medium text-cyan-300 hover:bg-cyan-500/10"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
-          <nav className="space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = location.pathname === item.path
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    isActive
-                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                      : 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
-                  }`}
-                >
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                  <span className="text-sm font-medium">{item.label}</span>
-                </Link>
-              )
-            })}
-          </nav>
         </div>
-      </aside>
+      </header>
 
-      {/* Main Content Area */}
-      <div className={`lg:pl-64 transition-all`}>
-        <div className="container mx-auto px-4 py-4 max-w-7xl">
-          {children}
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
+          <aside className="hidden lg:block">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2">
+              <nav className="space-y-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = location.pathname === item.path
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all ${
+                        isActive
+                          ? 'bg-cyan-500/20 text-cyan-300'
+                          : 'text-slate-300 hover:bg-white/10'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </nav>
+            </div>
+          </aside>
+          <main className="min-w-0">{children}</main>
         </div>
       </div>
-      
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 glass border-t border-white/10 backdrop-blur-xl z-40">
-        <div className="container mx-auto max-w-7xl px-4">
-          <div className="flex justify-around items-center h-16">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = location.pathname === item.path
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-all ${
-                    isActive
-                      ? 'text-cyan-400'
-                      : 'text-gray-400 hover:text-gray-300'
-                  }`}
-                >
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                  <span className="text-xs font-medium">{item.label}</span>
-                </Link>
-              )
-            })}
-          </div>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/95 backdrop-blur md:hidden">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-around px-2">
+          {navItems.map((item) => {
+            const Icon = item.icon
+            const isActive = location.pathname === item.path
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex flex-col items-center gap-1 rounded px-2 py-1 text-[10px] ${
+                  isActive ? 'text-cyan-300' : 'text-slate-400'
+                }`}
+              >
+                <Icon size={16} />
+                <span>{item.label}</span>
+              </Link>
+            )
+          })}
         </div>
       </nav>
     </div>

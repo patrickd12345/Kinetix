@@ -1,9 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { applyCors } from '../_lib/cors'
+import { refreshStravaAccessToken, StravaAuthError } from '../_lib/stravaAuth'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  const cors = applyCors(req, res, {
+    methods: ['POST', 'OPTIONS'],
+    headers: ['Content-Type'],
+  })
+
+  if (!cors.allowed) {
+    return res.status(403).json({ error: 'Origin not allowed' })
+  }
 
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -21,33 +28,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const refreshRes = await fetch('https://www.strava.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        grant_type: 'refresh_token',
-        refresh_token,
-      }),
+    const data = await refreshStravaAccessToken({
+      refreshToken: refresh_token,
+      clientId,
+      clientSecret,
     })
-    if (!refreshRes.ok) {
-      const errData = await refreshRes.json().catch(() => ({}))
-      return res.status(refreshRes.status).json({
-        error: (errData as { message?: string }).message ?? 'Strava refresh failed',
-      })
-    }
-    const data = (await refreshRes.json()) as {
-      access_token: string
-      refresh_token: string
-      expires_at: number
-    }
     return res.status(200).json({
       access_token: data.access_token,
       refresh_token: data.refresh_token,
       expires_at: data.expires_at,
     })
   } catch (err) {
+    if (err instanceof StravaAuthError) {
+      return res.status(err.status).json({
+        error: err.message,
+      })
+    }
     console.error('[Strava Refresh]', err)
     return res.status(500).json({
       error: err instanceof Error ? err.message : 'Failed to refresh Strava token',

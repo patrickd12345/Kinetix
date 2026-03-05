@@ -1,10 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { applyCors } from '../_lib/cors'
+import { exchangeStravaCodeForToken, StravaAuthError } from '../_lib/stravaAuth'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  const cors = applyCors(req, res, {
+    methods: ['POST', 'OPTIONS'],
+    headers: ['Content-Type'],
+  })
+
+  if (!cors.allowed) {
+    return res.status(403).json({ error: 'Origin not allowed' })
+  }
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
@@ -31,35 +37,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const tokenExchangeUrl = 'https://www.strava.com/oauth/token'
-    const tokenExchangeBody = {
-      client_id: clientId,
-      client_secret: clientSecret,
+    const data = await exchangeStravaCodeForToken({
       code,
-      grant_type: 'authorization_code',
-      redirect_uri: redirect_uri || `${req.headers.origin}/settings`,
-    }
-
-    // Exchange authorization code for access token
-    const response = await fetch(tokenExchangeUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(tokenExchangeBody),
+      clientId,
+      clientSecret,
+      redirectUri: redirect_uri || `${req.headers.origin}/settings`,
     })
-
-    if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as { message?: string; errors?: Array<{ field?: string; code?: string }> }
-      console.error('[OAuth] Strava token exchange error:', errorData)
-      const stravaMsg = errorData?.message ?? (Array.isArray(errorData?.errors) && errorData.errors[0]?.code ? errorData.errors.map((e) => e.code).join(', ') : null)
-      return res.status(response.status).json({
-        error: stravaMsg || 'Failed to exchange authorization code',
-        details: errorData,
-      })
-    }
-
-    const data = await response.json()
 
     // Return access token and refresh token
     res.status(200).json({
@@ -68,6 +51,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       expires_at: data.expires_at,
     })
   } catch (error) {
+    if (error instanceof StravaAuthError) {
+      console.error('[OAuth] Strava token exchange error:', error.details ?? error.message)
+      return res.status(error.status).json({
+        error: error.message,
+        details: error.details,
+      })
+    }
     console.error('[OAuth] Token exchange error:', error)
     res.status(500).json({
       error: 'Failed to exchange authorization code',

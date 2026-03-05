@@ -18,6 +18,7 @@
 | **Settings Management** | ⚠️ (Limited) | ✅ | ✅ |
 | **Map Visualization** | ❌ | ⚠️ (Limited) | ❌ |
 | **Charts Menu (/menu)** | ❌ | ❌ | ✅ |
+| **Desktop-first Shell Navigation** | ❌ | ⚠️ (Tab navigation) | ✅ |
 | **Export/Share** | ❌ | ❌ | ❌ |
 
 **Legend**: ✅ = Full Support | ⚠️ = Partial/Limited | ❌ = Not Available
@@ -172,6 +173,11 @@
 
 ### UI/UX Features
 
+#### Navigation Shell
+- **Watch**: ❌ No shell navigation model (single-purpose run screens)
+- **Phone**: ⚠️ Native tab-based shell
+- **Web**: ✅ Desktop-first shell (header + sidebar) with mobile bottom navigation
+
 #### Map Visualization
 - **Watch**: ❌ Route data collected but not visualized
 - **Phone**: ⚠️ Limited map visualization
@@ -235,7 +241,7 @@
 
 ---
 
-**Last Updated**: 2025-01-XX
+**Last Updated**: 2026-03-05
 **Maintained By**: Development Team
 
 

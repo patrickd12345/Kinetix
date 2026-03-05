@@ -9,8 +9,11 @@ import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
 import { ensureValidWithingsAccess, fetchRecentWithingsWeights } from '../lib/withings'
 import { bulkPutWeightEntries } from '../lib/database'
+import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
 
 const RAG_SYNC_PAGE_SIZE = 200
+const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
+const WITHINGS_STARTUP_RETRY_DELAYS_MS = [2000, 5000] as const
 
 interface LayoutProps {
   children: ReactNode
@@ -34,16 +37,16 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => {
     if (!profile || typeof indexedDB === 'undefined') return
     const userProfile = toKinetixUserProfile(profile)
-    const run = () => {
+    const run = async () => {
       getRunsPage(1, RAG_SYNC_PAGE_SIZE)
         .then(({ items }) => {
           if (items.length === 0) return
           syncNewRunsToRAG(items, userProfile).catch(() => {})
         })
         .catch(() => {})
+      return true
     }
-    const id = window.setTimeout(run, 0)
-    return () => clearTimeout(id)
+    return scheduleStartupAttempts([0], run)
   }, [profile])
 
   // Sync new runs from Strava on app startup (e.g. Garmin->Strava run).
@@ -54,40 +57,34 @@ export default function Layout({ children }: LayoutProps) {
     if (!profile || typeof indexedDB === 'undefined') return
     stravaSyncDoneRef.current = false
 
-    const runSync = async () => {
-      if (stravaSyncDoneRef.current) return
+    const runSync = async (attempt: number) => {
+      if (stravaSyncDoneRef.current) return true
       const token = await getValidStravaToken()
-      if (!token?.trim() || stravaSyncDoneRef.current) {
-        if (useSettingsStore.getState().stravaCredentials ?? useSettingsStore.getState().stravaToken?.trim()) {
+      if (!token?.trim()) {
+        const isLastAttempt = attempt === STRAVA_STARTUP_RETRY_DELAYS_MS.length - 1
+        if (
+          isLastAttempt &&
+          (useSettingsStore.getState().stravaCredentials ?? useSettingsStore.getState().stravaToken?.trim())
+        ) {
           console.log('[Strava] Startup sync skipped: no valid token yet (refresh may have failed or rehydration pending)')
         }
-        return
+        return false
       }
       stravaSyncDoneRef.current = true
       console.log('[Strava] Startup sync running...')
-      syncStravaRuns(token, targetKPS, { recentDays: 90 })
-        .then((r) => {
-          if (r.added.length > 0) {
-            console.log('[Strava] Imported', r.added.length, 'run(s) on startup')
-            setStravaSyncError(null)
-          }
-          if (r.error) setStravaSyncError(r.error)
-        })
-        .catch((e) => setStravaSyncError(e instanceof Error ? e.message : 'Strava sync failed'))
+      try {
+        const r = await syncStravaRuns(token, targetKPS, { recentDays: 90 })
+        if (r.added.length > 0) {
+          console.log('[Strava] Imported', r.added.length, 'run(s) on startup')
+          setStravaSyncError(null)
+        }
+        if (r.error) setStravaSyncError(r.error)
+      } catch (e) {
+        setStravaSyncError(e instanceof Error ? e.message : 'Strava sync failed')
+      }
+      return true
     }
-    runSync()
-    const t1 = window.setTimeout(runSync, 500)
-    const t2 = window.setTimeout(runSync, 1500)
-    const t3 = window.setTimeout(runSync, 2500)
-    const t4 = window.setTimeout(runSync, 4000)
-    const t5 = window.setTimeout(runSync, 5000)
-    return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
-      clearTimeout(t3)
-      clearTimeout(t4)
-      clearTimeout(t5)
-    }
+    return scheduleStartupAttempts([...STRAVA_STARTUP_RETRY_DELAYS_MS], runSync)
   }, [profile, stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated])
 
   // Sync recent Withings weights into weight history on startup so new weigh-ins appear without re-importing JSON.
@@ -95,25 +92,29 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => {
     if (!settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') return
     if (withingsWeightSyncDoneRef.current) return
-    withingsWeightSyncDoneRef.current = true
 
     const run = async () => {
+      if (withingsWeightSyncDoneRef.current) return true
       try {
         const valid = await ensureValidWithingsAccess(withingsCredentials)
         if (valid !== withingsCredentials) setWithingsCredentials(valid)
         const entries = await fetchRecentWithingsWeights(valid.accessToken, 30)
-        if (entries.length === 0) return
+        if (entries.length === 0) {
+          withingsWeightSyncDoneRef.current = true
+          return true
+        }
         const { latestKg } = await bulkPutWeightEntries(entries)
         if (latestKg != null) setLastWithingsWeightKg(latestKg)
         if (entries.length > 0 && typeof console !== 'undefined') {
           console.log('[Withings] Synced', entries.length, 'recent weight(s) into history')
         }
+        withingsWeightSyncDoneRef.current = true
+        return true
       } catch {
-        withingsWeightSyncDoneRef.current = false
+        return false
       }
     }
-    const t = window.setTimeout(run, 2000)
-    return () => clearTimeout(t)
+    return scheduleStartupAttempts([...WITHINGS_STARTUP_RETRY_DELAYS_MS], run)
   }, [settingsRehydrated, withingsCredentials, setWithingsCredentials, setLastWithingsWeightKg])
 
   const navItems = [

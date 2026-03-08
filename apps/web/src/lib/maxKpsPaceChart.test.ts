@@ -94,10 +94,10 @@ describe('generateKps100Curve', () => {
     expect(generateKps100Curve(NaN, userProfile, 'metric')).toEqual([])
   })
 
-  it('returns 7 points for valid pbAbsoluteKps (milestone distances)', () => {
+  it('returns 8 points for valid pbAbsoluteKps (milestone distances up to 50 km)', () => {
     const points = generateKps100Curve(100, userProfile, 'metric')
-    expect(points).toHaveLength(7)
-    expect(points.map((p) => p.distanceKm)).toEqual([1, 3, 5, 10, 15, 21.0975, 42.195])
+    expect(points).toHaveLength(8)
+    expect(points.map((p) => p.distanceKm)).toEqual([1, 3, 5, 10, 15, 21.0975, 42.195, 50])
     points.forEach((p) => {
       expect(p).toHaveProperty('distanceLabel')
       expect(p).toHaveProperty('paceLabel')

@@ -8,8 +8,8 @@ import {
 } from './kpsUtils'
 import type { UserProfile } from '@kinetix/core'
 
-/** Milestone distances in km for the KPS 100 curve. */
-const KPS100_CURVE_DISTANCES_KM = [1, 3, 5, 10, 15, 21.0975, 42.195] as const
+/** Milestone distances in km for the KPS 100 curve (X axis goes up to 50 km). */
+const KPS100_CURVE_DISTANCES_KM = [1, 3, 5, 10, 15, 21.0975, 42.195, 50] as const
 
 export interface Kps100CurvePoint {
   distanceKm: number
@@ -54,7 +54,11 @@ export function generateKps100Curve(
           ? unitSystem === 'metric'
             ? 'Marathon'
             : '26.2 mi'
-          : `${distanceDisplay.toFixed(distanceDisplay >= 10 ? 0 : 1)} ${distanceUnitLabel}`
+          : distanceKm === 50
+            ? unitSystem === 'metric'
+              ? '50 km'
+              : '31.1 mi'
+            : `${distanceDisplay.toFixed(distanceDisplay >= 10 ? 0 : 1)} ${distanceUnitLabel}`
     points.push({
       distanceKm,
       distanceDisplay,

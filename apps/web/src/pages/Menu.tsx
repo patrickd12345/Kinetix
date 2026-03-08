@@ -12,6 +12,7 @@ import {
 } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
 import { toKinetixUserProfile } from '../lib/kinetixProfile'
+import type { UserProfile } from '@kinetix/core'
 import {
   ensurePBInitialized,
   getPB,
@@ -71,6 +72,7 @@ class ChartErrorBoundary extends Component<
 export default function Menu() {
   const [points, setPoints] = useState<MaxKPSPaceDurationPoint[]>([])
   const [pbAbsoluteKps, setPbAbsoluteKps] = useState<number | null>(null)
+  const [pbProfileSnapshot, setPbProfileSnapshot] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'pbs' | 'curve'>('pbs')
   const unitSystem = useSettingsStore((s) => s.unitSystem)
@@ -80,10 +82,14 @@ export default function Menu() {
   }, [profile])
 
   const curvePoints = useMemo(() => {
-    if (!userProfile || pbAbsoluteKps == null || pbAbsoluteKps <= 0)
+    if (!pbProfileSnapshot || pbAbsoluteKps == null || pbAbsoluteKps <= 0)
       return []
-    return generateKps100Curve(pbAbsoluteKps, userProfile, unitSystem ?? 'metric')
-  }, [pbAbsoluteKps, userProfile, unitSystem])
+    return generateKps100Curve(
+      pbAbsoluteKps,
+      pbProfileSnapshot,
+      unitSystem ?? 'metric'
+    )
+  }, [pbAbsoluteKps, pbProfileSnapshot, unitSystem])
 
   const LOAD_TIMEOUT_MS = 60_000
   const loadInProgressRef = useRef(false)
@@ -92,6 +98,7 @@ export default function Menu() {
     if (typeof indexedDB === 'undefined') {
       setPoints([])
       setPbAbsoluteKps(null)
+      setPbProfileSnapshot(null)
       setLoading(false)
       return
     }
@@ -102,6 +109,7 @@ export default function Menu() {
       if (!userProfile || !getActivePlatformProfile()) {
         setPoints([])
         setPbAbsoluteKps(null)
+        setPbProfileSnapshot(null)
         return
       }
       const load = async () => {
@@ -124,11 +132,21 @@ export default function Menu() {
         const pb = await getPB()
         const pbRun = await getPBRun()
         let pbAbs: number | null = null
+        let snapshot: UserProfile | null = null
         if (pb && pbRun && pb.profileSnapshot) {
           pbAbs = calculateAbsoluteKPS(pbRun, pb.profileSnapshot)
+          console.log('[DEBUG PB AFTER DELETE]', {
+            date: pbRun.date,
+            distance: pbRun.distance,
+            duration: pbRun.duration,
+            averagePace: pbRun.averagePace,
+            absoluteKPS: pbAbs
+          })
           if (!Number.isFinite(pbAbs) || pbAbs <= 0) pbAbs = null
+          else snapshot = pb.profileSnapshot
         }
         setPbAbsoluteKps(pbAbs)
+        setPbProfileSnapshot(snapshot)
         return pts
       }
       const timeout = new Promise<never>((_, reject) =>
@@ -140,6 +158,7 @@ export default function Menu() {
       console.error('Error loading menu charts data:', error)
       setPoints([])
       setPbAbsoluteKps(null)
+      setPbProfileSnapshot(null)
     } finally {
       loadInProgressRef.current = false
       setLoading(false)

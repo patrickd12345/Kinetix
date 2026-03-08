@@ -187,10 +187,12 @@ export default function Kps100CurveChart({
               dataKey="distanceDisplay"
               stroke="#6b7280"
               tick={{ fill: '#9ca3af', fontSize: 11 }}
-              domain={['dataMin - 0.5', 'dataMax + 0.5']}
-              tickFormatter={(value: number, index: number) =>
-                points[index]?.distanceLabel ?? String(value)
-              }
+              domain={[0, unitSystem === 'metric' ? 50 : 50 * 0.621371]}
+              ticks={points.map((p) => p.distanceDisplay)}
+              tickFormatter={(value: number) => {
+                const p = points.find((x) => x.distanceDisplay === value)
+                return p?.distanceLabel ?? String(value)
+              }}
               label={{
                 value: unitSystem === 'metric' ? 'Distance (km)' : 'Distance (mi)',
                 position: 'insideBottom',

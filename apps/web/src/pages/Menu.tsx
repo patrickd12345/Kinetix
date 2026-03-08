@@ -1,9 +1,10 @@
 import { Component, type ErrorInfo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BarChart3, AlertCircle } from 'lucide-react'
 import MaxKPSPaceDurationChart from '../components/MaxKPSPaceDurationChart'
+import Kps100CurveChart from '../components/Kps100CurveChart'
 import { db, getWeightsForDates, RUN_VISIBLE } from '../lib/database'
 import { useSettingsStore } from '../store/settingsStore'
-import { buildMaxKPSPaceDurationPoints } from '../lib/maxKpsPaceChart'
+import { buildMaxKPSPaceDurationPoints, generateKps100Curve } from '../lib/maxKpsPaceChart'
 import type { MaxKPSPaceDurationPoint } from '../lib/maxKpsPaceChart'
 import {
   createGetProfileForRunWithWeightCache,
@@ -11,7 +12,12 @@ import {
 } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
 import { toKinetixUserProfile } from '../lib/kinetixProfile'
-import { ensurePBInitialized } from '../lib/kpsUtils'
+import {
+  ensurePBInitialized,
+  getPB,
+  getPBRun,
+  calculateAbsoluteKPS,
+} from '../lib/kpsUtils'
 
 function MenuSkeleton() {
   return (
@@ -64,12 +70,20 @@ class ChartErrorBoundary extends Component<
 
 export default function Menu() {
   const [points, setPoints] = useState<MaxKPSPaceDurationPoint[]>([])
+  const [pbAbsoluteKps, setPbAbsoluteKps] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'pbs' | 'curve'>('pbs')
   const unitSystem = useSettingsStore((s) => s.unitSystem)
   const { profile } = useAuth()
   const userProfile = useMemo(() => {
     return profile ? toKinetixUserProfile(profile) : null
   }, [profile])
+
+  const curvePoints = useMemo(() => {
+    if (!userProfile || pbAbsoluteKps == null || pbAbsoluteKps <= 0)
+      return []
+    return generateKps100Curve(pbAbsoluteKps, userProfile, unitSystem ?? 'metric')
+  }, [pbAbsoluteKps, userProfile, unitSystem])
 
   const LOAD_TIMEOUT_MS = 60_000
   const loadInProgressRef = useRef(false)
@@ -77,6 +91,7 @@ export default function Menu() {
   const loadRuns = useCallback(async () => {
     if (typeof indexedDB === 'undefined') {
       setPoints([])
+      setPbAbsoluteKps(null)
       setLoading(false)
       return
     }
@@ -86,6 +101,7 @@ export default function Menu() {
     try {
       if (!userProfile || !getActivePlatformProfile()) {
         setPoints([])
+        setPbAbsoluteKps(null)
         return
       }
       const load = async () => {
@@ -100,7 +116,20 @@ export default function Menu() {
         const runDates = runsForChart.map((r) => r.date)
         const weightByDate = await getWeightsForDates(runDates)
         const getProfileForRun = createGetProfileForRunWithWeightCache(weightByDate)
-        return buildMaxKPSPaceDurationPoints(runsForChart, unitSystem ?? 'metric', getProfileForRun)
+        const pts = await buildMaxKPSPaceDurationPoints(
+          runsForChart,
+          unitSystem ?? 'metric',
+          getProfileForRun
+        )
+        const pb = await getPB()
+        const pbRun = await getPBRun()
+        let pbAbs: number | null = null
+        if (pb && pbRun && pb.profileSnapshot) {
+          pbAbs = calculateAbsoluteKPS(pbRun, pb.profileSnapshot)
+          if (!Number.isFinite(pbAbs) || pbAbs <= 0) pbAbs = null
+        }
+        setPbAbsoluteKps(pbAbs)
+        return pts
       }
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Charts load timeout')), LOAD_TIMEOUT_MS)
@@ -110,6 +139,7 @@ export default function Menu() {
     } catch (error) {
       console.error('Error loading menu charts data:', error)
       setPoints([])
+      setPbAbsoluteKps(null)
     } finally {
       loadInProgressRef.current = false
       setLoading(false)
@@ -153,9 +183,54 @@ export default function Menu() {
         {loading ? (
           <MenuSkeleton />
         ) : (
-          <ChartErrorBoundary onRetry={() => void loadRuns()}>
-            <MaxKPSPaceDurationChart points={points} unitSystem={unitSystem ?? 'metric'} />
-          </ChartErrorBoundary>
+          <>
+            <div
+              className="flex gap-1 p-1 rounded-xl bg-black/30 border border-violet-500/20 w-fit mb-4"
+              role="tablist"
+              aria-label="Chart type"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'pbs'}
+                onClick={() => setActiveTab('pbs')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  activeTab === 'pbs'
+                    ? 'bg-violet-500/30 text-cyan-300'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                PBs by duration
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'curve'}
+                onClick={() => setActiveTab('curve')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  activeTab === 'curve'
+                    ? 'bg-violet-500/30 text-cyan-300'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Pace to hit KPS 100
+              </button>
+            </div>
+            <ChartErrorBoundary onRetry={() => void loadRuns()}>
+              {activeTab === 'pbs' && (
+                <MaxKPSPaceDurationChart
+                  points={points}
+                  unitSystem={unitSystem ?? 'metric'}
+                />
+              )}
+              {activeTab === 'curve' && (
+                <Kps100CurveChart
+                  points={curvePoints}
+                  unitSystem={unitSystem ?? 'metric'}
+                />
+              )}
+            </ChartErrorBoundary>
+          </>
         )}
       </div>
     </div>

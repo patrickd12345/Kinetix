@@ -1,4 +1,4 @@
-import { formatPace, formatTime } from '@kinetix/core'
+import { formatPace, formatTime, timeToAchieveKPS } from '@kinetix/core'
 import { type RunRecord } from './database'
 import {
   calculateRelativeKPSSync,
@@ -7,6 +7,68 @@ import {
   isValidKPS,
 } from './kpsUtils'
 import type { UserProfile } from '@kinetix/core'
+
+/** Milestone distances in km for the KPS 100 curve. */
+const KPS100_CURVE_DISTANCES_KM = [1, 3, 5, 10, 15, 21.0975, 42.195] as const
+
+export interface Kps100CurvePoint {
+  distanceKm: number
+  distanceDisplay: number
+  distanceUnitLabel: 'km' | 'mi'
+  distanceLabel: string
+  timeSeconds: number
+  timeLabel: string
+  paceSecondsPerKm: number
+  paceSeconds: number
+  paceLabel: string
+}
+
+/**
+ * Builds chart points for the "Pace to hit KPS 100" curve: at each distance,
+ * the target time and pace that would score exactly the given absolute KPS
+ * (i.e. match the user's current PB). Uses Riegel formula via timeToAchieveKPS.
+ */
+export function generateKps100Curve(
+  pbAbsoluteKps: number,
+  userProfile: UserProfile,
+  unitSystem: 'metric' | 'imperial'
+): Kps100CurvePoint[] {
+  if (!Number.isFinite(pbAbsoluteKps) || pbAbsoluteKps <= 0 || !userProfile) {
+    return []
+  }
+  const points: Kps100CurvePoint[] = []
+  for (const distanceKm of KPS100_CURVE_DISTANCES_KM) {
+    const timeSeconds = timeToAchieveKPS(pbAbsoluteKps, distanceKm, userProfile)
+    if (timeSeconds <= 0) continue
+    const paceSecondsPerKm = timeSeconds / distanceKm
+    const paceSeconds = toPaceSecondsForUnit(paceSecondsPerKm, unitSystem)
+    const distanceDisplay =
+      unitSystem === 'metric' ? distanceKm : distanceKm * KM_TO_MI
+    const distanceUnitLabel = unitSystem === 'metric' ? 'km' : 'mi'
+    const distanceLabel =
+      distanceKm === 21.0975
+        ? unitSystem === 'metric'
+          ? 'Half marathon'
+          : '13.1 mi'
+        : distanceKm === 42.195
+          ? unitSystem === 'metric'
+            ? 'Marathon'
+            : '26.2 mi'
+          : `${distanceDisplay.toFixed(distanceDisplay >= 10 ? 0 : 1)} ${distanceUnitLabel}`
+    points.push({
+      distanceKm,
+      distanceDisplay,
+      distanceUnitLabel,
+      distanceLabel,
+      timeSeconds,
+      timeLabel: formatTime(timeSeconds),
+      paceSecondsPerKm,
+      paceSeconds,
+      paceLabel: `${formatPace(paceSecondsPerKm, unitSystem)} ${unitSystem === 'metric' ? '/km' : '/mi'}`,
+    })
+  }
+  return points
+}
 
 const SEC_PER_KM_TO_SEC_PER_MI = 1.60934
 const M_TO_KM = 1000

@@ -84,20 +84,6 @@ export default function MaxKPSPaceDurationChart({
 
   const paceUnitLabel = unitSystem === 'metric' ? 'min/km' : 'min/mi'
 
-  if (points.length === 0) {
-    return (
-      <div
-        data-testid="charts-empty-state"
-        className="glass rounded-2xl p-8 border border-violet-500/20 text-center"
-      >
-        <p className="text-lg font-semibold text-slate-200 mb-2">No performance data yet for this chart.</p>
-        <p className="text-sm text-slate-400">
-          Finish a few runs and this view will display max {KPS_SHORT} by duration bucket.
-        </p>
-      </div>
-    )
-  }
-
   // Reasonable pace bounds (2:00–15:00 min/km or 3:13–24:08 min/mi) to avoid absurd Y-axis labels from bad data
   const PACE_MIN = unitSystem === 'metric' ? 120 : 193
   const PACE_MAX = unitSystem === 'metric' ? 900 : 1450
@@ -147,15 +133,29 @@ export default function MaxKPSPaceDurationChart({
         {isSelected && <circle cx={cx} cy={cy} r={11} fill="#22d3ee" opacity={0.2} />}
       </g>
     )
-  }, [selectedPoint, setSelectedPoint, setSelectedTooltipPosition])
+  }, [selectedPoint])
+
+  if (points.length === 0) {
+    return (
+      <div
+        data-testid="charts-empty-state"
+        className="glass rounded-2xl p-8 border border-violet-500/20 text-center"
+      >
+        <p className="text-lg font-semibold text-slate-200 mb-2">No performance data yet for this chart.</p>
+        <p className="text-sm text-slate-400">
+          Finish a few runs and this view will display max {KPS_SHORT} by duration bucket.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div data-testid="charts-max-kps-pace" className="glass rounded-2xl p-6 border border-violet-500/20">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-lg font-black text-white">Max {KPS_SHORT} on Pace vs Duration</h3>
+          <h3 className="text-lg font-black text-white">Your best {KPS_SHORT} by duration bucket</h3>
           <p className="text-xs text-gray-400">
-            Each point is the highest-{KPS_SHORT} run inside a 5-minute duration bucket.
+            Each point is your highest-{KPS_SHORT} run in a 5-minute duration bucket. Tooltip shows when each was attained.
           </p>
         </div>
         <span className="text-xs text-gray-500">Click a point to open its tooltip</span>

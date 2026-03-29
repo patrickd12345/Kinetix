@@ -8,6 +8,7 @@ import { vectorDB } from './vectorDB.js';
 
 const REF_DISTANCE_KM = 10.0;
 const Riegel = 1.06;
+const runtimeConsole = globalThis.console ?? console;
 
 function ageAdjustment(age) {
   const peakAge = 27.5;
@@ -110,10 +111,10 @@ export async function getCoachContext(message, userProfile, pbRun) {
   try {
     const embedding = await EmbeddingService.embedText(message || 'running pace');
     const { runs } = await vectorDB.findSimilarRuns(embedding, { topK: 10 });
-    console.info('[RAG]', { retrieved: runs.length });
+    runtimeConsole.info('[RAG]', { retrieved: runs.length });
     parts.push(formatRunsSummary(runs));
   } catch (err) {
-    console.warn('Coach context retrieval failed:', err.message);
+    runtimeConsole.warn('Coach context retrieval failed:', err.message);
     parts.push('No runs in RAG index (or retrieval failed).');
   }
 

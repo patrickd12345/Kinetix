@@ -1,47 +1,28 @@
-/**
- * getLLMClient() - Kinetix local LLM abstraction (RAG).
- *
- * CONTRACT (must match apps/web/api/_lib/ai/llmClient.ts when duplicated):
- * - resolveProvider(env): 'ollama' | 'gateway'
- *   Canonical: KINETIX_LLM_PROVIDER=ollama|gateway.
- *   If unset: VERCEL=1 -> gateway, else -> ollama. Do not use NODE_ENV.
- * - resolveModel(env, provider): string
- * - getLLMClient(env?): { provider, model, executeChat }
- * - executeChat(messages, options?): Promise<{ text: string }>
- * - Gateway: OpenAI-compatible (baseURL + apiKey). Env: AI_GATEWAY_BASE_URL, AI_GATEWAY_API_KEY, AI_GATEWAY_MODEL.
- * - Ollama: OLLAMA_BASE_URL (fallback OLLAMA_API_URL), OLLAMA_MODEL / LLM_MODEL.
- */
+import { executeChat as executeSharedChat, executeEmbedding as executeSharedEmbedding } from '@bookiji-inc/ai-runtime'
+import { resolveKinetixRuntimeEnvFromObject } from '../../../../api/_lib/env/runtime.shared.mjs'
+
+const runtimeConsole = globalThis.console ?? console
 
 function getEnv() {
-  return typeof process !== 'undefined' ? process.env : {};
+  return undefined
 }
 
-/**
- * Canonical provider switch. Single source of truth.
- * KINETIX_LLM_PROVIDER=ollama|gateway. If unset: VERCEL=1 -> gateway, else ollama.
- */
 function resolveProvider(env = getEnv()) {
-  const provider = (env.KINETIX_LLM_PROVIDER || '').toLowerCase();
-  if (provider === 'ollama' || provider === 'gateway') {
-    return provider;
-  }
-  if (env.VERCEL === '1') {
-    return 'gateway';
-  }
-  return 'ollama';
+  return resolveKinetixRuntimeEnvFromObject(env).aiProvider
 }
 
 function resolveModel(env, provider) {
+  const runtime = resolveKinetixRuntimeEnvFromObject(env)
   if (provider === 'gateway') {
-    return env.AI_GATEWAY_MODEL || env.OPENAI_MODEL || 'gpt-4o-mini';
+    return runtime.openAiModel
   }
-  return env.OLLAMA_MODEL || env.LLM_MODEL || 'llama3.2';
+  return runtime.ollamaModel
 }
 
-async function executeOllama(baseUrl, model, messages, options) {
+async function executeOllamaGenerate(baseUrl, model, messages, options) {
   const prompt = messages
     .map((m) => `${m.role === 'system' ? 'System: ' : ''}${m.content}`)
-    .join('\n\n');
+    .join('\n\n')
   const res = await fetch(`${baseUrl}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -55,71 +36,94 @@ async function executeOllama(baseUrl, model, messages, options) {
       },
     }),
     signal: AbortSignal.timeout(60000),
-  });
+  })
   if (!res.ok) {
-    const err = new Error(`Ollama API error: ${res.status}`);
-    err.status = res.status;
-    throw err;
+    const err = new Error(`Ollama API error: ${res.status}`)
+    err.status = res.status
+    throw err
   }
-  const data = await res.json();
-  return { text: (data.response || '').trim() };
+  const data = await res.json()
+  return { text: (data.response || '').trim() }
 }
 
-async function executeGateway(baseUrl, apiKey, model, messages, options) {
-  const url = baseUrl.replace(/\/$/, '') + '/v1/chat/completions';
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      temperature: options.temperature ?? 0.7,
-      max_tokens: options.maxTokens ?? 1024,
-    }),
-    signal: AbortSignal.timeout(60000),
-  });
-  if (!res.ok) {
-    const err = new Error(`Gateway API error: ${res.status}`);
-    err.status = res.status;
-    throw err;
-  }
-  const data = await res.json();
-  const text = data.choices?.[0]?.message?.content?.trim() ?? '';
-  return { text };
+function isProviderError(error) {
+  return error instanceof Error
 }
 
-/**
- * Returns LLM client with deterministic provider routing.
- * Logs provider and model for smoke verification.
- */
 function getLLMClient(env = getEnv()) {
-  const provider = resolveProvider(env);
-  const model = resolveModel(env, provider);
+  const provider = resolveProvider(env)
+  const model = resolveModel(env, provider)
+  const runtime = resolveKinetixRuntimeEnvFromObject(env)
 
   async function executeChat(messages, options = {}) {
-    const effectiveModel = options.model ?? model;
-    console.info('[LLM]', { provider, model: effectiveModel });
+    const startedAt = Date.now()
+    const effectiveModel = options.model ?? model
+    runtimeConsole.info('[LLM]', { provider, model: effectiveModel, mode: provider })
 
-    if (provider === 'ollama') {
-      const baseUrl =
-        env.OLLAMA_BASE_URL || env.OLLAMA_API_URL || 'http://localhost:11434';
-      return executeOllama(baseUrl, effectiveModel, messages, options);
-    }
+    try {
+      const result = await executeSharedChat({
+        messages,
+        model: effectiveModel,
+        temperature: options.temperature ?? 0.7,
+        maxTokens: options.maxTokens ?? 1024,
+        modeOverride: provider,
+        providerOverride: provider,
+        env,
+      })
 
-    const baseUrl = env.AI_GATEWAY_BASE_URL;
-    const apiKey = env.AI_GATEWAY_API_KEY || env.OPENAI_API_KEY;
-    if (!baseUrl || !apiKey) {
-      throw new Error(
-        'Gateway mode requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY (or OPENAI_API_KEY)'
-      );
+      return {
+        text: result.text,
+        provider,
+        model: effectiveModel,
+        mode: result.mode,
+        latencyMs: result.latencyMs,
+        fallbackReason: result.fallbackReason,
+      }
+    } catch (error) {
+      if (provider === 'ollama' && isProviderError(error) && error.status === 500) {
+        const generated = await executeOllamaGenerate(
+          runtime.ollamaBaseUrl || 'http://localhost:11434',
+          effectiveModel,
+          messages,
+          options,
+        )
+        return {
+          ...generated,
+          provider,
+          model: effectiveModel,
+          mode: 'ollama',
+          latencyMs: Date.now() - startedAt,
+          fallbackReason: 'ollama_chat_failed_generate_fallback',
+        }
+      }
+      throw error
     }
-    return executeGateway(baseUrl, apiKey, effectiveModel, messages, options);
   }
 
-  return { provider, model, executeChat };
+  async function executeEmbedding(input, options = {}) {
+    const effectiveModel =
+      options.model ??
+      (provider === 'gateway' ? runtime.openAiModel || 'text-embedding-3-small' : model)
+
+    const result = await executeSharedEmbedding({
+      input,
+      model: effectiveModel,
+      modeOverride: provider,
+      providerOverride: provider,
+      env,
+    })
+
+    return {
+      embedding: result.embedding,
+      provider,
+      model: effectiveModel,
+      mode: result.mode,
+      latencyMs: result.latencyMs,
+      fallbackReason: result.fallbackReason,
+    }
+  }
+
+  return { provider, model, executeChat, executeEmbedding }
 }
 
-export { getLLMClient, resolveProvider, resolveModel };
+export { getLLMClient, resolveProvider, resolveModel }

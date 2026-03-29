@@ -9,8 +9,8 @@ class ConversationalCoach: ObservableObject {
     @Published var conversationHistory: [ChatMessage] = []
     private let logger = DiagnosticLogManager.shared
     
-    // Use shared AI logic
-    private let aiEngine = AICoach()
+    // Shared AI execution internals are centralized in AICoach.swift.
+    private let aiExecutionService = SharedAIExecutionService()
     // Use shared Voice logic (if we wanted TTS on phone, but VoiceCoach is configured for Watch audio session)
     // For Phone, we might need a separate TTS configuration or adapt VoiceCoach.
     // For now, we will rely on the text response and basic TTS if needed.
@@ -57,7 +57,7 @@ class ConversationalCoach: ObservableObject {
         
         // 5. Ask AI
         Task {
-            let response = await aiEngine.ask(question: text, metrics: metrics)
+            let response = await aiExecutionService.ask(question: text, metrics: metrics)
 
             // Remove loading message
             await MainActor.run {

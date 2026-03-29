@@ -4,13 +4,26 @@
  */
 
 import { ChromaClient } from 'chromadb';
+import { resolveKinetixRuntimeEnvFromObject } from '../../../api/_lib/env/runtime.shared.mjs';
 
-const CHROMA_MODE = process.env.CHROMA_MODE || 'in-memory';
-const CHROMA_PATH = process.env.CHROMA_PATH || './chroma_db';
+const runtimeConsole = globalThis.console ?? console;
 const COLLECTION_NAME = 'kinetix_runs';
 
+function getRuntime() {
+  return resolveKinetixRuntimeEnvFromObject();
+}
+
+function getChromaMode() {
+  return getRuntime().chromaMode || 'in-memory';
+}
+
+function getChromaPath() {
+  return getRuntime().chromaPath || './chroma_db';
+}
+
 function getChromaApiUrl() {
-  return process.env.CHROMA_API_URL || process.env.CHROMA_SERVER_URL;
+  const runtime = getRuntime();
+  return runtime.chromaApiUrl || runtime.chromaServerUrl;
 }
 
 function createChromaClient() {
@@ -19,12 +32,12 @@ function createChromaClient() {
     return new ChromaClient({ path: url });
   }
   try {
-    if (CHROMA_MODE === 'persistent') {
-      return new ChromaClient({ path: CHROMA_PATH });
+    if (getChromaMode() === 'persistent') {
+      return new ChromaClient({ path: getChromaPath() });
     }
     return new ChromaClient();
   } catch (error) {
-    console.warn('ChromaClient init error, trying default:', error);
+    runtimeConsole.warn('ChromaClient init error, trying default:', error);
     return new ChromaClient();
   }
 }
@@ -93,7 +106,7 @@ export class VectorDB {
     try {
       await this.collection.delete({ ids: [String(runId)] });
     } catch (error) {
-      console.warn(`Run ${runId} not found in vector DB:`, error.message);
+      runtimeConsole.warn(`Run ${runId} not found in vector DB:`, error.message);
     }
   }
 

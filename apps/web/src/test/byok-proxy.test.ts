@@ -58,7 +58,7 @@ describe('Gemini proxy BYOK enforcement', () => {
 
   it('rejects requests with BYOK header', async () => {
     const req = createReq({
-      headers: { 'x-openai-key': 'sk-test-12345678901234567890' },
+      headers: { 'x-openai-key': 'sk-test-12345678901234567890', 'x-request-id': 'req_byok' },
       body: { systemInstruction: 'sys', contents: [] },
     })
     const res = createRes()
@@ -66,7 +66,11 @@ describe('Gemini proxy BYOK enforcement', () => {
     await chatHandler(req, res)
 
     expect(res.statusCode).toBe(400)
-    expect(String(res.body?.error || '')).toMatch(/BYOK/i)
+    expect(res.body).toEqual({
+      code: 'byok_not_supported',
+      message: 'BYOK is not supported on this endpoint.',
+      requestId: 'req_byok',
+    })
     expect(executeChatMock).not.toHaveBeenCalled()
   })
 

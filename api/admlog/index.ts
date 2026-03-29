@@ -9,42 +9,47 @@ import {
   isAdmlogEnabled,
   getAdmlogBlockReason,
   performAdmlogSignIn,
-} from '@bookiji-inc/platform-auth'
+} from '../_lib/platformAuth'
+import { sendApiError } from '../_lib/apiError'
+import { buildKinetixApiError, getApiRequestId } from '../_lib/ai/error-contract'
+import { getObservedRequestId, logApiEvent } from '../_lib/observability'
+import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime'
 
 function getSupabaseConfig() {
-  const url =
-    process.env.SUPABASE_URL ??
-    process.env.VITE_SUPABASE_URL ??
-    process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey =
-    process.env.SUPABASE_ANON_KEY ??
-    process.env.VITE_SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  const serviceKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_KEY
+  const runtime = resolveKinetixRuntimeEnv()
+  const url = runtime.supabaseUrl
+  const anonKey = runtime.supabaseAnonKey
+  const serviceKey = runtime.supabaseServiceRoleKey
   return { url, anonKey, serviceKey }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return sendApiError(res, 405, 'Method not allowed', { source: req.headers })
   }
 
   const clientIp =
     (req.headers['x-forwarded-for'] as string) ??
     (req.headers['x-real-ip'] as string) ??
     'unknown'
-  console.warn('[ADMLOG] Access attempt', {
+  logApiEvent('warn', 'kinetix_admlog_access_attempt', {
     ip: clientIp,
     userAgent: req.headers['user-agent'],
-    nodeEnv: process.env.NODE_ENV,
+    nodeEnv: resolveKinetixRuntimeEnv().nodeEnv,
   })
 
   if (!isAdmlogEnabled()) {
     const { criteria, howToEnable } = getAdmlogBlockReason()
-    console.warn('[ADMLOG] Blocked', { criteria, howToEnable })
+    logApiEvent('warn', 'kinetix_admlog_blocked', { criteria, howToEnable })
+    const payload = buildKinetixApiError(
+      'forbidden',
+      'Admlog is disabled',
+      403,
+      getApiRequestId(req.headers),
+    )
     return res.status(403).json({
       error: 'Admlog is disabled',
+      ...payload,
       criteria,
       howToEnable,
     })
@@ -53,7 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { url: supabaseUrl, anonKey, serviceKey } = getSupabaseConfig()
     if (!supabaseUrl || !serviceKey || !anonKey) {
-      return res.status(500).json({ error: 'Configuration missing' })
+      return sendApiError(res, 500, 'Configuration missing', { source: req.headers })
     }
 
     const { access_token, refresh_token } = await performAdmlogSignIn({
@@ -62,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       anonKey,
     })
 
-    console.warn('[ADMLOG] Token issued', { ip: clientIp })
+    logApiEvent('info', 'kinetix_admlog_token_issued', { ip: clientIp })
 
     const cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[] = []
     const cookieHeader = (req.headers.cookie as string) ?? ''
@@ -87,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       refresh_token,
     })
     if (setError) {
-      return res.status(400).json({ error: setError.message })
+      return sendApiError(res, 400, setError.message, { source: req.headers })
     }
 
     const isLocal = /localhost|127\.0\.0\.1/.test(supabaseUrl)
@@ -101,13 +106,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const base = (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-host'])
       ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
-      : `http://localhost:${process.env.PORT ?? 5173}`
+      : `http://localhost:${resolveKinetixRuntimeEnv().port || 5173}`
     return res.redirect(302, `${base}/admin`)
   } catch (error) {
-    console.error('[ADMLOG] Error', error)
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
+    logApiEvent('error', 'kinetix_admlog_error', {
+      error: error instanceof Error ? error.message : String(error),
+      requestId: getObservedRequestId(req.headers || {}),
+    })
+    return sendApiError(res, 500, 'Internal server error', {
+      source: req.headers,
+      details: error instanceof Error ? error.message : 'Unknown error',
     })
   }
 }

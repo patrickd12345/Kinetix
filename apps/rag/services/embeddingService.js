@@ -3,8 +3,19 @@
  * Converts runs into vectors for semantic search
  */
 
-const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434';
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'nomic-embed-text';
+import { resolveKinetixRuntimeEnvFromObject } from '../../../api/_lib/env/runtime.shared.mjs';
+
+function getRuntime() {
+  return resolveKinetixRuntimeEnvFromObject();
+}
+
+function getOllamaApiUrl() {
+  return getRuntime().ollamaApiUrl || 'http://localhost:11434';
+}
+
+function getEmbeddingModel() {
+  return getRuntime().ollamaModel || 'nomic-embed-text';
+}
 
 export class EmbeddingService {
   static formatRunAsText(run) {
@@ -43,8 +54,8 @@ export class EmbeddingService {
   }
 
   static async embedText(text) {
-    const url = `${OLLAMA_API_URL}/api/embed`;
-    const body = { model: EMBEDDING_MODEL, input: text };
+    const url = `${getOllamaApiUrl()}/api/embed`;
+    const body = { model: getEmbeddingModel(), input: text };
     const attempt = async () => {
       const response = await fetch(url, {
         method: 'POST',
@@ -78,14 +89,15 @@ export class EmbeddingService {
 
   static async isAvailable() {
     try {
-      const response = await fetch(`${OLLAMA_API_URL}/api/tags`, {
+      const response = await fetch(`${getOllamaApiUrl()}/api/tags`, {
         method: 'GET',
         signal: AbortSignal.timeout(2000),
       });
       if (!response.ok) return false;
       const data = await response.json();
       const models = data.models?.map((m) => m.name) || [];
-      const hasModel = models.some((name) => name.includes(EMBEDDING_MODEL) || EMBEDDING_MODEL.includes(name));
+      const embeddingModel = getEmbeddingModel();
+      const hasModel = models.some((name) => name.includes(embeddingModel) || embeddingModel.includes(name));
       return hasModel;
     } catch {
       return false;

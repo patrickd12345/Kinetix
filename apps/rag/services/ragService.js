@@ -7,6 +7,8 @@ import { EmbeddingService } from './embeddingService.js';
 import { vectorDB } from './vectorDB.js';
 import { getLLMClient } from './ai/llmClient.js';
 
+const runtimeConsole = globalThis.console ?? console;
+
 export class RAGService {
   static async analyzeRunWithRAG(run, targetKPS, options = {}) {
     const { includeSimilarRuns = 5, useRAG = true } = options;
@@ -21,9 +23,9 @@ export class RAGService {
           maxDistance: run.distance * 1.1,
         });
         similarRuns = results.runs;
-        console.info('[RAG]', { retrieved: similarRuns.length });
+        runtimeConsole.info('[RAG]', { retrieved: similarRuns.length });
       } catch (error) {
-        console.warn('Vector search failed, continuing without RAG:', error);
+        runtimeConsole.warn('Vector search failed, continuing without RAG:', error);
       }
     }
 

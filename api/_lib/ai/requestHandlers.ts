@@ -1,5 +1,7 @@
 import { getLLMClient } from './llmClient'
+import { buildKinetixApiError, getApiRequestId, type KinetixApiError } from './error-contract'
 import { getByokDecision, mustReject, readByokHeader } from '../byok'
+import { resolveKinetixRuntimeEnv } from '../env/runtime'
 
 export interface AiChatBody {
   systemInstruction?: string
@@ -10,13 +12,15 @@ export interface AiCoachBody {
   prompt?: string
 }
 
-export interface AiHandlerError {
-  error: string
-  status?: number
-}
+export type AiHandlerError = KinetixApiError
 
 export interface AiHandlerSuccess {
   text: string
+  provider: string
+  model: string
+  mode: string
+  latencyMs: number
+  fallbackReason: string | null
 }
 
 type HeaderMap = Record<string, string | string[] | undefined>
@@ -29,27 +33,27 @@ function hasAuthorizationHeader(headers: HeaderMap): boolean {
 }
 
 function isApiAuthRequired(): boolean {
-  const raw = process.env.KINETIX_API_REQUIRE_AUTH
-  return raw === '1' || raw === 'true'
+  return resolveKinetixRuntimeEnv().apiRequireAuth
 }
 
 export async function handleAiChatRequest(
   body: AiChatBody,
   headers: HeaderMap
 ): Promise<AiHandlerSuccess | AiHandlerError> {
+  const requestId = getApiRequestId(headers)
   if (isApiAuthRequired() && !hasAuthorizationHeader(headers)) {
-    return { error: 'Authorization header is required.', status: 401 }
+    return buildKinetixApiError('unauthorized', 'Authorization header is required.', 401, requestId)
   }
 
   const byokKey = readByokHeader(headers)
   const decision = getByokDecision('ai-chat', byokKey)
   if (mustReject(decision)) {
-    return { error: 'BYOK is not supported on this endpoint.', status: 400 }
+    return buildKinetixApiError('byok_not_supported', 'BYOK is not supported on this endpoint.', 400, requestId)
   }
 
   const { systemInstruction, contents } = body
   if (!systemInstruction || !contents) {
-    return { error: 'systemInstruction and contents are required.', status: 400 }
+    return buildKinetixApiError('invalid_request', 'systemInstruction and contents are required.', 400, requestId)
   }
 
   const userContent = Array.isArray(contents)
@@ -64,7 +68,7 @@ export async function handleAiChatRequest(
     : ''
 
   const client = getLLMClient()
-  const { text } = await client.executeChat(
+  const result = await client.executeChat(
     [
       { role: 'system', content: systemInstruction },
       { role: 'user', content: userContent || 'Respond concisely.' },
@@ -72,30 +76,31 @@ export async function handleAiChatRequest(
     { temperature: 0.7, maxTokens: 1024 }
   )
 
-  return { text }
+  return result
 }
 
 export async function handleAiCoachRequest(
   body: AiCoachBody,
   headers: HeaderMap
 ): Promise<AiHandlerSuccess | AiHandlerError> {
+  const requestId = getApiRequestId(headers)
   if (isApiAuthRequired() && !hasAuthorizationHeader(headers)) {
-    return { error: 'Authorization header is required.', status: 401 }
+    return buildKinetixApiError('unauthorized', 'Authorization header is required.', 401, requestId)
   }
 
   const byokKey = readByokHeader(headers)
   const decision = getByokDecision('ai-coach', byokKey)
   if (mustReject(decision)) {
-    return { error: 'BYOK is not supported on this endpoint.', status: 400 }
+    return buildKinetixApiError('byok_not_supported', 'BYOK is not supported on this endpoint.', 400, requestId)
   }
 
   const { prompt } = body
   if (!prompt || typeof prompt !== 'string') {
-    return { error: 'prompt is required.', status: 400 }
+    return buildKinetixApiError('invalid_request', 'prompt is required.', 400, requestId)
   }
 
   const client = getLLMClient()
-  const { text } = await client.executeChat(
+  const result = await client.executeChat(
     [
       { role: 'system', content: 'You are a concise running coach.' },
       { role: 'user', content: prompt },
@@ -103,5 +108,5 @@ export async function handleAiCoachRequest(
     { temperature: 0.7, maxTokens: 400 }
   )
 
-  return { text: text?.trim() || '' }
+  return { ...result, text: result.text?.trim() || '' }
 }

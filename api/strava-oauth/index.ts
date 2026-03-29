@@ -1,6 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { applyCors } from '../_lib/cors'
 import { exchangeStravaCodeForToken, StravaAuthError } from '../_lib/stravaAuth'
+import { sendApiError } from '../_lib/apiError'
+import { logApiEvent } from '../_lib/observability'
+import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {
@@ -9,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   })
 
   if (!cors.allowed) {
-    return res.status(403).json({ error: 'Origin not allowed' })
+    return sendApiError(res, 403, 'Origin not allowed', { source: req.headers })
   }
 
   if (req.method === 'OPTIONS') {
@@ -17,23 +20,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return sendApiError(res, 405, 'Method not allowed', { source: req.headers })
   }
 
   const body = (typeof req.body === 'object' && req.body !== null ? req.body : {}) as { code?: string; redirect_uri?: string }
   const { code, redirect_uri } = body
 
   if (!code) {
-    return res.status(400).json({ error: 'Authorization code required' })
+    return sendApiError(res, 400, 'Authorization code required', { source: req.headers })
   }
 
-  // Get client secret from environment variable
-  const clientSecret = process.env.STRAVA_CLIENT_SECRET
-  const clientId = process.env.STRAVA_CLIENT_ID || '157217'
+  const runtime = resolveKinetixRuntimeEnv()
+  const clientSecret = runtime.stravaClientSecret
+  const clientId = runtime.stravaClientId
 
   if (!clientSecret) {
-    console.error('[OAuth] STRAVA_CLIENT_SECRET not configured')
-    return res.status(500).json({ error: 'Server configuration error: STRAVA_CLIENT_SECRET not set' })
+    logApiEvent('error', 'kinetix_strava_oauth_missing_config', {
+      message: 'STRAVA_CLIENT_SECRET not configured',
+    })
+    return sendApiError(res, 500, 'Server configuration error: STRAVA_CLIENT_SECRET not set', {
+      source: req.headers,
+    })
   }
 
   try {
@@ -52,16 +59,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (error) {
     if (error instanceof StravaAuthError) {
-      console.error('[OAuth] Strava token exchange error:', error.details ?? error.message)
-      return res.status(error.status).json({
-        error: error.message,
+      logApiEvent('error', 'kinetix_strava_oauth_exchange_failed', {
+        message: error.message,
+        details: error.details ?? null,
+      })
+      return sendApiError(res, error.status, error.message, {
+        source: req.headers,
         details: error.details,
       })
     }
-    console.error('[OAuth] Token exchange error:', error)
-    res.status(500).json({
-      error: 'Failed to exchange authorization code',
+    logApiEvent('error', 'kinetix_strava_oauth_exchange_failed', {
       message: error instanceof Error ? error.message : 'Unknown error',
+    })
+    return sendApiError(res, 500, 'Failed to exchange authorization code', {
+      source: req.headers,
+      details: error instanceof Error ? error.message : 'Unknown error',
     })
   }
 }

@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { applyCors } from '../_lib/cors'
+import { sendApiError } from '../_lib/apiError'
+import { logApiEvent } from '../_lib/observability'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {
@@ -8,7 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   })
 
   if (!cors.allowed) {
-    return res.status(403).json({ error: 'Origin not allowed' })
+    return sendApiError(res, 403, 'Origin not allowed', { source: req.headers })
   }
 
   // Handle preflight requests
@@ -18,14 +20,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Only allow GET requests
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return sendApiError(res, 405, 'Method not allowed', { source: req.headers })
   }
 
   // Get the authorization header from the request
   const authHeader = req.headers.authorization || req.headers.Authorization
 
   if (!authHeader) {
-    return res.status(401).json({ error: 'Authorization header required' })
+    return sendApiError(res, 401, 'Authorization header required', { source: req.headers })
   }
 
   // Extract the path from the query string (everything after /api/strava/)
@@ -64,9 +66,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(response.status).json(errorData)
       } else {
         const text = await response.text()
-        return res.status(response.status).json({ 
-          error: `Strava API error: ${response.status}`,
-          message: text.substring(0, 200)
+        return sendApiError(res, response.status, `Strava API error: ${response.status}`, {
+          source: req.headers,
+          details: text.substring(0, 200),
         })
       }
     }
@@ -76,10 +78,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Forward the status code and data
     res.status(response.status).json(data)
   } catch (error) {
-    console.error('Strava API proxy error:', error)
-    res.status(500).json({ 
-      error: 'Failed to proxy request to Strava API',
-      message: error instanceof Error ? error.message : 'Unknown error'
+    logApiEvent('error', 'kinetix_strava_proxy_failed', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+    })
+    return sendApiError(res, 500, 'Failed to proxy request to Strava API', {
+      source: req.headers,
+      details: error instanceof Error ? error.message : 'Unknown error',
     })
   }
 }

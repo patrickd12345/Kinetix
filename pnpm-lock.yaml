@@ -7,6 +7,16 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@bookiji-inc/ai-runtime':
+        specifier: link:../../packages/ai-runtime
+        version: link:../../packages/ai-runtime
+      '@bookiji-inc/error-contract':
+        specifier: link:../../packages/error-contract
+        version: link:../../packages/error-contract
+      '@bookiji-inc/observability':
+        specifier: link:../../packages/observability
+        version: link:../../packages/observability
     devDependencies:
       concurrently:
         specifier: ^9.1.0

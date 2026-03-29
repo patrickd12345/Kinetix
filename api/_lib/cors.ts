@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { resolveKinetixRuntimeEnv } from './env/runtime'
 
 interface CorsOptions {
   methods: string[]
@@ -22,7 +23,7 @@ function readOrigin(req: VercelRequest): string | null {
 }
 
 function getAllowlist(): string[] {
-  const raw = process.env.CORS_ALLOWED_ORIGINS || process.env.ALLOWED_ORIGINS || ''
+  const raw = resolveKinetixRuntimeEnv().corsAllowedOrigins || ''
   return raw
     .split(',')
     .map((origin) => normalizeOrigin(origin))

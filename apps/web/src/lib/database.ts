@@ -208,6 +208,18 @@ export async function getWeightHistoryCount(): Promise<number> {
   return db.weightHistory.count()
 }
 
+/** Newest stored measurement instant (Unix seconds), for Withings `lastupdate` incremental sync. */
+export async function getMaxWeightDateUnix(): Promise<number | null> {
+  if (typeof indexedDB === 'undefined') return null
+  try {
+    const last = await db.weightHistory.orderBy('dateUnix').last()
+    if (last == null) return null
+    return last.dateUnix
+  } catch {
+    return null
+  }
+}
+
 /**
  * Get one page of weight history, newest first. For paginated list.
  */

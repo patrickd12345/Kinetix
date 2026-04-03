@@ -90,7 +90,7 @@ struct MainTabView: View {
         withingsLastStartupSyncAt = now
 
         do {
-            let result = try await WithingsService.shared.syncRecentWeights(modelContext: modelContext, daysBack: 30)
+            let result = try await WithingsService.shared.syncRecentWeights(modelContext: modelContext, daysBack: 120)
             if let latestKg = result.latestKg {
                 lastWithingsWeightKg = latestKg
                 try applyWithingsWeightToProfile(latestKg)

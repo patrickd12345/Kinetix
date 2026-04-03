@@ -5,7 +5,7 @@ import { db, RunRecord, RUN_VISIBLE } from '../lib/database'
 import { useState, useEffect, useRef } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
 import { useWithingsAuth } from '../hooks/useWithingsAuth'
-import { getWithingsWeight } from '../lib/withings'
+import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { importGarminFromZipFile, importGarminFromFitFile, isGarminFitFile } from '../lib/garminImport'
 import { convertGarminToRunRecord } from '../lib/garmin'
 import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
@@ -81,9 +81,16 @@ export default function Settings() {
           setImportMessage('Withings connected. Fetching latest weight…')
           const creds = useSettingsStore.getState().withingsCredentials
           if (creds) {
-            const kg = await getWithingsWeight(creds, (c) => useSettingsStore.getState().setWithingsCredentials(c))
-            if (kg != null) useSettingsStore.getState().setLastWithingsWeightKg(kg)
-            setImportMessage(kg != null ? `Withings connected. Weight: ${kg.toFixed(1)} kg` : 'Withings connected. No weight data yet.')
+            const { latestKg, historyEntriesSynced } = await syncWithingsWeightsAtStartup(creds, (c) =>
+              useSettingsStore.getState().setWithingsCredentials(c)
+            )
+            if (latestKg != null) useSettingsStore.getState().setLastWithingsWeightKg(latestKg)
+            window.dispatchEvent(new CustomEvent(WITHINGS_WEIGHTS_SYNCED_EVENT))
+            setImportMessage(
+              latestKg != null
+                ? `Withings connected. Weight: ${latestKg.toFixed(1)} kg (${historyEntriesSynced} row(s) in history).`
+                : 'Withings connected. No weight data yet.'
+            )
           } else {
             setImportMessage('Withings connected.')
           }
@@ -129,6 +136,7 @@ export default function Settings() {
         .filter((x) => x.dateUnix > 0 && x.kg > 0)
       const { count, latestKg } = await bulkPutWeightEntries(entries)
       if (latestKg != null) setLastWithingsWeightKg(latestKg)
+      window.dispatchEvent(new CustomEvent(WITHINGS_WEIGHTS_SYNCED_EVENT))
       setImportMessage(`Imported ${count} weight entries into history. Latest: ${latestKg?.toFixed(1) ?? '—'} kg`)
       const newCount = await getWeightHistoryCount()
       setWeightHistoryCount(newCount)
@@ -300,9 +308,17 @@ export default function Settings() {
                         if (!withingsCredentials) return
                         setWithingsRefreshing(true)
                         try {
-                          const kg = await getWithingsWeight(withingsCredentials, setWithingsCredentials)
-                          if (kg != null) setLastWithingsWeightKg(kg)
-                          setImportMessage(kg != null ? `Weight updated: ${kg.toFixed(1)} kg` : 'No weight data from Withings.')
+                          const { latestKg, historyEntriesSynced } = await syncWithingsWeightsAtStartup(
+                            withingsCredentials,
+                            setWithingsCredentials
+                          )
+                          if (latestKg != null) setLastWithingsWeightKg(latestKg)
+                          window.dispatchEvent(new CustomEvent(WITHINGS_WEIGHTS_SYNCED_EVENT))
+                          setImportMessage(
+                            latestKg != null
+                              ? `Weight updated: ${latestKg.toFixed(1)} kg (${historyEntriesSynced} row(s) merged).`
+                              : 'No weight data from Withings.'
+                          )
                         } catch (e) {
                           setImportMessage(`Error: ${e instanceof Error ? e.message : 'Failed to fetch weight'}`)
                         } finally {

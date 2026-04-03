@@ -3,6 +3,7 @@ import { BarChart3, AlertCircle } from 'lucide-react'
 import MaxKPSPaceDurationChart from '../components/MaxKPSPaceDurationChart'
 import Kps100CurveChart from '../components/Kps100CurveChart'
 import { db, getWeightsForDates, RUN_VISIBLE } from '../lib/database'
+import { WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { useSettingsStore } from '../store/settingsStore'
 import { buildMaxKPSPaceDurationPoints, generateKps100Curve } from '../lib/maxKpsPaceChart'
 import type { MaxKPSPaceDurationPoint } from '../lib/maxKpsPaceChart'
@@ -76,6 +77,7 @@ export default function Menu() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'pbs' | 'curve'>('pbs')
   const unitSystem = useSettingsStore((s) => s.unitSystem)
+  const lastWithingsWeightKg = useSettingsStore((s) => s.lastWithingsWeightKg)
   const { profile } = useAuth()
   const userProfile = useStableKinetixUserProfile(profile)
 
@@ -161,7 +163,7 @@ export default function Menu() {
       loadInProgressRef.current = false
       setLoading(false)
     }
-  }, [unitSystem, userProfile])
+  }, [unitSystem, userProfile, lastWithingsWeightKg])
 
   useEffect(() => {
     void loadRuns()
@@ -175,11 +177,13 @@ export default function Menu() {
     }
 
     window.addEventListener('kinetix:runSaved', refresh)
+    window.addEventListener(WITHINGS_WEIGHTS_SYNCED_EVENT, refresh)
     document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
       if (visibilityTimeout) clearTimeout(visibilityTimeout)
       window.removeEventListener('kinetix:runSaved', refresh)
+      window.removeEventListener(WITHINGS_WEIGHTS_SYNCED_EVENT, refresh)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [loadRuns])

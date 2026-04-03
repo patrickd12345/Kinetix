@@ -7,7 +7,7 @@ import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
 import { getRunsPage } from '../lib/database'
 import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
-import { syncWithingsWeightsAtStartup } from '../lib/withings'
+import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
 
 const RAG_SYNC_PAGE_SIZE = 200
@@ -98,8 +98,12 @@ export default function Layout({ children }: LayoutProps) {
   }, [withingsCredentials?.refreshToken])
 
   useEffect(() => {
-    if (!settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') return
-    if (withingsWeightSyncDoneRef.current) return
+    if (!settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') {
+      return
+    }
+    if (withingsWeightSyncDoneRef.current) {
+      return
+    }
 
     const run = async () => {
       if (withingsWeightSyncDoneRef.current) return true
@@ -114,6 +118,7 @@ export default function Layout({ children }: LayoutProps) {
         } else if (latestKg != null) {
           console.log('[Withings] Latest weight updated:', latestKg.toFixed(1), 'kg')
         }
+        window.dispatchEvent(new CustomEvent(WITHINGS_WEIGHTS_SYNCED_EVENT))
         withingsWeightSyncDoneRef.current = true
         return true
       } catch (e) {

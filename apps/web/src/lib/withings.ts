@@ -1,5 +1,5 @@
 import type { WithingsCredentials } from '../store/settingsStore'
-import { bulkPutWeightEntries, type WeightEntry } from './database'
+import { bulkPutWeightEntries, getMaxWeightDateUnix, type WeightEntry } from './database'
 
 const WITHINGS_MEASURE_URL = 'https://wbsapi.withings.net/measure'
 
@@ -11,6 +11,170 @@ export interface WithingsMeasure {
   value: number
   unit: number
   type: number
+}
+
+/** Raw measure group from Withings `getmeas` (one page). */
+type WithingsMeasureGroup = { measures?: WithingsMeasure[]; date: string | number }
+
+interface GetMeasJson {
+  status?: number
+  body?: {
+    measuregrps?: WithingsMeasureGroup[]
+    /** 1 = more pages; use `offset` on the next request */
+    more?: number
+    /** Next `offset` query value for pagination */
+    offset?: number
+    error?: string
+  }
+}
+
+const GETMEAS_MAX_PAGES = 250
+
+/** Category 1 = real device measurements (not user objectives). Omitting this can yield incomplete data. */
+const CATEGORY_REAL = '1'
+
+function getMeasHasMore(body: GetMeasJson['body']): boolean {
+  const m = body?.more
+  return m === true || Number(m) === 1
+}
+
+/**
+ * Withings `getmeas` returns a **single page** of `measuregrps`. When `body.more` is set,
+ * repeat with `offset` from the response or recent weigh-ins never appear.
+ * @see https://developer.withings.com/api-reference/#operation/measure-getmeas
+ */
+async function fetchAllWeightMeasureGroupsInRange(
+  accessToken: string,
+  startUnix: number,
+  endUnix: number
+): Promise<WithingsMeasureGroup[]> {
+  const all: WithingsMeasureGroup[] = []
+  let requestOffset = 0
+
+  for (let page = 0; page < GETMEAS_MAX_PAGES; page++) {
+    const body = new URLSearchParams({
+      action: 'getmeas',
+      category: CATEGORY_REAL,
+      startdate: String(startUnix),
+      enddate: String(endUnix),
+      meastypes: String(WEIGHT_TYPE),
+    })
+    if (requestOffset > 0) body.set('offset', String(requestOffset))
+
+    const res = await fetch(WITHINGS_MEASURE_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      console.warn('Withings getmeas HTTP error:', res.status, text)
+      break
+    }
+
+    const json = (await res.json()) as GetMeasJson
+    if (json.status !== 0) {
+      console.warn('Withings getmeas status:', json.status, json.body?.error)
+      break
+    }
+
+    const groups = json.body?.measuregrps ?? []
+    all.push(...groups)
+
+    if (!getMeasHasMore(json.body)) break
+    const nextOffset = json.body?.offset
+    if (nextOffset == null) break
+    const next = typeof nextOffset === 'number' ? nextOffset : parseInt(String(nextOffset), 10)
+    if (!Number.isFinite(next) || next === requestOffset) break
+    requestOffset = next
+  }
+
+  return all
+}
+
+/**
+ * Incremental sync: all weight groups created/updated **after** `lastUpdateUnix` (Withings recommends
+ * this over date windows alone to avoid gaps). Uses `lastupdate` only — not `startdate`/`enddate`.
+ * @see https://developer.withings.com/developer-guide/v3/tutorials/how-to-compute-lastupdate
+ */
+async function fetchAllWeightMeasureGroupsSinceLastUpdate(
+  accessToken: string,
+  lastUpdateUnix: number
+): Promise<WithingsMeasureGroup[]> {
+  const all: WithingsMeasureGroup[] = []
+  let requestOffset = 0
+
+  for (let page = 0; page < GETMEAS_MAX_PAGES; page++) {
+    const body = new URLSearchParams({
+      action: 'getmeas',
+      category: CATEGORY_REAL,
+      lastupdate: String(lastUpdateUnix),
+      meastypes: String(WEIGHT_TYPE),
+    })
+    if (requestOffset > 0) body.set('offset', String(requestOffset))
+
+    const res = await fetch(WITHINGS_MEASURE_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      console.warn('Withings getmeas (lastupdate) HTTP error:', res.status, text)
+      break
+    }
+
+    const json = (await res.json()) as GetMeasJson
+    if (json.status !== 0) {
+      console.warn('Withings getmeas (lastupdate) status:', json.status, json.body?.error)
+      break
+    }
+
+    const groups = json.body?.measuregrps ?? []
+    all.push(...groups)
+
+    if (!getMeasHasMore(json.body)) break
+    const nextOffset = json.body?.offset
+    if (nextOffset == null) break
+    const next = typeof nextOffset === 'number' ? nextOffset : parseInt(String(nextOffset), 10)
+    if (!Number.isFinite(next) || next === requestOffset) break
+    requestOffset = next
+  }
+
+  return all
+}
+
+function mergeWeightEntriesPreferLater(a: WeightEntry[], b: WeightEntry[]): WeightEntry[] {
+  const map = new Map<number, WeightEntry>()
+  for (const e of a) map.set(e.dateUnix, e)
+  for (const e of b) map.set(e.dateUnix, e)
+  return [...map.values()].sort((x, y) => y.dateUnix - x.dateUnix)
+}
+
+function measureGroupsToWeightEntries(groups: WithingsMeasureGroup[]): WeightEntry[] {
+  const entries: WeightEntry[] = []
+  for (const g of groups) {
+    const w = g.measures?.find((m) => m.type === WEIGHT_TYPE)
+    if (!w) continue
+    const exp = typeof w.unit === 'number' ? w.unit : WEIGHT_UNIT_EXP
+    const kg = w.value * Math.pow(10, exp)
+    const dateUnix = typeof g.date === 'number' ? g.date : parseInt(String(g.date), 10) || 0
+    if (dateUnix <= 0) continue
+    entries.push({
+      dateUnix,
+      date: new Date(dateUnix * 1000).toISOString(),
+      kg: Math.round(kg * 100) / 100,
+    })
+  }
+  return entries.sort((a, b) => b.dateUnix - a.dateUnix)
 }
 
 /**
@@ -58,45 +222,9 @@ export async function fetchLatestWeightFromWithings(
 ): Promise<number | null> {
   const end = Math.floor(Date.now() / 1000)
   const start = end - 365 * 24 * 3600
-  const body = new URLSearchParams({
-    action: 'getmeas',
-    startdate: String(start),
-    enddate: String(end),
-    meastypes: String(WEIGHT_TYPE),
-  })
-
-  const res = await fetch(WITHINGS_MEASURE_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: body.toString(),
-  })
-
-  if (!res.ok) {
-    const text = await res.text()
-    console.warn('Withings getmeas error:', res.status, text)
-    return null
-  }
-
-  const json = await res.json()
-  const meas = json?.body?.measuregrps as Array<{ measures: WithingsMeasure[]; date: string }> | undefined
-  if (!Array.isArray(meas) || meas.length === 0) return null
-
-  const withWeights = meas
-    .map((g) => {
-      const w = g.measures?.find((m: WithingsMeasure) => m.type === WEIGHT_TYPE)
-      if (!w) return null
-      const exp = typeof w.unit === 'number' ? w.unit : WEIGHT_UNIT_EXP
-      const kg = w.value * Math.pow(10, exp)
-      return { kg, date: parseInt(g.date, 10) || 0 }
-    })
-    .filter((x): x is { kg: number; date: number } => x !== null)
-    .sort((a, b) => b.date - a.date)
-
-  const latest = withWeights[0]
-  return latest ? latest.kg : null
+  const groups = await fetchAllWeightMeasureGroupsInRange(accessToken, start, end)
+  const entries = measureGroupsToWeightEntries(groups)
+  return entries.length > 0 ? entries[0].kg : null
 }
 
 /**
@@ -115,7 +243,8 @@ export async function getWithingsWeight(
 
 /**
  * Fetch recent weight measurements from Withings and return as WeightEntry[].
- * Used on startup to append new weigh-ins to the weight history table without re-importing JSON.
+ * Combines a rolling date window with an optional `lastupdate` pass (see `getMaxWeightDateUnix`) so
+ * new weigh-ins are not missed when the window query alone is incomplete.
  */
 export async function fetchRecentWithingsWeights(
   accessToken: string,
@@ -123,44 +252,18 @@ export async function fetchRecentWithingsWeights(
 ): Promise<WeightEntry[]> {
   const end = Math.floor(Date.now() / 1000)
   const start = end - daysBack * 24 * 3600
-  const body = new URLSearchParams({
-    action: 'getmeas',
-    startdate: String(start),
-    enddate: String(end),
-    meastypes: String(WEIGHT_TYPE),
-  })
+  const rangeGroups = await fetchAllWeightMeasureGroupsInRange(accessToken, start, end)
+  const rangeEntries = measureGroupsToWeightEntries(rangeGroups)
 
-  const res = await fetch(WITHINGS_MEASURE_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: body.toString(),
-  })
-
-  if (!res.ok) return []
-
-  const json = (await res.json()) as {
-    body?: { measuregrps?: Array<{ measures?: WithingsMeasure[]; date: string | number }> }
-  }
-  const groups = json?.body?.measuregrps ?? []
-  const entries: WeightEntry[] = []
-
-  for (const g of groups) {
-    const w = g.measures?.find((m) => m.type === WEIGHT_TYPE)
-    if (!w) continue
-    const exp = typeof w.unit === 'number' ? w.unit : WEIGHT_UNIT_EXP
-    const kg = w.value * Math.pow(10, exp)
-    const dateUnix = typeof g.date === 'number' ? g.date : parseInt(String(g.date), 10) || 0
-    entries.push({
-      dateUnix,
-      date: new Date(dateUnix * 1000).toISOString(),
-      kg: Math.round(kg * 100) / 100,
-    })
+  const maxLocal = await getMaxWeightDateUnix()
+  if (maxLocal == null || maxLocal <= 0) {
+    return rangeEntries
   }
 
-  return entries.sort((a, b) => b.dateUnix - a.dateUnix)
+  const sinceGroups = await fetchAllWeightMeasureGroupsSinceLastUpdate(accessToken, maxLocal)
+  const sinceEntries = measureGroupsToWeightEntries(sinceGroups)
+  const merged = mergeWeightEntriesPreferLater(rangeEntries, sinceEntries)
+  return merged
 }
 
 export interface WithingsStartupSyncResult {
@@ -182,11 +285,17 @@ export async function syncWithingsWeightsAtStartup(
   const valid = await ensureValidWithingsAccess(creds)
   if (valid !== creds) onCredentialsUpdate?.(valid)
 
-  const entries = await fetchRecentWithingsWeights(valid.accessToken, 90)
+  /** 120-day window + `lastupdate` merge inside `fetchRecentWithingsWeights`. */
+  const entries = await fetchRecentWithingsWeights(valid.accessToken, 120)
   if (entries.length > 0) {
     await bulkPutWeightEntries(entries)
   }
 
-  const latestKg = await fetchLatestWeightFromWithings(valid.accessToken)
+  /** Avoid a second full API walk when the merged batch already includes the latest weigh-in. */
+  const latestKg =
+    entries.length > 0 ? entries[0].kg : await fetchLatestWeightFromWithings(valid.accessToken)
   return { latestKg, historyEntriesSynced: entries.length }
 }
+
+/** `window` event name fired after a successful startup/manual Withings sync (history + latest kg). */
+export const WITHINGS_WEIGHTS_SYNCED_EVENT = 'kinetix:withingsWeightsSynced'

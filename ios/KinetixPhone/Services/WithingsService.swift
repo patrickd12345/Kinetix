@@ -227,45 +227,15 @@ public class WithingsService: NSObject {
         return samples.first?.kg
     }
 
-    public func fetchRecentWeightSamples(accessToken: String, daysBack: Int = 30) async throws -> [WithingsWeightSample] {
-        let end = Int(Date().timeIntervalSince1970)
-        let start = end - max(1, daysBack) * 24 * 3600
+    private func getMeasMoreFlag(_ body: [String: Any]) -> Bool {
+        if let m = body["more"] as? Int { return m == 1 }
+        if let m = body["more"] as? Bool { return m }
+        return false
+    }
 
-        let params: [String: String] = [
-            "action": "getmeas",
-            "startdate": "\(start)",
-            "enddate": "\(end)",
-            "meastypes": "1",
-        ]
-
-        var request = URLRequest(url: measureURL)
-        request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.httpBody = urlEncodedBody(params)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw WithingsError.networkError("Invalid measure response")
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            throw WithingsError.networkError(parseWithingsError(data: data, fallback: "Withings measure request failed"))
-        }
-
-        let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-        let status = json?["status"] as? Int ?? -1
-        guard status == 0 else {
-            let message = parseWithingsBodyError(json) ?? parseWithingsError(data: data, fallback: "Withings measure error")
-            throw WithingsError.networkError(message)
-        }
-
-        guard let body = json?["body"] as? [String: Any],
-              let groups = body["measuregrps"] as? [[String: Any]] else {
-            return []
-        }
-
-        var out: [WithingsWeightSample] = []
+    /// Parses one page of measure groups into samples (shared by range and lastupdate fetches).
+    private func parseMeasureGroupsToSamples(_ groups: [[String: Any]]) -> [WithingsWeightSample] {
+        var pageSamples: [WithingsWeightSample] = []
         for group in groups {
             let dateUnix: Int
             if let d = group["date"] as? Int {
@@ -288,7 +258,7 @@ public class WithingsService: NSObject {
             let unitExponent = Int(parseDouble(weightMeasure["unit"]) ?? -2)
             let kg = value * pow(10.0, Double(unitExponent))
             let roundedKg = (kg * 100).rounded() / 100
-            out.append(
+            pageSamples.append(
                 WithingsWeightSample(
                     dateUnix: dateUnix,
                     recordedAt: Date(timeIntervalSince1970: TimeInterval(dateUnix)),
@@ -296,16 +266,166 @@ public class WithingsService: NSObject {
                 )
             )
         }
+        return pageSamples
+    }
 
-        return out.sorted(by: { $0.dateUnix > $1.dateUnix })
+    /// Withings `getmeas` returns one page; follow `more` / `offset` until all rows for the date range are fetched. Uses `category=1` (real measures).
+    public func fetchRecentWeightSamples(accessToken: String, daysBack: Int = 30) async throws -> [WithingsWeightSample] {
+        let end = Int(Date().timeIntervalSince1970)
+        let start = end - max(1, daysBack) * 24 * 3600
+
+        var allOut: [WithingsWeightSample] = []
+        var requestOffset = 0
+        let maxPages = 250
+
+        for _ in 0..<maxPages {
+            var params: [String: String] = [
+                "action": "getmeas",
+                "category": "1",
+                "startdate": "\(start)",
+                "enddate": "\(end)",
+                "meastypes": "1",
+            ]
+            if requestOffset > 0 {
+                params["offset"] = "\(requestOffset)"
+            }
+
+            var request = URLRequest(url: measureURL)
+            request.httpMethod = "POST"
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            request.httpBody = urlEncodedBody(params)
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw WithingsError.networkError("Invalid measure response")
+            }
+
+            guard httpResponse.statusCode == 200 else {
+                throw WithingsError.networkError(parseWithingsError(data: data, fallback: "Withings measure request failed"))
+            }
+
+            let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+            let status = json?["status"] as? Int ?? -1
+            guard status == 0 else {
+                let message = parseWithingsBodyError(json) ?? parseWithingsError(data: data, fallback: "Withings measure error")
+                throw WithingsError.networkError(message)
+            }
+
+            guard let body = json?["body"] as? [String: Any] else {
+                break
+            }
+
+            let groups = body["measuregrps"] as? [[String: Any]] ?? []
+            let pageSamples = parseMeasureGroupsToSamples(groups)
+            allOut.append(contentsOf: pageSamples)
+
+            let more = getMeasMoreFlag(body)
+            let nextRaw = body["offset"]
+            let nextOffset: Int? = {
+                if let n = nextRaw as? Int { return n }
+                if let n = nextRaw as? Double { return Int(n) }
+                return nil
+            }()
+            if !more {
+                break
+            }
+            guard let next = nextOffset, next != requestOffset else {
+                break
+            }
+            requestOffset = next
+        }
+
+        return allOut.sorted(by: { $0.dateUnix > $1.dateUnix })
+    }
+
+    /// Incremental `getmeas` using `lastupdate` only (no start/end). Merged on the phone with the date-range pull.
+    private func fetchWeightSamplesSinceLastUpdate(accessToken: String, lastUpdateUnix: Int) async throws -> [WithingsWeightSample] {
+        var allOut: [WithingsWeightSample] = []
+        var requestOffset = 0
+        let maxPages = 250
+
+        for _ in 0..<maxPages {
+            var params: [String: String] = [
+                "action": "getmeas",
+                "category": "1",
+                "lastupdate": "\(lastUpdateUnix)",
+                "meastypes": "1",
+            ]
+            if requestOffset > 0 {
+                params["offset"] = "\(requestOffset)"
+            }
+
+            var request = URLRequest(url: measureURL)
+            request.httpMethod = "POST"
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            request.httpBody = urlEncodedBody(params)
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw WithingsError.networkError("Invalid measure response")
+            }
+
+            guard httpResponse.statusCode == 200 else {
+                throw WithingsError.networkError(parseWithingsError(data: data, fallback: "Withings measure request failed"))
+            }
+
+            let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+            let status = json?["status"] as? Int ?? -1
+            guard status == 0 else {
+                let message = parseWithingsBodyError(json) ?? parseWithingsError(data: data, fallback: "Withings measure error")
+                throw WithingsError.networkError(message)
+            }
+
+            guard let body = json?["body"] as? [String: Any] else {
+                break
+            }
+
+            let groups = body["measuregrps"] as? [[String: Any]] ?? []
+            allOut.append(contentsOf: parseMeasureGroupsToSamples(groups))
+
+            let more = getMeasMoreFlag(body)
+            let nextRaw = body["offset"]
+            let nextOffset: Int? = {
+                if let n = nextRaw as? Int { return n }
+                if let n = nextRaw as? Double { return Int(n) }
+                return nil
+            }()
+            if !more {
+                break
+            }
+            guard let next = nextOffset, next != requestOffset else {
+                break
+            }
+            requestOffset = next
+        }
+
+        return allOut.sorted(by: { $0.dateUnix > $1.dateUnix })
+    }
+
+    private func mergeWeightSamples(_ range: [WithingsWeightSample], _ since: [WithingsWeightSample]) -> [WithingsWeightSample] {
+        var dict: [Int: WithingsWeightSample] = [:]
+        for s in range { dict[s.dateUnix] = s }
+        for s in since { dict[s.dateUnix] = s }
+        return dict.values.sorted { $0.dateUnix > $1.dateUnix }
     }
 
     @MainActor
     public func syncRecentWeights(modelContext: ModelContext, daysBack: Int = 30) async throws -> (imported: Int, latestKg: Double?) {
         let tokens = try await ensureValidAccessToken()
-        let samples = try await fetchRecentWeightSamples(accessToken: tokens.accessToken, daysBack: daysBack)
-        let imported = try upsertWeightSamples(samples, modelContext: modelContext)
-        return (imported, samples.first?.kg)
+        var rangeSamples = try await fetchRecentWeightSamples(accessToken: tokens.accessToken, daysBack: daysBack)
+
+        let maxDesc = FetchDescriptor<WeightEntry>(sortBy: [SortDescriptor(\WeightEntry.dateUnix, order: .reverse)])
+        let maxLocal = try modelContext.fetch(maxDesc).first?.dateUnix
+
+        if let m = maxLocal, m > 0 {
+            let sinceSamples = try await fetchWeightSamplesSinceLastUpdate(accessToken: tokens.accessToken, lastUpdateUnix: m)
+            rangeSamples = mergeWeightSamples(rangeSamples, sinceSamples)
+        }
+
+        let imported = try upsertWeightSamples(rangeSamples, modelContext: modelContext)
+        return (imported, rangeSamples.first?.kg)
     }
 
     @MainActor

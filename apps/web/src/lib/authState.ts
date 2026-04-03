@@ -42,15 +42,22 @@ export async function getProfileForRunDate(runDate: string): Promise<UserProfile
 }
 
 /**
- * Profile to use when calculating KPS for a run. Uses stored run.weightKg when present (avoids
- * weight history lookup); otherwise resolves via getProfileForRunDate(run.date).
+ * Profile to use when calculating KPS for a run.
+ *
+ * **Weight precedence:** IndexedDB weight history (e.g. Withings sync) wins over the per-run
+ * `weightKg` snapshot. Snapshots are still used when there is no history on/before the run date
+ * (legacy imports, offline, etc.).
  */
 export async function getProfileForRun(run: { date: string; weightKg?: number | null }): Promise<UserProfile> {
+  const current = getActiveKinetixUserProfile()
+  const weightAtDate = await getWeightAtDate(run.date)
+  if (weightAtDate != null && weightAtDate > 0) {
+    return { ...current, weightKg: weightAtDate }
+  }
   if (run.weightKg != null && run.weightKg > 0) {
-    const current = getActiveKinetixUserProfile()
     return { ...current, weightKg: run.weightKg }
   }
-  return getProfileForRunDate(run.date)
+  return current
 }
 
 /**
@@ -62,12 +69,12 @@ export function createGetProfileForRunWithWeightCache(
 ): (run: { date: string; weightKg?: number | null }) => Promise<UserProfile> {
   return async (run: { date: string; weightKg?: number | null }): Promise<UserProfile> => {
     const current = getActiveKinetixUserProfile()
-    if (run.weightKg != null && run.weightKg > 0) {
-      return { ...current, weightKg: run.weightKg }
-    }
     const w = weightByDate.get(run.date)
     if (w != null && w > 0) {
       return { ...current, weightKg: w }
+    }
+    if (run.weightKg != null && run.weightKg > 0) {
+      return { ...current, weightKg: run.weightKg }
     }
     return current
   }

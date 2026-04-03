@@ -75,45 +75,67 @@ async function getAccessToken(): Promise<string> {
 async function fetchAllWeights(accessToken: string): Promise<{ date: string; dateUnix: number; kg: number }[]> {
   const now = Math.floor(Date.now() / 1000)
   const start = 0
-  const body = new URLSearchParams({
-    action: 'getmeas',
-    startdate: String(start),
-    enddate: String(now),
-    meastypes: String(WEIGHT_TYPE),
-  })
+  const allGroups: Array<{
+    measures?: Array<{ type: number; value: number; unit: number }>
+    date: string | number
+  }> = []
+  let requestOffset = 0
+  const maxPages = 500
 
-  const res = await fetch(WITHINGS_MEASURE_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: body.toString(),
-  })
+  for (let page = 0; page < maxPages; page++) {
+    const body = new URLSearchParams({
+      action: 'getmeas',
+      category: '1',
+      startdate: String(start),
+      enddate: String(now),
+      meastypes: String(WEIGHT_TYPE),
+    })
+    if (requestOffset > 0) body.set('offset', String(requestOffset))
 
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Withings getmeas failed: ${res.status} ${text}`)
-  }
+    const res = await fetch(WITHINGS_MEASURE_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    })
 
-  const json = (await res.json()) as {
-    status?: number
-    body?: {
-      measuregrps?: Array<{
-        measures?: Array<{ type: number; value: number; unit: number }>
-        date: string | number
-      }>
-      error?: string
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`Withings getmeas failed: ${res.status} ${text}`)
     }
-  }
-  if (json?.status !== 0) {
-    throw new Error(json?.body?.error ?? 'Withings getmeas error')
+
+    const json = (await res.json()) as {
+      status?: number
+      body?: {
+        measuregrps?: Array<{
+          measures?: Array<{ type: number; value: number; unit: number }>
+          date: string | number
+        }>
+        more?: number
+        offset?: number
+        error?: string
+      }
+    }
+    if (json?.status !== 0) {
+      throw new Error(json?.body?.error ?? 'Withings getmeas error')
+    }
+
+    const groups = json?.body?.measuregrps ?? []
+    allGroups.push(...groups)
+
+    const more = json.body?.more === 1 || json.body?.more === true
+    const nextOff = json.body?.offset
+    if (!more || nextOff == null) break
+    const next = typeof nextOff === 'number' ? nextOff : parseInt(String(nextOff), 10)
+    if (!Number.isFinite(next) || next === requestOffset) break
+    requestOffset = next
   }
 
-  const groups = json?.body?.measuregrps ?? []
   const out: { date: string; dateUnix: number; kg: number }[] = []
 
-  for (const g of groups) {
+  for (const g of allGroups) {
     const w = g.measures?.find((m) => m.type === WEIGHT_TYPE)
     if (!w) continue
     const exp = typeof w.unit === 'number' ? w.unit : WEIGHT_UNIT_EXP

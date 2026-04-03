@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getWeightHistoryPage, type WeightEntry } from '../lib/database'
 import { useSettingsStore } from '../store/settingsStore'
+import { WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { ChevronLeft, ChevronRight, Scale } from 'lucide-react'
 
 const PAGE_SIZE = 50
@@ -24,6 +25,7 @@ function formatWeight(kg: number, unit: 'kg' | 'lbs'): string {
 
 export default function WeightHistory() {
   const weightUnit = useSettingsStore((s) => s.weightUnit)
+  const lastWithingsWeightKg = useSettingsStore((s) => s.lastWithingsWeightKg)
   const [items, setItems] = useState<WeightEntry[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -46,7 +48,16 @@ export default function WeightHistory() {
 
   useEffect(() => {
     void loadPage(currentPage)
-  }, [loadPage, currentPage])
+  }, [loadPage, currentPage, lastWithingsWeightKg])
+
+  useEffect(() => {
+    const onSynced = () => {
+      setCurrentPage(1)
+      void loadPage(1)
+    }
+    window.addEventListener(WITHINGS_WEIGHTS_SYNCED_EVENT, onSynced)
+    return () => window.removeEventListener(WITHINGS_WEIGHTS_SYNCED_EVENT, onSynced)
+  }, [loadPage])
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const hasPrev = currentPage > 1

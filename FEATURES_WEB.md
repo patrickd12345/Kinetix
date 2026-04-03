@@ -53,7 +53,7 @@
 - ✅ **Data Management**: Clear all data option
 - ✅ **Garmin import**: Full Connect export ZIP (`DI_CONNECT/.../summarizedActivities.json`), a ZIP that only contains `.fit` files, or a single running `.fit` file; imports merge into local history with deduplication
 - ✅ **Strava import**: OAuth connect and import running activities from Strava
-- ✅ **Withings scale**: OAuth connect; on each app load, background sync refreshes tokens, pulls ~90 days of weigh-ins into local weight history, and updates latest weight; run history shows weight-at-date from that history when available (not only the weight snapshot stored on each run)
+- ✅ **Withings scale**: OAuth connect; on each app load, background sync refreshes tokens, pulls ~90 days of weigh-ins into local weight history (Withings `getmeas` is **paginated**—we follow every `more`/`offset` page so recent weigh-ins are not missing), and updates latest weight; **Settings → Refresh weight** runs the same merge into Weight History (not “latest only”); **KPS and run cards** resolve weight-at-date from that history whenever an entry exists on/before the run—this overrides the per-run weight snapshot so today’s run picks up a new morning weigh-in after sync; History, Weight History, and Charts reload when that sync finishes
 
 ### AI Integration
 - ✅ **Local LLM Support**: Integration with Ollama for local AI analysis

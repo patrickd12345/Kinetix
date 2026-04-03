@@ -57,6 +57,7 @@ import {
 import { useAuth } from '../components/providers/useAuth'
 import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
 import { computeKpsMedalsForRuns, type KpsMedal } from '../lib/kpsMedals'
+import { WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 
 const DEFAULT_PAGE_SIZE = 20
 const CHART_LIMIT = 200
@@ -206,7 +207,7 @@ export default function History() {
     return () => {
       cancelled = true
     }
-  }, [userProfile, currentPage, pageSize, appliedFilters, listRefreshKey, unitSystem])
+  }, [userProfile, currentPage, pageSize, appliedFilters, listRefreshKey, unitSystem, lastWithingsWeightKg])
 
   // After Withings startup sync (or manual refresh), re-resolve weight-at-date for the current list.
   useEffect(() => {
@@ -280,12 +281,15 @@ export default function History() {
       if (document.visibilityState === 'visible') refresh()
     }
     const onRunSaved = () => refresh()
+    const onWithingsSynced = () => refresh()
     document.addEventListener('visibilitychange', onVisibilityChange)
     window.addEventListener('kinetix:runSaved', onRunSaved)
+    window.addEventListener(WITHINGS_WEIGHTS_SYNCED_EVENT, onWithingsSynced)
     const delayedRefresh = window.setTimeout(refresh, 5000)
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('kinetix:runSaved', onRunSaved)
+      window.removeEventListener(WITHINGS_WEIGHTS_SYNCED_EVENT, onWithingsSynced)
       clearTimeout(delayedRefresh)
     }
   }, [bumpListRefresh, loadChartRuns, userProfile, chartStartDate, chartEndDate])

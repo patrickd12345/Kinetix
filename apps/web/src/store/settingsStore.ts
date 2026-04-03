@@ -104,8 +104,9 @@ export const useSettingsStore = create<SettingsState>()(
         out.stravaSyncError = null
         return out
       },
-      onRehydrateStorage: () => (state, err) => {
-        if (!err && state) useSettingsStore.setState({ settingsRehydrated: true })
+      /** Must not require `state` truthy: first load / empty persist still finishes rehydration. */
+      onRehydrateStorage: () => (_state, err) => {
+        if (!err) useSettingsStore.setState({ settingsRehydrated: true })
       },
     }
   )

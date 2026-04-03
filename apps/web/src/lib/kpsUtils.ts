@@ -17,7 +17,6 @@ import { getProfileForRun } from './authState'
  *
  * 1. PB IS A FACT, NOT A CALCULATION
  *    - PB is stored explicitly (runId + profile snapshot)
- *    - PB is NEVER rediscovered by scanning runs
  *    - PB only changes when a strictly better run occurs
  *
  * 2. PB = 100, ALL OTHERS ARE RATIOS (NON-NEGOTIABLE)
@@ -233,6 +232,8 @@ export async function calculateRelativeKPS(
   run: RunRecord,
   currentProfile: UserProfile
 ): Promise<number> {
+  await ensurePBInitialized(currentProfile)
+
   // Calculate absolute KPS for this run using current profile
   const runAbsoluteKPS = calculateAbsoluteKPS(run, currentProfile)
 
@@ -254,7 +255,7 @@ export async function calculateRelativeKPS(
   }
 
   // INVARIANT: PB run always returns 100, by definition
-  if (run.id && pb.runId && run.id === pb.runId) {
+  if (run.id != null && pb.runId != null && Number(run.id) === Number(pb.runId)) {
     return 100
   }
 
@@ -285,15 +286,49 @@ export function calculateRelativeKPSSync(
   pb: PBRecord | null,
   pbRun: RunRecord | null
 ): number {
+  if (!pb || !pbRun) return 0
+
+  // PB anchor is always relative 100 (invariant) — must not be blocked by absolute-KPS validation.
+  const sameAsPb =
+    run.id != null && pb.runId != null && Number(run.id) === Number(pb.runId)
+  if (sameAsPb) return 100
+
   const runAbsoluteKPS = calculateAbsoluteKPS(run, currentProfile)
   if (!isValidKPS(runAbsoluteKPS)) return 0
-  if (!pb || !pbRun) return 0
-  if (run.id && pb.runId && run.id === pb.runId) return 100
   const pbAbsoluteKPS = calculateAbsoluteKPS(pbRun, pb.profileSnapshot)
   if (!isValidKPS(pbAbsoluteKPS)) return 0
   const relativeKPS = (runAbsoluteKPS / pbAbsoluteKPS) * 100
   if (isNaN(relativeKPS) || !isFinite(relativeKPS)) return 0
   return relativeKPS
+}
+
+/**
+ * Keep runs whose relative KPS (same as list cards) falls in optional inclusive bounds.
+ * When any bound is set, runs with non-finite relative scores are excluded.
+ */
+export async function filterRunsByRelativeKpsBounds(
+  runs: RunRecord[],
+  kpsMin: number | undefined,
+  kpsMax: number | undefined
+): Promise<RunRecord[]> {
+  if (kpsMin == null && kpsMax == null) return runs
+
+  const pb = await getPB()
+  let pbRun = pb ? (await db.runs.get(pb.runId)) ?? null : null
+  if (pbRun && (pbRun.deleted ?? 0) !== RUN_VISIBLE) pbRun = null
+
+  const out: RunRecord[] = []
+  for (const run of runs) {
+    const profileForRun = await getProfileForRun(run)
+    const rel = calculateRelativeKPSSync(run, profileForRun, pb ?? null, pbRun ?? null)
+    if (!Number.isFinite(rel)) continue
+    // Match History list cards, which use Math.round(relativeKPS) for display.
+    const displayRel = Math.round(rel)
+    if (kpsMin != null && displayRel < kpsMin) continue
+    if (kpsMax != null && displayRel > kpsMax) continue
+    out.push(run)
+  }
+  return out
 }
 
 /**
@@ -326,7 +361,7 @@ export async function checkAndUpdatePB(
     await db.pb.add({
       runId: newRun.id,
       achievedAt: newRun.date,
-      profileSnapshot: currentProfile
+      profileSnapshot: currentProfile,
     })
     return true
   }
@@ -337,7 +372,7 @@ export async function checkAndUpdatePB(
     await db.pb.update(pb.id!, {
       runId: newRun.id,
       achievedAt: newRun.date,
-      profileSnapshot: currentProfile
+      profileSnapshot: currentProfile,
     })
     return true
   }
@@ -350,7 +385,7 @@ export async function checkAndUpdatePB(
     await db.pb.update(pb.id!, {
       runId: newRun.id,
       achievedAt: newRun.date,
-      profileSnapshot: currentProfile
+      profileSnapshot: currentProfile,
     })
     return true
   }
@@ -361,7 +396,7 @@ export async function checkAndUpdatePB(
     await db.pb.update(pb.id!, {
       runId: newRun.id,
       achievedAt: newRun.date,
-      profileSnapshot: currentProfile
+      profileSnapshot: currentProfile,
     })
     return true
   }

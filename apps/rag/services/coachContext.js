@@ -95,7 +95,13 @@ function formatRunsSummary(runs) {
     const pace = m.pace != null ? formatPace(m.pace) : '?';
     const kps = m.kps ?? m.avgKPS ?? m.npi ?? '?';
     const date = m.date ? new Date(m.date).toLocaleDateString() : '?';
-    return `${i + 1}. ${distKm}km, KPS ${kps}, pace ${pace}/km, ${date}`;
+    const songBpm = m.songBpm ?? m.song_bpm;
+    const songExtra =
+      songBpm != null && songBpm > 0
+        ? `, music ${m.songLabel ? `${m.songLabel} ` : ''}~${Math.floor(songBpm)} BPM`
+        : '';
+    const cad = m.cadence != null ? `, cadence ${Math.floor(m.cadence)} spm` : '';
+    return `${i + 1}. ${distKm}km, KPS ${kps}, pace ${pace}/km${cad}${songExtra}, ${date}`;
   });
   return 'Relevant runs from history:\n' + lines.join('\n');
 }

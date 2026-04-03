@@ -49,8 +49,26 @@ final class SharedAIExecutionService {
         }
     }
 
-    func analyzeRun(distance: Double, pace: String, npi: Double, targetNPI: Double) async throws -> SharedAIAnalysis {
-        if let result = try? await analyzeWithOllama(distance: distance, pace: pace, npi: npi, targetNPI: targetNPI) {
+    func analyzeRun(
+        distance: Double,
+        pace: String,
+        npi: Double,
+        targetNPI: Double,
+        songTitle: String? = nil,
+        songArtist: String? = nil,
+        songBpm: Int? = nil,
+        avgCadence: Double? = nil
+    ) async throws -> SharedAIAnalysis {
+        if let result = try? await analyzeWithOllama(
+            distance: distance,
+            pace: pace,
+            npi: npi,
+            targetNPI: targetNPI,
+            songTitle: songTitle,
+            songArtist: songArtist,
+            songBpm: songBpm,
+            avgCadence: avgCadence
+        ) {
             return result
         }
 
@@ -61,13 +79,26 @@ final class SharedAIExecutionService {
                 pace: pace,
                 npi: npi,
                 targetNPI: targetNPI,
-                apiKey: key
+                apiKey: key,
+                songTitle: songTitle,
+                songArtist: songArtist,
+                songBpm: songBpm,
+                avgCadence: avgCadence
             ) {
                 return result
             }
         }
 
-        return generateRuleBasedAnalysis(distance: distance, pace: pace, npi: npi, targetNPI: targetNPI)
+        return generateRuleBasedAnalysis(
+            distance: distance,
+            pace: pace,
+            npi: npi,
+            targetNPI: targetNPI,
+            songTitle: songTitle,
+            songArtist: songArtist,
+            songBpm: songBpm,
+            avgCadence: avgCadence
+        )
     }
 
     func ask(question: String, metrics: FormMetrics) async throws -> String {
@@ -93,12 +124,30 @@ final class SharedAIExecutionService {
         return text.replacingOccurrences(of: "*", with: "")
     }
 
-    private func analyzeWithOllama(distance: Double, pace: String, npi: Double, targetNPI: Double) async throws -> SharedAIAnalysis {
+    private func analyzeWithOllama(
+        distance: Double,
+        pace: String,
+        npi: Double,
+        targetNPI: Double,
+        songTitle: String?,
+        songArtist: String?,
+        songBpm: Int?,
+        avgCadence: Double?
+    ) async throws -> SharedAIAnalysis {
         guard let url = URL(string: "\(ollamaURL)/api/generate") else {
             throw URLError(.badURL)
         }
 
-        let prompt = buildAnalysisPrompt(distance: distance, pace: pace, npi: npi, targetNPI: targetNPI)
+        let prompt = buildAnalysisPrompt(
+            distance: distance,
+            pace: pace,
+            npi: npi,
+            targetNPI: targetNPI,
+            songTitle: songTitle,
+            songArtist: songArtist,
+            songBpm: songBpm,
+            avgCadence: avgCadence
+        )
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -133,19 +182,59 @@ final class SharedAIExecutionService {
         pace: String,
         npi: Double,
         targetNPI: Double,
-        apiKey: String
+        apiKey: String,
+        songTitle: String?,
+        songArtist: String?,
+        songBpm: Int?,
+        avgCadence: Double?
     ) async throws -> SharedAIAnalysis {
-        let prompt = buildAnalysisPrompt(distance: distance, pace: pace, npi: npi, targetNPI: targetNPI)
+        let prompt = buildAnalysisPrompt(
+            distance: distance,
+            pace: pace,
+            npi: npi,
+            targetNPI: targetNPI,
+            songTitle: songTitle,
+            songArtist: songArtist,
+            songBpm: songBpm,
+            avgCadence: avgCadence
+        )
         let responseText = try await fetchGeminiResponse(prompt: prompt, apiKey: apiKey)
         return parseAIResponse(responseText)
     }
 
-    private func buildAnalysisPrompt(distance: Double, pace: String, npi: Double, targetNPI: Double) -> String {
-        """
+    private func buildAnalysisPrompt(
+        distance: Double,
+        pace: String,
+        npi: Double,
+        targetNPI: Double,
+        songTitle: String?,
+        songArtist: String?,
+        songBpm: Int?,
+        avgCadence: Double?
+    ) -> String {
+        var musicBlock = ""
+        if songBpm != nil || songTitle != nil || songArtist != nil || avgCadence != nil {
+            let track = [songArtist, songTitle].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " — ")
+            if !track.isEmpty {
+                musicBlock += "\n- Linked music: \(track)"
+            }
+            if let bpm = songBpm, bpm > 0 {
+                musicBlock += "\n- Song tempo: \(bpm) BPM (beats per minute)"
+            }
+            if let cad = avgCadence, cad > 0 {
+                musicBlock += "\n- Avg cadence: \(Int(cad)) steps/min (spm)"
+                if let bpm = songBpm, bpm > 0 {
+                    let ratio = Double(bpm) / cad
+                    musicBlock += String(format: "\n- Music BPM ÷ cadence ≈ %.2f (values near 0.5, 1.0, or 2.0 often feel rhythmically aligned)", ratio)
+                }
+            }
+            musicBlock += "\n  Use this only when helpful: relate music tempo to step rhythm and perceived efficiency; do not invent BPM or cadence."
+        }
+        return """
         You are Kinetix AI, an intelligent running coach. Analyze this run:
         - Distance: \(String(format: "%.2f", distance)) km
         - Average Pace: \(pace) per km
-        - KPS: \(Int(npi)) (Target: \(Int(targetNPI)))
+        - KPS: \(Int(npi)) (Target: \(Int(targetNPI)))\(musicBlock)
 
         Provide a concise analysis with:
         1. A brief, scientific-sounding title (max 8 words)
@@ -181,7 +270,16 @@ final class SharedAIExecutionService {
         )
     }
 
-    private func generateRuleBasedAnalysis(distance: Double, pace: String, npi: Double, targetNPI: Double) -> SharedAIAnalysis {
+    private func generateRuleBasedAnalysis(
+        distance: Double,
+        pace: String,
+        npi: Double,
+        targetNPI: Double,
+        songTitle: String?,
+        songArtist: String?,
+        songBpm: Int?,
+        avgCadence: Double?
+    ) -> SharedAIAnalysis {
         let npiDiff = npi - targetNPI
 
         var title: String
@@ -202,6 +300,12 @@ final class SharedAIExecutionService {
         }
 
         insight += " Your \(String(format: "%.2f", distance)) km run at \(pace)/km shows good effort."
+        if let bpm = songBpm, bpm > 0, let cad = avgCadence, cad > 0 {
+            insight += " Music was \(bpm) BPM vs cadence \(Int(cad)) spm—compare rhythm alignment when tuning effort."
+        } else if songTitle != nil || songArtist != nil {
+            let t = [songArtist, songTitle].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " — ")
+            if !t.isEmpty { insight += " (Music noted: \(t).)" }
+        }
         return SharedAIAnalysis(title: title, insight: insight)
     }
 
@@ -261,14 +365,32 @@ class AICoach: ObservableObject {
         await SharedAIExecutionService.isOllamaAvailable()
     }
 
-    func analyzeRun(distance: Double, pace: String, npi: Double, pb: Double) {
+    func analyzeRun(
+        distance: Double,
+        pace: String,
+        npi: Double,
+        pb: Double,
+        songTitle: String? = nil,
+        songArtist: String? = nil,
+        songBpm: Int? = nil,
+        avgCadence: Double? = nil
+    ) {
         isAnalyzing = true
         result = nil
         error = nil
 
         Task {
             do {
-                let result = try await analyzeRunAsync(distance: distance, pace: pace, npi: npi, targetNPI: pb)
+                let result = try await analyzeRunAsync(
+                    distance: distance,
+                    pace: pace,
+                    npi: npi,
+                    targetNPI: pb,
+                    songTitle: songTitle,
+                    songArtist: songArtist,
+                    songBpm: songBpm,
+                    avgCadence: avgCadence
+                )
                 await MainActor.run {
                     self.result = result
                     self.isAnalyzing = false
@@ -282,12 +404,25 @@ class AICoach: ObservableObject {
         }
     }
 
-    func analyzeRunAsync(distance: Double, pace: String, npi: Double, targetNPI: Double) async throws -> AIResult {
+    func analyzeRunAsync(
+        distance: Double,
+        pace: String,
+        npi: Double,
+        targetNPI: Double,
+        songTitle: String? = nil,
+        songArtist: String? = nil,
+        songBpm: Int? = nil,
+        avgCadence: Double? = nil
+    ) async throws -> AIResult {
         let result = try await executionService.analyzeRun(
             distance: distance,
             pace: pace,
             npi: npi,
-            targetNPI: targetNPI
+            targetNPI: targetNPI,
+            songTitle: songTitle,
+            songArtist: songArtist,
+            songBpm: songBpm,
+            avgCadence: avgCadence
         )
         return AIResult(title: result.title, insight: result.insight)
     }

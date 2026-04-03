@@ -7,6 +7,7 @@
 - ✅ **Run Recording**: Start, pause, resume, and stop runs
 - ✅ **Crash Recovery**: Automatic recovery of interrupted runs with resume option
 - ✅ **Data Persistence**: Periodic autosave during runs (every 30 seconds)
+- ✅ **Optional song metadata on Run**: Model supports optional `songTitle`, `songArtist`, `songBpm` (BPM **40–240** when stored server-side) for future music linking; included in `RunPayload` to iPhone for coach analysis
 - ✅ **Route Recording**: GPS-based route tracking with coordinate storage
 - ✅ **Background Operation**: Reliable tracking when screen is off
 

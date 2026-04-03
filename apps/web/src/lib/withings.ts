@@ -1,5 +1,5 @@
 import type { WithingsCredentials } from '../store/settingsStore'
-import type { WeightEntry } from './database'
+import { bulkPutWeightEntries, type WeightEntry } from './database'
 
 const WITHINGS_MEASURE_URL = 'https://wbsapi.withings.net/measure'
 
@@ -161,4 +161,32 @@ export async function fetchRecentWithingsWeights(
   }
 
   return entries.sort((a, b) => b.dateUnix - a.dateUnix)
+}
+
+export interface WithingsStartupSyncResult {
+  /** Latest weight from Measure API (kg), for `lastWithingsWeightKg` */
+  latestKg: number | null
+  /** Rows merged into `weightHistory` */
+  historyEntriesSynced: number
+}
+
+/**
+ * Startup / background sync: refresh token, merge recent measurements into IndexedDB,
+ * and always resolve the latest scale weight from the API (even when the recent window
+ * returns no new rows — e.g. first open after a long break).
+ */
+export async function syncWithingsWeightsAtStartup(
+  creds: WithingsCredentials,
+  onCredentialsUpdate?: (c: WithingsCredentials) => void
+): Promise<WithingsStartupSyncResult> {
+  const valid = await ensureValidWithingsAccess(creds)
+  if (valid !== creds) onCredentialsUpdate?.(valid)
+
+  const entries = await fetchRecentWithingsWeights(valid.accessToken, 90)
+  if (entries.length > 0) {
+    await bulkPutWeightEntries(entries)
+  }
+
+  const latestKg = await fetchLatestWeightFromWithings(valid.accessToken)
+  return { latestKg, historyEntriesSynced: entries.length }
 }

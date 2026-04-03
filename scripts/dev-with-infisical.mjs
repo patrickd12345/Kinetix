@@ -61,6 +61,49 @@ function applyPlatformServiceKeyAlias(env) {
   }
 }
 
+function trimNonEmpty(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+  const t = value.trim();
+  return t.length > 0 ? t : "";
+}
+
+/**
+ * Mirrors apps/web/src/lib/supabaseClient.ts — required for a working Supabase client in Vite.
+ */
+function validateMergedEnvForLocalDev(env) {
+  const missing = [];
+
+  const url =
+    trimNonEmpty(env.VITE_SUPABASE_URL) ||
+    trimNonEmpty(env.NEXT_PUBLIC_SUPABASE_URL);
+  if (!url) {
+    missing.push(
+      "Supabase URL — set a non-empty value for one of: VITE_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_URL"
+    );
+  }
+
+  const publishable =
+    trimNonEmpty(env.VITE_SUPABASE_ANON_KEY) ||
+    trimNonEmpty(env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+    trimNonEmpty(env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+  if (!publishable) {
+    missing.push(
+      "Supabase publishable/anon key — set a non-empty value for one of: VITE_SUPABASE_ANON_KEY, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+    );
+  }
+
+  if (missing.length === 0) {
+    return;
+  }
+
+  const detail = missing.map((line) => `  - ${line}`).join("\n");
+  throw new Error(
+    `Missing required variables after merge (see docs/deployment/INFISICAL_LOCAL_DEV.md):\n${detail}`
+  );
+}
+
 function main() {
   const envName = resolveEnvName();
   const platformSecrets = exportSecrets("/platform", envName);
@@ -71,6 +114,7 @@ function main() {
     ...kinetixSecrets,
   };
   applyPlatformServiceKeyAlias(mergedEnv);
+  validateMergedEnvForLocalDev(mergedEnv);
 
   const child = spawn("pnpm", ["dev"], {
     env: mergedEnv,

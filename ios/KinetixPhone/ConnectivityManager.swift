@@ -487,7 +487,10 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                     avgStrideLength: payload.avgStrideLength,
                     formScore: payload.formScore,
                     routeData: payload.routeData,
-                    formSessionId: payload.formSessionId
+                    formSessionId: payload.formSessionId,
+                    songTitle: payload.songTitle,
+                    songArtist: payload.songArtist,
+                    songBpm: payload.songBpm
                 )
                 modelContext.insert(run)
                 print("📱 iPhone: Received and saved run from Watch: \(String(format: "%.2f", payload.distance / 1000)) km, KPS: \(Int(finalNPI))")

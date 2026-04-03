@@ -19,6 +19,7 @@
 
 ### History Tab
 - ✅ **Run History List**: Complete list of all runs
+- ✅ **Optional song metadata on runs**: Model supports optional `songTitle`, `songArtist`, `songBpm` (synced with Watch payload and cloud JSON; DB `song_bpm` **40–240** when present); post-run AI may use BPM vs cadence when set
 - ✅ **Detailed Run Views**: Full post-run analysis including:
   - Lab report with form score
   - Biomechanics grid

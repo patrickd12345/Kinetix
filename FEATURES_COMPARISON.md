@@ -13,6 +13,7 @@
 | **Battery Profiles** | ✅ | ✅ (Manage) | ❌ |
 | **Watch Connectivity** | ✅ | ✅ | ❌ |
 | **AI Coach** | ⚠️ (Via Phone) | ✅ | ✅ (Local LLM) |
+| **Optional song → run (BPM 40–240 for coach)** | ⚠️ (Model/sync) | ⚠️ (Model/sync) | ⚠️ (Stored + RAG) |
 | **Voice Coaching** | ⚠️ (Via Phone) | ✅ | ❌ |
 | **Run History** | ✅ | ✅ | ✅ |
 | **Settings Management** | ⚠️ (Limited) | ✅ | ✅ |
@@ -20,6 +21,8 @@
 | **Charts Menu (/menu)** | ❌ | ❌ | ✅ |
 | **Desktop-first Shell Navigation** | ❌ | ⚠️ (Tab navigation) | ✅ |
 | **Export/Share** | ❌ | ❌ | ❌ |
+| **Garmin import (export ZIP / .fit)** | ❌ | ❌ | ✅ |
+| **Withings weight + startup sync** | ❌ | ❌ | ✅ |
 
 **Legend**: ✅ = Full Support | ⚠️ = Partial/Limited | ❌ = Not Available
 

@@ -242,7 +242,11 @@ struct RunDetailView: View {
             distance: distance,
             pace: pace,
             npi: run.avgNPI,
-            pb: targetNPI
+            pb: targetNPI,
+            songTitle: run.songTitle,
+            songArtist: run.songArtist,
+            songBpm: run.songBpm,
+            avgCadence: run.avgCadence
         )
     }
 }

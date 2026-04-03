@@ -34,6 +34,18 @@ export class EmbeddingService {
 
     if (run.avgHeartRate) text += `, heart rate ${Math.floor(run.avgHeartRate)} bpm`;
     if (run.avgCadence) text += `, cadence ${Math.floor(run.avgCadence)} spm`;
+    const st = run.songTitle || run.song_title;
+    const sa = run.songArtist || run.song_artist;
+    const sbpm = run.songBpm ?? run.song_bpm;
+    if (sbpm != null && sbpm > 0) {
+      const who = [sa, st].filter(Boolean).join(' — ') || 'music';
+      text += `, music ~${Math.floor(sbpm)} BPM (${who})`;
+      if (run.avgCadence) {
+        const cad = Math.floor(run.avgCadence);
+        const ratio = cad > 0 ? (sbpm / cad).toFixed(2) : '';
+        text += `; music BPM to cadence ratio ${ratio} (compare tempo to step rhythm for efficiency)`;
+      }
+    }
     if (run.formScore) text += `, form score ${Math.floor(run.formScore)}`;
     if (run.avgVerticalOscillation) text += `, vertical oscillation ${run.avgVerticalOscillation.toFixed(1)} cm`;
     if (run.avgGroundContactTime) text += `, ground contact time ${Math.floor(run.avgGroundContactTime)} ms`;

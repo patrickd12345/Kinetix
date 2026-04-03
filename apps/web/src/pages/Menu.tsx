@@ -11,7 +11,7 @@ import {
   getActivePlatformProfile,
 } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
-import { toKinetixUserProfile } from '../lib/kinetixProfile'
+import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
 import type { UserProfile } from '@kinetix/core'
 import {
   ensurePBInitialized,
@@ -77,9 +77,7 @@ export default function Menu() {
   const [activeTab, setActiveTab] = useState<'pbs' | 'curve'>('pbs')
   const unitSystem = useSettingsStore((s) => s.unitSystem)
   const { profile } = useAuth()
-  const userProfile = useMemo(() => {
-    return profile ? toKinetixUserProfile(profile) : null
-  }, [profile])
+  const userProfile = useStableKinetixUserProfile(profile)
 
   const curvePoints = useMemo(() => {
     if (!pbProfileSnapshot || pbAbsoluteKps == null || pbAbsoluteKps <= 0)

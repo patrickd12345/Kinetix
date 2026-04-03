@@ -34,13 +34,14 @@
 - ✅ **Save Dialog**: Confirm before saving runs
 
 ### History View
-- ✅ **Run History List**: Complete list of all saved runs
-- ✅ **Run Cards**: Display date, distance, duration, and NPI
-- ✅ **Run Detail Navigation**: Click to view detailed run analysis
+- ✅ **Run History List**: Paginated list of saved runs (newest first)
+- ✅ **Run Cards**: Date, activity name (from notes / import title), distance, duration, pace, weight, KPS; gold / silver / bronze medals for the top three rounded relative KPS tiers across visible history, with `KPS 100` always gold when present (ties share the same medal)
+- ✅ **Filters**: Optional filters by name text, pace range (per km or per mi), duration, distance, relative KPS (min/max), source; preset to hide unrealistically fast paces (e.g. car); when filters are on, matching runs are loaded from the full history client-side and shown in a single scrollable list (no per-page slice); with a KPS range filter, the personal-best reference run is pinned to the top
+- ✅ **Run Detail Navigation**: Expand for detailed run analysis
 
 ### Run Detail View
-- ✅ **NPI Showcase**: Large display of run NPI
-- ✅ **Comprehensive Stats**: Distance, duration, pace, heart rate
+- ✅ **KPS / stats**: Relative score, distance, duration, pace, heart rate, splits when present
+- ✅ **True PB badge** (History expanded details): The actual all-time best activity is identified as `KPS 100`; other runs scale relative to that true best
 - ✅ **AI Coach Analysis**: Get AI-powered insights about the run
 - ✅ **Route Info**: Display number of GPS points recorded
 
@@ -50,6 +51,9 @@
 - ✅ **Unit System**: Toggle between metric and imperial
 - ✅ **Physio-Pacer Mode**: Toggle heart rate monitoring mode
 - ✅ **Data Management**: Clear all data option
+- ✅ **Garmin import**: Full Connect export ZIP (`DI_CONNECT/.../summarizedActivities.json`), a ZIP that only contains `.fit` files, or a single running `.fit` file; imports merge into local history with deduplication
+- ✅ **Strava import**: OAuth connect and import running activities from Strava
+- ✅ **Withings scale**: OAuth connect; on each app load, background sync refreshes tokens, pulls ~90 days of weigh-ins into local weight history, and updates latest weight; run history shows weight-at-date from that history when available (not only the weight snapshot stored on each run)
 
 ### AI Integration
 - ✅ **Local LLM Support**: Integration with Ollama for local AI analysis
@@ -61,6 +65,7 @@
 - ✅ **localStorage**: Run data and settings stored locally
 - ✅ **Run Storage**: All runs saved and retrievable
 - ✅ **Settings Storage**: User preferences persisted
+- ✅ **Optional song metadata**: Runs may include `songTitle`, `songArtist`, `songBpm` (IndexedDB); Supabase `kinetix.activities` mirrors these columns (`song_bpm` checked **40–240** when set); all optional; coach/RAG may relate BPM to cadence for efficiency hints
 
 ### UI/UX
 - ✅ **Modern Design**: Dark theme with glassmorphism effects

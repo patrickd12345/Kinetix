@@ -1,7 +1,7 @@
 /**
  * Garmin export ingestion: types, normalization, and parsing.
- * Only processes DI_CONNECT/DI-Connect-Fitness/*_summarizedActivities.json
- * and keeps activities where activityType.typeKey === "running".
+ * Summarized JSON: DI_CONNECT/DI-Connect-Fitness/*_summarizedActivities.json (running only).
+ * Single-activity .fit files are handled in garminFit.ts / garminImport.ts.
  */
 
 import { calculateKPS } from '@kinetix/core'

@@ -19,6 +19,10 @@ public final class Run {
     public var routeData: [RoutePoint] = []
     public var formSessionId: UUID? // Link to Form Monitor samples when applicable
     public var elevationGain: Double? // Elevation gain in meters
+    /// Optional music the user associated with this run (coach can relate BPM to cadence).
+    public var songTitle: String?
+    public var songArtist: String?
+    public var songBpm: Int?
     
     public init(
         date: Date = Date(),
@@ -35,7 +39,10 @@ public final class Run {
         formScore: Double? = nil,
         routeData: [RoutePoint] = [],
         formSessionId: UUID? = nil,
-        elevationGain: Double? = nil
+        elevationGain: Double? = nil,
+        songTitle: String? = nil,
+        songArtist: String? = nil,
+        songBpm: Int? = nil
     ) {
         self.id = UUID()
         self.date = date
@@ -53,6 +60,9 @@ public final class Run {
         self.routeData = routeData
         self.formSessionId = formSessionId
         self.elevationGain = elevationGain
+        self.songTitle = songTitle
+        self.songArtist = songArtist
+        self.songBpm = songBpm
     }
 }
 
@@ -84,6 +94,9 @@ public struct RunPayload: Codable, Identifiable {
     public let routeData: [RoutePoint]
     public let formSessionId: UUID?
     public let elevationGain: Double?
+    public let songTitle: String?
+    public let songArtist: String?
+    public let songBpm: Int?
     
     public init(from run: Run) {
         self.id = run.id
@@ -102,5 +115,8 @@ public struct RunPayload: Codable, Identifiable {
         self.routeData = run.routeData
         self.formSessionId = run.formSessionId
         self.elevationGain = run.elevationGain
+        self.songTitle = run.songTitle
+        self.songArtist = run.songArtist
+        self.songBpm = run.songBpm
     }
 }

@@ -34,6 +34,19 @@ describe('KPS contract invariants', () => {
     expect(score).toBe(100)
   })
 
+  it('returns 100 for PB run even when absolute KPS is invalid (anchor invariant)', () => {
+    const badPbRun = makeRun({ id: 10, distance: 0, duration: 0, averagePace: 0 })
+    const score = calculateRelativeKPSSync(badPbRun, profile, pb, badPbRun)
+    expect(score).toBe(100)
+  })
+
+  it('treats string/number runId as PB match like numeric equality', () => {
+    const pbRun = makeRun({ id: 10, distance: 5000, duration: 1500, averagePace: 300 })
+    const pbStr: PBRecord = { ...pb, runId: 10 as unknown as number }
+    const score = calculateRelativeKPSSync({ ...pbRun, id: '10' as unknown as number }, profile, pbStr, pbRun)
+    expect(score).toBe(100)
+  })
+
   it('returns a ratio for non-PB runs', () => {
     const pbRun = makeRun({ id: 10, distance: 5000, duration: 1500, averagePace: 300 })
     const slowerRun = makeRun({ id: 11, distance: 5000, duration: 1650, averagePace: 330 })

@@ -42,6 +42,9 @@ export interface RAGRunShape {
   avgHeartRate: number | null
   avgCadence: number | null
   formScore: number | null
+  songTitle?: string | null
+  songArtist?: string | null
+  songBpm?: number | null
 }
 
 /**
@@ -59,6 +62,9 @@ export function runRecordToRAGRun(run: RunRecord, userProfile: UserProfile): RAG
     avgHeartRate: run.heartRate ?? null,
     avgCadence: null,
     formScore: null,
+    songTitle: run.songTitle ?? null,
+    songArtist: run.songArtist ?? null,
+    songBpm: run.songBpm ?? null,
   }
 }
 

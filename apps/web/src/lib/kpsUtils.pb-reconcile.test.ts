@@ -81,6 +81,27 @@ describe('ensurePBInitialized - lifetime PB reconciliation', () => {
     expect(state.pbStore[0].profileSnapshot).toEqual({ age: 32, weightKg: 68 })
   })
 
+  it('reconciles legacy manualReference rows to the true lifetime best', async () => {
+    state.runsStore = [
+      makeRun({ id: 1, duration: 1800, averagePace: 360 }),
+      makeRun({ id: 2, duration: 1200, averagePace: 240 }),
+    ]
+    state.pbStore = [
+      {
+        id: 1,
+        runId: 1,
+        achievedAt: state.runsStore[0].date,
+        profileSnapshot: { age: 40, weightKg: 78 },
+        manualReference: true,
+      } as PBRecord & { manualReference: true },
+    ]
+
+    await ensurePBInitialized({ age: 35, weightKg: 70 })
+
+    expect(state.pbStore[0].runId).toBe(2)
+    expect(state.pbStore[0].profileSnapshot).toEqual({ age: 32, weightKg: 68 })
+  })
+
   it('reconciles an incorrect existing PB to true lifetime best', async () => {
     state.runsStore = [
       makeRun({ id: 1, duration: 1800, averagePace: 360 }),

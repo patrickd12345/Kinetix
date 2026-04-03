@@ -7,13 +7,12 @@ import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
 import { getRunsPage } from '../lib/database'
 import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
-import { ensureValidWithingsAccess, fetchRecentWithingsWeights } from '../lib/withings'
-import { bulkPutWeightEntries } from '../lib/database'
+import { syncWithingsWeightsAtStartup } from '../lib/withings'
 import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
 
 const RAG_SYNC_PAGE_SIZE = 200
 const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
-const WITHINGS_STARTUP_RETRY_DELAYS_MS = [2000, 5000] as const
+const WITHINGS_STARTUP_RETRY_DELAYS_MS = [0, 1500, 4000, 8000, 12000] as const
 
 interface LayoutProps {
   children: ReactNode
@@ -87,8 +86,17 @@ export default function Layout({ children }: LayoutProps) {
     return scheduleStartupAttempts([...STRAVA_STARTUP_RETRY_DELAYS_MS], runSync)
   }, [profile, stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated])
 
-  // Sync recent Withings weights into weight history on startup so new weigh-ins appear without re-importing JSON.
+  // Background Withings sync on startup: token refresh, recent history → IndexedDB, latest weight → settings.
   const withingsWeightSyncDoneRef = useRef(false)
+  const withingsCredsKeyRef = useRef<string | null>(null)
+  useEffect(() => {
+    const key = withingsCredentials?.refreshToken ?? ''
+    if (key !== withingsCredsKeyRef.current) {
+      withingsCredsKeyRef.current = key || null
+      withingsWeightSyncDoneRef.current = false
+    }
+  }, [withingsCredentials?.refreshToken])
+
   useEffect(() => {
     if (!settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') return
     if (withingsWeightSyncDoneRef.current) return
@@ -96,21 +104,20 @@ export default function Layout({ children }: LayoutProps) {
     const run = async () => {
       if (withingsWeightSyncDoneRef.current) return true
       try {
-        const valid = await ensureValidWithingsAccess(withingsCredentials)
-        if (valid !== withingsCredentials) setWithingsCredentials(valid)
-        const entries = await fetchRecentWithingsWeights(valid.accessToken, 30)
-        if (entries.length === 0) {
-          withingsWeightSyncDoneRef.current = true
-          return true
-        }
-        const { latestKg } = await bulkPutWeightEntries(entries)
+        const { latestKg, historyEntriesSynced } = await syncWithingsWeightsAtStartup(
+          withingsCredentials,
+          (c) => setWithingsCredentials(c)
+        )
         if (latestKg != null) setLastWithingsWeightKg(latestKg)
-        if (entries.length > 0 && typeof console !== 'undefined') {
-          console.log('[Withings] Synced', entries.length, 'recent weight(s) into history')
+        if (historyEntriesSynced > 0) {
+          console.log('[Withings] Synced', historyEntriesSynced, 'weight row(s) into history')
+        } else if (latestKg != null) {
+          console.log('[Withings] Latest weight updated:', latestKg.toFixed(1), 'kg')
         }
         withingsWeightSyncDoneRef.current = true
         return true
-      } catch {
+      } catch (e) {
+        console.warn('[Withings] Startup sync failed:', e instanceof Error ? e.message : e)
         return false
       }
     }

@@ -88,6 +88,14 @@ export class VectorDB {
     if (run.formScore != null && run.formScore !== '') {
       metadata.formScore = Number(run.formScore);
     }
+    const songBpm = run.songBpm ?? run.song_bpm;
+    if (songBpm != null && songBpm !== '' && Number(songBpm) > 0) {
+      metadata.songBpm = Number(songBpm);
+    }
+    const songLabel = [run.songArtist, run.songTitle].filter(Boolean).join(' — ') || run.song_label;
+    if (songLabel && String(songLabel).trim()) {
+      metadata.songLabel = String(songLabel).slice(0, 220);
+    }
 
     await this.collection.add({
       ids: [String(run.id)],

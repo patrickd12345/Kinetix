@@ -219,7 +219,10 @@ public class CloudSyncService {
                     avgStrideLength: cloudRunData.avgStrideLength,
                     formScore: cloudRunData.formScore,
                     routeData: cloudRunData.routeData.map { RoutePoint(lat: $0.lat, lon: $0.lon) },
-                    formSessionId: cloudRunData.formSessionId.flatMap { UUID(uuidString: $0) }
+                    formSessionId: cloudRunData.formSessionId.flatMap { UUID(uuidString: $0) },
+                    songTitle: cloudRunData.songTitle,
+                    songArtist: cloudRunData.songArtist,
+                    songBpm: cloudRunData.songBpm
                 )
                 // Note: SwiftData @Model generates id in init, so we can't set it
                 // The cloud ID is stored in the id field, but SwiftData uses its own
@@ -249,6 +252,9 @@ public class CloudSyncService {
                     localRun?.avgStrideLength = cloudRunData.avgStrideLength
                     localRun?.formScore = cloudRunData.formScore
                     localRun?.routeData = cloudRunData.routeData.map { RoutePoint(lat: $0.lat, lon: $0.lon) }
+                    localRun?.songTitle = cloudRunData.songTitle
+                    localRun?.songArtist = cloudRunData.songArtist
+                    localRun?.songBpm = cloudRunData.songBpm
                     merged += 1
                 }
             }
@@ -347,6 +353,9 @@ struct RunData: Codable {
     var formSessionId: String?
     var lastModified: String?
     var syncedAt: String?
+    var songTitle: String?
+    var songArtist: String?
+    var songBpm: Int?
     
     static func from(run: Run) -> RunData {
         let formatter = ISO8601DateFormatter()
@@ -367,7 +376,10 @@ struct RunData: Codable {
             routeData: run.routeData.map { RoutePointData(lat: $0.lat, lon: $0.lon) },
             formSessionId: run.formSessionId?.uuidString,
             lastModified: nil,
-            syncedAt: nil
+            syncedAt: nil,
+            songTitle: run.songTitle,
+            songArtist: run.songArtist,
+            songBpm: run.songBpm
         )
     }
 }

@@ -26,6 +26,11 @@ export interface RunRecord {
   deleted?: 0 | 1
   /** Weight (kg) used for KPS when this run was saved. Avoids querying weight history on every display. */
   weightKg?: number
+  /** Optional music linked to the run (for coach / BPM vs cadence analysis). */
+  songTitle?: string
+  songArtist?: string
+  /** Track tempo (beats per minute); compare to cadence (steps/min) for rhythm alignment. */
+  songBpm?: number
 }
 
 /**
@@ -125,6 +130,13 @@ export async function getRunsPage(
   const offset = Math.max(0, (page - 1) * pageSize)
   const items = await RUNS_ORDERED().offset(offset).limit(pageSize).toArray()
   return { items, total }
+}
+
+/**
+ * All visible runs, newest first (same order as History list). Used when client-side filters are active.
+ */
+export async function getAllVisibleRunsOrdered(): Promise<RunRecord[]> {
+  return RUNS_ORDERED().toArray()
 }
 
 /**

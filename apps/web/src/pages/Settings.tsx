@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
 import { useWithingsAuth } from '../hooks/useWithingsAuth'
 import { getWithingsWeight } from '../lib/withings'
-import { importGarminFromZipFile } from '../lib/garminImport'
+import { importGarminFromZipFile, importGarminFromFitFile, isGarminFitFile } from '../lib/garminImport'
 import { convertGarminToRunRecord } from '../lib/garmin'
 import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
 import { useAuth } from '../components/providers/useAuth'
@@ -491,6 +491,9 @@ export default function Settings() {
                     }
                     await indexRunsAfterSave(added)
                     setImportMessage(`Imported ${added.length} new run${added.length > 1 ? 's' : ''} from Strava.`)
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
+                    }
                     const outliers = await findOutlierRuns(added)
                     if (outliers.length > 0) setOutlierRuns(outliers)
                   } catch (error) {
@@ -551,12 +554,15 @@ export default function Settings() {
           <div className="space-y-3">
             <div className="text-xs text-gray-400 uppercase">Garmin export</div>
             <p className="text-[11px] text-gray-500 mb-2">
-              Import runs from a Garmin data export ZIP (DI_CONNECT/DI-Connect-Fitness only). Re-import is idempotent.
+              Upload a <strong className="text-gray-400">full Garmin account export</strong> ZIP (
+              <code className="text-gray-400">DI_CONNECT/DI-Connect-Fitness/*_summarizedActivities.json</code>
+              ), a ZIP that contains <code className="text-gray-400">.fit</code> files, or a single running activity{' '}
+              <code className="text-gray-400">.fit</code> file. Re-import is idempotent.
             </p>
             <input
               ref={garminZipInputRef}
               type="file"
-              accept=".zip"
+              accept=".zip,.fit,.FIT"
               className="hidden"
               onChange={async (e) => {
                 const file = e.target.files?.[0]
@@ -565,7 +571,9 @@ export default function Settings() {
                 setImportMessage(null)
                 try {
                   setImporting(true)
-                  const { runs: normalizedRuns, stats } = await importGarminFromZipFile(file, targetKPS)
+                  const { runs: normalizedRuns, stats } = isGarminFitFile(file)
+                    ? await importGarminFromFitFile(file, targetKPS)
+                    : await importGarminFromZipFile(file, targetKPS)
                   const existingGarmin = (await db.runs.where('source').equals('garmin').toArray()).filter(
                     (r) => (r.deleted ?? 0) === RUN_VISIBLE
                   )
@@ -578,7 +586,19 @@ export default function Settings() {
                     )
                   ).filter((r): r is RunRecord => r !== null)
                   if (toAdd.length === 0) {
-                    setImportMessage(`No new runs (${stats.duplicatesSkipped} duplicates skipped).`)
+                    const noJson = stats.filesScanned === 0
+                    const noFit = stats.fitFilesScanned === 0
+                    if (noJson && noFit) {
+                      setImportMessage(
+                        'No supported Garmin data found. Use a ZIP with DI_CONNECT/.../summarizedActivities.json and/or .fit files, or pick a single running .fit file.'
+                      )
+                    } else if (normalizedRuns.length === 0) {
+                      setImportMessage(
+                        'No running activities found in this file (only non-running sports or empty sessions).'
+                      )
+                    } else {
+                      setImportMessage(`No new runs (${stats.duplicatesSkipped} duplicates skipped).`)
+                    }
                     return
                   }
                   const added: RunRecord[] = []
@@ -587,9 +607,12 @@ export default function Settings() {
                     added.push({ ...r, id: id as number } as RunRecord)
                   }
                   await indexRunsAfterSave(added)
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
+                  }
                   setImportMessage(
                     `Imported ${added.length} run${added.length > 1 ? 's' : ''} from Garmin. ` +
-                    `Files: ${stats.filesScanned}, running: ${stats.runningActivities}, skipped: ${stats.duplicatesSkipped}.`
+                      `JSON files: ${stats.filesScanned}, FIT files: ${stats.fitFilesScanned}, running sessions: ${stats.runningActivities}, duplicates skipped: ${stats.duplicatesSkipped}.`
                   )
                   const outliers = await findOutlierRuns(added)
                   if (outliers.length > 0) setOutlierRuns(outliers)
@@ -607,7 +630,7 @@ export default function Settings() {
               className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition"
               disabled={importing}
             >
-              {importing ? 'Importing…' : 'Import Garmin ZIP'}
+              {importing ? 'Importing…' : 'Import Garmin (ZIP or .fit)'}
             </button>
           </div>
 

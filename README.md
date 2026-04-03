@@ -219,8 +219,9 @@ If you see "Watch App Not Installed" in the iPhone app diagnostics, one of these
 ```
 Kinetix/
 ├── apps/web/                 # Canonical web app (Vite + React). Use this for all web work.
-│   └── GARMIN_IMPORT.md      # Garmin ZIP import: in-app or pnpm garmin:import
+│   └── GARMIN_IMPORT.md      # Garmin ZIP / .fit import: in-app or pnpm garmin:import
 ├── apps/rag/                 # RAG backend service consumed by apps/web
+├── docs/deployment/          # e.g. INFISICAL_LOCAL_DEV.md (pnpm dev:infisical), ENV_PARITY.md (SSO)
 ├── archive/web-legacy/       # Archived legacy PWA reference
 ├── watchos/
 │   ├── KinetixWatch/          # Watch app source

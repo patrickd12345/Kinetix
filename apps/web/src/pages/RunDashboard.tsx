@@ -8,7 +8,7 @@ import { ensurePBInitialized, getRelativeKPS, getPB, getPBRun, calculateAbsolute
 import { getRunsPage } from '../lib/database'
 import { getProfileForRun } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
-import { toKinetixUserProfile } from '../lib/kinetixProfile'
+import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
 import { RunDashboardHeader, RunGaugePanel, RunStatsPanel, RunControlsPanel, RunDesktopSummary } from './run-dashboard/RunDashboardPanels'
 import { AICoachModal, BeatTargetModal } from './run-dashboard/RunDashboardModals'
 import type { BeatTargetOption } from './run-dashboard/types'
@@ -21,7 +21,6 @@ export default function RunDashboard() {
     distance,
     duration,
     averagePace,
-    liveKPS,
     heartRate,
     progress,
     timeToBeat,
@@ -33,9 +32,7 @@ export default function RunDashboard() {
   
   const { targetKPS, unitSystem, physioMode, beatPBPercent, beatRecentsCount } = useSettingsStore()
   const { profile } = useAuth()
-  const userProfile = useMemo(() => {
-    return profile ? toKinetixUserProfile(profile) : null
-  }, [profile])
+  const userProfile = useStableKinetixUserProfile(profile)
   const [relativeKPS, setRelativeKPS] = useState(0)
   useLocationTracking()
 
@@ -57,7 +54,7 @@ export default function RunDashboard() {
       .then(() => getRelativeKPS(tempRun, userProfile))
       .then(setRelativeKPS)
       .catch(() => setRelativeKPS(0))
-  }, [distance, duration, liveKPS, averagePace, targetKPS, userProfile])
+  }, [distance, duration, averagePace, targetKPS, userProfile])
 
   const displayKPS = useMemo(() => relativeKPS, [relativeKPS])
 

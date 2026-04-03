@@ -2,7 +2,7 @@ import { RunRecord } from '../lib/database'
 import { KPS_SHORT } from '../lib/branding'
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
 import { useSettingsStore } from '../store/settingsStore'
-import { MapPin, TrendingUp, Heart, Activity, Zap, Scale } from 'lucide-react'
+import { MapPin, TrendingUp, Heart, Activity, Zap, Scale, Trophy } from 'lucide-react'
 
 const KG_TO_LBS = 2.20462
 
@@ -10,9 +10,19 @@ interface RunDetailsProps {
   run: RunRecord
   relativeKPS: number
   unitSystem: 'metric' | 'imperial'
+  /** Weight-at-date from history (Withings) when available; else falls back to `run.weightKg` */
+  displayWeightKg?: number | null
+  /** This run is the current all-time best / PB anchor (shows as relative 100). */
+  isReferenceRun?: boolean
 }
 
-export function RunDetails({ run, relativeKPS, unitSystem }: RunDetailsProps) {
+export function RunDetails({
+  run,
+  relativeKPS,
+  unitSystem,
+  displayWeightKg,
+  isReferenceRun,
+}: RunDetailsProps) {
   const weightUnit = useSettingsStore((s) => s.weightUnit)
   const hasSplits = run.splits && run.splits.length > 0
   const hasLocations = run.locations && run.locations.length > 0
@@ -31,6 +41,7 @@ export function RunDetails({ run, relativeKPS, unitSystem }: RunDetailsProps) {
   }
 
   const hrZone = hasHeartRate && run.heartRate ? getHRZone(run.heartRate) : null
+  const weightKgForDisplay = displayWeightKg ?? run.weightKg
 
   // Calculate elevation if we have location data
   const elevationGain = hasLocations ? 0 : undefined // Placeholder - would calculate from lat/lon
@@ -50,14 +61,17 @@ export function RunDetails({ run, relativeKPS, unitSystem }: RunDetailsProps) {
           </div>
         </div>
 
-        {run.weightKg != null && run.weightKg > 0 && (
+        {weightKgForDisplay != null && weightKgForDisplay > 0 && (
           <div className="glass rounded-lg p-3">
             <div className="flex items-center gap-1 mb-1">
               <Scale size={12} className="text-cyan-400" />
               <span className="text-xs text-gray-400 uppercase">Weight used</span>
             </div>
             <div className="text-xl font-black text-cyan-400">
-              {weightUnit === 'lbs' ? (run.weightKg! * KG_TO_LBS).toFixed(1) : run.weightKg!.toFixed(1)} {weightUnit}
+              {weightUnit === 'lbs'
+                ? (weightKgForDisplay * KG_TO_LBS).toFixed(1)
+                : weightKgForDisplay.toFixed(1)}{' '}
+              {weightUnit}
             </div>
           </div>
         )}
@@ -91,6 +105,15 @@ export function RunDetails({ run, relativeKPS, unitSystem }: RunDetailsProps) {
           </div>
         )}
       </div>
+
+      {isReferenceRun && run.id && (
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+          <p className="flex items-center gap-2 text-sm font-medium text-emerald-400">
+            <Trophy size={16} className="flex-shrink-0" aria-hidden />
+            This activity is your all-time best ({KPS_SHORT} 100). Other runs are scored relative to it.
+          </p>
+        </div>
+      )}
 
       {/* Splits Table */}
       {hasSplits && (

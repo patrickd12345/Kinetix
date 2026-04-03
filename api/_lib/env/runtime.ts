@@ -1,4 +1,7 @@
 import { resolveKinetixRuntimeEnvFromObject } from "./runtime.shared.mjs";
+import { runKinetixSharedDbBootstrapOnce } from "./sharedDbEnv.mjs";
+
+runKinetixSharedDbBootstrapOnce();
 
 type EnvSource = NodeJS.ProcessEnv;
 

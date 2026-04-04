@@ -8,6 +8,7 @@ import {
   startSession,
 } from '@bookiji-inc/persistent-memory-runtime'
 import { buildKinetixBoundaryFromChat } from './kinetixMemoryBoundary'
+import { bridgeKinetixRuntimeToUmbrella, shouldBridgeKinetixToUmbrella } from './umbrellaRuntimeBridge'
 import { logAiEvent } from '../observability'
 import { resolveKinetixRuntimeEnv } from '../env/runtime'
 
@@ -209,13 +210,16 @@ export function getLLMClient(env: NodeJS.ProcessEnv = getEnv()): LLMClient {
         fallbackReason: result.fallbackReason,
       }
       logAiEvent('kinetix_ai_chat_completed', response, { surface: 'llmClient' })
+      const boundary = buildKinetixBoundaryFromChat(messages, result.text, 'llmClient')
       try {
-        await commitSessionBoundary(
-          memoryHandle,
-          buildKinetixBoundaryFromChat(messages, result.text, 'llmClient'),
-        )
+        await commitSessionBoundary(memoryHandle, boundary)
       } catch {
         /* ignore disk failures */
+      }
+      if (shouldBridgeKinetixToUmbrella(env)) {
+        void bridgeKinetixRuntimeToUmbrella(env, boundary).catch(() => {
+          /* explicit opt-in bridge; failures must not affect chat */
+        })
       }
       return response
     } catch (error) {
@@ -234,13 +238,14 @@ export function getLLMClient(env: NodeJS.ProcessEnv = getEnv()): LLMClient {
           surface: 'llmClient',
           fallbackPath: 'generate',
         })
+        const boundaryFb = buildKinetixBoundaryFromChat(messages, result.text, 'llmClient:generate_fallback')
         try {
-          await commitSessionBoundary(
-            memoryHandle,
-            buildKinetixBoundaryFromChat(messages, result.text, 'llmClient:generate_fallback'),
-          )
+          await commitSessionBoundary(memoryHandle, boundaryFb)
         } catch {
           /* ignore */
+        }
+        if (shouldBridgeKinetixToUmbrella(env)) {
+          void bridgeKinetixRuntimeToUmbrella(env, boundaryFb).catch(() => {})
         }
         return response
       }

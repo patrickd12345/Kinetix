@@ -32,6 +32,12 @@ fi
 rm -rf monorepo-packages
 ln -sfn "$(pwd)/.bookiji-packages" "$(pwd)/monorepo-packages"
 
+# Vercel restores dependency cache across deploys; a stale node_modules/.pnpm/lock.yaml from another
+# pnpm version triggers: WARN Ignoring not compatible lockfile at .../node_modules/.pnpm/lock.yaml
+if [ -n "${VERCEL:-}" ]; then
+  rm -rf node_modules
+fi
+
 # Pin pnpm 10.x via npx (avoids corepack writing under Program Files on Windows → EPERM; same on Vercel/Linux).
 # pnpm treats lockfile as frozen when CI=true unless --no-frozen-lockfile is passed.
 if [ -n "${PNPM_NO_FROZEN_LOCKFILE:-}" ]; then

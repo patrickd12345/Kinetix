@@ -3,12 +3,5 @@
   "compilerOptions": {
     "noUnusedLocals": false,
     "noUnusedParameters": false
-  },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": [
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "src/test/**",
-    "src/lib/withingsOAuthServer.ts"
-  ]
+  }
 }

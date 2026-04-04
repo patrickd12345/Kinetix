@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@api/*": ["../../api/*"]
+    }
+  },
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/test/**/*.ts",
+    "src/test/**/*.tsx",
+    "src/lib/withingsOAuthServer.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

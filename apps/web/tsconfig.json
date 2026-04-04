@@ -18,10 +18,15 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@api/*": ["../../api/*"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src","src/test"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/test/**",
+    "src/lib/withingsOAuthServer.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

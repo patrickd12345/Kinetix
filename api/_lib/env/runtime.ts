@@ -32,6 +32,10 @@ export type KinetixRuntimeEnv = {
   chromaAutoStartRaw: string;
   ollamaApiUrl: string;
   ollamaAutoStartRaw: string;
+  /** Stripe secret for server-side Checkout (test or live key) */
+  stripeSecretKey: string;
+  /** Subscription price id for Kinetix (e.g. price_...) */
+  kinetixStripePriceId: string;
 };
 
 function getDefaultEnv(): EnvSource {

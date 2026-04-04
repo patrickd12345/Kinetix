@@ -95,9 +95,10 @@ describe('AI route error contract adoption', () => {
     await chatHandler(createReq({ body: {} }), res)
 
     expect(res.statusCode).toBe(502)
-    expect(res.body).toEqual({
+    expect(res.body).toMatchObject({
       code: 'ai_execution_failed',
-      message: 'Failed to complete AI request.',
+      message: 'boom',
     })
+    expect(typeof (res.body as { requestId?: unknown }).requestId).toBe('string')
   })
 })

@@ -29,16 +29,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     return res.status(200).json(result)
   } catch (error) {
+    const requestId = getObservedRequestId(req.headers || {})
     logApiEvent('error', 'kinetix_ai_chat_failed', {
-      requestId: getObservedRequestId(req.headers || {}),
+      requestId,
       error: error instanceof Error ? error.message : String(error),
     })
     const normalized = toApiHttpError(error, {
       fallbackCode: 'ai_execution_failed',
       fallbackMessage: 'Failed to complete AI request.',
       fallbackStatus: 500,
+      requestId,
     })
     const status = normalized.status || 500
-    return res.status(status).json({ code: 'ai_execution_failed', message: 'Failed to complete AI request.' })
+    return res.status(status).json(serializeApiError(normalized))
   }
 }

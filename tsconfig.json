@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
@@ -15,9 +15,16 @@
     "declarationMap": true,
     "sourceMap": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@bookiji-inc/error-contract": ["../../packages/error-contract/src"],
+      "@bookiji-inc/ai-runtime": ["../../packages/ai-runtime/src"],
+      "@bookiji-inc/observability": ["../../packages/observability/src"],
+      "@bookiji-inc/persistent-memory-runtime": ["../../packages/persistent-memory-runtime/src"],
+      "@bookiji-inc/stripe-runtime": ["../../packages/stripe-runtime/src"],
+      "@bookiji-inc/platform-auth": ["../../packages/platform-auth/src"]
+    }
   },
-  "include": ["packages/core/src"],
+  "include": ["packages/core/src", "api/**/*"],
   "exclude": [
     "node_modules",
     "dist",

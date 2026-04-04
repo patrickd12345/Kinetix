@@ -4,6 +4,7 @@ import type { SessionBoundaryPayload } from '@bookiji-inc/persistent-memory-runt
 
 /**
  * Optional one-way bridge: Kinetix runtime boundary JSON → umbrella `commitSession('kinetix', delta)`.
+ * Pass the same SessionBoundaryPayload as commitSessionBoundary for that turn (serialized on stdin).
  * Opt-in: KINETIX_UMBRELLA_MEMORY_BRIDGE=1 and BOOKIJI_INC_ROOT=<absolute path to Bookiji-inc workspace root>.
  * No reverse sync; no background queue.
  */

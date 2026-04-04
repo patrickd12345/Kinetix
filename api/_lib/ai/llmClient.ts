@@ -205,7 +205,7 @@ export function getLLMClient(env: NodeJS.ProcessEnv = getEnv()): LLMClient {
         text: result.text,
         provider,
         model: effectiveModel,
-        mode: result.mode,
+        mode: result.mode as any,
         latencyMs: result.latencyMs,
         fallbackReason: result.fallbackReason,
       }

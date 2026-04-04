@@ -51,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res,
       500,
       err instanceof Error ? err.message : 'Failed to exchange Withings authorization code',
-      { source: req.headers },
-    })
+      { source: req.headers }
+    )
   }
 }

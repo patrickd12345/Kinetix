@@ -25,10 +25,14 @@
     "@bookiji-inc/observability": "link:../../packages/observability",
     "@bookiji-inc/persistent-memory-runtime": "link:../../packages/persistent-memory-runtime",
     "@bookiji-inc/stripe-runtime": "link:../../packages/stripe-runtime",
+    "@bookiji-inc/platform-auth": "link:../../packages/platform-auth",
+    "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.57.4",
+    "@vercel/node": "^3.0.0",
     "stripe": "^20.2.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "concurrently": "^9.1.0",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"

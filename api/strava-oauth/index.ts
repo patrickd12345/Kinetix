@@ -65,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
       return sendApiError(res, error.status, error.message, {
         source: req.headers,
-        details: error.details,
+        details: error.details ? String(error.details) : undefined,
       })
     }
     logApiEvent('error', 'kinetix_strava_oauth_exchange_failed', {

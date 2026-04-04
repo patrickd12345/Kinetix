@@ -1,4 +1,6 @@
+// @ts-expect-error - MJS file without types
 import { resolveKinetixRuntimeEnvFromObject } from "./runtime.shared.mjs";
+// @ts-expect-error - MJS file without types
 import { runKinetixSharedDbBootstrapOnce } from "./sharedDbEnv.mjs";
 
 runKinetixSharedDbBootstrapOnce();

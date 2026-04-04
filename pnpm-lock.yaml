@@ -20,16 +20,28 @@ importers:
       '@bookiji-inc/persistent-memory-runtime':
         specifier: link:../../packages/persistent-memory-runtime
         version: link:../../packages/persistent-memory-runtime
+      '@bookiji-inc/platform-auth':
+        specifier: link:../../packages/platform-auth
+        version: link:../../packages/platform-auth
       '@bookiji-inc/stripe-runtime':
         specifier: link:../../packages/stripe-runtime
         version: link:../../packages/stripe-runtime
+      '@supabase/ssr':
+        specifier: ^0.5.2
+        version: 0.5.2(@supabase/supabase-js@2.95.3)
       '@supabase/supabase-js':
         specifier: ^2.57.4
         version: 2.95.3
+      '@vercel/node':
+        specifier: ^3.0.0
+        version: 3.2.29
       stripe:
         specifier: ^20.2.0
         version: 20.4.1(@types/node@20.19.30)
     devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.30
       concurrently:
         specifier: ^9.1.0
         version: 9.2.1

@@ -35,7 +35,7 @@ const CATEGORY_REAL = '1'
 
 function getMeasHasMore(body: GetMeasJson['body']): boolean {
   const m = body?.more
-  return m === true || Number(m) === 1
+  return Number(m) === 1
 }
 
 /**

@@ -77,7 +77,6 @@ export default function Menu() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'pbs' | 'curve'>('pbs')
   const unitSystem = useSettingsStore((s) => s.unitSystem)
-  const lastWithingsWeightKg = useSettingsStore((s) => s.lastWithingsWeightKg)
   const { profile } = useAuth()
   const userProfile = useStableKinetixUserProfile(profile)
 
@@ -163,7 +162,7 @@ export default function Menu() {
       loadInProgressRef.current = false
       setLoading(false)
     }
-  }, [unitSystem, userProfile, lastWithingsWeightKg])
+  }, [unitSystem, userProfile])
 
   useEffect(() => {
     void loadRuns()

@@ -50,6 +50,22 @@ After merge and aliasing, the following **must** be satisfied (same resolution a
 
 If validation fails, the process exits before starting `pnpm dev`, and the error lists what is missing.
 
+## Verification without starting the dev server
+
+Shared merge logic lives in [`scripts/infisical-merge-lib.mjs`](../../scripts/infisical-merge-lib.mjs). Run:
+
+```bash
+pnpm verify:infisical
+```
+
+Optional Infisical environment (default `dev`):
+
+```bash
+node scripts/verify-infisical.mjs --env=prod
+```
+
+On success, the script prints key counts and whether the Supabase URL resolved (no secret values). Exit code `0` means `/platform` plus `/kinetix` merged and the Supabase URL plus publishable/anon key checks passed.
+
 ## Alternatives
 
 - **`pnpm dev`** without Infisical: set the same variables in `apps/web/.env.local` (see `apps/web/.env.example`).

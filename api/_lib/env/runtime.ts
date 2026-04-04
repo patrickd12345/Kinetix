@@ -22,6 +22,8 @@ export type KinetixRuntimeEnv = {
   supabaseAnonKey: string;
   supabaseServiceRoleKey: string;
   corsAllowedOrigins: string;
+  /** Vercel deployment target: development | preview | production (empty if not on Vercel). */
+  vercelEnv: string;
   nodeEnv: string;
   port: string;
   chromaMode: string;
@@ -42,10 +44,18 @@ function getDefaultEnv(): EnvSource {
   return typeof globalThis !== "undefined" && globalThis["process"]?.env ? globalThis["process"].env : {};
 }
 
+/** Matches strict CORS / deployment-sensitive behavior: prod build or Vercel preview & production. */
+function isProductionLikeRuntime(resolved: { nodeEnv: string; vercelEnv: string }): boolean {
+  if (resolved.nodeEnv === "production") return true;
+  return resolved.vercelEnv === "production" || resolved.vercelEnv === "preview";
+}
+
 export function resolveKinetixRuntimeEnv(env: EnvSource = getDefaultEnv()): KinetixRuntimeEnv {
   const resolved = resolveKinetixRuntimeEnvFromObject(env) as KinetixRuntimeEnv & { apiRequireAuthRaw?: string };
+  const fromEnv = resolved.apiRequireAuthRaw === "1" || resolved.apiRequireAuthRaw === "true";
+  const apiRequireAuth = isProductionLikeRuntime(resolved) ? true : fromEnv;
   return {
     ...resolved,
-    apiRequireAuth: resolved.apiRequireAuthRaw === "1" || resolved.apiRequireAuthRaw === "true",
+    apiRequireAuth,
   };
 }

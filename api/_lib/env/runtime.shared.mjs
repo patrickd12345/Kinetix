@@ -36,6 +36,7 @@ export function resolveKinetixRuntimeEnvFromObject(env = getDefaultEnv()) {
     supabaseAnonKey: pick(env, ['SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY']),
     supabaseServiceRoleKey: pick(env, ['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY']),
     corsAllowedOrigins: pick(env, ['CORS_ALLOWED_ORIGINS', 'ALLOWED_ORIGINS']),
+    vercelEnv: pick(env, ['VERCEL_ENV']),
     nodeEnv: pick(env, ['NODE_ENV']),
     port: pick(env, ['PORT']),
     chromaMode: pick(env, ['CHROMA_MODE'], 'in-memory'),

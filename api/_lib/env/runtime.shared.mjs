@@ -46,5 +46,7 @@ export function resolveKinetixRuntimeEnvFromObject(env = getDefaultEnv()) {
     chromaAutoStartRaw: pick(env, ['CHROMA_AUTO_START']),
     ollamaApiUrl: pick(env, ['OLLAMA_API_URL'], 'http://localhost:11434'),
     ollamaAutoStartRaw: pick(env, ['OLLAMA_AUTO_START']),
+    stripeSecretKey: pick(env, ['STRIPE_SECRET_KEY']),
+    kinetixStripePriceId: pick(env, ['KINETIX_STRIPE_PRICE_ID']),
   }
 }

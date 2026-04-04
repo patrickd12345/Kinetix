@@ -221,7 +221,7 @@ Kinetix/
 ├── apps/web/                 # Canonical web app (Vite + React). Use this for all web work.
 │   └── GARMIN_IMPORT.md      # Garmin ZIP / .fit import: in-app or pnpm garmin:import
 ├── apps/rag/                 # RAG backend service consumed by apps/web
-├── docs/deployment/          # e.g. INFISICAL_LOCAL_DEV.md (`pnpm dev:infisical`, `pnpm verify:infisical`), ENV_PARITY.md (SSO / Vercel)
+├── docs/deployment/          # README index, INFISICAL_LOCAL_DEV, ENV_PARITY, STRIPE_KINETIX_ENTITLEMENTS, SSO / Vercel
 ├── archive/web-legacy/       # Archived legacy PWA reference
 ├── watchos/
 │   ├── KinetixWatch/          # Watch app source
@@ -256,13 +256,17 @@ For detailed feature lists and comparisons across platforms:
 - **[Web App Features](FEATURES_WEB.md)** - Complete list of web app features
 - **[Feature Comparison](FEATURES_COMPARISON.md)** - Cross-platform feature comparison
 
-## Platform Spine Compliance
+## Platform spine compliance
 
-Kinetix complies with the **Platform Spine** architectural contract. All cross-cutting concerns (identity, billing, Stripe) are enforced at the platform layer.
+Kinetix follows the shared **platform** layer for identity and access: **`platform.profiles`** and **`platform.entitlements`** (`product_key = 'kinetix'`). Paid access uses **subscription Checkout** via `POST /api/billing/create-checkout-session` (server-only Stripe key); **Bookiji** `POST /api/payments/webhook` upserts or revokes entitlements — see [`docs/deployment/STRIPE_KINETIX_ENTITLEMENTS.md`](docs/deployment/STRIPE_KINETIX_ENTITLEMENTS.md).
 
-- See **[SPINE_CONTRACT.md](../SPINE_CONTRACT.md)** at the workspace root for the full contract (identity, billing, schema isolation, lifecycle guards).
-- Auth and billing are never app-scoped; this app uses `platform.profiles` and platform entitlements only.
-- Run `pnpm spine:audit` from the workspace root to validate compliance locally; CI runs the same check on PR and push to main.
+| Resource | Location |
+| -------- | -------- |
+| Short contract | **[`SPINE_CONTRACT.md`](../../SPINE_CONTRACT.md)** (umbrella root) |
+| Full integration guide (identity, payment, Infisical, new-app checklist) | **[`docs/platform/APP_INTEGRATION_STANDARD.md`](../../docs/platform/APP_INTEGRATION_STANDARD.md)** |
+| Kinetix deployment index (SSO, Infisical, Stripe design) | **[`docs/deployment/README.md`](docs/deployment/README.md)** |
+
+**Local verification:** from `products/Kinetix`, run `pnpm verify:infisical` (validates merged `/platform` + `/kinetix` and required Supabase client vars). There is no workspace-root `pnpm spine:audit`; rely on product tests and env checks per app.
 
 ## 📝 License
 

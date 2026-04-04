@@ -22,8 +22,11 @@
   "dependencies": {
     "@bookiji-inc/error-contract": "link:../../packages/error-contract",
     "@bookiji-inc/ai-runtime": "link:../../packages/ai-runtime",
+    "@bookiji-inc/observability": "link:../../packages/observability",
     "@bookiji-inc/persistent-memory-runtime": "link:../../packages/persistent-memory-runtime",
-    "@bookiji-inc/observability": "link:../../packages/observability"
+    "@bookiji-inc/stripe-runtime": "link:../../packages/stripe-runtime",
+    "@supabase/supabase-js": "^2.57.4",
+    "stripe": "^20.2.0"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

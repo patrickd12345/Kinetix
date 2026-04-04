@@ -11,7 +11,9 @@ import { dirname, join } from 'node:path'
  * On Windows: `execSync` + `shell: true` so `pnpm` resolves (pnpm.cmd).
  */
 const scriptDir = dirname(fileURLToPath(import.meta.url))
-const packagesRoot = join(scriptDir, '../../../packages')
+const packagesRoot = isDir(join(scriptDir, '../../../packages')) 
+  ? join(scriptDir, '../../../packages') 
+  : join(scriptDir, '../.bookiji-packages')
 const names = ['ai-runtime', 'persistent-memory-runtime', 'error-contract', 'observability']
 
 function isDir(p) {
@@ -34,7 +36,7 @@ function runPnpm(args, cwd) {
 
 if (!isDir(packagesRoot)) {
   console.log(
-    `[build-bookiji-packages] Skip: monorepo packages dir not found (${packagesRoot}). OK for standalone Kinetix deploy.`
+    `[build-bookiji-packages] Skip: monorepo packages dir not found. OK for standalone Kinetix deploy without .bookiji-packages fallback.`
   )
   process.exit(0)
 }

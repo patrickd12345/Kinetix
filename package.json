@@ -20,12 +20,12 @@
     "smoke:persistent-memory": "tsx api/smoke-persistent-memory.ts"
   },
   "dependencies": {
-    "@bookiji-inc/error-contract": "link:../../packages/error-contract",
-    "@bookiji-inc/ai-runtime": "link:../../packages/ai-runtime",
-    "@bookiji-inc/observability": "link:../../packages/observability",
-    "@bookiji-inc/persistent-memory-runtime": "link:../../packages/persistent-memory-runtime",
-    "@bookiji-inc/stripe-runtime": "link:../../packages/stripe-runtime",
-    "@bookiji-inc/platform-auth": "link:../../packages/platform-auth",
+    "@bookiji-inc/error-contract": "workspace:*",
+    "@bookiji-inc/ai-runtime": "workspace:*",
+    "@bookiji-inc/observability": "workspace:*",
+    "@bookiji-inc/persistent-memory-runtime": "workspace:*",
+    "@bookiji-inc/stripe-runtime": "workspace:*",
+    "@bookiji-inc/platform-auth": "workspace:*",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.57.4",
     "@vercel/node": "^3.0.0",

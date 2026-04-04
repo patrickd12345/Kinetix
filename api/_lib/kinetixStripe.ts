@@ -7,7 +7,7 @@ export function getKinetixStripeOrThrow(): Stripe {
   if (!stripeSecretKey) {
     throw new Error('STRIPE_SECRET_KEY is not set')
   }
-  return new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' })
+  return new Stripe(stripeSecretKey, { apiVersion: '2026-02-25.clover' })
 }
 
 export function assertKinetixCheckoutEnv(): { ok: true } | { ok: false; message: string } {

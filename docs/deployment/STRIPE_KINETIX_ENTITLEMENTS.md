@@ -1,8 +1,31 @@
 # Stripe and Kinetix entitlements (design for future billing)
 
+Workspace standard (identity, payment, Infisical): **[`docs/platform/APP_INTEGRATION_STANDARD.md`](../../../../docs/platform/APP_INTEGRATION_STANDARD.md)**.
+
+## Identity prerequisite
+
+Kinetix web uses the **same Supabase project** as Bookiji for SSO ([`ENV_PARITY.md`](./ENV_PARITY.md)). Entitlements are keyed to the same **`auth.users`** / **`platform.profiles`** identity. Any Stripe checkout must attach **`metadata.user_id`** (or resolve Stripe customer to platform user) before writing **`platform.entitlements`**.
+
+## Current behavior
+
 Kinetix does not ship a Stripe SDK or checkout UI today. Access is enforced in the web app by reading **`platform.entitlements`** for `product_key = 'kinetix'` (see [`apps/web/src/lib/platformAuth.ts`](../../apps/web/src/lib/platformAuth.ts)).
 
-Bookiji’s existing Stripe webhook path ([`products/bookiji/src/lib/services/stripe.ts`](../../../bookiji/src/lib/services/stripe.ts)) upserts **`product_key: 'bookiji'`** for vendor subscriptions only. That flow does **not** grant Kinetix.
+Bookiji's existing Stripe webhook path ([`products/bookiji/src/lib/services/stripe.ts`](../../../bookiji/src/lib/services/stripe.ts)) upserts **`product_key: 'bookiji'`** for vendor subscriptions only. That flow does **not** grant Kinetix.
+
+## Target flow (future)
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant KinetixWeb as Kinetix web
+  participant BookijiAPI as Bookiji Stripe webhook
+  participant DB as platform.entitlements
+
+  User->>KinetixWeb: Signed in (Supabase session)
+  Note over User,KinetixWeb: Gate reads entitlements only; no Stripe secret in browser
+  BookijiAPI->>DB: upsert product_key=kinetix on paid event
+  KinetixWeb->>DB: read entitlement for session user
+```
 
 ## Target end state (when card checkout is required)
 
@@ -31,6 +54,7 @@ Use [`apps/web/scripts/seed-kinetix-entitlement-admin.ts`](../../apps/web/script
 
 ## Related docs
 
+- [`docs/platform/APP_INTEGRATION_STANDARD.md`](../../../../docs/platform/APP_INTEGRATION_STANDARD.md) — identity, payment, Infisical, new-app checklist
 - [`ENV_PARITY.md`](./ENV_PARITY.md) — Supabase and Vercel parity
 - [`INFISICAL_LOCAL_DEV.md`](./INFISICAL_LOCAL_DEV.md) — local secret merge
 - [`products/bookiji/docs/backend/STRIPE_WEBHOOK_CANONICAL.md`](../../../bookiji/docs/backend/STRIPE_WEBHOOK_CANONICAL.md) — webhook patterns (Bookiji)

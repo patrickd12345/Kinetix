@@ -1,6 +1,8 @@
 # Infisical local development
 
-The root script `pnpm dev:infisical` runs [`scripts/dev-with-infisical.mjs`](../../scripts/dev-with-infisical.mjs) to load secrets before `pnpm dev` (web + RAG).
+**See also:** workspace **[`docs/platform/APP_INTEGRATION_STANDARD.md`](../../../../docs/platform/APP_INTEGRATION_STANDARD.md)** (secrets model and new-app checklist); Kinetix **[`docs/deployment/README.md`](./README.md)** (index).
+
+The Kinetix repo script `pnpm dev:infisical` runs [`scripts/dev-with-infisical.mjs`](../../scripts/dev-with-infisical.mjs) to load secrets before `pnpm dev` (web + RAG).
 
 ## Flow
 

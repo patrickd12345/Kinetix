@@ -908,6 +908,7 @@ export default function History() {
                               unitSystem={unitSystem}
                               displayWeightKg={displayWeightKg}
                               isReferenceRun={pbRunId != null && run.id === pbRunId}
+                              runnerAgeYears={userProfile?.age ?? undefined}
                             />
                           </>
                         )}

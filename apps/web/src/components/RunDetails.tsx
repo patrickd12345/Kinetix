@@ -2,7 +2,7 @@ import { RunRecord } from '../lib/database'
 import { KPS_SHORT } from '../lib/branding'
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
 import { useSettingsStore } from '../store/settingsStore'
-import { MapPin, TrendingUp, Heart, Activity, Zap, Scale, Trophy } from 'lucide-react'
+import { MapPin, TrendingUp, Heart, Zap, Scale, Trophy } from 'lucide-react'
 
 const KG_TO_LBS = 2.20462
 
@@ -14,6 +14,8 @@ interface RunDetailsProps {
   displayWeightKg?: number | null
   /** This run is the current all-time best / PB anchor (shows as relative 100). */
   isReferenceRun?: boolean
+  /** When set, HR zones use estimated max HR = 220 − age (Tanaka-style common default). */
+  runnerAgeYears?: number | null
 }
 
 export function RunDetails({
@@ -22,6 +24,7 @@ export function RunDetails({
   unitSystem,
   displayWeightKg,
   isReferenceRun,
+  runnerAgeYears,
 }: RunDetailsProps) {
   const weightUnit = useSettingsStore((s) => s.weightUnit)
   const hasSplits = run.splits && run.splits.length > 0
@@ -30,8 +33,10 @@ export function RunDetails({
 
   // Calculate heart rate zones (simplified)
   const getHRZone = (hr: number) => {
-    // Assuming max HR = 220 - age (simplified, would use user's actual max HR)
-    const maxHR = 190 // placeholder
+    const maxHR =
+      runnerAgeYears != null && runnerAgeYears > 0 && runnerAgeYears < 100
+        ? Math.round(220 - runnerAgeYears)
+        : 185
     const percentage = (hr / maxHR) * 100
     if (percentage < 60) return { zone: 'Recovery', color: 'text-blue-400' }
     if (percentage < 70) return { zone: 'Aerobic', color: 'text-green-400' }
@@ -42,9 +47,6 @@ export function RunDetails({
 
   const hrZone = hasHeartRate && run.heartRate ? getHRZone(run.heartRate) : null
   const weightKgForDisplay = displayWeightKg ?? run.weightKg
-
-  // Calculate elevation if we have location data
-  const elevationGain = hasLocations ? 0 : undefined // Placeholder - would calculate from lat/lon
 
   return (
     <div className="mt-4 pt-4 border-t border-gray-700 space-y-4">
@@ -90,18 +92,6 @@ export function RunDetails({
                 {hrZone.zone}
               </div>
             )}
-          </div>
-        )}
-
-        {elevationGain !== undefined && (
-          <div className="glass rounded-lg p-3">
-            <div className="flex items-center gap-1 mb-1">
-              <Activity size={12} className="text-orange-400" />
-              <span className="text-xs text-gray-400 uppercase">Elevation</span>
-            </div>
-            <div className="text-xl font-black text-orange-400">
-              +{Math.round(elevationGain)}m
-            </div>
           </div>
         )}
       </div>
@@ -165,7 +155,7 @@ export function RunDetails({
               {run.locations.length} GPS points recorded
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              Map visualization coming soon
+              Map is not displayed in the web app (lat/lon only; no elevation in this view).
             </p>
           </div>
         </div>

@@ -38,6 +38,7 @@ function inferErrorCode(status: number): string {
   if (status === 405) return 'method_not_allowed'
   if (status === 409) return 'conflict'
   if (status === 429) return 'rate_limited'
+  if (status === 503) return 'service_unavailable'
   if (status >= 500) return 'internal_error'
   return 'request_failed'
 }

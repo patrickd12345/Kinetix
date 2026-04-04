@@ -22,7 +22,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const billing = assertKinetixCheckoutEnv()
   if (!billing.ok) {
-    return res.status(503).json({ error: 'billing_unavailable', message: billing.message })
+    return sendApiError(res, 503, billing.message, {
+      code: 'billing_unavailable',
+      source: req.headers,
+    })
   }
 
   const runtime = resolveKinetixRuntimeEnv()
@@ -34,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const authHeader = (req.headers.authorization ?? req.headers.Authorization) as string | undefined
   const token = typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '').trim() : ''
   if (!token) {
-    return res.status(401).json({ error: 'unauthorized', message: 'Authorization Bearer token required' })
+    return sendApiError(res, 401, 'Authorization Bearer token required', { source: req.headers })
   }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -46,13 +49,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } = await supabase.auth.getUser(token)
   if (userError || !user?.id) {
     logApiEvent('warn', 'kinetix_checkout_auth_failed', { message: userError?.message })
-    return res.status(401).json({ error: 'unauthorized', message: 'Invalid or expired session' })
+    return sendApiError(res, 401, 'Invalid or expired session', { source: req.headers })
   }
 
   const body = (req.body ?? {}) as { successUrl?: string; cancelUrl?: string; entitlementKey?: string }
   const { successUrl, cancelUrl, entitlementKey } = body
   if (!successUrl || !cancelUrl) {
-    return res.status(400).json({ error: 'missing_parameters', message: 'successUrl and cancelUrl are required' })
+    return sendApiError(res, 400, 'successUrl and cancelUrl are required', {
+      code: 'missing_parameters',
+      source: req.headers,
+    })
   }
 
   try {
@@ -66,16 +72,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       entitlementKey,
     })
     if (!url) {
-      return res.status(500).json({ error: 'checkout_failed', message: 'Stripe did not return a checkout URL' })
+      return sendApiError(res, 500, 'Stripe did not return a checkout URL', {
+        code: 'checkout_failed',
+        source: req.headers,
+      })
     }
     return res.status(200).json({ url })
   } catch (err) {
     logApiEvent('error', 'kinetix_checkout_session_failed', {
       message: err instanceof Error ? err.message : String(err),
     })
-    return res.status(500).json({
-      error: 'checkout_failed',
-      message: err instanceof Error ? err.message : 'Failed to create checkout session',
+    return sendApiError(res, 500, err instanceof Error ? err.message : 'Failed to create checkout session', {
+      code: 'checkout_failed',
+      source: req.headers,
     })
   }
 }

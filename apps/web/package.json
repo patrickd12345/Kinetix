@@ -4,7 +4,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "vite",
+        "dev": "vite --config vite.config.dev.ts",
         "build:bookiji-packages": "node ../../scripts/build-bookiji-packages.mjs",
         "build": "pnpm run build:bookiji-packages && pnpm --filter @kinetix/core build && tsc && vite build",
         "preview": "vite preview",

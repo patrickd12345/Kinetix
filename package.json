@@ -16,12 +16,14 @@
     "lint": "pnpm -r lint",
     "type-check": "pnpm -r type-check",
     "clean": "pnpm -r clean",
-    "check:no-local-ai-core": "node scripts/check-no-local-ai-core.mjs"
+    "check:no-local-ai-core": "node scripts/check-no-local-ai-core.mjs",
+    "smoke:persistent-memory": "tsx api/smoke-persistent-memory.ts"
   },
   "dependencies": {
     "@bookiji-inc/error-contract": "link:../../packages/error-contract",
     "@bookiji-inc/ai-runtime": "link:../../packages/ai-runtime",
     "@bookiji-inc/observability": "link:../../packages/observability",
+    "@bookiji-inc/persistent-memory-runtime": "link:../../packages/persistent-memory-runtime",
     "@bookiji-inc/stripe-runtime": "link:../../packages/stripe-runtime",
     "@supabase/supabase-js": "^2.57.4",
     "stripe": "^20.2.0"

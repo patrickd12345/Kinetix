@@ -17,6 +17,13 @@ Index for **identity (SSO)**, **secrets (Infisical)**, **billing (Stripe subscri
 
 ---
 
+## Vercel build and routing
+
+- **Package manager:** `package.json` declares `packageManager` (pnpm). Root [`vercel.json`](../../vercel.json) uses the **same major** for `installCommand` / `buildCommand` so deploys match local `pnpm install` / `pnpm build` behavior.
+- **API routes:** Handlers live under [`api/`](../../api/) and are deployed as Vercel serverless functions. **[`vercel.json`](../../vercel.json) rewrites** only spell out a few paths (e.g. Strava proxy); **other `/api/*` requests still hit the matching `api/**` function by default**—the final `/(.*) → /index.html` rule applies to the SPA, not to requests that already resolve to an API route.
+
+---
+
 ## One-line mental model
 
 1. **Identity:** Supabase Auth + **`platform.profiles`** (same project as Bookiji for SSO).

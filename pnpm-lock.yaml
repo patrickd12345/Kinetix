@@ -17,6 +17,9 @@ importers:
       '@bookiji-inc/observability':
         specifier: link:../../packages/observability
         version: link:../../packages/observability
+      '@bookiji-inc/persistent-memory-runtime':
+        specifier: link:../../packages/persistent-memory-runtime
+        version: link:../../packages/persistent-memory-runtime
     devDependencies:
       concurrently:
         specifier: ^9.1.0

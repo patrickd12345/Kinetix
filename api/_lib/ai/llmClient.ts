@@ -2,6 +2,12 @@ import {
   executeChat as executeSharedChat,
   executeEmbedding as executeSharedEmbedding,
 } from '@bookiji-inc/ai-runtime'
+import {
+  commitSessionBoundary,
+  emptySessionBoundaryPayload,
+  startSession,
+} from '@bookiji-inc/persistent-memory-runtime'
+import { buildKinetixBoundaryFromChat } from './kinetixMemoryBoundary'
 import { logAiEvent } from '../observability'
 import { resolveKinetixRuntimeEnv } from '../env/runtime'
 
@@ -134,6 +140,31 @@ function getApiKey(env: NodeJS.ProcessEnv): string | undefined {
   return resolveKinetixRuntimeEnv(env).vercelVirtualKey
 }
 
+function resolvePersistentMemoryTenant(env: NodeJS.ProcessEnv): string {
+  const fromEnv = env.KINETIX_PERSISTENT_MEMORY_TENANT?.trim()
+  if (fromEnv) {
+    return fromEnv
+  }
+  return 'default'
+}
+
+function injectMemoryContext(
+  messages: ChatMessage[],
+  memorySummary: string,
+): ChatMessage[] {
+  if (!memorySummary.trim()) {
+    return messages
+  }
+  const prefix = `[persistent_memory_context]\n${memorySummary.trim()}\n[/persistent_memory_context]`
+  const firstUser = messages.findIndex((m) => m.role === 'user')
+  if (firstUser < 0) {
+    return messages
+  }
+  const copy = [...messages]
+  copy[firstUser] = { ...copy[firstUser], content: `${prefix}\n\n${copy[firstUser].content}` }
+  return copy
+}
+
 function isProviderError(error: unknown): error is Error & { status?: number } {
   return error instanceof Error
 }
@@ -149,9 +180,19 @@ export function getLLMClient(env: NodeJS.ProcessEnv = getEnv()): LLMClient {
   const executeChat: LLMClient['executeChat'] = async (messages, options = {}) => {
     const startedAt = Date.now()
     const effectiveModel = options.model ?? model
+    const memoryHandle = await startSession('kinetix', resolvePersistentMemoryTenant(env))
+    const prior = memoryHandle.memory.lastCommitted ?? emptySessionBoundaryPayload()
+    const memorySummary = [
+      prior.sessionSummary,
+      ...prior.current_focus,
+      ...prior.next_actions.slice(0, 3),
+    ]
+      .filter(Boolean)
+      .join(' | ')
+    const messagesWithMemory = injectMemoryContext(messages, memorySummary)
     try {
       const result = await executeSharedChat({
-        messages,
+        messages: messagesWithMemory,
         model: effectiveModel,
         temperature: options.temperature ?? 0.7,
         maxTokens: options.maxTokens ?? 1024,
@@ -168,11 +209,19 @@ export function getLLMClient(env: NodeJS.ProcessEnv = getEnv()): LLMClient {
         fallbackReason: result.fallbackReason,
       }
       logAiEvent('kinetix_ai_chat_completed', response, { surface: 'llmClient' })
+      try {
+        await commitSessionBoundary(
+          memoryHandle,
+          buildKinetixBoundaryFromChat(messages, result.text, 'llmClient'),
+        )
+      } catch {
+        /* ignore disk failures */
+      }
       return response
     } catch (error) {
       if (provider === 'ollama' && isProviderError(error) && error.status === 500) {
         const baseUrl = getBaseUrl(env, provider) ?? 'http://localhost:11434'
-        const result = await executeOllamaGenerate(baseUrl, effectiveModel, messages, options)
+        const result = await executeOllamaGenerate(baseUrl, effectiveModel, messagesWithMemory, options)
         const response = {
           ...result,
           provider,
@@ -185,6 +234,14 @@ export function getLLMClient(env: NodeJS.ProcessEnv = getEnv()): LLMClient {
           surface: 'llmClient',
           fallbackPath: 'generate',
         })
+        try {
+          await commitSessionBoundary(
+            memoryHandle,
+            buildKinetixBoundaryFromChat(messages, result.text, 'llmClient:generate_fallback'),
+          )
+        } catch {
+          /* ignore */
+        }
         return response
       }
       throw error

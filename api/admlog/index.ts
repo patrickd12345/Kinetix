@@ -15,6 +15,24 @@ import { buildKinetixApiError, getApiRequestId } from '../_lib/ai/error-contract
 import { getObservedRequestId, logApiEvent } from '../_lib/observability'
 import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime'
 
+/** Matches @bookiji-inc/platform-auth production detection (admlog must never run here). */
+function isProductionDeployment(): boolean {
+  if (process.env.NODE_ENV === 'production') return true
+  if (process.env.VERCEL_ENV === 'production') return true
+  return false
+}
+
+function getAdmlogBlockResponseBody() {
+  if (isProductionDeployment()) {
+    return {
+      criteria: ['NODE_ENV or VERCEL_ENV is production'],
+      howToEnable:
+        'Admlog is disabled in production by design. Do not set ADMLOG_ENABLED or BOOKIJI_TEST_MODE on Vercel Production. Use Preview, staging, or local dev only.',
+    }
+  }
+  return getAdmlogBlockReason()
+}
+
 function getSupabaseConfig() {
   const runtime = resolveKinetixRuntimeEnv()
   const url = runtime.supabaseUrl
@@ -28,19 +46,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return sendApiError(res, 405, 'Method not allowed', { source: req.headers })
   }
 
-  const clientIp =
-    (req.headers['x-forwarded-for'] as string) ??
-    (req.headers['x-real-ip'] as string) ??
-    'unknown'
-  logApiEvent('warn', 'kinetix_admlog_access_attempt', {
-    ip: clientIp,
-    userAgent: req.headers['user-agent'],
-    nodeEnv: resolveKinetixRuntimeEnv().nodeEnv,
-  })
-
   if (!isAdmlogEnabled()) {
-    const { criteria, howToEnable } = getAdmlogBlockReason()
-    logApiEvent('warn', 'kinetix_admlog_blocked', { criteria, howToEnable })
+    const { criteria, howToEnable } = getAdmlogBlockResponseBody()
+    logApiEvent('warn', 'kinetix_admlog_blocked', {
+      criteria,
+      howToEnable,
+      production: isProductionDeployment(),
+    })
     const payload = buildKinetixApiError(
       'forbidden',
       'Admlog is disabled',
@@ -54,6 +66,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       howToEnable,
     })
   }
+
+  const clientIp =
+    (req.headers['x-forwarded-for'] as string) ??
+    (req.headers['x-real-ip'] as string) ??
+    'unknown'
+  logApiEvent('warn', 'kinetix_admlog_access_attempt', {
+    ip: clientIp,
+    userAgent: req.headers['user-agent'],
+    nodeEnv: resolveKinetixRuntimeEnv().nodeEnv,
+  })
 
   try {
     const { url: supabaseUrl, anonKey, serviceKey } = getSupabaseConfig()

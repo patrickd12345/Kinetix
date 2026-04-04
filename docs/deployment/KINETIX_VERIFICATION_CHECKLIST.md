@@ -2,6 +2,11 @@
 
 Run this after DNS, Supabase redirect URLs, and Kinetix env parity are in place.
 
+## Admlog (production must stay disabled)
+
+1. On **production** `kinetix.bookiji.com`, open `GET /api/admlog` (or use curl). **Confirm:** HTTP **403** and a response that does **not** instruct you to enable `ADMLOG_ENABLED` for production.
+2. From the repo (with Infisical CLI): `node scripts/verify-infisical.mjs --env=prod` **Confirm:** exits **0** and does not flag `ADMLOG_ENABLED` in prod (see [ENV_PARITY.md](./ENV_PARITY.md#admlog-get-apiadmlog)).
+
 ## SSO and entitlement (happy path)
 
 1. Log into Bookiji at `https://bookiji.com` (or your production URL).

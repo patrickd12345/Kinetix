@@ -9,6 +9,7 @@ Index for **identity (SSO)**, **secrets (Infisical)**, **billing (Stripe subscri
 | Topic | Document |
 | ----- | -------- |
 | SSO / same Supabase as Bookiji | [ENV_PARITY.md](./ENV_PARITY.md) |
+| Admlog (`GET /api/admlog`) — dev/preview only | [ENV_PARITY.md](./ENV_PARITY.md#admlog-get-apiadmlog) |
 | Infisical paths, merge order, `pnpm dev:infisical`, `pnpm verify:infisical` | [INFISICAL_LOCAL_DEV.md](./INFISICAL_LOCAL_DEV.md) |
 | Checkout session API, Bookiji webhook, `platform.entitlements` | [STRIPE_KINETIX_ENTITLEMENTS.md](./STRIPE_KINETIX_ENTITLEMENTS.md) |
 | Subdomain and DNS | [KINETIX_SUBDOMAIN.md](./KINETIX_SUBDOMAIN.md) |

@@ -21,6 +21,12 @@ try {
   const { mergedEnv, platformKeyCount, kinetixKeyCount } =
     mergeInfisicalForKinetix(envName);
 
+  if (envName === "prod" && mergedEnv.ADMLOG_ENABLED?.trim() === "true") {
+    throw new Error(
+      "ADMLOG_ENABLED must not be true in Infisical prod — /api/admlog is dev-only; platform-auth disables it in production, but setting this flag invites misconfiguration."
+    );
+  }
+
   const url =
     mergedEnv.VITE_SUPABASE_URL?.trim() ||
     mergedEnv.NEXT_PUBLIC_SUPABASE_URL?.trim() ||

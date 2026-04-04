@@ -17,6 +17,15 @@ In the Kinetix Vercel project (or wherever the web app is deployed), set:
 
 The Kinetix web client ([`apps/web/src/lib/supabaseClient.ts`](../../apps/web/src/lib/supabaseClient.ts)) reads `VITE_*` first and falls back to `NEXT_PUBLIC_*`. For Vite builds, set the `VITE_*` pair; you can also set `NEXT_PUBLIC_*` to the same values so both names work.
 
+## Admlog (`GET /api/admlog`)
+
+Admin one-shot login is implemented in [`api/admlog/index.ts`](../../api/admlog/index.ts) using `@bookiji-inc/platform-auth`. **Production safety:** `isAdmlogEnabled()` is false when `NODE_ENV` or `VERCEL_ENV` is `production`, so the route cannot issue a session on Vercel Production even if secrets were wrong.
+
+**Operator rules:**
+
+- Do **not** set `ADMLOG_ENABLED=true` (or `BOOKIJI_TEST_MODE=true` for admlog) in **Infisical `prod`** or Vercel Production env. `pnpm verify:infisical` with `--env=prod` fails if `ADMLOG_ENABLED` is true in merged prod secrets.
+- Use Preview / local dev with explicit flags when you need admlog; expect the JSON 403 body to state clearly when the deployment is production.
+
 ## Where to get values
 
 From the Bookiji Supabase project:

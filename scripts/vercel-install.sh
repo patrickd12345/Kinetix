@@ -10,7 +10,11 @@ git clone --depth 1 "https://${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-in
 mv .bookiji-tmp/packages .bookiji-packages
 rm -rf .bookiji-tmp
 
-# Umbrella package sources (do not use `packages/` — that name is used by @kinetix/core)
+# Must exist before pnpm install so workspace:* resolves @bookiji-inc/* (do not use `packages/` — @kinetix/core)
 ln -sfn "$(pwd)/.bookiji-packages" "$(pwd)/monorepo-packages"
 
-npx pnpm@8 install
+# Match package.json "packageManager": pnpm@10.x — do not use pnpm@8 (ignores lockfile v9)
+corepack enable
+corepack prepare pnpm@10.30.3 --activate
+
+pnpm install --frozen-lockfile

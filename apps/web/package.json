@@ -5,17 +5,23 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "pnpm --filter @kinetix/core build && tsc && vite build",
+        "build:bookiji-packages": "node ../../scripts/build-bookiji-packages.mjs",
+        "build": "pnpm run build:bookiji-packages && pnpm --filter @kinetix/core build && tsc && vite build",
         "preview": "vite preview",
         "lint": "eslint src --ext .ts,.tsx",
         "type-check": "tsc --noEmit",
         "garmin:import": "tsx scripts/import-garmin.ts",
         "withings:weights": "tsx scripts/download-withings-weights.ts",
-        "test": "pnpm --filter @kinetix/core build && vitest run",
+        "test": "pnpm run build:bookiji-packages && pnpm --filter @kinetix/core build && vitest run",
         "test:e2e": "pnpm exec playwright test",
-        "test:e2e:headed": "pnpm exec playwright test --headed"
+        "test:e2e:headed": "pnpm exec playwright test --headed",
+        "support-corpus:ingest": "node ./support-corpus/ingest-corpus.mjs"
     },
     "dependencies": {
+        "@bookiji-inc/ai-runtime": "link:../../../../packages/ai-runtime",
+        "@bookiji-inc/error-contract": "link:../../../../packages/error-contract",
+        "@bookiji-inc/observability": "link:../../../../packages/observability",
+        "@bookiji-inc/persistent-memory-runtime": "link:../../../../packages/persistent-memory-runtime",
         "@kinetix/core": "workspace:*",
         "@supabase/ssr": "^0.5.2",
         "@supabase/supabase-js": "^2.57.4",

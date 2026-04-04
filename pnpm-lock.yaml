@@ -54,6 +54,18 @@ importers:
 
   apps/web:
     dependencies:
+      '@bookiji-inc/ai-runtime':
+        specifier: link:../../../../packages/ai-runtime
+        version: link:../../../../packages/ai-runtime
+      '@bookiji-inc/error-contract':
+        specifier: link:../../../../packages/error-contract
+        version: link:../../../../packages/error-contract
+      '@bookiji-inc/observability':
+        specifier: link:../../../../packages/observability
+        version: link:../../../../packages/observability
+      '@bookiji-inc/persistent-memory-runtime':
+        specifier: link:../../../../packages/persistent-memory-runtime
+        version: link:../../../../packages/persistent-memory-runtime
       '@kinetix/core':
         specifier: workspace:*
         version: link:../../packages/core

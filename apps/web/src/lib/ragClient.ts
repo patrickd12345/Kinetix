@@ -12,7 +12,7 @@ const RAG_PORTS = [3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010]
 let cachedRAGBaseUrl: string | null = null
 
 /** Resolve RAG base URL: use VITE_RAG_SERVICE_URL if set, else try localhost ports 3001..3010 until /health responds. */
-async function getRAGBaseUrl(): Promise<string | null> {
+export async function getRAGBaseUrl(): Promise<string | null> {
   const explicit = import.meta.env.VITE_RAG_SERVICE_URL
   if (explicit && typeof explicit === 'string') return explicit
   if (cachedRAGBaseUrl) return cachedRAGBaseUrl

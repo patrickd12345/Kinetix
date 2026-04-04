@@ -9,6 +9,8 @@ import express from 'express';
 import { EmbeddingService } from './services/embeddingService.js';
 import { RAGService } from './services/ragService.js';
 import { vectorDB } from './services/vectorDB.js';
+import { supportVectorDB } from './services/supportVectorDB.js';
+import { ingestSupportArtifact, querySupportKnowledge } from './services/supportKBService.js';
 import { getCoachContext } from './services/coachContext.js';
 import { resolveKinetixRuntimeEnvFromObject } from '../../api/_lib/env/runtime.shared.mjs';
 
@@ -51,11 +53,13 @@ app.get('/available', async (_req, res) => {
   try {
     const embeddingAvailable = await EmbeddingService.isAvailable();
     const vectorDBAvailable = await vectorDB.initialize().then(() => true).catch(() => false);
+    const supportKbAvailable = await supportVectorDB.initialize().then(() => true).catch(() => false);
 
     res.json({
       available: embeddingAvailable && vectorDBAvailable,
       embedding: embeddingAvailable,
       vectorDB: vectorDBAvailable,
+      supportKb: supportKbAvailable,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -120,6 +124,47 @@ app.get('/stats', async (_req, res) => {
     res.json({ runCount: count });
   } catch (error) {
     handleVectorDBError(res, error, 'stats');
+  }
+});
+
+/** Curated support KB — separate Chroma collection `kinetix_support_kb` (not runs). */
+app.post('/support/kb/ingest', async (req, res) => {
+  try {
+    const { artifact } = req.body || {};
+    if (!artifact || typeof artifact !== 'object') {
+      return res.status(400).json({ error: 'artifact object required' });
+    }
+    const result = await ingestSupportArtifact(artifact);
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('required') || msg.includes('must be')) {
+      return res.status(400).json({ error: msg });
+    }
+    return handleVectorDBError(res, error, 'support/kb/ingest');
+  }
+});
+
+app.post('/support/kb/query', async (req, res) => {
+  try {
+    const { query: q, topK, topic } = req.body || {};
+    const result = await querySupportKnowledge(typeof q === 'string' ? q : '', { topK, topic });
+    return res.json(result);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg === 'query is required') {
+      return res.status(400).json({ error: msg });
+    }
+    return handleVectorDBError(res, error, 'support/kb/query');
+  }
+});
+
+app.get('/support/kb/stats', async (_req, res) => {
+  try {
+    const chunkCount = await supportVectorDB.getCount();
+    return res.json({ collection: 'kinetix_support_kb', chunkCount });
+  } catch (error) {
+    return handleVectorDBError(res, error, 'support/kb/stats');
   }
 });
 

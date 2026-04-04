@@ -9,7 +9,8 @@
     "start": "node index.js",
     "dev": "node index.js",
     "index": "node scripts/index-runs.js",
-    "index-all": "node scripts/index-all-from-json.js"
+    "index-all": "node scripts/index-all-from-json.js",
+    "test": "node --test services/*.test.js"
   },
   "dependencies": {
     "chromadb": "^1.8.1",

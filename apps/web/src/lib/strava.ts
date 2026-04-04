@@ -1,6 +1,7 @@
 import { db, RunRecord, RUN_VISIBLE } from './database'
 import { UserProfile } from '@kinetix/core'
 import { isMeaningfulRunForKPS } from './kpsUtils'
+import { indexRunsAfterSave } from './ragClient'
 import { getProfileForRunDate } from './authState'
 import { useSettingsStore } from '../store/settingsStore'
 
@@ -269,7 +270,6 @@ export async function syncStravaRuns(
       added.push({ ...r, id: id as number } as RunRecord)
     }
 
-    const { indexRunsAfterSave } = await import('./ragClient')
     await indexRunsAfterSave(added)
 
     if (added.length > 0 && typeof window !== 'undefined') {

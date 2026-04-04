@@ -3,6 +3,8 @@ import { calculateKPS, calculateTimeToBeat, calculatePace, calculateDistance } f
 import { useSettingsStore } from './settingsStore'
 import { db, RunRecord } from '../lib/database'
 import { getActiveKinetixUserProfile } from '../lib/authState'
+import { checkAndUpdatePB } from '../lib/kpsUtils'
+import { indexRunsAfterSave } from '../lib/ragClient'
 
 export interface RunState {
   // Running state
@@ -114,16 +116,12 @@ export const useRunStore = create<RunState>((set, get) => ({
           window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
         }
 
-        import('../lib/kpsUtils').then(({ checkAndUpdatePB }) => {
-          checkAndUpdatePB(savedRunRecord, userProfile).then((isNewPB) => {
-            if (isNewPB) {
-              console.log('New Personal Best! This run is now your PB (KPS = 100)')
-            }
-          })
+        checkAndUpdatePB(savedRunRecord, userProfile).then((isNewPB) => {
+          if (isNewPB) {
+            console.log('New Personal Best! This run is now your PB (KPS = 100)')
+          }
         })
-        import('../lib/ragClient').then(({ indexRunsAfterSave }) => {
-          indexRunsAfterSave([savedRunRecord]).catch(() => {})
-        })
+        indexRunsAfterSave([savedRunRecord]).catch(() => {})
       }).catch((error) => {
         console.error('Error saving run:', error)
       })

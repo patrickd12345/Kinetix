@@ -8,30 +8,13 @@ import { createServerClient } from '@supabase/ssr'
 import {
   isAdmlogEnabled,
   getAdmlogBlockReason,
+  isAdmlogProductionEnvironment,
   performAdmlogSignIn,
 } from '../_lib/platformAuth'
 import { sendApiError } from '../_lib/apiError'
 import { buildKinetixApiError, getApiRequestId } from '../_lib/ai/error-contract'
 import { getObservedRequestId, logApiEvent } from '../_lib/observability'
 import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime'
-
-/** Matches @bookiji-inc/platform-auth production detection (admlog must never run here). */
-function isProductionDeployment(): boolean {
-  if (process.env.NODE_ENV === 'production') return true
-  if (process.env.VERCEL_ENV === 'production') return true
-  return false
-}
-
-function getAdmlogBlockResponseBody() {
-  if (isProductionDeployment()) {
-    return {
-      criteria: ['NODE_ENV or VERCEL_ENV is production'],
-      howToEnable:
-        'Admlog is disabled in production by design. Do not set ADMLOG_ENABLED or BOOKIJI_TEST_MODE on Vercel Production. Use Preview, staging, or local dev only.',
-    }
-  }
-  return getAdmlogBlockReason()
-}
 
 function getSupabaseConfig() {
   const runtime = resolveKinetixRuntimeEnv()
@@ -47,11 +30,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (!isAdmlogEnabled()) {
-    const { criteria, howToEnable } = getAdmlogBlockResponseBody()
+    const { criteria, howToEnable } = getAdmlogBlockReason()
     logApiEvent('warn', 'kinetix_admlog_blocked', {
       criteria,
       howToEnable,
-      production: isProductionDeployment(),
+      production: isAdmlogProductionEnvironment(),
     })
     const payload = buildKinetixApiError(
       'forbidden',

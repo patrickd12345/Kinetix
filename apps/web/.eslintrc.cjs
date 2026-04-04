@@ -30,6 +30,10 @@ module.exports = {
       parserOptions: { project: null },
       rules: { '@typescript-eslint/no-explicit-any': 'off' },
     },
+    {
+      files: ['src/lib/withingsOAuthServer.ts'],
+      parserOptions: { project: null },
+    },
   ],
   rules: {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],

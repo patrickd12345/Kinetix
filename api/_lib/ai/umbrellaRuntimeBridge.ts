@@ -12,6 +12,18 @@ export function shouldBridgeKinetixToUmbrella(env: NodeJS.ProcessEnv): boolean {
   return env.KINETIX_UMBRELLA_MEMORY_BRIDGE === '1' && Boolean(env.BOOKIJI_INC_ROOT?.trim())
 }
 
+function bridgeDebugEnabled(env: NodeJS.ProcessEnv): boolean {
+  return env.KINETIX_UMBRELLA_MEMORY_BRIDGE_DEBUG === '1'
+}
+
+function bridgeDebugLog(env: NodeJS.ProcessEnv, message: string, detail?: string): void {
+  if (!bridgeDebugEnabled(env)) {
+    return
+  }
+  const suffix = detail?.trim() ? ` ${detail.trim()}` : ''
+  console.error(`[kinetix-umbrella-bridge] ${message}${suffix}`)
+}
+
 export function bridgeKinetixRuntimeToUmbrella(
   env: NodeJS.ProcessEnv,
   boundary: SessionBoundaryPayload,
@@ -24,6 +36,7 @@ export function bridgeKinetixRuntimeToUmbrella(
   const tsxCli = join(root, 'node_modules/tsx/dist/cli.mjs')
   const bridgeScript = join(root, 'scripts/commit-kinetix-bridge-to-umbrella.ts')
   return new Promise((resolve, reject) => {
+    bridgeDebugLog(env, 'spawn', `${process.execPath} ${tsxCli} ${bridgeScript}`)
     const child = spawn(process.execPath, [tsxCli, bridgeScript], {
       cwd: root,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -33,11 +46,16 @@ export function bridgeKinetixRuntimeToUmbrella(
     child.stderr?.on('data', (c) => {
       stderr += String(c)
     })
-    child.on('error', reject)
+    child.on('error', (err) => {
+      bridgeDebugLog(env, 'spawn error', String(err))
+      reject(err)
+    })
     child.on('close', (code) => {
       if (code === 0) {
+        bridgeDebugLog(env, 'ok', 'umbrella commit finished')
         resolve()
       } else {
+        bridgeDebugLog(env, `exit ${code ?? 'unknown'}`, stderr)
         reject(new Error(`umbrella bridge exited ${code}: ${stderr.trim()}`))
       }
     })

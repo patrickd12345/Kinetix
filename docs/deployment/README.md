@@ -13,6 +13,7 @@ Index for **identity (SSO)**, **secrets (Infisical)**, **billing (Stripe subscri
 | Checkout session API, Bookiji webhook, `platform.entitlements` | [STRIPE_KINETIX_ENTITLEMENTS.md](./STRIPE_KINETIX_ENTITLEMENTS.md) |
 | Subdomain and DNS | [KINETIX_SUBDOMAIN.md](./KINETIX_SUBDOMAIN.md) |
 | Manual go-live checks | [KINETIX_VERIFICATION_CHECKLIST.md](./KINETIX_VERIFICATION_CHECKLIST.md) |
+| Optional umbrella memory bridge (governance; default off) | [MEMORY_BRIDGE_CONTRACT.md](../../../../docs/platform/MEMORY_BRIDGE_CONTRACT.md) — *Kinetix operator notes* |
 
 ---
 

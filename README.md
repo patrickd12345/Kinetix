@@ -266,7 +266,12 @@ Kinetix follows the shared **platform** layer for identity and access: **`platfo
 | Full integration guide (identity, payment, Infisical, new-app checklist) | **[`docs/platform/APP_INTEGRATION_STANDARD.md`](../../docs/platform/APP_INTEGRATION_STANDARD.md)** |
 | Kinetix deployment index (SSO, Infisical, Stripe design) | **[`docs/deployment/README.md`](docs/deployment/README.md)** |
 
-**Local verification:** from `products/Kinetix`, run `pnpm verify:infisical` (validates merged `/platform` + `/kinetix` and required Supabase client vars). There is no workspace-root `pnpm spine:audit`; rely on product tests and env checks per app.
+**Local verification:**
+
+- `pnpm verify:infisical` — merged `/platform` + `/kinetix` and required Supabase client vars.
+- `pnpm run verify:vercel-parity` — **same pipeline as GitHub Actions Web CI and Vercel:** `check-no-local-ai-core`, `scripts/vercel-install.sh` (clone `patrickd12345/Bookiji-inc` into `.bookiji-packages`), then `pnpm type-check`, `pnpm lint`, `pnpm run build`. From **`products/Kinetix`** use that command; from the **Bookiji inc repo root** use **`pnpm run verify-vercel-parity`** or **`pnpm run verify:vercel-parity`** (both run the same `node` script). Use **`pnpm run …`** on Windows so script names with colons are not misparsed. Run before pushing when shared `@bookiji-inc/*` or install/build wiring changes; working only inside the umbrella with `../../packages/*` does **not** exercise the standalone clone path that production uses.
+
+There is no workspace-root `pnpm spine:audit`; rely on product tests and env checks per app.
 
 ## 📝 License
 

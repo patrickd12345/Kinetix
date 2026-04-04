@@ -1,6 +1,8 @@
-# Web CI: build and test the Kinetix web app (apps/web) and core.
-# Runs on push/PR when web app, core, or deploy config change.
-# Vercel deploys from repo (see vercel.json); if deploys stopped, check Vercel dashboard and branch.
+# Web CI: same install + build path as Vercel (scripts/vercel-install.sh, then type-check, lint, build).
+# Kinetix is a standalone repo; @bookiji-inc/* comes from cloning Bookiji-inc (see vercel-install.sh).
+# GITHUB_TOKEN is passed through for authenticated clone when the Actions policy allows access to patrickd12345/Bookiji-inc.
+# If Bookiji-inc is private and the default token cannot read it, add repository secret BOOKIJI_INC_CLONE_TOKEN
+# (PAT with contents:read) and add to job env: BOOKIJI_INC_CLONE_TOKEN: ${{ secrets.BOOKIJI_INC_CLONE_TOKEN }}.
 
 name: Web CI
 
@@ -9,46 +11,50 @@ on:
     paths:
       - 'apps/web/**'
       - 'packages/core/**'
+      - 'api/**'
+      - 'scripts/**'
       - 'vercel.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - '.github/workflows/web-ci.yml'
+      - 'scripts/verify-vercel-parity.mjs'
   pull_request:
     paths:
       - 'apps/web/**'
       - 'packages/core/**'
+      - 'api/**'
+      - 'scripts/**'
       - 'vercel.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - '.github/workflows/web-ci.yml'
+      - 'scripts/verify-vercel-parity.mjs'
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-test:
+  vercel-parity:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: No local ai-core guard
-        run: node scripts/check-no-local-ai-core.mjs
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 10.30.3
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
+          node-version: 22
+          cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run tests
-        run: pnpm test
-
-      - name: Build
-        run: pnpm run build
+      - name: "Vercel parity (same as deploy: install + type-check + lint + build)"
+        run: node scripts/verify-vercel-parity.mjs

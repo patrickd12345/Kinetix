@@ -10,22 +10,22 @@ importers:
     dependencies:
       '@bookiji-inc/ai-runtime':
         specifier: workspace:*
-        version: link:.bookiji-packages/ai-runtime
+        version: link:monorepo-packages/ai-runtime
       '@bookiji-inc/error-contract':
         specifier: workspace:*
-        version: link:.bookiji-packages/error-contract
+        version: link:monorepo-packages/error-contract
       '@bookiji-inc/observability':
         specifier: workspace:*
-        version: link:.bookiji-packages/observability
+        version: link:monorepo-packages/observability
       '@bookiji-inc/persistent-memory-runtime':
         specifier: workspace:*
-        version: link:.bookiji-packages/persistent-memory-runtime
+        version: link:monorepo-packages/persistent-memory-runtime
       '@bookiji-inc/platform-auth':
         specifier: workspace:*
-        version: link:.bookiji-packages/platform-auth
+        version: link:monorepo-packages/platform-auth
       '@bookiji-inc/stripe-runtime':
         specifier: workspace:*
-        version: link:.bookiji-packages/stripe-runtime
+        version: link:monorepo-packages/stripe-runtime
       '@supabase/ssr':
         specifier: ^0.5.2
         version: 0.5.2(@supabase/supabase-js@2.95.3)
@@ -150,101 +150,6 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
 
-  .bookiji-packages/ai-runtime:
-    devDependencies:
-      '@types/node':
-        specifier: ^20.19.35
-        version: 20.19.39
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-      vitest:
-        specifier: ^2.0.0
-        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
-
-  .bookiji-packages/error-contract:
-    devDependencies:
-      '@types/node':
-        specifier: ^20.19.35
-        version: 20.19.39
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-      vitest:
-        specifier: ^2.0.0
-        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
-
-  .bookiji-packages/observability:
-    devDependencies:
-      '@types/node':
-        specifier: ^20.19.35
-        version: 20.19.39
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-      vitest:
-        specifier: ^2.0.0
-        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
-
-  .bookiji-packages/persistent-memory-runtime:
-    devDependencies:
-      '@types/node':
-        specifier: ^20.19.35
-        version: 20.19.39
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-      vitest:
-        specifier: ^2.0.0
-        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
-
-  .bookiji-packages/platform-auth:
-    dependencies:
-      '@supabase/supabase-js':
-        specifier: ^2.45.0
-        version: 2.95.3
-    devDependencies:
-      '@types/node':
-        specifier: ^20.19.35
-        version: 20.19.39
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-
-  .bookiji-packages/stripe-runtime:
-    dependencies:
-      stripe:
-        specifier: ^20.2.0
-        version: 20.4.1(@types/node@20.19.39)
-    devDependencies:
-      '@types/node':
-        specifier: ^20.19.35
-        version: 20.19.39
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-      vitest:
-        specifier: ^2.0.0
-        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
-
   apps/rag:
     dependencies:
       chromadb:
@@ -261,16 +166,16 @@ importers:
     dependencies:
       '@bookiji-inc/ai-runtime':
         specifier: workspace:*
-        version: link:../../.bookiji-packages/ai-runtime
+        version: link:../../monorepo-packages/ai-runtime
       '@bookiji-inc/error-contract':
         specifier: workspace:*
-        version: link:../../.bookiji-packages/error-contract
+        version: link:../../monorepo-packages/error-contract
       '@bookiji-inc/observability':
         specifier: workspace:*
-        version: link:../../.bookiji-packages/observability
+        version: link:../../monorepo-packages/observability
       '@bookiji-inc/persistent-memory-runtime':
         specifier: workspace:*
-        version: link:../../.bookiji-packages/persistent-memory-runtime
+        version: link:../../monorepo-packages/persistent-memory-runtime
       '@kinetix/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -386,6 +291,104 @@ importers:
       vitest:
         specifier: ^1.6.1
         version: 1.6.1(@edge-runtime/vm@3.2.0)(@types/node@16.18.11)(jsdom@24.1.3)
+
+  monorepo-packages/ai-runtime:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.35
+        version: 20.19.39
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
+
+  monorepo-packages/error-contract:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.35
+        version: 20.19.39
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
+
+  monorepo-packages/observability:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.35
+        version: 20.19.39
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
+
+  monorepo-packages/persistent-memory-runtime:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.35
+        version: 20.19.39
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
+
+  monorepo-packages/platform-auth:
+    dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.45.0
+        version: 2.95.3
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.35
+        version: 20.19.39
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
+
+  monorepo-packages/stripe-runtime:
+    dependencies:
+      stripe:
+        specifier: ^20.2.0
+        version: 20.4.1(@types/node@20.19.39)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.35
+        version: 20.19.39
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@edge-runtime/vm@3.2.0)(@types/node@20.19.39)(jsdom@24.1.3)
 
   packages/core:
     devDependencies:

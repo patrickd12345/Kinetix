@@ -258,7 +258,7 @@ For detailed feature lists and comparisons across platforms:
 
 ## Platform spine compliance
 
-Kinetix follows the shared **platform** layer for identity and access: **`platform.profiles`** and **`platform.entitlements`** (`product_key = 'kinetix'`). Stripe secrets are not embedded in the web client; future paid tiers extend Bookiji's canonical Stripe webhooks into entitlements.
+Kinetix follows the shared **platform** layer for identity and access: **`platform.profiles`** and **`platform.entitlements`** (`product_key = 'kinetix'`). Paid access uses **subscription Checkout** via `POST /api/billing/create-checkout-session` (server-only Stripe key); **Bookiji** `POST /api/payments/webhook` upserts or revokes entitlements — see [`docs/deployment/STRIPE_KINETIX_ENTITLEMENTS.md`](docs/deployment/STRIPE_KINETIX_ENTITLEMENTS.md).
 
 | Resource | Location |
 | -------- | -------- |

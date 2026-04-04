@@ -17,6 +17,9 @@ importers:
       '@bookiji-inc/observability':
         specifier: link:../../packages/observability
         version: link:../../packages/observability
+      '@bookiji-inc/platform-auth':
+        specifier: link:../../packages/platform-auth
+        version: link:../../packages/platform-auth
     devDependencies:
       concurrently:
         specifier: ^9.1.0

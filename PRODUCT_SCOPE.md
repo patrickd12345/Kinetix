@@ -7,6 +7,7 @@ Type: mixed platform
 
 | Capability | Status | Notes |
 |------------|--------|------|
+| Shared identity (`platform.profiles` / `platform.entitlements`) | Compliant | Web `AuthProvider` + `platformAuth`; optional dev `/api/admlog` via `@bookiji-inc/platform-auth`. |
 | AI Runtime | Applicable | AI is an active web, API, and mobile surface. |
 | Stripe Runtime | N/A | No confirmed Stripe runtime or billing webhook surface is part of the current product architecture. |
 | CI Baseline | Partial | CI exists, but baseline coverage does not consistently cover all active surfaces. |

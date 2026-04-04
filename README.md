@@ -255,13 +255,14 @@ For detailed feature lists and comparisons across platforms:
 - **[Web App Features](FEATURES_WEB.md)** - Complete list of web app features
 - **[Feature Comparison](FEATURES_COMPARISON.md)** - Cross-platform feature comparison
 
-## Platform Spine Compliance
+## Bookiji Inc platform identity
 
-Kinetix complies with the **Platform Spine** architectural contract. All cross-cutting concerns (identity, billing, Stripe) are enforced at the platform layer.
+Shared Supabase identity is enforced at the **platform** schema:
 
-- See **[SPINE_CONTRACT.md](../SPINE_CONTRACT.md)** at the workspace root for the full contract (identity, billing, schema isolation, lifecycle guards).
-- Auth and billing are never app-scoped; this app uses `platform.profiles` and platform entitlements only.
-- Run `pnpm spine:audit` from the workspace root to validate compliance locally; CI runs the same check on PR and push to main.
+- Web auth uses **`platform.profiles`** and **`platform.entitlements`** (product key `kinetix`) — see `apps/web/src/lib/platformAuth.ts` and `AuthProvider`.
+- Dev-only admin one-shot login: **`GET /api/admlog`** (Vercel serverless) uses `@bookiji-inc/platform-auth` and is documented in `api/admlog/index.ts`.
+
+Workspace-level standards (AI, env, errors, observability) live in the umbrella repo under [`docs/PLATFORM_STANDARDS.md`](../../docs/PLATFORM_STANDARDS.md) and [`docs/platform/`](../../docs/platform/).
 
 ## 📝 License
 

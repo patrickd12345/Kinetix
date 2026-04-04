@@ -52,9 +52,29 @@ function appendVary(res: VercelResponse, key: string): void {
   res.setHeader('Vary', values.join(', '))
 }
 
+function isProductionCorsStrict(runtime: ReturnType<typeof resolveKinetixRuntimeEnv>): boolean {
+  if (runtime.nodeEnv === 'production') return true
+  return runtime.vercelEnv === 'production' || runtime.vercelEnv === 'preview'
+}
+
 export function applyCors(req: VercelRequest, res: VercelResponse, options: CorsOptions): CorsResult {
+  const runtime = resolveKinetixRuntimeEnv()
   const origin = readOrigin(req)
   const allowlist = getAllowlist()
+  const prodMissingAllowlist = isProductionCorsStrict(runtime) && allowlist.length === 0
+
+  if (prodMissingAllowlist) {
+    const allowed = !origin
+    res.setHeader('Access-Control-Allow-Origin', 'null')
+    appendVary(res, 'Origin')
+    res.setHeader('Access-Control-Allow-Methods', options.methods.join(', '))
+    res.setHeader('Access-Control-Allow-Headers', options.headers.join(', '))
+    if (options.allowCredentials) {
+      res.setHeader('Access-Control-Allow-Credentials', 'true')
+    }
+    return { allowed }
+  }
+
   const restricted = allowlist.length > 0
   const allowAll = allowlist.includes('*')
   const allowed = !restricted || allowAll || !origin || allowlist.includes(origin)

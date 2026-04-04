@@ -22,6 +22,8 @@ export type KinetixRuntimeEnv = {
   supabaseAnonKey: string;
   supabaseServiceRoleKey: string;
   corsAllowedOrigins: string;
+  /** Vercel deployment target: development | preview | production (empty if not on Vercel). */
+  vercelEnv: string;
   nodeEnv: string;
   port: string;
   chromaMode: string;

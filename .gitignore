@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 .bookiji-packages/
+monorepo-packages
 
 # Build / cache
 dist/

@@ -15,6 +15,7 @@
     "test:e2e": "pnpm --filter @kinetix/web test:e2e",
     "lint": "pnpm -r lint",
     "type-check": "pnpm -r type-check",
+    "type-check:vercel-api": "tsc --noEmit",
     "clean": "pnpm -r clean",
     "check:no-local-ai-core": "node scripts/check-no-local-ai-core.mjs",
     "smoke:persistent-memory": "tsx api/smoke-persistent-memory.ts"

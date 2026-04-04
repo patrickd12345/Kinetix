@@ -92,7 +92,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     })
 
-    const { error: setError } = await supabase.auth.setSession({
+    const auth = supabase.auth as unknown as {
+      setSession: (args: { access_token: string; refresh_token: string }) => Promise<{
+        error: { message: string } | null
+      }>
+    }
+    const { error: setError } = await auth.setSession({
       access_token,
       refresh_token,
     })

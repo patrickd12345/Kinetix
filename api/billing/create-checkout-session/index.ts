@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { createClient } from '@supabase/supabase-js'
 import { createKinetixSubscriptionCheckoutSession } from '@bookiji-inc/stripe-runtime'
 import { applyCors } from '../../_lib/cors'
 import { sendApiError } from '../../_lib/apiError'
 import { logApiEvent } from '../../_lib/observability'
 import { resolveKinetixRuntimeEnv } from '../../_lib/env/runtime'
 import { assertKinetixCheckoutEnv, getKinetixStripeOrThrow } from '../../_lib/kinetixStripe'
+import { getSupabaseUserFromJwt } from '../../_lib/supabaseUserFromJwt'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {
@@ -37,15 +37,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'unauthorized', message: 'Authorization Bearer token required' })
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser(token)
-  if (userError || !user?.id) {
-    logApiEvent('warn', 'kinetix_checkout_auth_failed', { message: userError?.message })
+  const user = await getSupabaseUserFromJwt(supabaseUrl, supabaseAnonKey, token)
+  if (!user?.id) {
+    logApiEvent('warn', 'kinetix_checkout_auth_failed', { message: 'Invalid JWT or auth/v1/user failed' })
     return res.status(401).json({ error: 'unauthorized', message: 'Invalid or expired session' })
   }
 

@@ -14,7 +14,14 @@ const scriptDir = dirname(fileURLToPath(import.meta.url))
 const packagesRoot = isDir(join(scriptDir, '../../../packages')) 
   ? join(scriptDir, '../../../packages') 
   : join(scriptDir, '../.bookiji-packages')
-const names = ['ai-runtime', 'persistent-memory-runtime', 'error-contract', 'observability']
+const names = [
+  'ai-runtime',
+  'persistent-memory-runtime',
+  'error-contract',
+  'observability',
+  'platform-auth',
+  'stripe-runtime',
+]
 
 function isDir(p) {
   try {

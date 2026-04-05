@@ -1,6 +1,10 @@
 /**
- * One command = same checks as GitHub Actions "Web CI" and Vercel: clone Bookiji-inc packages,
- * install, type-check, lint, build. Umbrella-only dev (../../packages) does not exercise this path.
+ * Phase 1 — Kinetix standalone (Vercel-style): clone Bookiji-inc packages into monorepo-packages,
+ * install, type-check, lint, build (apps/web). Same as historical "Web CI" parity.
+ *
+ * Phase 2 — Bookiji app: `scripts/verify-bookiji-vercel-build.mjs` runs under products/bookiji
+ * with Vercel-like env (install keeps devDependencies; build uses production flags). Catches
+ * failures that only appear in the Bookiji Vercel project (rootDirectory = products/bookiji).
  *
  * Requires: git, bash (Git Bash on Windows), Node 22+, npm/npx (uses `npx pnpm@10.30.3`, not corepack on Windows).
  */
@@ -15,6 +19,8 @@ if (!/--max-old-space-size=\d+/.test(process.env.NODE_OPTIONS || '')) {
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const root = dirname(scriptDir)
+/** Bookiji-inc repo root (products/Kinetix/scripts -> ../../..). */
+const repoRoot = join(scriptDir, '../../..')
 
 function exitCode(code) {
   if (code !== 0 && code != null) process.exit(code)
@@ -60,4 +66,13 @@ console.log('[verify-vercel-parity] pnpm lint')
 runPnpm(['lint'])
 console.log('[verify-vercel-parity] pnpm run build')
 runPnpm(['run', 'build'])
+
+console.log('[verify-vercel-parity] products/bookiji — Vercel-like install + build')
+const bookiji = spawnSync(process.execPath, [join(repoRoot, 'scripts', 'verify-bookiji-vercel-build.mjs')], {
+  cwd: repoRoot,
+  stdio: 'inherit',
+  env: process.env,
+})
+exitCode(bookiji.status)
+
 console.log('[verify-vercel-parity] OK')

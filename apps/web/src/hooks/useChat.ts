@@ -62,8 +62,18 @@ export function useChat() {
       })
 
       if (!response.ok) {
-        const errBody = await response.json().catch(() => ({}))
-        throw new Error(errBody.error || 'Failed to get reply from AI.')
+        const errBody = (await response.json().catch(() => ({}))) as {
+          error?: string
+          message?: string
+          code?: string
+        }
+        const detail =
+          (typeof errBody.message === 'string' && errBody.message.trim()) ||
+          (typeof errBody.error === 'string' && errBody.error.trim())
+        const suffix = errBody.code ? ` (${errBody.code})` : ''
+        throw new Error(
+          detail || `Request failed (${response.status})${suffix} — failed to get reply from AI.`,
+        )
       }
 
       const data = await response.json()

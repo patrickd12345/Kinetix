@@ -66,13 +66,20 @@ export async function hasActiveEntitlementForUser(
   supabase: SupabaseClient,
   profileId: string,
   productKey: string,
-  /** If provided, used as fallback when entitlements table is keyed by auth user_id instead of profile_id */
+  /** Auth user id; spine v1 entitlements use user_id (same as platform.profiles.id). Prefer querying user_id first to avoid PostgREST 400s when profile_id column does not exist. */
   userId?: string
 ): Promise<boolean> {
-  let result = await queryEntitlements(supabase, 'profile_id', profileId)
+  const idForUserColumn = userId ?? profileId
+  let result = await queryEntitlements(supabase, 'user_id', idForUserColumn)
 
-  if (result.error && userId) {
-    result = await queryEntitlements(supabase, 'user_id', userId)
+  if (result.error) {
+    const err = result.error
+    const undefinedCol =
+      err.code === PGRST_UNDEFINED_COLUMN ||
+      (typeof err.message === 'string' && /does not exist/i.test(err.message))
+    if (undefinedCol) {
+      result = await queryEntitlements(supabase, 'profile_id', profileId)
+    }
   }
 
   if (result.error) {

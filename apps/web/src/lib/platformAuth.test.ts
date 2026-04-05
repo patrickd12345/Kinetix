@@ -16,7 +16,7 @@ function makeSupabaseMock(
 }
 
 describe('hasActiveEntitlementForUser', () => {
-  it('returns true when profile_id query succeeds with active kinetix entitlement', async () => {
+  it('returns true when user_id query succeeds with active kinetix entitlement', async () => {
     const supabase = makeSupabaseMock(async () => ({
       data: [{ product_key: 'kinetix', status: 'active', active: true }],
       error: null,
@@ -32,12 +32,12 @@ describe('hasActiveEntitlementForUser', () => {
     expect(entitled).toBe(true)
   })
 
-  it('falls back to user_id when profile_id column is missing', async () => {
+  it('falls back to profile_id when user_id column is missing', async () => {
     const eqImpl = vi.fn(async (column: string) => {
-      if (column === 'profile_id') {
+      if (column === 'user_id') {
         return {
           data: null,
-          error: { code: '42703', message: 'column entitlements.profile_id does not exist' },
+          error: { code: '42703', message: 'column entitlements.user_id does not exist' },
         }
       }
 
@@ -57,8 +57,8 @@ describe('hasActiveEntitlementForUser', () => {
 
     expect(entitled).toBe(true)
     expect(eqImpl).toHaveBeenCalledTimes(2)
-    expect(eqImpl).toHaveBeenNthCalledWith(1, 'profile_id', 'profile-1')
-    expect(eqImpl).toHaveBeenNthCalledWith(2, 'user_id', 'user-1')
+    expect(eqImpl).toHaveBeenNthCalledWith(1, 'user_id', 'user-1')
+    expect(eqImpl).toHaveBeenNthCalledWith(2, 'profile_id', 'profile-1')
   })
 
   it('throws on non-schema errors', async () => {

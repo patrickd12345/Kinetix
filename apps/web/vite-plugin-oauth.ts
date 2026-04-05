@@ -7,6 +7,7 @@ import {
   refreshStravaAccessToken,
   StravaAuthError,
 } from '../../api/_lib/stravaAuth'
+import { resolveWithingsRedirectUriForTokenExchange } from '../../api/_lib/withingsRedirectUri'
 import { withingsRequestToken } from './src/lib/withingsOAuthServer'
 
 type EnvMap = Record<string, string>
@@ -90,7 +91,16 @@ async function handleWithingsOAuthRequest(req: IncomingMessage, res: ServerRespo
 
   const clientId = getEnvValue(env, 'VITE_WITHINGS_CLIENT_ID', 'WITHINGS_CLIENT_ID')
   const clientSecret = getEnvValue(env, 'WITHINGS_CLIENT_SECRET')
-  const redirectUri = (redirect_uri || `${req.headers.origin || 'http://localhost:5173'}/settings`).replace(/\/$/, '')
+  const envRedirect = getEnvValue(env, 'VITE_WITHINGS_REDIRECT_URI', 'WITHINGS_REDIRECT_URI')
+  const redirectUri = resolveWithingsRedirectUriForTokenExchange({
+    bodyRedirectUri: redirect_uri,
+    envRedirectUri: envRedirect || undefined,
+    requestOrigin: (req.headers.origin as string | undefined) || 'http://localhost:5173',
+  })
+  if (!redirectUri) {
+    json(res, 400, { error: 'redirect_uri could not be resolved' })
+    return
+  }
   if (!clientId || !clientSecret) {
     json(res, 500, {
       error: 'Withings not configured. Set VITE_WITHINGS_CLIENT_ID and WITHINGS_CLIENT_SECRET in .env.local',

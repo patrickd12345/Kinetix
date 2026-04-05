@@ -22,19 +22,19 @@ function FullscreenStatus({
 }) {
   const toneClasses =
     tone === 'error'
-      ? 'border-red-500/30'
-      : 'border-white/10'
+      ? 'border-red-500/40 dark:border-red-500/30'
+      : 'border-slate-200/90 dark:border-white/10'
 
   const titleClasses =
     tone === 'error'
-      ? 'text-red-400'
-      : 'text-white'
+      ? 'text-red-600 dark:text-red-400'
+      : 'text-slate-900 dark:text-white'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-200 to-slate-100 flex items-center justify-center px-4 dark:from-gray-950 dark:via-black dark:to-gray-950">
       <div className={`w-full max-w-md glass rounded-2xl ${toneClasses} p-6 space-y-2`}>
         <h1 className={`text-xl font-bold ${titleClasses}`}>{title}</h1>
-        <p className="text-sm text-gray-300">{message}</p>
+        <p className="text-sm text-slate-600 dark:text-gray-300">{message}</p>
       </div>
     </div>
   )

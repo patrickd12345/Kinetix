@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../components/providers/useAuth'
+import ThemeSelector from '../components/ThemeSelector'
 
 type Mode = 'signin' | 'signup'
 
@@ -46,10 +47,13 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-md glass rounded-2xl border border-white/10 p-6 space-y-4">
-        <h1 className="text-2xl font-black italic tracking-wider text-white">KINETIX</h1>
-        <p className="text-sm text-gray-400">
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-100 via-slate-200 to-slate-100 flex items-center justify-center px-4 dark:from-gray-950 dark:via-black dark:to-gray-950">
+      <div className="absolute right-4 top-4 z-10">
+        <ThemeSelector />
+      </div>
+      <div className="w-full max-w-md glass rounded-2xl border border-slate-200/90 p-6 space-y-4 dark:border-white/10">
+        <h1 className="text-2xl font-black italic tracking-wider text-slate-900 dark:text-white">KINETIX</h1>
+        <p className="text-sm text-slate-600 dark:text-gray-400">
           {mode === 'signin' ? 'Sign in or create an account to continue.' : 'Create an account to get started.'}
         </p>
 
@@ -61,7 +65,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
+              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"
               autoComplete="email"
               required
             />
@@ -74,7 +78,7 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
+              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"
               autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
               required
               minLength={6}
@@ -89,7 +93,7 @@ export default function Login() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"
                 autoComplete="new-password"
                 required
                 minLength={6}
@@ -97,8 +101,8 @@ export default function Login() {
             </div>
           )}
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          {success && <p className="text-sm text-green-400">{success}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+          {success && <p className="text-sm text-green-700 dark:text-green-400">{success}</p>}
 
           <button
             type="submit"
@@ -115,14 +119,14 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-slate-600 dark:text-gray-500">
           {mode === 'signin' ? (
             <>
               No account?{' '}
               <button
                 type="button"
                 onClick={() => { setMode('signup'); setError(null); setSuccess(null); setConfirmPassword(''); }}
-                className="text-cyan-400 hover:text-cyan-300"
+                className="text-cyan-700 hover:text-cyan-600 dark:text-cyan-400 dark:hover:text-cyan-300"
               >
                 Create one
               </button>
@@ -133,7 +137,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => { setMode('signin'); setError(null); setSuccess(null); setConfirmPassword(''); }}
-                className="text-cyan-400 hover:text-cyan-300"
+                className="text-cyan-700 hover:text-cyan-600 dark:text-cyan-400 dark:hover:text-cyan-300"
               >
                 Sign in
               </button>

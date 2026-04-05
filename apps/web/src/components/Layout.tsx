@@ -9,6 +9,7 @@ import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
 import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
+import ThemeSelector from './ThemeSelector'
 
 const RAG_SYNC_PAGE_SIZE = 200
 const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
@@ -140,15 +141,15 @@ export default function Layout({ children }: LayoutProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 to-black text-white">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 text-slate-900 dark:from-slate-950 dark:to-black dark:text-white">
+      <header className="sticky top-0 z-40 border-b border-slate-200/90 bg-white/85 backdrop-blur dark:border-white/10 dark:bg-slate-950/90">
         <div className="mx-auto max-w-7xl px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <h1 className="text-xl font-black tracking-wide">KINETIX</h1>
-              <p className="text-xs text-slate-400">Web dashboard</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Web dashboard</p>
             </div>
-            <div className="hidden md:flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
+            <div className="hidden md:flex items-center gap-1 rounded-lg border border-slate-200/90 bg-slate-100/90 p-1 dark:border-white/10 dark:bg-white/5">
               {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive = location.pathname === item.path
@@ -158,8 +159,8 @@ export default function Layout({ children }: LayoutProps) {
                     to={item.path}
                     className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all ${
                       isActive
-                        ? 'bg-cyan-500/20 text-cyan-300'
-                        : 'text-slate-300 hover:bg-white/10'
+                        ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300'
+                        : 'text-slate-600 hover:bg-slate-200/80 dark:text-slate-300 dark:hover:bg-white/10'
                     }`}
                   >
                     <Icon size={16} />
@@ -169,13 +170,14 @@ export default function Layout({ children }: LayoutProps) {
               })}
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden sm:block max-w-[180px] truncate text-xs text-slate-400">
+              <ThemeSelector />
+              <span className="hidden sm:block max-w-[180px] truncate text-xs text-slate-500 dark:text-slate-400">
                 {profileLabel}
               </span>
               <button
                 type="button"
                 onClick={() => void signOut()}
-                className="rounded-md border border-cyan-500/30 px-3 py-1.5 text-xs font-medium text-cyan-300 hover:bg-cyan-500/10"
+                className="rounded-md border border-cyan-600/35 px-3 py-1.5 text-xs font-medium text-cyan-800 hover:bg-cyan-500/10 dark:border-cyan-500/30 dark:text-cyan-300"
               >
                 Sign out
               </button>
@@ -187,7 +189,7 @@ export default function Layout({ children }: LayoutProps) {
       <div className="mx-auto max-w-7xl px-4 py-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
           <aside className="hidden lg:block">
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2">
+            <div className="rounded-xl border border-slate-200/90 bg-white/70 p-2 dark:border-white/10 dark:bg-white/[0.03]">
               <nav className="space-y-1">
                 {navItems.map((item) => {
                   const Icon = item.icon
@@ -198,8 +200,8 @@ export default function Layout({ children }: LayoutProps) {
                       to={item.path}
                       className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all ${
                         isActive
-                          ? 'bg-cyan-500/20 text-cyan-300'
-                          : 'text-slate-300 hover:bg-white/10'
+                          ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300'
+                          : 'text-slate-600 hover:bg-slate-200/80 dark:text-slate-300 dark:hover:bg-white/10'
                       }`}
                     >
                       <Icon size={16} />
@@ -210,11 +212,11 @@ export default function Layout({ children }: LayoutProps) {
               </nav>
             </div>
           </aside>
-          <main className="min-w-0">{children}</main>
+          <main className="min-w-0 text-slate-900 dark:text-white">{children}</main>
         </div>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/95 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-slate-950/95 md:hidden">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-around px-2">
           {navItems.map((item) => {
             const Icon = item.icon
@@ -224,7 +226,7 @@ export default function Layout({ children }: LayoutProps) {
                 key={item.path}
                 to={item.path}
                 className={`flex flex-col items-center gap-1 rounded px-2 py-1 text-[10px] ${
-                  isActive ? 'text-cyan-300' : 'text-slate-400'
+                  isActive ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
                 <Icon size={16} />

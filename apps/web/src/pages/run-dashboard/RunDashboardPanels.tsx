@@ -49,11 +49,11 @@ export function RunDashboardHeader({ targetKPS, isRunning, hasGPSFix }: RunDashb
   return (
     <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
       <div>
-        <h1 className="text-2xl font-black tracking-wide">Run Dashboard</h1>
-        <p className="text-xs text-gray-400 mt-1">Live performance, pacing, and KPS guidance</p>
+        <h1 className="text-2xl font-black tracking-wide text-slate-900 dark:text-white">Run Dashboard</h1>
+        <p className="mt-1 text-xs text-slate-600 dark:text-gray-400">Live performance, pacing, and KPS guidance</p>
       </div>
       <div className="flex items-center gap-2">
-        <div className="px-3 py-1 rounded-lg border border-white/10 text-xs text-gray-300 bg-white/5">
+        <div className="rounded-lg border border-slate-200/90 bg-slate-100/80 px-3 py-1 text-xs text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
           Target {Math.round(targetKPS)} {KPS_SHORT}
         </div>
         <div
@@ -102,8 +102,12 @@ export function RunGaugePanel({ displayKPS, progress, isRunning, timeToBeat }: R
 
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
-            <span className="text-6xl font-black tracking-tight text-white">{Math.floor(displayKPS)}</span>
-            <div className="text-xs font-bold tracking-[0.3em] text-gray-400 uppercase mt-2">{KPS_SHORT}</div>
+            <span className="text-6xl font-black tracking-tight text-slate-900 dark:text-white">
+              {Math.floor(displayKPS)}
+            </span>
+            <div className="mt-2 text-xs font-bold uppercase tracking-[0.3em] text-slate-600 dark:text-gray-400">
+              {KPS_SHORT}
+            </div>
           </div>
         </div>
       </div>

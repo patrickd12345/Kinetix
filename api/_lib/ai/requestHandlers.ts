@@ -86,7 +86,7 @@ export async function handleAiChatRequest(
     : ''
 
   const userId = await getOptionalUserIdFromHeaders(headers)
-  const client = getLLMClient(undefined, { userId })
+  const client = getLLMClient(process.env, { userId })
   const result = await client.executeChat(
     [
       { role: 'system', content: systemInstruction },
@@ -119,7 +119,7 @@ export async function handleAiCoachRequest(
   }
 
   const userId = await getOptionalUserIdFromHeaders(headers)
-  const client = getLLMClient(undefined, { userId })
+  const client = getLLMClient(process.env, { userId })
   const result = await client.executeChat(
     [
       { role: 'system', content: 'You are a concise running coach.' },

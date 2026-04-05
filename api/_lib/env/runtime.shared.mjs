@@ -13,8 +13,19 @@ function getDefaultEnv() {
 }
 
 export function resolveKinetixRuntimeEnvFromObject(env = getDefaultEnv()) {
+  const onVercel =
+    env.VERCEL === '1' ||
+    (typeof env.VERCEL_ENV === 'string' && env.VERCEL_ENV.trim().length > 0)
+
   const aiModeRaw = pick(env, ['AI_MODE']).toLowerCase()
-  const aiMode = aiModeRaw === 'gateway' || aiModeRaw === 'fallback' ? aiModeRaw : 'ollama'
+  let aiMode
+  if (aiModeRaw === 'gateway' || aiModeRaw === 'fallback') {
+    aiMode = aiModeRaw
+  } else if (aiModeRaw === 'ollama') {
+    aiMode = 'ollama'
+  } else {
+    aiMode = onVercel ? 'gateway' : 'ollama'
+  }
 
   const aiProviderRaw = pick(env, ['AI_PROVIDER', 'KINETIX_LLM_PROVIDER'], aiMode).toLowerCase()
   const aiProvider = aiProviderRaw === 'gateway' ? 'gateway' : 'ollama'

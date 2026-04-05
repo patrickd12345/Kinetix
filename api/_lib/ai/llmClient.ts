@@ -71,20 +71,39 @@ function getEnv(): NodeJS.ProcessEnv {
 
 /**
  * Canonical provider switch. Single source of truth.
- * KINETIX_LLM_PROVIDER=ollama|gateway. If unset: VERCEL=1 -> gateway, else ollama.
+ * KINETIX_LLM_PROVIDER / AI_PROVIDER = ollama | gateway when set.
+ * If unset: Vercel deployments (VERCEL=1 or VERCEL_ENV set) -> gateway; else ollama for local dev.
+ *
+ * IMPORTANT: Do not return resolveKinetixRuntimeEnv().aiProvider blindly — runtime.shared.mjs
+ * defaults aiProvider to ollama when env vars are empty, which made the VERCEL branch unreachable
+ * and caused production to call localhost Ollama (fetch failed).
  */
-export function resolveProvider(env: NodeJS.ProcessEnv = getEnv()): LLMProvider {
-  const runtime = resolveKinetixRuntimeEnv(env)
-  if (runtime.aiProvider === 'gateway' || runtime.aiProvider === 'ollama') {
-    return runtime.aiProvider
+export function resolveProvider(envIn?: NodeJS.ProcessEnv): LLMProvider {
+  const env = envIn ?? getEnv()
+  const explicit = (env.KINETIX_LLM_PROVIDER || env.AI_PROVIDER || '').trim().toLowerCase()
+  if (explicit === 'gateway') {
+    return 'gateway'
   }
-  if (env.VERCEL === '1' || runtime.aiMode === 'gateway') {
+  if (explicit === 'ollama') {
+    return 'ollama'
+  }
+  const onVercel =
+    env.VERCEL === '1' ||
+    env.VERCEL_ENV === 'production' ||
+    env.VERCEL_ENV === 'preview' ||
+    env.VERCEL_ENV === 'development'
+  if (onVercel) {
+    return 'gateway'
+  }
+  const runtime = resolveKinetixRuntimeEnv(env)
+  if (runtime.aiMode === 'gateway') {
     return 'gateway'
   }
   return 'ollama'
 }
 
-export function resolveModel(env: NodeJS.ProcessEnv, provider: LLMProvider): string {
+export function resolveModel(envIn: NodeJS.ProcessEnv | undefined, provider: LLMProvider): string {
+  const env = envIn ?? getEnv()
   const runtime = resolveKinetixRuntimeEnv(env)
   if (provider === 'gateway') {
     return runtime.openAiModel
@@ -175,9 +194,10 @@ function isProviderError(error: unknown): error is Error & { status?: number } {
  * Logs provider and model for smoke verification.
  */
 export function getLLMClient(
-  env: NodeJS.ProcessEnv = getEnv(),
+  envIn?: NodeJS.ProcessEnv,
   opts?: { userId?: string },
 ): LLMClient {
+  const env = envIn ?? getEnv()
   const provider = resolveProvider(env)
   const model = resolveModel(env, provider)
   const product = 'kinetix'

@@ -68,7 +68,7 @@
 - ✅ **Optional song metadata**: Runs may include `songTitle`, `songArtist`, `songBpm` (IndexedDB); Supabase `kinetix.activities` mirrors these columns (`song_bpm` checked **40–240** when set); all optional; coach/RAG may relate BPM to cadence for efficiency hints
 
 ### UI/UX
-- ✅ **Modern Design**: Dark theme with glassmorphism effects
+- ✅ **Modern Design**: Dark/light appearance with glassmorphism; header theme control (system / light / dark), persisted
 - ✅ **Responsive Layout**: Works on desktop and mobile
 - ✅ **Web Shell Navigation**: Desktop-first header/sidebar with mobile bottom navigation
 - ✅ **Smooth Animations**: Transitions and progress indicators

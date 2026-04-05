@@ -10,11 +10,11 @@ import {
   getAdmlogBlockReason,
   isAdmlogProductionEnvironment,
   performAdmlogSignIn,
-} from '../_lib/platformAuth'
-import { sendApiError } from '../_lib/apiError'
-import { buildKinetixApiError, getApiRequestId } from '../_lib/ai/error-contract'
-import { getObservedRequestId, logApiEvent } from '../_lib/observability'
-import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime'
+} from '../_lib/platformAuth.js'
+import { sendApiError } from '../_lib/apiError.js'
+import { buildKinetixApiError, getApiRequestId } from '../_lib/ai/error-contract.js'
+import { getObservedRequestId, logApiEvent } from '../_lib/observability.js'
+import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime.js'
 
 function getSupabaseConfig() {
   const runtime = resolveKinetixRuntimeEnv()

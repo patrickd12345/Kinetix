@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createKinetixSubscriptionCheckoutSession } from '@bookiji-inc/stripe-runtime'
-import { applyCors } from '../../_lib/cors'
-import { sendApiError } from '../../_lib/apiError'
-import { logApiEvent } from '../../_lib/observability'
-import { resolveKinetixRuntimeEnv } from '../../_lib/env/runtime'
-import { assertKinetixCheckoutEnv, getKinetixStripeOrThrow } from '../../_lib/kinetixStripe'
-import { getSupabaseUserFromJwt } from '../../_lib/supabaseUserFromJwt'
+import { applyCors } from '../../_lib/cors.js'
+import { sendApiError } from '../../_lib/apiError.js'
+import { logApiEvent } from '../../_lib/observability.js'
+import { resolveKinetixRuntimeEnv } from '../../_lib/env/runtime.js'
+import { assertKinetixCheckoutEnv, getKinetixStripeOrThrow } from '../../_lib/kinetixStripe.js'
+import { getSupabaseUserFromJwt } from '../../_lib/supabaseUserFromJwt.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {

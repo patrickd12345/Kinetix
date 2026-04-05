@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { applyCors } from '../_lib/cors'
-import { serializeApiError, toApiHttpError } from '../_lib/ai/error-contract'
-import { getObservedRequestId, logApiEvent } from '../_lib/observability'
-import { handleAiChatRequest } from '../_lib/ai/requestHandlers'
+import { applyCors } from '../_lib/cors.js'
+import { serializeApiError, toApiHttpError } from '../_lib/ai/error-contract.js'
+import { getObservedRequestId, logApiEvent } from '../_lib/observability.js'
+import { handleAiChatRequest } from '../_lib/ai/requestHandlers.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {

@@ -10,4 +10,4 @@ export {
   getPolicy,
   type ByokDecision,
   type ByokPolicyConfig,
-} from './ai/byok'
+} from './ai/byok.js'

@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { applyCors } from '../_lib/cors'
-import { refreshWithingsToken } from '../_lib/withingsAuth'
-import { sendApiError } from '../_lib/apiError'
-import { logApiEvent } from '../_lib/observability'
-import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime'
+import { applyCors } from '../_lib/cors.js'
+import { refreshWithingsToken } from '../_lib/withingsAuth.js'
+import { sendApiError } from '../_lib/apiError.js'
+import { logApiEvent } from '../_lib/observability.js'
+import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {

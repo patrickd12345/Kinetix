@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { resolveKinetixRuntimeEnv } from './env/runtime'
+import { resolveKinetixRuntimeEnv } from './env/runtime.js'
 
 interface CorsOptions {
   methods: string[]

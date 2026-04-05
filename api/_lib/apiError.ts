@@ -1,6 +1,6 @@
 import type { VercelResponse } from '@vercel/node'
 import { buildError, type RequestIdSource } from '@bookiji-inc/error-contract'
-import { getApiRequestId } from './ai/error-contract'
+import { getApiRequestId } from './ai/error-contract.js'
 
 type HeaderMap = Record<string, string | string[] | undefined>
 

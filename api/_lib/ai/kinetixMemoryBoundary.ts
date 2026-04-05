@@ -1,5 +1,5 @@
 import type { SessionBoundaryPayload } from '@bookiji-inc/persistent-memory-runtime'
-import type { ChatMessage } from './llmClient'
+import type { ChatMessage } from './llmClient.js'
 
 export function buildKinetixBoundaryFromChat(
   messages: ChatMessage[],

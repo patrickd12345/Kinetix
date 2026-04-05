@@ -7,10 +7,10 @@ import {
   emptySessionBoundaryPayload,
   startSession,
 } from '@bookiji-inc/persistent-memory-runtime'
-import { buildKinetixBoundaryFromChat } from './kinetixMemoryBoundary'
-import { bridgeKinetixRuntimeToUmbrella, shouldBridgeKinetixToUmbrella } from './umbrellaRuntimeBridge'
-import { logAiEvent } from '../observability'
-import { resolveKinetixRuntimeEnv } from '../env/runtime'
+import { buildKinetixBoundaryFromChat } from './kinetixMemoryBoundary.js'
+import { bridgeKinetixRuntimeToUmbrella, shouldBridgeKinetixToUmbrella } from './umbrellaRuntimeBridge.js'
+import { logAiEvent } from '../observability.js'
+import { resolveKinetixRuntimeEnv } from '../env/runtime.js'
 
 /**
  * getLLMClient() - Kinetix local LLM abstraction (web).

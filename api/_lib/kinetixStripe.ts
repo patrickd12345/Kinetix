@@ -1,6 +1,6 @@
 import Stripe from 'stripe'
 import { isBillingEnabled } from '@bookiji-inc/stripe-runtime'
-import { resolveKinetixRuntimeEnv } from './env/runtime'
+import { resolveKinetixRuntimeEnv } from './env/runtime.js'
 
 export function getKinetixStripeOrThrow(): Stripe {
   const { stripeSecretKey } = resolveKinetixRuntimeEnv()

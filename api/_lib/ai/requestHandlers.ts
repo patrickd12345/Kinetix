@@ -1,7 +1,7 @@
-import { getLLMClient } from './llmClient'
-import { buildKinetixApiError, getApiRequestId, type KinetixApiError } from './error-contract'
-import { getByokDecision, mustReject, readByokHeader } from '../byok'
-import { resolveKinetixRuntimeEnv } from '../env/runtime'
+import { getLLMClient } from './llmClient.js'
+import { buildKinetixApiError, getApiRequestId, type KinetixApiError } from './error-contract.js'
+import { getByokDecision, mustReject, readByokHeader } from '../byok.js'
+import { resolveKinetixRuntimeEnv } from '../env/runtime.js'
 
 export interface AiChatBody {
   systemInstruction?: string

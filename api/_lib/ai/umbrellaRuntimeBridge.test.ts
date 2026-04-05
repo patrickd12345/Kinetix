@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bridgeKinetixRuntimeToUmbrella, shouldBridgeKinetixToUmbrella } from './umbrellaRuntimeBridge'
+import { bridgeKinetixRuntimeToUmbrella, shouldBridgeKinetixToUmbrella } from './umbrellaRuntimeBridge.js'
 
 const emptyBoundary = {
   sessionSummary: 'x',

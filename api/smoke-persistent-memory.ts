@@ -6,7 +6,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { commitSessionBoundary, resolveMemoryFilePath, startSession } from '@bookiji-inc/persistent-memory-runtime'
-import { buildKinetixBoundaryFromChat } from './_lib/ai/kinetixMemoryBoundary'
+import { buildKinetixBoundaryFromChat } from './_lib/ai/kinetixMemoryBoundary.js'
 
 async function main() {
   const base = await mkdtemp(join(tmpdir(), 'kinetix-pmem-'))

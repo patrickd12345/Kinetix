@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { applyCors } from '../_lib/cors'
-import { sendApiError } from '../_lib/apiError'
-import { logApiEvent } from '../_lib/observability'
+import { applyCors } from '../_lib/cors.js'
+import { sendApiError } from '../_lib/apiError.js'
+import { logApiEvent } from '../_lib/observability.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {

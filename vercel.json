@@ -5,6 +5,11 @@
   "outputDirectory": "apps/web/dist",
   "installCommand": "bash scripts/vercel-install.sh",
   "framework": "vite",
+  "functions": {
+    "api/**/*.ts": {
+      "includeFiles": "api/package.json"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/strava/(.*)",

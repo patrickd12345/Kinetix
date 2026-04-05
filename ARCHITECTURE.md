@@ -15,7 +15,7 @@
 - **AI**: Uses Gemini API for AI coaching
 
 ### 3. **Web App / PWA** (Browser)
-- **Location**: `web/`
+- **Location**: `apps/web/`
 - **Purpose**: Cross-platform access, quick tracking
 - **Features**: GPS tracking, NPI calculation, run history
 - **AI**: Uses local Ollama (falls back to rule-based if unavailable)
@@ -125,7 +125,7 @@ You have **3 platforms**:
 
 ---
 
-**Last Updated**: 2025-01-XX
+**Last Updated**: 2026-04-04
 
 
 

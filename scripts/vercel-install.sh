@@ -28,6 +28,12 @@ if [ ! -f .bookiji-packages/ai-runtime/package.json ]; then
   exit 1
 fi
 
+if [ ! -f .bookiji-packages/ai-core/package.json ]; then
+  echo "Cloning ai-core submodule..."
+  rm -rf .bookiji-packages/ai-core
+  git clone --depth 1 https://github.com/patrickd12345/ai-core.git .bookiji-packages/ai-core
+fi
+
 # Must exist before pnpm install so workspace:* resolves @bookiji-inc/* (do not use `packages/` — @kinetix/core).
 # Use a real directory copy, not a symlink: Vercel's serverless file tracer can miss workspace targets
 # behind symlinks, causing ERR_MODULE_NOT_FOUND for @bookiji-inc/* in production.

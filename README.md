@@ -2,6 +2,8 @@
 
 A revolutionary running app for Apple Watch with iPhone companion, focusing on biomechanics, form efficiency, and personalized coaching through AI and real-time analysis.
 
+**This repository** also ships a **Vite + React** web app (`apps/web`), shared **`@kinetix/core`** logic (`packages/core`), and an optional **RAG** HTTP service (`apps/rag`) used for run analysis and help-center retrieval. Native apps live under `watchos/` and `ios/`; deployment and platform integration are documented under [`docs/deployment/`](docs/deployment/README.md).
+
 ## 🚀 Core Features
 
 ### 🧠 Intelligent Coaching System
@@ -172,6 +174,37 @@ The iPhone app serves as a **Management & Analysis Hub** with a 3-tab architectu
 - **AVFoundation**: Audio session management, speech recognition, and text-to-speech
 - **Gemini API**: AI-powered coaching and conversational responses
 - **XcodeGen**: Programmatic project generation and management
+- **Web (browser / PWA)**: Vite + React in `apps/web`; optional **RAG** service in `apps/rag`; shared logic in `packages/core` (`@kinetix/core`)
+
+## Local development (web and RAG)
+
+The pnpm workspace at the repo root drives the web app and RAG service. Use this for Vercel parity checks, lint, and tests.
+
+### Requirements
+
+- **Node.js** 22.x (see `package.json` `engines`)
+- **pnpm** 8+ (see `packageManager` in `package.json`)
+
+### Common commands
+
+| Command | Purpose |
+| -------- | -------- |
+| `pnpm install` | Install all workspace dependencies |
+| `pnpm dev` | Run RAG + web together (see root `package.json` `dev`) |
+| `pnpm dev:web` | Web app only (`@kinetix/web`) |
+| `pnpm dev:rag` | RAG service only |
+| `pnpm dev:infisical` | Dev with Infisical-injected secrets — see [`docs/deployment/INFISICAL_LOCAL_DEV.md`](docs/deployment/INFISICAL_LOCAL_DEV.md) |
+| `pnpm build` | Build `@kinetix/core` then the web app |
+| `pnpm lint` | Lint all workspaces |
+| `pnpm type-check` | Root TypeScript check + web `type-check` |
+| `pnpm test` | Run workspace tests (e.g. Vitest in `apps/web`) |
+| `pnpm test:e2e` | Playwright E2E for `apps/web` |
+| `pnpm verify:infisical` | Validate merged `/platform` + `/kinetix` env (see deployment docs) |
+| `pnpm run verify:vercel-parity` | Same install + check sequence as CI / Vercel (see **Platform spine compliance** below) |
+
+**Garmin / FIT import (web):** [`apps/web/GARMIN_IMPORT.md`](apps/web/GARMIN_IMPORT.md) — in-app flow or `pnpm --filter @kinetix/web garmin:import`.
+
+**Further reading (web stack):** [`docs/WEB_APPS.md`](docs/WEB_APPS.md) (canonical `apps/web` vs `archive/web-legacy`), [`apps/rag/README.md`](apps/rag/README.md) (RAG API and collections).
 
 ## 📦 Installation
 
@@ -220,7 +253,9 @@ If you see "Watch App Not Installed" in the iPhone app diagnostics, one of these
 Kinetix/
 ├── apps/web/                 # Canonical web app (Vite + React). Use this for all web work.
 │   └── GARMIN_IMPORT.md      # Garmin ZIP / .fit import: in-app or pnpm garmin:import
-├── apps/rag/                 # RAG backend service consumed by apps/web
+├── apps/rag/                 # RAG backend (see apps/rag/README.md)
+├── packages/core/            # Shared @kinetix/core (KPS and shared logic)
+├── api/                      # Utility / smoke scripts (e.g. persistent-memory smoke)
 ├── docs/deployment/          # README index, INFISICAL_LOCAL_DEV, ENV_PARITY, STRIPE_KINETIX_ENTITLEMENTS, SSO / Vercel
 ├── archive/web-legacy/       # Archived legacy PWA reference
 ├── watchos/
@@ -236,9 +271,17 @@ Kinetix/
 
 ## 🧪 Testing
 
+### Native (Watch / iPhone)
+
 - **Self-Test Suite**: Integrated directly into the app (Settings > Self-Test) to verify core logic on-device
 - **UI Audit**: Custom internal tool to ensure accessibility and design consistency
 - **Diagnostic Logs**: Export diagnostic logs for troubleshooting
+
+### Web (pnpm workspace)
+
+- **Unit / integration**: `pnpm test` from the repo root (runs workspace test scripts; web uses Vitest)
+- **E2E**: `pnpm test:e2e` (Playwright in `apps/web`)
+- **Quality gates**: `pnpm lint` and `pnpm type-check` before pushing shared-package or build wiring changes; use `pnpm run verify:vercel-parity` when validating the standalone clone path used on Vercel
 
 ## 🎨 Design Philosophy
 
@@ -255,6 +298,17 @@ For detailed feature lists and comparisons across platforms:
 - **[iPhone App Features](FEATURES_PHONE.md)** - Complete list of iOS features
 - **[Web App Features](FEATURES_WEB.md)** - Complete list of web app features
 - **[Feature Comparison](FEATURES_COMPARISON.md)** - Cross-platform feature comparison
+
+### Architecture, scope, and contracts
+
+- **[Architecture overview](ARCHITECTURE.md)** - How Watch, iPhone, and web fit together (canonical web path: `apps/web/`)
+- **[Web apps: canonical vs legacy](docs/WEB_APPS.md)** - `apps/web` vs `archive/web-legacy/` and RAG wiring
+- **[RAG service](apps/rag/README.md)** - HTTP API, collections, and local run instructions
+- **[Product scope](PRODUCT_SCOPE.md)** - What is in scope for audits and platform work
+- **[KPS contract](KPS_CONTRACT.md)** - Non-negotiable KPS behavior (also linked under KPS above)
+- **[Deployment and platform index](docs/deployment/README.md)** - SSO, Infisical, Stripe entitlements, verification checklists
+
+Paths like **`../../SPINE_CONTRACT.md`** and **`../../docs/platform/APP_INTEGRATION_STANDARD.md`** refer to the **Bookiji inc** umbrella repository when this product lives under `products/Kinetix`. In a **standalone** Kinetix-only clone, use [`docs/deployment/README.md`](docs/deployment/README.md) and product-local contracts; umbrella-only files will not exist at those relative paths.
 
 ## Platform spine compliance
 

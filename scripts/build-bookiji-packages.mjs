@@ -32,13 +32,13 @@ const kinetixRoot = dirname(scriptDir)
 const umbrellaPackages = resolve(scriptDir, '../../../packages')
 const bookijiPackages = resolve(scriptDir, '../.bookiji-packages')
 const names = [
-  'ai-core',
-  'ai-runtime',
-  'persistent-memory-runtime',
   'error-contract',
   'observability',
   'platform-auth',
   'stripe-runtime',
+  'ai-core',
+  'ai-runtime',
+  'persistent-memory-runtime',
 ]
 
 function isDir(p) {

@@ -1,3 +1,9 @@
+if (typeof process !== 'undefined' && process.env) {
+  process.env.SUPABASE_URL ||= 'https://vitest-placeholder.supabase.co'
+  process.env.SUPABASE_ANON_KEY ||= 'vitest-anon-key-placeholder'
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'vitest-service-role-key-placeholder'
+}
+
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'

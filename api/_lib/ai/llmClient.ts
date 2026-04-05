@@ -72,12 +72,30 @@ function getEnv(): NodeJS.ProcessEnv {
 /**
  * Canonical provider switch. Single source of truth.
  * KINETIX_LLM_PROVIDER / AI_PROVIDER = ollama | gateway when set.
- * If unset: Vercel deployments (VERCEL=1 or VERCEL_ENV set) -> gateway; else ollama for local dev.
+ * If unset: Vercel deployments -> gateway; else ollama for local dev.
+ * On Vercel, AI_PROVIDER=ollama is ignored (no localhost Ollama); gateway is used instead.
  *
  * IMPORTANT: Do not return resolveKinetixRuntimeEnv().aiProvider blindly — runtime.shared.mjs
  * defaults aiProvider to ollama when env vars are empty, which made the VERCEL branch unreachable
  * and caused production to call localhost Ollama (fetch failed).
  */
+function isVercelRuntime(env: NodeJS.ProcessEnv): boolean {
+  if (env.VERCEL === '1') {
+    return true
+  }
+  if (
+    env.VERCEL_ENV === 'production' ||
+    env.VERCEL_ENV === 'preview' ||
+    env.VERCEL_ENV === 'development'
+  ) {
+    return true
+  }
+  if (typeof env.VERCEL_REGION === 'string' && env.VERCEL_REGION.trim().length > 0) {
+    return true
+  }
+  return false
+}
+
 export function resolveProvider(envIn?: NodeJS.ProcessEnv): LLMProvider {
   const env = envIn ?? getEnv()
   const explicit = (env.KINETIX_LLM_PROVIDER || env.AI_PROVIDER || '').trim().toLowerCase()
@@ -85,13 +103,12 @@ export function resolveProvider(envIn?: NodeJS.ProcessEnv): LLMProvider {
     return 'gateway'
   }
   if (explicit === 'ollama') {
+    if (isVercelRuntime(env)) {
+      return 'gateway'
+    }
     return 'ollama'
   }
-  const onVercel =
-    env.VERCEL === '1' ||
-    env.VERCEL_ENV === 'production' ||
-    env.VERCEL_ENV === 'preview' ||
-    env.VERCEL_ENV === 'development'
+  const onVercel = isVercelRuntime(env)
   if (onVercel) {
     return 'gateway'
   }

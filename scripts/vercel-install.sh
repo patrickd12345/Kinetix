@@ -28,9 +28,11 @@ if [ ! -f .bookiji-packages/ai-runtime/package.json ]; then
   exit 1
 fi
 
-# Must exist before pnpm install so workspace:* resolves @bookiji-inc/* (do not use `packages/` — @kinetix/core)
+# Must exist before pnpm install so workspace:* resolves @bookiji-inc/* (do not use `packages/` — @kinetix/core).
+# Use a real directory copy, not a symlink: Vercel's serverless file tracer can miss workspace targets
+# behind symlinks, causing ERR_MODULE_NOT_FOUND for @bookiji-inc/* in production.
 rm -rf monorepo-packages
-ln -sfn "$(pwd)/.bookiji-packages" "$(pwd)/monorepo-packages"
+cp -a .bookiji-packages monorepo-packages
 
 # Vercel restores dependency cache across deploys; a stale node_modules/.pnpm/lock.yaml from another
 # pnpm version triggers: WARN Ignoring not compatible lockfile at .../node_modules/.pnpm/lock.yaml
@@ -45,3 +47,8 @@ if [ -n "${PNPM_NO_FROZEN_LOCKFILE:-}" ]; then
 else
   npx -y pnpm@10.30.3 install --frozen-lockfile
 fi
+
+# Bookiji-inc workspace packages are source-only (no committed dist/). Vercel may trace /api
+# serverless bundles before buildCommand runs apps/web (which also builds these). Emit dist/
+# here so @bookiji-inc/* resolve to real files during function compilation.
+node scripts/build-bookiji-packages.mjs

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   buildEscalationMailtoHref,
   buildSupportEscalationPayload,
+  buildTicketPayloadMailtoHref,
   formatEscalationBodyPlain,
   retrievalStateForPayload,
 } from './helpCenterEscalation'
@@ -99,6 +100,17 @@ describe('helpCenterEscalation', () => {
     expect(body).toContain('user_query: strava sync')
     expect(body).toContain('chunk_id=a:v1:0')
     expect(body).toContain('title=Strava doc')
+  })
+
+  it('buildTicketPayloadMailtoHref encodes JSON body', () => {
+    const href = buildTicketPayloadMailtoHref('support@test.dev', {
+      product: 'kinetix',
+      issueSummary: 'test',
+    })
+    expect(href.startsWith('mailto:support@test.dev?')).toBe(true)
+    const qs = href.slice(href.indexOf('?') + 1)
+    const params = new URLSearchParams(qs)
+    expect(params.get('body')).toContain('"issueSummary": "test"')
   })
 
   it('buildEscalationMailtoHref encodes subject and body', () => {

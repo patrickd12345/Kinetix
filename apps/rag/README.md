@@ -32,6 +32,15 @@ Runs `node --test` on `services/*.test.js` (artifact validation + collection nam
 
 ## Environment Variables
 
+**Help Center tickets (Supabase):** `POST /support/ticket/create` inserts into **`kinetix.support_tickets`** using the service role. Set the same URL/key names as other Kinetix server runtimes (see `api/_lib/env/runtime.shared.mjs`):
+
+- `SUPABASE_URL` or `VITE_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SERVICE_KEY`
+
+**Ops-only ticket status updates:** `PATCH /support/ticket/:ticketId/status` requires **`KINETIX_SUPPORT_OPS_SECRET`** (non-empty). Send the same value in header **`X-Kinetix-Support-Ops-Secret`** or as **`Authorization: Bearer <secret>`**. If the secret is unset, the route responds **503** (`ops_unconfigured`) so the mutation is never left open by mistake.
+
+Tickets are operational records only; they are **not** auto-ingested into the curated support RAG (`kinetix_support_kb`). Reinjection stays manual.
+
 - `PORT` (default `3001`)
 - `KINETIX_LLM_PROVIDER` – `ollama` or `gateway`. If unset: `VERCEL=1` -> gateway, else ollama.
 - `OLLAMA_API_URL` / `OLLAMA_BASE_URL` (default `http://localhost:11434`)
@@ -58,7 +67,7 @@ Runs `node --test` on `services/*.test.js` (artifact validation + collection nam
 
 ## API — Curated support KB (`kinetix_support_kb`)
 
-All bodies are JSON. **Ingest** only accepts **approved** curated artifacts (see `services/supportArtifact.js` and `apps/web/HELP_CENTER_ARCHITECTURE.md`). No ticket-dump endpoint.
+All bodies are JSON. **Ingest** only accepts **approved** curated artifacts (see `services/supportArtifact.js` and `apps/web/HELP_CENTER_ARCHITECTURE.md`). Ticket create accepts **structured** payloads only (not raw ticket dumps).
 
 - `POST /support/kb/ingest` — body: `{ "artifact": { ... } }`  
   Required fields include: `artifact_id`, `title`, `body_markdown`, `version` (≥ 1), `review_status: "approved"`, `topic`, `intent`, `source_type`, `product: "kinetix"`.  
@@ -69,6 +78,12 @@ All bodies are JSON. **Ingest** only accepts **approved** curated artifacts (see
   Response: `{ collection, query, topK, filters, results: [{ chunkId, distance, similarity, document, metadata }] }`.
 
 - `GET /support/kb/stats` — `{ collection: "kinetix_support_kb", chunkCount }`.
+
+## API — Help Center tickets (structured payload)
+
+- `POST /support/ticket/create` — body: JSON matching `services/supportTicketCreate.js` validation (`product: "kinetix"`, `timestamp`, `issueSummary`, `environment: "web"`, optional `userId`, `conversationExcerpt`, `attemptedSolutions`, `severity`). Inserts one row into Supabase **`kinetix.support_tickets`** (migration `supabase/migrations/*_kinetix_support_tickets.sql`). Response: **`201`** with `{ ok: true, ticketId, receivedAt }`. Validation errors → **400**; missing Supabase config or insert failure → **503** with `{ ok: false, error: "storage_unavailable" }` (no raw DB details in the JSON body).
+
+- **`PATCH /support/ticket/:ticketId/status`** — **ops / internal tooling only** (not for end users; no web UI). Headers: **`X-Kinetix-Support-Ops-Secret`** or **`Authorization: Bearer`** matching **`KINETIX_SUPPORT_OPS_SECRET`**. Body: `{ "status": "<enum>" }` where enum is exactly: `open`, `triaged`, `in_progress`, `resolved`, `closed`. Optional: `{ "metadataPatch": { "key": "value" } }` — shallow merge into row **`metadata`** (plain object only). Success: **`200`** `{ ok: true, ticketId, status, updatedAt }`. **`ticketId`** must match `kinetix-YYYYMMDD-<6 hex>` (same format as create). Errors: **400** invalid body/status/id; **401** missing/wrong secret; **404** unknown ticket; **503** Supabase missing/misconfigured (`ops_unconfigured`) or storage failure (`storage_unavailable`). Updating status does **not** trigger support KB ingest; curated reinjection remains manual.
 
 ### Example: ingest one article
 

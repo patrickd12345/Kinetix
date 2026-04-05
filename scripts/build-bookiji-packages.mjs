@@ -32,6 +32,7 @@ const kinetixRoot = dirname(scriptDir)
 const umbrellaPackages = resolve(scriptDir, '../../../packages')
 const bookijiPackages = resolve(scriptDir, '../.bookiji-packages')
 const names = [
+  'ai-core',
   'ai-runtime',
   'persistent-memory-runtime',
   'error-contract',
@@ -58,7 +59,7 @@ function hasImporterManifest(pkgDir) {
 
 function bookijiCloneHasPackages() {
   if (!isDir(bookijiPackages)) return false
-  return names.some((n) => hasImporterManifest(join(bookijiPackages, n)))
+  return names.every((n) => hasImporterManifest(join(bookijiPackages, n)))
 }
 
 /** Prefer `.bookiji-packages` when populated (standalone / post vercel-install); else umbrella `packages/`. */

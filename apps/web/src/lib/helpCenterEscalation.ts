@@ -139,6 +139,16 @@ export function formatEscalationBodyPlain(payload: SupportEscalationPayload): st
   return lines.join('\n')
 }
 
+/**
+ * Fallback when POST /support/ticket/create is unavailable — same structured payload via email (not a submitted ticket API).
+ */
+export function buildTicketPayloadMailtoHref(supportEmail: string, payload: Record<string, unknown>): string {
+  const email = supportEmail.trim()
+  const subject = encodeURIComponent('Kinetix web — support escalation (fallback delivery)')
+  const body = encodeURIComponent(JSON.stringify(payload, null, 2))
+  return `mailto:${email}?subject=${subject}&body=${body}`
+}
+
 export function buildEscalationMailtoHref(supportEmail: string, payload: SupportEscalationPayload): string {
   const email = supportEmail.trim()
   const topic = payload.inferredTopic

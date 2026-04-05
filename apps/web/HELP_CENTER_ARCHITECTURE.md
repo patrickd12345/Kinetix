@@ -58,7 +58,7 @@ Queries from Help/support flows should pass **topic + optional integration** int
 - **Yes — separate from runs.** Use a **distinct Chroma collection**, e.g. **`kinetix_support_kb`** (name is illustrative; implement alongside `kinetix_runs` in `apps/rag` or equivalent service module).
 - **Never** add support chunks into `kinetix_runs`. That collection’s metadata and distance semantics are run-specific; mixing pollutes similarity search and coach context.
 
-**Implemented (`apps/rag`):** Chroma collection **`kinetix_support_kb`** (`services/supportVectorDB.js`). Ingest/query HTTP routes: **`POST /support/kb/ingest`**, **`POST /support/kb/query`**, **`GET /support/kb/stats`**. Run endpoints and **`kinetix_runs`** are unchanged. Artifact validation: `services/supportArtifact.js` (approved-only ingest, explicit fields — no ticket dump path).
+**Implemented (`apps/rag`):** Chroma collection **`kinetix_support_kb`** (`services/supportVectorDB.js`). Ingest/query HTTP routes: **`POST /support/kb/ingest`**, **`POST /support/kb/query`**, **`GET /support/kb/stats`**, **`POST /support/ticket/create`** (structured ticket payload; persists to Supabase **`kinetix.support_tickets`** via service role). **Ops-only:** **`PATCH /support/ticket/:ticketId/status`** updates **`status`** (and optional **`metadata`** merge) with **`KINETIX_SUPPORT_OPS_SECRET`** — not exposed to the Help Center UI; see `apps/rag/README.md`. Run endpoints and **`kinetix_runs`** are unchanged. Artifact validation: `services/supportArtifact.js` (approved-only ingest, explicit fields — no ticket dump path).
 
 ### Separation from run-analysis data
 
@@ -88,8 +88,8 @@ Fallback must be **rule-based** and **does not** claim AI inference when disable
 | --------- | -------- |
 | **AI unavailable** (API error, model down, timeout) | Show static **Help Center** sections (already on `/help`); link to **Troubleshooting** (Settings); optional **retry** for chat. No LLM call. |
 | **AI disallowed by tier / entitlement** | Same as above; optionally show short **“Upgrade / check access”** copy if product adds a paid AI tier — gated by existing entitlement flags from API. |
-| **Low confidence** (no chunk above threshold, or empty retrieval) | Show **curated FAQ excerpts** or **topic links** from a **bundled static map** (JSON or MD in web app) keyed by `topic`; **do not** synthesize from runs. Second line: **mailto** / ticket CTA with preserved context (see D). |
-| **Fallback sources (priority order)** | (1) Static `/help` copy and in-app **topic FAQ** bundle. (2) **Approved** support RAG chunks if retrieval succeeded but LLM failed — can show “Suggested articles” list without generation. (3) **Escalation** (email/ticket). |
+| **Low confidence** (no chunk above threshold, or empty retrieval) | Show **curated FAQ excerpts** or **topic links** from a **bundled static map** (JSON or MD in web app) keyed by `topic`; **do not** synthesize from runs. Second line: **AI-proposed escalation** with user confirmation, then ticket or mailto fallback (see D). |
+| **Fallback sources (priority order)** | (1) Static `/help` copy and in-app **topic FAQ** bundle. (2) **Approved** support RAG chunks if retrieval succeeded but LLM failed — can show “Suggested articles” list without generation. (3) **Escalation** (structured ticket API or mailto fallback). |
 
 “Low confidence” for an **LLM** path: if the model returns empty or a sentinel, still prefer deterministic content over hallucination.
 
@@ -97,7 +97,7 @@ Fallback must be **rule-based** and **does not** claim AI inference when disable
 
 ## D. Ticket escalation path
 
-**Today:** `mailto:` via `VITE_SUPPORT_EMAIL` with prefilled subject and body built by **`src/lib/helpCenterEscalation.ts`** (`buildSupportEscalationPayload`, `formatEscalationBodyPlain`, `buildEscalationMailtoHref`). The UI shows **Contact support with this context** inside the deterministic fallback block when a support search did not resolve the issue (service down, query error, empty KB, or weak similarity). Honest copy: not a submitted ticket.
+**Today:** No self-serve “open ticket” control. When triggers in `shouldProposeEscalation` (`helpCenterFallback.ts`) fire, **`HelpCenter.tsx`** shows a confirmation step (“Would you like me to escalate…”). On confirm, the web app calls **`POST /support/ticket/create`** on the RAG service (`apps/rag/index.js`, `services/supportTicketCreate.js`) with a **structured JSON payload** (product, user id, summary, excerpts, attempted solutions, environment, severity). If that request fails and **`VITE_SUPPORT_EMAIL`** is set, **`buildTicketPayloadMailtoHref`** opens a mailto with the same JSON in the body. Legacy plain-text escalation helpers remain in **`helpCenterEscalation.ts`** for diagnostics copy where useful.
 
 **Target minimum context** (must be preserved so the user does not restart from zero):
 
@@ -145,9 +145,9 @@ Future **ticketing API** should accept the same JSON shape; mailto can embed a c
 1. ~~**Support KB collection + ingest/query (apps/rag)**~~ — **Done:** `kinetix_support_kb`, **`POST /support/kb/ingest`**, **`POST /support/kb/query`**, **`GET /support/kb/stats`**, validation in `services/supportArtifact.js`. **Corpus:** `apps/web/support-corpus/` (`support-artifacts.json`, `build-corpus.mjs`, `README.md`) — broad repo-grounded articles; regenerate + validate before bulk ingest.
 2. ~~**Web: support context client**~~ — **Done:** `src/lib/supportRagClient.ts` (`querySupportKB` → **`POST /support/kb/query`**), **`HelpCenter.tsx`** “Search support articles” + quick prompts; graceful fallback when RAG unavailable.
 3. ~~**Deterministic fallback bundle (web)**~~ — **Done:** `src/lib/helpCenterFallback.ts` (topic inference, `MIN_USEFUL_SIMILARITY`, `getDeterministicFallbackSections`); Help Center shows **Deterministic fallback** panel when RAG unavailable, query error, empty results, or weak similarity. Not wired to Coach chat yet.
-4. ~~**Escalation payload**~~ — **Done (web):** `helpCenterEscalation.ts` + Help Center mailto handoff with structured plain-text body; no server ticket API.
+4. ~~**Escalation payload + ticket create**~~ — **Done (web + rag):** `createSupportTicket` in `supportRagClient.ts` → **`POST /support/ticket/create`**; Supabase **`kinetix.support_tickets`** (see `supabase/migrations/*_kinetix_support_tickets.sql`); mailto fallback via `buildTicketPayloadMailtoHref`.
 
-**Best immediate next slice:** server-stored draft / ticketing API that accepts the same JSON shape (optional), or richer FAQ CMS.
+**Best immediate next slice:** richer FAQ CMS, or push ticket queue to shared Supabase / ticketing product with auth.
 
 ---
 
@@ -159,6 +159,6 @@ Future **ticketing API** should accept the same JSON shape; mailto can embed a c
 - `apps/web/src/lib/ragClient.ts` — coach/RAG HTTP client; exports **`getRAGBaseUrl`**
 - `apps/web/src/lib/supportRagClient.ts` — support KB query client (`POST /support/kb/query`)
 - `apps/web/src/lib/helpCenterFallback.ts` — deterministic fallback when retrieval is empty, weak, or service unavailable
-- `apps/web/src/lib/helpCenterEscalation.ts` — escalation payload + mailto formatting for unresolved support search
+- `apps/web/src/lib/helpCenterEscalation.ts` — legacy plain-text escalation + mailto helpers; `buildTicketPayloadMailtoHref` for ticket JSON fallback
 - `apps/web/src/hooks/useChat.ts` — coach chat + `/api/ai-chat`
 - `apps/web/HELP_CENTER.md` — shipped UI slice status

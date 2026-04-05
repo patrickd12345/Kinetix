@@ -92,12 +92,13 @@ describe('AI route error contract adoption', () => {
     handleAiChatRequestMock.mockRejectedValue(Object.assign(new Error('boom'), { status: 502 }))
 
     const res = createRes()
-    await chatHandler(createReq({ body: {} }), res)
+    await chatHandler(createReq({ headers: { 'x-request-id': 'req_throw' } }), res)
 
     expect(res.statusCode).toBe(502)
     expect(res.body).toEqual({
       code: 'ai_execution_failed',
-      message: 'Failed to complete AI request.',
+      message: 'boom',
+      requestId: 'req_throw',
     })
   })
 })

@@ -21,9 +21,14 @@
         "../../packages/error-contract/src",
         ".bookiji-packages/error-contract/src"
       ],
+      "@bookiji-inc/ai-core": [
+        "../../packages/ai-core/src",
+        "monorepo-packages/ai-core/src",
+        ".bookiji-packages/ai-core/src"
+      ],
       "@bookiji-inc/ai-runtime": [
-        "monorepo-packages/ai-runtime/src",
         "../../packages/ai-runtime/src",
+        "monorepo-packages/ai-runtime/src",
         ".bookiji-packages/ai-runtime/src"
       ],
       "@bookiji-inc/observability": [

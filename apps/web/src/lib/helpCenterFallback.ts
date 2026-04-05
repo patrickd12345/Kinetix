@@ -3,10 +3,13 @@
  * Not AI-generated; not from the curated KB.
  */
 
-import type { SupportKBResultItem } from './supportRagClient'
+import type { SupportKBQueryOutcome, SupportKBResultItem } from './supportRagClient'
 
 /** Below this best-match similarity, retrieval is treated as not useful enough (cosine-style score from client). */
 export const MIN_USEFUL_SIMILARITY = 0.15
+
+/** Below this best-match similarity, Help Center may propose AI-controlled escalation (after confirmation). */
+export const ESCALATION_CONFIDENCE_THRESHOLD = 0.35
 
 export type HelpTopicId = 'sync' | 'import' | 'kps' | 'general'
 
@@ -82,7 +85,7 @@ export function getDeterministicFallbackSections(query: string): FallbackSection
     bullets: [
       'Coach chat for run-specific coaching (uses your run context, not the support KB).',
       'Settings for integrations, imports, and targets.',
-      'Ticket / contact below if something is still blocked after trying the above.',
+      'If this search still does not fix it, use Still not resolved below — escalation to the team is AI-proposed and only sent after you confirm (no self-serve open ticket).',
     ],
   })
 
@@ -97,4 +100,46 @@ export function isWeakOrEmptyRetrieval(results: SupportKBResultItem[]): boolean 
   const sims = results.map((r) => (typeof r.similarity === 'number' ? r.similarity : 0))
   const best = Math.max(...sims, 0)
   return best < MIN_USEFUL_SIMILARITY
+}
+
+export function getBestSupportSimilarity(results: SupportKBResultItem[]): number | null {
+  if (results.length === 0) return null
+  const sims = results.map((r) => (typeof r.similarity === 'number' ? r.similarity : 0))
+  return Math.max(...sims, 0)
+}
+
+export interface EscalationProposalInput {
+  bestSimilarity: number | null
+  attemptCount: number
+  supportOutcome: SupportKBQueryOutcome | null
+  userMarkedUnresolved: boolean
+}
+
+/**
+ * Escalation is proposed when retrieval confidence is low, the user says the issue is unresolved,
+ * or a second support search still fails to resolve (weak/empty/error).
+ */
+export function shouldProposeEscalation(input: EscalationProposalInput): boolean {
+  const { bestSimilarity, attemptCount, supportOutcome, userMarkedUnresolved } = input
+  if (userMarkedUnresolved) return true
+  if (supportOutcome && supportOutcome.ok === false) return true
+  if (supportOutcome?.ok === true && supportOutcome.data.results.length === 0) return true
+  if (bestSimilarity !== null && bestSimilarity < ESCALATION_CONFIDENCE_THRESHOLD) return true
+  if (attemptCount < 2 || !supportOutcome) return false
+  return supportOutcome.ok === true && isWeakOrEmptyRetrieval(supportOutcome.data.results)
+}
+
+/**
+ * True when retrieval is unresolved (error, empty, weak, or below escalation confidence).
+ * Used to reset escalation-dismiss state only after a new query or a new unresolved retrieval.
+ */
+export function isUnresolvedRetrievalOutcome(
+  outcome: SupportKBQueryOutcome,
+  bestSimilarity: number | null,
+): boolean {
+  if (outcome.ok === false) return true
+  if (outcome.data.results.length === 0) return true
+  if (isWeakOrEmptyRetrieval(outcome.data.results)) return true
+  if (bestSimilarity !== null && bestSimilarity < ESCALATION_CONFIDENCE_THRESHOLD) return true
+  return false
 }

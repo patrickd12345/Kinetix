@@ -19,10 +19,10 @@ In the Kinetix **web** app, **Help Center** is at route **\`/help\`**. It is lin
 
 ## What it covers
 
-Self-service support: links to **Coach chat**, **Search support articles** (curated KB retrieval), troubleshooting, FAQ, and optional email escalation when \`VITE_SUPPORT_EMAIL\` is set.
+Self-service support: links to **Coach chat**, **Search support articles** (curated KB retrieval), troubleshooting, FAQ, and **AI-controlled escalation** (confirm before ticket; optional mailto fallback if \`VITE_SUPPORT_EMAIL\` is set when the ticket API fails).
 
 **Source:** \`apps/web/src/pages/HelpCenter.tsx\`, route in \`apps/web/src/App.tsx\`.`,
-    version: 1,
+    version: 2,
     review_status: 'approved',
     locale: 'en',
     product: 'kinetix',
@@ -96,10 +96,10 @@ The **Deterministic fallback** panel is shown when:
 
 ## What to do
 
-Follow the bullets, use **Settings**, **Coach chat**, or escalation email when configured.
+Follow the bullets, use **Settings**, **Coach chat**, or confirm **escalation to the team** when the Help Center proposes it (after \`POST /support/ticket/create\` on the RAG service, or mailto fallback if configured).
 
 **Source:** \`apps/web/src/lib/helpCenterFallback.ts\`, \`apps/web/src/pages/HelpCenter.tsx\`.`,
-    version: 1,
+    version: 2,
     review_status: 'approved',
     locale: 'en',
     product: 'kinetix',
@@ -129,17 +129,15 @@ You may still see the low-scoring excerpts listed for transparency.
   },
   {
     artifact_id: 'web-escalation-mailto-payload',
-    title: 'Contact support email includes context (not a ticket)',
+    title: 'AI-controlled escalation and ticket payload',
     body_markdown: `## Behavior
 
-When \`VITE_SUPPORT_EMAIL\` is set **and** a support search is in an **unresolved** state (same conditions as deterministic fallback), Help Center shows **Contact support with this context**.
+There is **no** self-serve open ticket button. When triggers in \`shouldProposeEscalation\` fire (low confidence, service error, empty results, second weak attempt, or user marks still not resolved), Help Center asks to **escalate to the team**. On confirmation, the app calls **\`POST /support/ticket/create\`** on the RAG service with a structured JSON body (product, user id, summary, excerpts, attempted solutions, environment, severity).
 
-The mailto body is **plain text** built by \`apps/web/src/lib/helpCenterEscalation.ts\` and includes: product, surface, route, timestamp, optional opaque user id, optional \`VITE_APP_VERSION\`, user query, inferred topic, retrieval state, whether fallback was shown, and **surfaced KB chunk ids/titles/similarities**.
+If \`VITE_SUPPORT_EMAIL\` is set and the ticket API fails, a **mailto** opens with the same JSON via \`buildTicketPayloadMailtoHref\`. Legacy plain-text helpers in \`helpCenterEscalation.ts\` may still be used for diagnostic copy.
 
-Copy explains this is **not a submitted ticket** — email opens for human triage.
-
-**Source:** \`apps/web/src/lib/helpCenterEscalation.ts\`, \`apps/web/src/pages/HelpCenter.tsx\`.`,
-    version: 1,
+**Source:** \`apps/web/src/lib/supportRagClient.ts\`, \`apps/web/src/lib/helpCenterEscalation.ts\`, \`apps/web/src/pages/HelpCenter.tsx\`, \`apps/rag/services/supportTicketCreate.js\`.`,
+    version: 2,
     review_status: 'approved',
     locale: 'en',
     product: 'kinetix',

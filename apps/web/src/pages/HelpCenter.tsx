@@ -1,21 +1,20 @@
 import type { ReactNode } from 'react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { MessageCircle, Settings, Mail, AlertTriangle, BookOpen, Wrench, Search, Loader2 } from 'lucide-react'
 import { KINETIX_PERFORMANCE_SCORE } from '../lib/branding'
 import {
   DETERMINISTIC_FALLBACK_DISCLAIMER,
+  getBestSupportSimilarity,
   getDeterministicFallbackSections,
+  isUnresolvedRetrievalOutcome,
   isWeakOrEmptyRetrieval,
+  shouldProposeEscalation,
 } from '../lib/helpCenterFallback'
-import {
-  buildEscalationMailtoHref,
-  buildSupportEscalationPayload,
-  ESCALATION_HANDOFF_NOTE,
-} from '../lib/helpCenterEscalation'
+import { buildSupportEscalationPayload, buildTicketPayloadMailtoHref } from '../lib/helpCenterEscalation'
 import { useAuth } from '../components/providers/useAuth'
-import { querySupportKB } from '../lib/supportRagClient'
+import { createSupportTicket, querySupportKB } from '../lib/supportRagClient'
 import type { SupportKBQueryOutcome } from '../lib/supportRagClient'
 
 const QUICK_PROMPTS: { label: string; query: string }[] = [
@@ -23,6 +22,34 @@ const QUICK_PROMPTS: { label: string; query: string }[] = [
   { label: 'Import runs', query: 'How do I import Garmin or FIT files?' },
   { label: 'KPS and charts', query: 'What is KPS and where are charts?' },
 ]
+
+type EscalationPhase = 'none' | 'proposing' | 'escalated' | 'capped'
+
+/**
+ * Manual test matrix (Help Center escalation):
+ *
+ * - Weak retrieval → escalation proposed
+ * - Strong retrieval → no escalation
+ * - User "still unresolved" → escalation proposed
+ * - User clicks Yes → ticket created (no ticket before confirm)
+ * - User clicks No → continue troubleshooting; no immediate re-prompt
+ * - Ticket API failure → mailto fallback when VITE_SUPPORT_EMAIL set
+ * - Mailto unavailable → fallback error message
+ */
+
+const maxEscalationAttempts = 2
+
+function makeEscalationProposeKey(
+  outcome: SupportKBQueryOutcome,
+  attemptCount: number,
+  userMarkedUnresolved: boolean,
+  bestSimilarity: number | null,
+): string {
+  if (outcome.ok === false) {
+    return `${attemptCount}|${userMarkedUnresolved}|fail:${outcome.reason}`
+  }
+  return `${attemptCount}|${userMarkedUnresolved}|${outcome.data.query}|${bestSimilarity ?? 'null'}|${outcome.data.results.length}`
+}
 
 function Section({
   id,
@@ -57,6 +84,30 @@ function fallbackQueryText(outcome: SupportKBQueryOutcome | null, input: string)
   return input.trim()
 }
 
+function buildConversationExcerpt(
+  outcome: SupportKBQueryOutcome | null,
+  query: string,
+): string {
+  const q = query.trim() || '—'
+  if (!outcome) return `Support search query: ${q}`
+  if (outcome.ok === false) {
+    return `Support search query: ${q}\nOutcome: ${outcome.reason}${outcome.reason === 'http_error' ? ` (${outcome.status})` : ''}`
+  }
+  const ids = outcome.data.results.slice(0, 3).map((r) => r.chunkId).join(', ')
+  return `Support search query: ${q}\nTop chunk ids: ${ids || 'none'}`
+}
+
+function buildAttemptedSolutionsSummary(
+  showDeterministicFallback: boolean,
+  fallbackSections: ReturnType<typeof getDeterministicFallbackSections>,
+): string {
+  if (!showDeterministicFallback) {
+    return 'Curated support KB search; results looked strong enough to display.'
+  }
+  const titles = fallbackSections.map((s) => s.title)
+  return `Deterministic fallback sections shown: ${titles.join('; ') || 'general tips'}`
+}
+
 export default function HelpCenter() {
   const supportEmail =
     typeof import.meta.env.VITE_SUPPORT_EMAIL === 'string' && import.meta.env.VITE_SUPPORT_EMAIL.trim()
@@ -66,15 +117,44 @@ export default function HelpCenter() {
   const [supportInput, setSupportInput] = useState('')
   const [supportLoading, setSupportLoading] = useState(false)
   const [supportOutcome, setSupportOutcome] = useState<SupportKBQueryOutcome | null>(null)
+  const [attemptCount, setAttemptCount] = useState(0)
+  const [userMarkedUnresolved, setUserMarkedUnresolved] = useState(false)
+  const [proposalDismissed, setProposalDismissed] = useState(false)
+  const [escalationPhase, setEscalationPhase] = useState<EscalationPhase>('none')
+  const [ticketId, setTicketId] = useState<string | null>(null)
+  const [ticketActionError, setTicketActionError] = useState<string | null>(null)
+  const [confirmLoading, setConfirmLoading] = useState(false)
+
+  const lastCompletedQueryRef = useRef('')
+  const lastProposeKeyRef = useRef<string | null>(null)
+  const escalationPromptsShownRef = useRef(0)
 
   const runSupportSearch = useCallback(async (q: string) => {
     const trimmed = q.trim()
     if (!trimmed) return
     setSupportLoading(true)
+    setTicketActionError(null)
     setSupportOutcome(null)
+    setEscalationPhase((prev) => (prev === 'escalated' ? prev : 'none'))
     try {
       const out = await querySupportKB(trimmed, { topK: 5 })
+      const queryChanged = lastCompletedQueryRef.current !== trimmed
+      lastCompletedQueryRef.current = trimmed
+
+      const bestSim = out.ok === true ? getBestSupportSimilarity(out.data.results) : null
+      const unresolved = isUnresolvedRetrievalOutcome(out, bestSim)
+
+      if (queryChanged) {
+        escalationPromptsShownRef.current = 0
+        lastProposeKeyRef.current = null
+      }
+      if (queryChanged || unresolved) {
+        setProposalDismissed(false)
+        lastProposeKeyRef.current = null
+      }
+
       setSupportOutcome(out)
+      setAttemptCount((c) => c + 1)
     } finally {
       setSupportLoading(false)
     }
@@ -93,37 +173,119 @@ export default function HelpCenter() {
   const showRetrievalList =
     supportOutcome?.ok === true && supportOutcome.data.results.length > 0
 
-  const fallbackSections = showDeterministicFallback
-    ? getDeterministicFallbackSections(fallbackQueryText(supportOutcome, supportInput))
-    : []
+  const fallbackSections = useMemo(
+    () =>
+      showDeterministicFallback
+        ? getDeterministicFallbackSections(fallbackQueryText(supportOutcome, supportInput))
+        : [],
+    [showDeterministicFallback, supportOutcome, supportInput],
+  )
 
-  const escalatePayload = useMemo(() => {
-    if (!supportOutcome || !showDeterministicFallback) return null
-    const uid = session?.user?.id
+  const bestSimilarity = useMemo(() => {
+    if (!supportOutcome || supportOutcome.ok !== true) return null
+    return getBestSupportSimilarity(supportOutcome.data.results)
+  }, [supportOutcome])
+
+  useEffect(() => {
+    if (escalationPhase === 'escalated' || escalationPhase === 'capped') return
+    if (proposalDismissed) return
+    if (!supportOutcome) return
+    const propose = shouldProposeEscalation({
+      bestSimilarity,
+      attemptCount,
+      supportOutcome,
+      userMarkedUnresolved,
+    })
+    if (!propose) return
+
+    const proposeKey = makeEscalationProposeKey(
+      supportOutcome,
+      attemptCount,
+      userMarkedUnresolved,
+      bestSimilarity,
+    )
+    if (proposeKey === lastProposeKeyRef.current) return
+
+    if (escalationPromptsShownRef.current >= maxEscalationAttempts) {
+      lastProposeKeyRef.current = proposeKey
+      setEscalationPhase('capped')
+      return
+    }
+
+    escalationPromptsShownRef.current += 1
+    lastProposeKeyRef.current = proposeKey
+    setEscalationPhase('proposing')
+  }, [supportOutcome, attemptCount, userMarkedUnresolved, proposalDismissed, bestSimilarity, escalationPhase])
+
+  const escalationPayloadForMail = useMemo(() => {
+    if (!supportOutcome) return null
     return buildSupportEscalationPayload({
       userQuery: fallbackQueryText(supportOutcome, supportInput),
       supportOutcome,
       route: '/help',
-      userIdOpaque: typeof uid === 'string' && uid ? uid : null,
+      userIdOpaque: session?.user?.id ?? null,
       fallbackGuidanceShown: showDeterministicFallback,
     })
   }, [session?.user?.id, showDeterministicFallback, supportInput, supportOutcome])
 
-  const escalationMailtoHref = useMemo(() => {
-    if (!supportEmail || !escalatePayload) return null
-    return buildEscalationMailtoHref(supportEmail, escalatePayload)
-  }, [escalatePayload, supportEmail])
+  const buildTicketPayload = useCallback(() => {
+    const uid = session?.user?.id
+    const issueSummary = fallbackQueryText(supportOutcome, supportInput) || 'Support request from Help Center'
+    return {
+      product: 'kinetix' as const,
+      userId: typeof uid === 'string' && uid ? uid : null,
+      timestamp: new Date().toISOString(),
+      issueSummary,
+      conversationExcerpt: buildConversationExcerpt(supportOutcome, supportInput),
+      attemptedSolutions: buildAttemptedSolutionsSummary(showDeterministicFallback, fallbackSections),
+      environment: 'web' as const,
+      severity: 'unknown' as const,
+    }
+  }, [session?.user?.id, showDeterministicFallback, fallbackSections, supportInput, supportOutcome])
 
-  const genericSupportMailtoHref = supportEmail
-    ? `mailto:${supportEmail}?subject=${encodeURIComponent('Kinetix web — support request')}`
-    : null
+  const confirmEscalation = useCallback(async () => {
+    setConfirmLoading(true)
+    setTicketActionError(null)
+    const payload = buildTicketPayload()
+    const result = await createSupportTicket(payload)
+    if (result.ok) {
+      setTicketId(result.ticketId)
+      setEscalationPhase('escalated')
+      setConfirmLoading(false)
+      return
+    }
+    setConfirmLoading(false)
+    if (supportEmail) {
+      const mail = buildTicketPayloadMailtoHref(supportEmail, { ...payload, ticketApiError: result.reason })
+      window.location.href = mail
+      return
+    }
+    setTicketActionError(
+      result.reason === 'unavailable'
+        ? 'Could not reach the support service. Try again later.'
+        : `Could not create the ticket (HTTP ${result.status ?? 'error'}).`,
+    )
+  }, [buildTicketPayload, supportEmail])
+
+  const dismissProposal = useCallback(() => {
+    setProposalDismissed(true)
+    setEscalationPhase('none')
+    setUserMarkedUnresolved(false)
+  }, [])
+
+  const markStillUnresolved = useCallback(() => {
+    setUserMarkedUnresolved(true)
+    setProposalDismissed(false)
+    lastProposeKeyRef.current = null
+  }, [])
 
   return (
     <div className="space-y-6 pb-24 lg:pb-6 max-w-3xl">
       <div>
         <h1 className="text-2xl font-bold text-white">Help Center</h1>
         <p className="text-slate-400 text-sm mt-1">
-          Self-service first: AI coach, then troubleshooting, then escalation when something is still wrong.
+          Self-service first: AI coach, then troubleshooting, then AI-proposed escalation when something is still wrong
+          (you confirm before any ticket is created).
         </p>
       </div>
 
@@ -192,7 +354,7 @@ export default function HelpCenter() {
         {supportOutcome?.ok === false && supportOutcome.reason === 'unavailable' && (
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-amber-200/90 text-xs">
             Curated support search is unavailable (RAG service not reachable). Use the deterministic tips below, Coach
-            chat, Settings, or the FAQ.
+            chat, or Settings.
           </p>
         )}
 
@@ -257,20 +419,78 @@ export default function HelpCenter() {
                 </ul>
               </div>
             ))}
-            {escalationMailtoHref && (
-              <div className="pt-2 border-t border-white/10 space-y-2">
-                <p className="text-[11px] text-slate-500">{ESCALATION_HANDOFF_NOTE}</p>
-                <a
-                  href={escalationMailtoHref}
-                  data-testid="help-escalation-mailto"
-                  className="inline-flex items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-100 hover:bg-amber-500/15 transition-colors"
-                >
-                  <Mail size={18} />
-                  Contact support with this context
-                </a>
-              </div>
+            <div className="pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={markStillUnresolved}
+                className="text-xs text-amber-200/90 underline-offset-2 hover:underline"
+                data-testid="help-mark-unresolved"
+              >
+                Still not resolved — tell the Help Center this search did not fix it
+              </button>
+            </div>
+          </div>
+        )}
+
+        {escalationPhase === 'capped' && (
+          <p
+            className="mt-4 rounded-lg border border-slate-500/30 bg-slate-800/40 px-3 py-2 text-slate-200 text-sm"
+            data-testid="help-escalation-capped"
+          >
+            Support request recorded. The team will review.
+          </p>
+        )}
+
+        {escalationPhase === 'proposing' && (
+          <div
+            className="mt-4 rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-4 space-y-3"
+            data-testid="help-escalation-proposal"
+          >
+            <p className="text-sm text-slate-200">
+              I couldn&apos;t resolve this. Would you like me to escalate this to the team?
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={confirmLoading}
+                onClick={() => void confirmEscalation()}
+                className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/50 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50"
+                data-testid="help-escalation-confirm-yes"
+              >
+                {confirmLoading ? <Loader2 size={18} className="animate-spin" /> : null}
+                Yes, escalate to the team
+              </button>
+              <button
+                type="button"
+                disabled={confirmLoading}
+                onClick={dismissProposal}
+                className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
+                data-testid="help-escalation-confirm-no"
+              >
+                No, keep troubleshooting
+              </button>
+            </div>
+            {ticketActionError && (
+              <p className="text-xs text-red-300/90" data-testid="help-escalation-error">
+                {ticketActionError}
+              </p>
+            )}
+            {supportEmail && (
+              <p className="text-[11px] text-slate-500">
+                If ticket creation fails, the app opens a mailto with the same structured payload when{' '}
+                <code className="text-slate-400">VITE_SUPPORT_EMAIL</code> is set.
+              </p>
             )}
           </div>
+        )}
+
+        {escalationPhase === 'escalated' && ticketId && (
+          <p
+            className="mt-4 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-emerald-100/95 text-sm"
+            data-testid="help-escalation-success"
+          >
+            Escalation recorded. Reference: <span className="font-mono text-xs">{ticketId}</span>
+          </p>
         )}
       </Section>
 
@@ -305,39 +525,36 @@ export default function HelpCenter() {
             </dd>
           </div>
           <div>
-            <dt className="font-medium text-slate-200">Where do escalations go?</dt>
+            <dt className="font-medium text-slate-200">How does escalation work?</dt>
             <dd className="text-slate-400 mt-0.5">
-              Use the contact path below when self-service and AI do not resolve the issue. Ticket workflows and
-              knowledge reinjection are planned; this web app starts with email escalation when configured.
+              There is no self-serve &quot;open ticket&quot; control. After curated search and tips, the flow may propose
+              escalation; a ticket is created only if you confirm. The Coach chat path remains the first place for
+              run-specific help.
             </dd>
           </div>
         </dl>
       </Section>
 
-      <Section id="contact" title="Ticket / contact" icon={Mail}>
+      <Section id="contact" title="Team escalation" icon={Mail}>
         <p>
-          When something remains unresolved after Coach chat and Settings, escalate so the team can help with account or
-          platform issues.
+          Account or platform issues are escalated from this page only after a support search and your confirmation — not
+          via a direct ticket button. Use{' '}
+          <Link to="/chat" className="text-cyan-300/90 underline-offset-2 hover:underline">
+            Coach chat
+          </Link>{' '}
+          first for training and run questions.
         </p>
-        {escalatePayload && (
+        {escalationPayloadForMail && supportEmail && (
           <p className="text-xs text-slate-500">
-            After a support search that still did not resolve the issue, use the button above or the link below — email
-            opens with structured context (not a submitted ticket).
+            Diagnostic context from your last unresolved search is included if you use email fallback after a failed
+            ticket API (mailto uses the same structured fields when configured).
           </p>
         )}
-        {supportEmail ? (
-          <a
-            href={escalationMailtoHref ?? genericSupportMailtoHref ?? '#'}
-            className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-200 hover:bg-cyan-500/20 transition-colors"
-            data-testid={escalationMailtoHref ? 'help-contact-mailto-context' : 'help-contact-mailto-generic'}
-          >
-            <Mail size={18} />
-            {escalationMailtoHref ? `Email ${supportEmail} (with search context)` : `Email ${supportEmail}`}
-          </a>
-        ) : (
+        {!supportEmail && (
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-amber-200/90 text-xs">
-            Set <code className="text-amber-100/90">VITE_SUPPORT_EMAIL</code> in the deployment environment to enable a
-            one-click support mail link. Until then, use the channel your organization uses for Bookiji Inc products.
+            Optional: set <code className="text-amber-100/90">VITE_SUPPORT_EMAIL</code> so a failed ticket API can open
+            mail with the structured payload. Otherwise rely on the in-app ticket queue when the RAG service is
+            reachable.
           </p>
         )}
       </Section>

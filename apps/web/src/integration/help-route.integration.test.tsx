@@ -45,6 +45,6 @@ describe('Help route', () => {
     expect(await screen.findByRole('heading', { name: 'Help Center' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'AI Help' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Search support articles' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Ticket / contact' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Team escalation' })).toBeInTheDocument()
   })
 })

@@ -2,6 +2,7 @@ import { getLLMClient } from './llmClient.js'
 import { buildKinetixApiError, getApiRequestId, type KinetixApiError } from './error-contract.js'
 import { getByokDecision, mustReject, readByokHeader } from '../byok.js'
 import { resolveKinetixRuntimeEnv } from '../env/runtime.js'
+import { getSupabaseUserFromJwt } from '../supabaseUserFromJwt.js'
 
 export interface AiChatBody {
   systemInstruction?: string
@@ -36,6 +37,23 @@ function isApiAuthRequired(): boolean {
   return resolveKinetixRuntimeEnv().apiRequireAuth
 }
 
+async function getOptionalUserIdFromHeaders(headers: HeaderMap): Promise<string | undefined> {
+  const auth = headers.authorization ?? headers.Authorization
+  const token =
+    typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7).trim() : null
+  if (!token) {
+    return undefined
+  }
+  const env = resolveKinetixRuntimeEnv()
+  const url = env.supabaseUrl
+  const anon = env.supabaseAnonKey
+  if (!url || !anon) {
+    return undefined
+  }
+  const user = await getSupabaseUserFromJwt(url, anon, token)
+  return user?.id
+}
+
 export async function handleAiChatRequest(
   body: AiChatBody,
   headers: HeaderMap
@@ -67,7 +85,8 @@ export async function handleAiChatRequest(
         .join('\n\n')
     : ''
 
-  const client = getLLMClient()
+  const userId = await getOptionalUserIdFromHeaders(headers)
+  const client = getLLMClient(undefined, { userId })
   const result = await client.executeChat(
     [
       { role: 'system', content: systemInstruction },
@@ -99,7 +118,8 @@ export async function handleAiCoachRequest(
     return buildKinetixApiError('invalid_request', 'prompt is required.', 400, requestId)
   }
 
-  const client = getLLMClient()
+  const userId = await getOptionalUserIdFromHeaders(headers)
+  const client = getLLMClient(undefined, { userId })
   const result = await client.executeChat(
     [
       { role: 'system', content: 'You are a concise running coach.' },

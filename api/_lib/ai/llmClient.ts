@@ -20,7 +20,7 @@ import { resolveKinetixRuntimeEnv } from '../env/runtime.js'
  *   Canonical: KINETIX_LLM_PROVIDER=ollama|gateway.
  *   If unset: VERCEL=1 -> gateway, else -> ollama. Do not use NODE_ENV.
  * - resolveModel(env, provider): string
- * - getLLMClient(env?): { provider, model, executeChat }
+ * - getLLMClient(env?, opts?): { provider, model, executeChat }
  * - executeChat(messages, options?): Promise<{ text: string }>
  * - Gateway: OpenAI-compatible (baseURL + apiKey). Env: AI_GATEWAY_BASE_URL, AI_GATEWAY_API_KEY, AI_GATEWAY_MODEL.
  * - Ollama: OLLAMA_BASE_URL (fallback OLLAMA_API_URL), OLLAMA_MODEL / LLM_MODEL.
@@ -174,9 +174,13 @@ function isProviderError(error: unknown): error is Error & { status?: number } {
  * Returns LLM client with deterministic provider routing.
  * Logs provider and model for smoke verification.
  */
-export function getLLMClient(env: NodeJS.ProcessEnv = getEnv()): LLMClient {
+export function getLLMClient(
+  env: NodeJS.ProcessEnv = getEnv(),
+  opts?: { userId?: string },
+): LLMClient {
   const provider = resolveProvider(env)
   const model = resolveModel(env, provider)
+  const product = 'kinetix'
 
   const executeChat: LLMClient['executeChat'] = async (messages, options = {}) => {
     const startedAt = Date.now()
@@ -199,6 +203,8 @@ export function getLLMClient(env: NodeJS.ProcessEnv = getEnv()): LLMClient {
         maxTokens: options.maxTokens ?? 1024,
         modeOverride: provider,
         providerOverride: provider,
+        userId: opts?.userId,
+        product,
         env,
       })
       const response = {
@@ -270,6 +276,8 @@ export function getLLMClient(env: NodeJS.ProcessEnv = getEnv()): LLMClient {
       model: effectiveModel,
       modeOverride: provider,
       providerOverride: provider,
+      userId: opts?.userId,
+      product,
       env,
     })
 

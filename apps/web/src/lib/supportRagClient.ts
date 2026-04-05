@@ -102,3 +102,57 @@ export async function querySupportKB(
     return { ok: false, reason: 'unavailable' }
   }
 }
+
+export interface KinetixSupportTicketPayload {
+  product: 'kinetix'
+  userId: string | null
+  timestamp: string
+  issueSummary: string
+  conversationExcerpt: string
+  attemptedSolutions: string
+  environment: 'web'
+  severity: 'unknown' | 'low' | 'medium' | 'high'
+}
+
+export type CreateSupportTicketResult =
+  | { ok: true; ticketId: string; receivedAt: string }
+  | { ok: false; reason: 'unavailable' | 'http_error'; status?: number }
+
+/**
+ * POST /support/ticket/create on the RAG service — persists structured ticket after user confirms escalation.
+ */
+export async function createSupportTicket(
+  payload: KinetixSupportTicketPayload,
+): Promise<CreateSupportTicketResult> {
+  const base = await getRAGBaseUrl()
+  if (!base) {
+    return { ok: false, reason: 'unavailable' }
+  }
+
+  try {
+    const res = await fetch(`${base}/support/ticket/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
+    })
+
+    if (res.status === 503) {
+      return { ok: false, reason: 'unavailable' }
+    }
+
+    if (!res.ok) {
+      return { ok: false, reason: 'http_error', status: res.status }
+    }
+
+    const data = (await res.json()) as { ticketId?: string; receivedAt?: string }
+    const ticketId = typeof data.ticketId === 'string' ? data.ticketId : ''
+    const receivedAt = typeof data.receivedAt === 'string' ? data.receivedAt : ''
+    if (!ticketId) {
+      return { ok: false, reason: 'http_error', status: res.status }
+    }
+    return { ok: true, ticketId, receivedAt }
+  } catch {
+    return { ok: false, reason: 'unavailable' }
+  }
+}

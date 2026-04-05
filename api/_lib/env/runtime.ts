@@ -38,6 +38,8 @@ export type KinetixRuntimeEnv = {
   stripeSecretKey: string;
   /** Subscription price id for Kinetix (e.g. price_...) */
   kinetixStripePriceId: string;
+  /** Ops-only: RAG PATCH /support/ticket/:id/status (see apps/rag README) */
+  kinetixSupportOpsSecret: string;
 };
 
 function getDefaultEnv(): EnvSource {

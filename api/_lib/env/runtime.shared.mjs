@@ -48,5 +48,7 @@ export function resolveKinetixRuntimeEnvFromObject(env = getDefaultEnv()) {
     ollamaAutoStartRaw: pick(env, ['OLLAMA_AUTO_START']),
     stripeSecretKey: pick(env, ['STRIPE_SECRET_KEY']),
     kinetixStripePriceId: pick(env, ['KINETIX_STRIPE_PRICE_ID']),
+    /** Ops-only secret for RAG PATCH /support/ticket/:id/status (see apps/rag README). */
+    kinetixSupportOpsSecret: pick(env, ['KINETIX_SUPPORT_OPS_SECRET']),
   }
 }

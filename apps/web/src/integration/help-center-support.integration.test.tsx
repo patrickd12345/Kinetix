@@ -10,7 +10,10 @@ import { querySupportKB } from '../lib/supportRagClient'
 
 vi.mock('../lib/supportRagClient', () => ({
   querySupportKB: vi.fn(),
+  createSupportTicket: vi.fn(),
 }))
+
+import { createSupportTicket } from '../lib/supportRagClient'
 
 function renderHelp() {
   const value: AuthContextValue = {
@@ -42,6 +45,7 @@ describe('Help Center support KB UI', () => {
   beforeEach(() => {
     setActivePlatformProfile({ id: 'u1', age: 35, weight_kg: 70 })
     vi.mocked(querySupportKB).mockReset()
+    vi.mocked(createSupportTicket).mockReset()
     vi.stubEnv('VITE_SUPPORT_EMAIL', 'support@kinetix.test')
   })
 
@@ -56,7 +60,7 @@ describe('Help Center support KB UI', () => {
     expect(screen.getByRole('textbox', { name: 'Support search question' })).toBeInTheDocument()
   })
 
-  it('shows unavailable message when querySupportKB returns unavailable', async () => {
+  it('shows unavailable message and AI escalation proposal (no mailto)', async () => {
     const user = userEvent.setup()
     vi.mocked(querySupportKB).mockResolvedValue({ ok: false, reason: 'unavailable' })
 
@@ -68,10 +72,11 @@ describe('Help Center support KB UI', () => {
       expect(screen.getByTestId('deterministic-fallback')).toBeInTheDocument()
       expect(screen.getByText(DETERMINISTIC_FALLBACK_DISCLAIMER)).toBeInTheDocument()
     })
-    const esc = screen.getByTestId('help-escalation-mailto') as HTMLAnchorElement
-    expect(esc.href).toMatch(/^mailto:support@kinetix\.test\?/)
-    expect(decodeURIComponent(esc.href)).toContain('retrieval_state: service_unavailable')
-    expect(screen.getByTestId('help-contact-mailto-context')).toBeInTheDocument()
+    expect(screen.queryByTestId('help-escalation-mailto')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
+    })
+    expect(screen.getByText(/Would you like me to escalate this to the team/i)).toBeInTheDocument()
   })
 
   it('shows retrieved article titles when query succeeds', async () => {
@@ -103,8 +108,7 @@ describe('Help Center support KB UI', () => {
       expect(screen.getByText(/Long body text/)).toBeInTheDocument()
     })
     expect(screen.queryByTestId('deterministic-fallback')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('help-escalation-mailto')).not.toBeInTheDocument()
-    expect(screen.getByTestId('help-contact-mailto-generic')).toBeInTheDocument()
+    expect(screen.queryByTestId('help-escalation-proposal')).not.toBeInTheDocument()
   })
 
   it('shows deterministic fallback when retrieval returns no results', async () => {
@@ -127,40 +131,91 @@ describe('Help Center support KB UI', () => {
       expect(screen.getByTestId('deterministic-fallback')).toBeInTheDocument()
       expect(screen.getByText(/Connections \(Strava/)).toBeInTheDocument()
     })
-    const esc = screen.getByTestId('help-escalation-mailto') as HTMLAnchorElement
-    expect(decodeURIComponent(esc.href)).toContain('retrieval_state: retrieval_empty')
+    await waitFor(() => {
+      expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
+    })
   })
 
-  it('shows deterministic fallback when matches are weak', async () => {
+  it('does not create ticket before user confirms Yes', async () => {
     const user = userEvent.setup()
-    vi.mocked(querySupportKB).mockResolvedValue({
+    vi.mocked(querySupportKB).mockResolvedValue({ ok: false, reason: 'unavailable' })
+
+    renderHelp()
+    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
+    })
+    expect(createSupportTicket).not.toHaveBeenCalled()
+  })
+
+  it('hides proposal after No until a new unresolved retrieval', async () => {
+    const user = userEvent.setup()
+    vi.mocked(querySupportKB).mockResolvedValue({ ok: false, reason: 'unavailable' })
+
+    renderHelp()
+    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
+    })
+    await user.click(screen.getByTestId('help-escalation-confirm-no'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('help-escalation-proposal')).not.toBeInTheDocument()
+    })
+    expect(createSupportTicket).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
+    })
+  })
+
+  it('shows capped message after max escalation proposals', async () => {
+    const user = userEvent.setup()
+    vi.mocked(querySupportKB).mockResolvedValue({ ok: false, reason: 'unavailable' })
+
+    renderHelp()
+    for (let i = 0; i < 2; i += 1) {
+      await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+      await waitFor(() => {
+        expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
+      })
+      await user.click(screen.getByTestId('help-escalation-confirm-no'))
+      await waitFor(() => {
+        expect(screen.queryByTestId('help-escalation-proposal')).not.toBeInTheDocument()
+      })
+    }
+
+    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('help-escalation-capped')).toBeInTheDocument()
+      expect(screen.queryByTestId('help-escalation-proposal')).not.toBeInTheDocument()
+    })
+  })
+
+  it('creates ticket when user confirms escalation', async () => {
+    const user = userEvent.setup()
+    vi.mocked(querySupportKB).mockResolvedValue({ ok: false, reason: 'unavailable' })
+    vi.mocked(createSupportTicket).mockResolvedValue({
       ok: true,
-      data: {
-        collection: 'kinetix_support_kb',
-        query: 'test',
-        topK: 5,
-        filters: { topic: null },
-        results: [
-          {
-            chunkId: 'w:v1:0',
-            distance: 2,
-            similarity: 0.05,
-            document: 'Low relevance text.',
-            metadata: { title: 'Maybe', topic: 'general' },
-          },
-        ],
-      },
+      ticketId: 'ticket-uuid-1',
+      receivedAt: '2026-01-01T00:00:00.000Z',
     })
 
     renderHelp()
     await user.click(screen.getByRole('button', { name: 'Strava connection' }))
 
     await waitFor(() => {
-      expect(screen.getByText(/matches below look weak/i)).toBeInTheDocument()
-      expect(screen.getByTestId('deterministic-fallback')).toBeInTheDocument()
+      expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
     })
-    const esc = screen.getByTestId('help-escalation-mailto') as HTMLAnchorElement
-    expect(decodeURIComponent(esc.href)).toContain('retrieval_state: retrieval_weak')
-    expect(decodeURIComponent(esc.href)).toContain('chunk_id=w:v1:0')
+    await user.click(screen.getByTestId('help-escalation-confirm-yes'))
+
+    await waitFor(() => {
+      expect(createSupportTicket).toHaveBeenCalled()
+      expect(screen.getByTestId('help-escalation-success')).toHaveTextContent('ticket-uuid-1')
+    })
   })
 })

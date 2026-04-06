@@ -1,5 +1,5 @@
 import { formatDistance, formatPace, formatTime } from '@kinetix/core'
-import { Flag, Heart, Pause, Play, Sparkles, Square, TrendingUp, Trophy } from 'lucide-react'
+import { Flag, Heart, Pause, Play, RotateCcw, Sparkles, Square, TrendingUp, Trophy } from 'lucide-react'
 import { KPS_SHORT } from '../../lib/branding'
 
 interface RunDashboardHeaderProps {
@@ -30,10 +30,12 @@ interface RunControlsPanelProps {
   showAICoach: boolean
   isActionLocked: boolean
   isAiAnalyzing: boolean
+  canResetIdle: boolean
   startRun: () => void
   pauseRun: () => void
   resumeRun: () => void
   stopRun: () => void
+  resetRun: () => void
   openBeatPB: () => void
   openBeatRecents: () => void
   handleAIAnalysis: () => void
@@ -186,10 +188,12 @@ export function RunControlsPanel({
   showAICoach,
   isActionLocked,
   isAiAnalyzing,
+  canResetIdle,
   startRun,
   pauseRun,
   resumeRun,
   stopRun,
+  resetRun,
   openBeatPB,
   openBeatRecents,
   handleAIAnalysis,
@@ -198,14 +202,26 @@ export function RunControlsPanel({
     <div className="flex flex-col items-center lg:items-start gap-3">
       {!isRunning ? (
         <>
-          <button
-            onClick={startRun}
-            aria-label="Start run"
-            disabled={isActionLocked}
-            className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 shadow-lg shadow-green-500/50 flex items-center justify-center transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <Play fill="white" size={28} className="ml-1" strokeWidth={0} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={resetRun}
+              aria-label="Reset session"
+              title="Clear metrics and start over"
+              disabled={isActionLocked || !canResetIdle}
+              className="w-14 h-14 rounded-full border border-slate-400/40 bg-slate-700/50 hover:bg-slate-600/60 text-slate-200 shadow-md flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/15"
+            >
+              <RotateCcw size={22} strokeWidth={2.25} />
+            </button>
+            <button
+              onClick={startRun}
+              aria-label="Start run"
+              disabled={isActionLocked}
+              className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 shadow-lg shadow-green-500/50 flex items-center justify-center transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Play fill="white" size={28} className="ml-1" strokeWidth={0} />
+            </button>
+          </div>
 
           <button
             onClick={openBeatPB}
@@ -264,6 +280,16 @@ export function RunControlsPanel({
             className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-lg shadow-red-500/50 flex items-center justify-center transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Square fill="white" size={18} strokeWidth={0} />
+          </button>
+          <button
+            type="button"
+            onClick={resetRun}
+            aria-label="Reset session"
+            title="Discard run and clear metrics"
+            disabled={isActionLocked}
+            className="w-16 h-16 rounded-full border border-slate-400/40 bg-slate-700/50 hover:bg-slate-600/60 text-slate-200 shadow-md flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/15"
+          >
+            <RotateCcw size={22} strokeWidth={2.25} />
           </button>
         </div>
       )}

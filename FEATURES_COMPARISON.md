@@ -35,7 +35,7 @@
 #### Run Tracking
 - **Watch**: ✅ Full-featured run tracking with start/pause/resume/stop
 - **Phone**: ❌ Does not track runs (Watch does)
-- **Web**: ✅ Basic run tracking with start/pause/resume/stop
+- **Web**: ✅ Basic run tracking with start/pause/resume/stop/reset
 
 #### GPS Tracking
 - **Watch**: ✅ Real-time GPS with accuracy monitoring

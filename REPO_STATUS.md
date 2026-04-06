@@ -1,0 +1,36 @@
+# Kinetix Repo Status
+
+## Canonical Surfaces
+- Production web: `apps/web/` (Vite + React workspace app, package `@kinetix/web`).
+- Secondary web: `archive/web-legacy/` (legacy reference only; not workspace-wired for active deploys).
+- iPhone: `ios/KinetixPhone/`.
+- Apple Watch: `watchos/KinetixWatch/` (with host/companion targets in `watchos/`).
+- Shared core: `packages/core/` (package `@kinetix/core`).
+
+## Deployment Truth
+- Current deployed app for kinetix.bookiji.com: `apps/web/`.
+- Evidence:
+  - Root `vercel.json` builds `@kinetix/web` and publishes `apps/web/dist`.
+  - Root scripts (`build`, `dev:web`, `test:e2e`) target `@kinetix/web`.
+  - Workspace includes `apps/*` and `packages/*`; no active `web/` package path.
+  - Deployment docs reference `apps/web` as the web client path for production checks.
+- Confidence: High (repo config and deployment docs are aligned).
+
+## Working Rules
+- New production web changes go in: `apps/web/`.
+- Do not add new production features in: `archive/web-legacy/` (or any ad-hoc `web/` copy).
+- Shared logic belongs in: `packages/core/` (and existing shared `@bookiji-inc/*` packages where applicable).
+- Native Apple changes go in: `ios/KinetixPhone/` and `watchos/KinetixWatch/` (+ related watch host targets).
+
+## Legacy / Migration Notes
+- `web/`: No active top-level `web/` app is present in this repo snapshot; treat this path as non-canonical.
+- `apps/web/`: Active production web surface and canonical destination for live web work.
+- `packages/core/`: Active shared scoring/math/runtime utilities consumed by the web app (and potentially native parity work).
+- `ios/`: Active Apple-native surface for iPhone companion features.
+- `watchos/`: Active Apple-native surface for watch coaching/tracking runtime.
+
+## Immediate Next-Step Guidance
+- If working on the live web product: change `apps/web/` first, validate build/test from workspace scripts, and keep Vercel wiring intact.
+- If porting legacy functionality: use `archive/web-legacy/` as migration source only, then implement in `apps/web/`.
+- If changing shared scoring/math: update `packages/core/`, then run dependent app checks before merge.
+- If working on Apple-native coaching/tracking: change `ios/` and/or `watchos/` targets directly; do not couple incidental native work to web deployment rewiring.

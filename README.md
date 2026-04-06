@@ -4,6 +4,15 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 
 **This repository** also ships a **Vite + React** web app (`apps/web`), shared **`@kinetix/core`** logic (`packages/core`), and an optional **RAG** HTTP service (`apps/rag`) used for run analysis and help-center retrieval. Native apps live under `watchos/` and `ios/`; deployment and platform integration are documented under [`docs/deployment/`](docs/deployment/README.md).
 
+## Repository status
+
+- This repo has one active production web app: `apps/web` (package `@kinetix/web`).
+- `kinetix.bookiji.com` deploy wiring builds and serves `apps/web/dist` (see `vercel.json`).
+- Legacy web code is kept as migration/reference under `archive/web-legacy`.
+- Apple-native surfaces remain active in `ios/KinetixPhone` and `watchos/KinetixWatch`.
+- Shared scoring/runtime logic lives in `packages/core`.
+- Contributor rules and deployment truth are tracked in [`REPO_STATUS.md`](REPO_STATUS.md).
+
 ## 🚀 Core Features
 
 ### 🧠 Intelligent Coaching System

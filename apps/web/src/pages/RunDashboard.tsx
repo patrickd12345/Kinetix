@@ -28,6 +28,7 @@ export default function RunDashboard() {
     pauseRun,
     resumeRun,
     stopRun,
+    reset,
   } = useRunStore()
   
   const { targetKPS, unitSystem, physioMode, beatPBPercent, beatRecentsCount } = useSettingsStore()
@@ -238,6 +239,20 @@ export default function RunDashboard() {
     void runGuardedAction(() => stopRun())
   }
 
+  const handleResetRun = () => {
+    void runGuardedAction(() => {
+      const hasProgress = distance > 0 || duration > 0
+      if (isRunning) {
+        if (!window.confirm('Discard this run? Progress will not be saved.')) return
+        reset()
+        return
+      }
+      if (!hasProgress) return
+      if (!window.confirm('Clear session metrics?')) return
+      reset()
+    })
+  }
+
   const handleOpenBeatPB = () => {
     void runGuardedAction(() => openBeatPB())
   }
@@ -286,10 +301,12 @@ export default function RunDashboard() {
                 showAICoach={showAICoach}
                 isActionLocked={isActionLocked}
                 isAiAnalyzing={isAnalyzing}
+                canResetIdle={distance > 0 || duration > 0}
                 startRun={handleStartRun}
                 pauseRun={handlePauseRun}
                 resumeRun={handleResumeRun}
                 stopRun={handleStopRun}
+                resetRun={handleResetRun}
                 openBeatPB={handleOpenBeatPB}
                 openBeatRecents={handleOpenBeatRecents}
                 handleAIAnalysis={handleGuardedAIAnalysis}

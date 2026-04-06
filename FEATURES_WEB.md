@@ -30,7 +30,7 @@
 - ✅ **Real-time Metrics**: Pace, distance, time, heart rate
 - ✅ **GPS Status**: Real-time GPS status indicator (ready/searching/poor/denied)
 - ✅ **Time to Beat**: Dynamic projection of time needed to hit target
-- ✅ **Control Buttons**: Start, pause, resume, stop
+- ✅ **Control Buttons**: Start, pause, resume, stop, reset (idle and live; confirms before discarding progress)
 - ✅ **Save Dialog**: Confirm before saving runs
 
 ### History View

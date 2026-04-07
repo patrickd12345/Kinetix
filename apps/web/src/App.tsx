@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import AdSenseScript from './components/ads/AdSenseScript'
 import Layout from './components/Layout'
 import RunDashboard from './pages/RunDashboard'
 import History from './pages/History'
@@ -95,6 +96,7 @@ function ProtectedRoutes() {
 function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <AdSenseScript />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/*" element={<ProtectedRoutes />} />

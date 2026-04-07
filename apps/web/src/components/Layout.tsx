@@ -10,6 +10,7 @@ import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
 import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
 import ThemeSelector from './ThemeSelector'
+import AdSenseDisplayUnit from './ads/AdSenseDisplayUnit'
 
 const RAG_SYNC_PAGE_SIZE = 200
 const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
@@ -212,7 +213,10 @@ export default function Layout({ children }: LayoutProps) {
               </nav>
             </div>
           </aside>
-          <main className="min-w-0 text-slate-900 dark:text-white">{children}</main>
+          <main className="min-w-0 text-slate-900 dark:text-white">
+            {children}
+            <AdSenseDisplayUnit />
+          </main>
         </div>
       </div>
 

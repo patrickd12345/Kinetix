@@ -8,7 +8,7 @@ Type: mixed platform
 | Capability | Status | Notes |
 |------------|--------|------|
 | AI Runtime | Applicable | AI is an active web, API, and mobile surface. |
-| Stripe Runtime | N/A | No confirmed Stripe runtime or billing webhook surface is part of the current product architecture. |
+| Stripe Runtime | Applicable | Checkout on Kinetix (`POST /api/billing/create-checkout-session`); canonical webhook on Bookiji (`POST /api/payments/webhook`) updates `platform.entitlements`. See [`docs/deployment/STRIPE_KINETIX_ENTITLEMENTS.md`](docs/deployment/STRIPE_KINETIX_ENTITLEMENTS.md). |
 | CI Baseline | Partial | CI exists, but baseline coverage does not consistently cover all active surfaces. |
 | Env Contract | Partial | Canonical env work exists, but runtime resolution is still mixed across surfaces. |
 | Observability | Partial | Observability helpers exist, but usage is not consistent across API and app paths. |
@@ -21,8 +21,8 @@ Mixed web, API, and mobile product with AI surfaces in scope and uneven platform
 
 ## Out of Scope
 
-- Stripe recommendations unless a real billing runtime is introduced
-- Billing scaffolding where no billing surface exists
+- A second Stripe webhook endpoint on Kinetix (org rule: single canonical webhook on Bookiji)
+- Billing UX or pricing experiments not backed by an ADR or product decision
 
 ## Audit Instructions
 

@@ -8,6 +8,7 @@
 - Shared core: `packages/core/` (package `@kinetix/core`).
 
 ## Deployment Truth
+- Web login follows the Bookiji Inc identity standard: magic link primary, optional OAuth buttons only when `VITE_AUTH_*_ENABLED` is set; no end-user password sign-in on the login screen.
 - Current deployed app for kinetix.bookiji.com: `apps/web/`.
 - Evidence:
   - Root `vercel.json` builds `@kinetix/web` and publishes `apps/web/dist`.
@@ -28,6 +29,10 @@
 - `packages/core/`: Active shared scoring/math/runtime utilities consumed by the web app (and potentially native parity work).
 - `ios/`: Active Apple-native surface for iPhone companion features.
 - `watchos/`: Active Apple-native surface for watch coaching/tracking runtime.
+
+## Project plan
+
+Strategic phases and backlog live in [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) (stub: [`PROJECT_PLAN.md`](PROJECT_PLAN.md)). Use [`REPO_STATUS.md`](REPO_STATUS.md) (this file) for *where* to implement; use the plan doc for *what* is next.
 
 ## Immediate Next-Step Guidance
 - If working on the live web product: change `apps/web/` first, validate build/test from workspace scripts, and keep Vercel wiring intact.

@@ -310,6 +310,7 @@ For detailed feature lists and comparisons across platforms:
 
 ### Architecture, scope, and contracts
 
+- **[Project plan](docs/PROJECT_PLAN.md)** - Full plan (vision, roadmap, risks, Bookiji integration); root [`PROJECT_PLAN.md`](PROJECT_PLAN.md) redirects here
 - **[Architecture overview](ARCHITECTURE.md)** - How Watch, iPhone, and web fit together (canonical web path: `apps/web/`)
 - **[Web apps: canonical vs legacy](docs/WEB_APPS.md)** - `apps/web` vs `archive/web-legacy/` and RAG wiring
 - **[RAG service](apps/rag/README.md)** - HTTP API, collections, and local run instructions

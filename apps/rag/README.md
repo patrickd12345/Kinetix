@@ -1,26 +1,21 @@
-# Kinetix RAG Service (`apps/rag`)
+# Kinetix RAG Service
 
-**Platform layer:** This service does not implement end-user auth or billing; the web app enforces access. See [SPINE_CONTRACT.md](../../../../SPINE_CONTRACT.md) and [APP_INTEGRATION_STANDARD.md](../../../../docs/platform/APP_INTEGRATION_STANDARD.md) at the workspace root.
+`apps/rag` serves two separate retrieval surfaces:
 
-RAG (Retrieval Augmented Generation) backend used by `apps/web` for:
+- Run analysis and coach context in `kinetix_runs`
+- Curated Help Center support content in `kinetix_support_kb`
 
-- **Run analysis (default):** indexing runs (`POST /index`), similar runs (`POST /similar`), analysis (`POST /analyze`), coach context (`POST /coach-context`). Stored in Chroma collection **`kinetix_runs`** (`services/vectorDB.js`).
-- **Curated Help Center support KB:** separate collection **`kinetix_support_kb`** (`services/supportVectorDB.js`) — **never** mixes with run embeddings.
-
-## Install
-
-```bash
-cd apps/rag
-pnpm install
-```
+The collections stay separate. Support articles and ticket-derived drafts must never be mixed into run embeddings.
 
 ## Run
 
 ```bash
+cd apps/rag
+pnpm install
 pnpm start
 ```
 
-Service defaults to `http://localhost:3001`.
+Default local URL: `http://localhost:3001`
 
 ## Tests
 
@@ -28,71 +23,111 @@ Service defaults to `http://localhost:3001`.
 pnpm test
 ```
 
-Runs `node --test` on `services/*.test.js` (artifact validation + collection name checks; no live Chroma required).
+## Environment
 
-## Environment Variables
+Core runtime:
 
-**Help Center tickets (Supabase):** `POST /support/ticket/create` inserts into **`kinetix.support_tickets`** using the service role. Set the same URL/key names as other Kinetix server runtimes (see `api/_lib/env/runtime.shared.mjs`):
+- `PORT`
+- `KINETIX_LLM_PROVIDER`
+- `OLLAMA_API_URL` / `OLLAMA_BASE_URL`
+- `OLLAMA_MODEL` / `LLM_MODEL`
+- `EMBEDDING_MODEL`
+- `AI_GATEWAY_BASE_URL`
+- `AI_GATEWAY_API_KEY`
+- `AI_GATEWAY_MODEL`
+- `CHROMA_MODE`
+- `CHROMA_PATH`
+- `CHROMA_SERVER_URL` / `CHROMA_API_URL`
+- `CHROMA_AUTO_START`
+- `CHROMA_DOCKER_IMAGE`
+- `OLLAMA_AUTO_START`
+
+Supabase storage:
 
 - `SUPABASE_URL` or `VITE_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SERVICE_KEY`
 
-**Ops-only ticket status updates:** `PATCH /support/ticket/:ticketId/status` requires **`KINETIX_SUPPORT_OPS_SECRET`** (non-empty). Send the same value in header **`X-Kinetix-Support-Ops-Secret`** or as **`Authorization: Bearer <secret>`**. If the secret is unset, the route responds **503** (`ops_unconfigured`) so the mutation is never left open by mistake.
+Support queue and notification flow:
 
-Tickets are operational records only; they are **not** auto-ingested into the curated support RAG (`kinetix_support_kb`). Reinjection stays manual.
+- `KINETIX_APP_BASE_URL`
+- `KINETIX_SUPPORT_SLACK_WEBHOOK_URL`
+- `KINETIX_SUPPORT_EMAIL_TO`
+- `KINETIX_SUPPORT_EMAIL_FROM`
+- `RESEND_API_KEY`
 
-- `PORT` (default `3001`)
-- `KINETIX_LLM_PROVIDER` – `ollama` or `gateway`. If unset: `VERCEL=1` -> gateway, else ollama.
-- `OLLAMA_API_URL` / `OLLAMA_BASE_URL` (default `http://localhost:11434`)
-- `OLLAMA_MODEL` / `LLM_MODEL` (default `llama3.2`)
-- `EMBEDDING_MODEL` (default `nomic-embed-text`) — used for **both** run and support embeddings.
-- Gateway (when provider is gateway): `AI_GATEWAY_BASE_URL`, `AI_GATEWAY_API_KEY`, optional `AI_GATEWAY_MODEL`
-- `CHROMA_MODE` (`in-memory` or `persistent`)
-- `CHROMA_PATH` (default `./chroma_db`)
-- `CHROMA_SERVER_URL` / `CHROMA_API_URL` (default `http://localhost:8000`) – Chroma server URL (Node client connects here).
-- `CHROMA_AUTO_START` – If not `0` or `false`, the RAG service will try to start Chroma (Docker first, then Python `chroma run`) when it is not already running. Set to `0` to disable. Requires Docker, or `pip install chromadb` for Python fallback.
-- `CHROMA_DOCKER_IMAGE` (default `chromadb/chroma`) – Docker image used when auto-starting Chroma.
-- `OLLAMA_AUTO_START` – If not `0` or `false`, the RAG service will try to start Ollama (`ollama serve`) when it is not already running (only when Ollama URL is localhost). Requires Ollama on PATH. Set to `0` or `false` to disable.
+Ops-only legacy status route:
 
-## API — Runs (unchanged)
+- `KINETIX_SUPPORT_OPS_SECRET`
+
+## API
+
+Run endpoints:
 
 - `GET /health`
-- `GET /available` — includes `supportKb: boolean` (Chroma reachable for support collection).
-- `POST /index` — index one run into **`kinetix_runs`**
+- `GET /available`
+- `POST /index`
 - `POST /similar`
 - `POST /analyze`
 - `GET /indexed-ids`
-- `GET /stats` — run count in **`kinetix_runs`**
+- `GET /stats`
 - `POST /coach-context`
 
-## API — Curated support KB (`kinetix_support_kb`)
+Curated support KB:
 
-All bodies are JSON. **Ingest** only accepts **approved** curated artifacts (see `services/supportArtifact.js` and `apps/web/HELP_CENTER_ARCHITECTURE.md`). Ticket create accepts **structured** payloads only (not raw ticket dumps).
+- `POST /support/kb/ingest`
+- `POST /support/kb/query`
+- `GET /support/kb/stats`
 
-- `POST /support/kb/ingest` — body: `{ "artifact": { ... } }`  
-  Required fields include: `artifact_id`, `title`, `body_markdown`, `version` (≥ 1), `review_status: "approved"`, `topic`, `intent`, `source_type`, `product: "kinetix"`.  
-  Response: `{ success, chunkId, artifact_id, version }`.
+Structured Help Center ticket creation:
 
-- `POST /support/kb/query` — body: `{ "query": "how do I connect Strava?", "topK": 5, "topic": "sync" }`  
-  `topic` is optional; filters to that topic when set.  
-  Response: `{ collection, query, topK, filters, results: [{ chunkId, distance, similarity, document, metadata }] }`.
+- `POST /support/ticket/create`
 
-- `GET /support/kb/stats` — `{ collection: "kinetix_support_kb", chunkCount }`.
+Legacy ops-only status mutation:
 
-## API — Help Center tickets (structured payload)
+- `PATCH /support/ticket/:ticketId/status`
 
-- `POST /support/ticket/create` — body: JSON matching `services/supportTicketCreate.js` validation (`product: "kinetix"`, `timestamp`, `issueSummary`, `environment: "web"`, optional `userId`, `conversationExcerpt`, `attemptedSolutions`, `severity`). Inserts one row into Supabase **`kinetix.support_tickets`** (migration `supabase/migrations/*_kinetix_support_tickets.sql`). Response: **`201`** with `{ ok: true, ticketId, receivedAt }`. Validation errors → **400**; missing Supabase config or insert failure → **503** with `{ ok: false, error: "storage_unavailable" }` (no raw DB details in the JSON body).
+## Ticket-authoritative behavior
 
-- **`PATCH /support/ticket/:ticketId/status`** — **ops / internal tooling only** (not for end users; no web UI). Headers: **`X-Kinetix-Support-Ops-Secret`** or **`Authorization: Bearer`** matching **`KINETIX_SUPPORT_OPS_SECRET`**. Body: `{ "status": "<enum>" }` where enum is exactly: `open`, `triaged`, `in_progress`, `resolved`, `closed`. Optional: `{ "metadataPatch": { "key": "value" } }` — shallow merge into row **`metadata`** (plain object only). Success: **`200`** `{ ok: true, ticketId, status, updatedAt }`. **`ticketId`** must match `kinetix-YYYYMMDD-<6 hex>` (same format as create). Errors: **400** invalid body/status/id; **401** missing/wrong secret; **404** unknown ticket; **503** Supabase missing/misconfigured (`ops_unconfigured`) or storage failure (`storage_unavailable`). Updating status does **not** trigger support KB ingest; curated reinjection remains manual.
+`POST /support/ticket/create` is the canonical write path for Help Center escalations.
 
-### Example: ingest one article
+Expected request shape:
 
-```bash
-curl -s -X POST http://localhost:3001/support/kb/ingest -H "Content-Type: application/json" -d "{\"artifact\":{\"artifact_id\":\"support-strava-sync\",\"title\":\"Strava\",\"body_markdown\":\"Open Settings and connect Strava OAuth.\",\"version\":1,\"review_status\":\"approved\",\"topic\":\"sync\",\"intent\":\"howto\",\"source_type\":\"editorial\"}}"
-```
+- `product: "kinetix"`
+- `timestamp`
+- `issueSummary`
+- `environment: "web"`
+- optional `userId`
+- `conversationExcerpt`
+- `attemptedSolutions`
+- optional `severity`
+- optional `metadata`
 
-### Example: query
+Persistence rules:
 
-```bash
-curl -s -X POST http://localhost:3001/support/kb/query -H "Content-Type: application/json" -d "{\"query\":\"strava connection\",\"topK\":3}"
-```
+1. Validate request.
+2. Insert one row into `kinetix.support_tickets`.
+3. Only after insert succeeds, fan out Slack and email notifications.
+4. Update per-channel notification fields on the ticket row.
+5. If notifications fail, keep the ticket and record channel failure state.
+
+Notification status fields on `kinetix.support_tickets`:
+
+- `notification_slack_status`
+- `notification_email_status`
+- `notification_last_attempt_at`
+- `notification_error_summary`
+
+The service must never roll back or block a created ticket because Slack or email failed.
+
+## KB approval bin
+
+Resolved tickets are operational records, not ingestable knowledge.
+
+The curation path is:
+
+1. Ticket is resolved.
+2. Operator moves it to the KB approval bin.
+3. A draft artifact is edited and reviewed.
+4. The approved artifact is ingested into `kinetix_support_kb`.
+
+No raw ticket thread is auto-ingested.

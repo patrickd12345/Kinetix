@@ -8,6 +8,7 @@ import Settings from './pages/Settings'
 import WeightHistory from './pages/WeightHistory'
 import Menu from './pages/Menu'
 import HelpCenter from './pages/HelpCenter'
+import SupportQueue from './pages/SupportQueue'
 import Login from './pages/Login'
 import EntitlementRequired from './pages/EntitlementRequired'
 import { useAuth } from './components/providers/useAuth'
@@ -89,6 +90,7 @@ function ProtectedRoutes() {
         <Route path="/chat" element={<Chat />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/help" element={<HelpCenter />} />
+        <Route path="/support-queue" element={<SupportQueue />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

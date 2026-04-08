@@ -36,6 +36,7 @@ Strategic phases and backlog live in [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.
 
 ## Immediate Next-Step Guidance
 - If working on the live web product: change `apps/web/` first, validate build/test from workspace scripts, and keep Vercel wiring intact.
+- Help Center surfaces live in `apps/web/src/pages/HelpCenter.tsx` and `apps/web/src/pages/SupportQueue.tsx`; contract and operator docs live in `apps/web/HELP_CENTER*.md` and `docs/HELP_CENTER_OPERATIONS.md`.
 - If porting legacy functionality: use `archive/web-legacy/` as migration source only, then implement in `apps/web/`.
 - If changing shared scoring/math: update `packages/core/`, then run dependent app checks before merge.
 - If working on Apple-native coaching/tracking: change `ios/` and/or `watchos/` targets directly; do not couple incidental native work to web deployment rewiring.

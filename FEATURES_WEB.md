@@ -61,6 +61,15 @@
 - ✅ **Run Analysis**: AI-powered insights and recommendations
 - ✅ **Configurable**: Environment variables for Ollama URL and model
 
+### Help Center & Support
+- ✅ **Help Center route**: Main nav entry to `/help`
+- ✅ **Curated support retrieval**: `/help` queries `kinetix_support_kb` via `supportRagClient`
+- ✅ **Deterministic fallback**: Fixed troubleshooting guidance appears when retrieval is weak, empty, or unavailable
+- ✅ **Explicit-confirmation escalation**: No direct ticket button; escalation is only proposed after unresolved support conditions and creates a ticket only after confirmation
+- ✅ **Authoritative ticket persistence**: `POST /support/ticket/create` stores the ticket first, then records Slack/email delivery state without rollback on notification failure
+- ✅ **Operator queue**: `/support-queue` supports operator-only ticket review, status changes, internal notes, notification retry, and deep-linked ticket selection from notification URLs
+- ✅ **KB approval bin**: Resolved tickets can move into a curated approval draft flow before manual ingest into `kinetix_support_kb`
+
 ### Data Persistence
 - ✅ **localStorage**: Run data and settings stored locally
 - ✅ **Run Storage**: All runs saved and retrievable
@@ -116,9 +125,9 @@
 
 ---
 
-**Last Updated**: 2026-03-05
+**Last Updated**: 2026-04-08
 **Platform**: Modern Browsers (Chrome, Firefox, Safari, Edge)
-**Status**: In Development
+**Status**: Active production web app
 
 
 

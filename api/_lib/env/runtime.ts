@@ -42,6 +42,13 @@ export type KinetixRuntimeEnv = {
   kinetixStripePriceId: string;
   /** Ops-only: RAG PATCH /support/ticket/:id/status (see apps/rag README) */
   kinetixSupportOpsSecret: string;
+  kinetixSupportOperatorUserIds: string;
+  kinetixSupportSlackWebhookUrl: string;
+  kinetixSupportEmailTo: string;
+  kinetixSupportEmailFrom: string;
+  resendApiKey: string;
+  kinetixAppBaseUrl: string;
+  kinetixRagBaseUrl: string;
 };
 
 function getDefaultEnv(): EnvSource {

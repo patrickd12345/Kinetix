@@ -8,10 +8,12 @@ import {
   DETERMINISTIC_FALLBACK_DISCLAIMER,
   getBestSupportSimilarity,
   getDeterministicFallbackSections,
-  isUnresolvedRetrievalOutcome,
+  isHelpSupportSearchCycleUnresolved,
   isWeakOrEmptyRetrieval,
-  shouldProposeEscalation,
+  shouldProposeHelpEscalation,
 } from '../lib/helpCenterFallback'
+import { postHelpCenterSupportAnswer } from '../lib/helpCenterSupportAi'
+import type { HelpSupportAiOutcome } from '../lib/helpCenterSupportAi'
 import { buildSupportEscalationPayload, buildTicketPayloadMailtoHref } from '../lib/helpCenterEscalation'
 import { useAuth } from '../components/providers/useAuth'
 import { createSupportTicket, querySupportKB } from '../lib/supportRagClient'
@@ -28,11 +30,10 @@ type EscalationPhase = 'none' | 'proposing' | 'escalated' | 'capped'
 /**
  * Manual test matrix (Help Center escalation):
  *
- * - Weak retrieval → escalation proposed
- * - Strong retrieval → no escalation
- * - User "still unresolved" → escalation proposed
+ * - First unresolved search or first "still not resolved" click → no escalation yet (hybrid gate)
+ * - Second unresolved search OR second "still not resolved" click → escalation proposed
  * - User clicks Yes → ticket created (no ticket before confirm)
- * - User clicks No → continue troubleshooting; no immediate re-prompt
+ * - User clicks No → continue troubleshooting; no immediate re-prompt until gate re-satisfied
  * - Ticket API failure → mailto fallback when VITE_SUPPORT_EMAIL set
  * - Mailto unavailable → fallback error message
  */
@@ -41,14 +42,15 @@ const maxEscalationAttempts = 2
 
 function makeEscalationProposeKey(
   outcome: SupportKBQueryOutcome,
-  attemptCount: number,
-  userMarkedUnresolved: boolean,
+  stillNotResolvedClicks: number,
+  unresolvedCompletedSearchCount: number,
   bestSimilarity: number | null,
+  aiFingerprint: string,
 ): string {
   if (outcome.ok === false) {
-    return `${attemptCount}|${userMarkedUnresolved}|fail:${outcome.reason}`
+    return `${stillNotResolvedClicks}|${unresolvedCompletedSearchCount}|fail:${outcome.reason}|${aiFingerprint}`
   }
-  return `${attemptCount}|${userMarkedUnresolved}|${outcome.data.query}|${bestSimilarity ?? 'null'}|${outcome.data.results.length}`
+  return `${stillNotResolvedClicks}|${unresolvedCompletedSearchCount}|${outcome.data.query}|${bestSimilarity ?? 'null'}|${outcome.data.results.length}|${aiFingerprint}`
 }
 
 function Section({
@@ -84,28 +86,87 @@ function fallbackQueryText(outcome: SupportKBQueryOutcome | null, input: string)
   return input.trim()
 }
 
+function aiOutcomeFingerprint(ai: HelpSupportAiOutcome | null): string {
+  if (!ai) return 'none'
+  if (ai.ok === false) return `err:${ai.reason}`
+  return `ok:${ai.text.length}`
+}
+
 function buildConversationExcerpt(
   outcome: SupportKBQueryOutcome | null,
   query: string,
+  aiOutcome: HelpSupportAiOutcome | null,
 ): string {
   const q = query.trim() || '—'
-  if (!outcome) return `Support search query: ${q}`
+  const aiLine =
+    aiOutcome === null
+      ? 'Support AI: (not run)'
+      : aiOutcome.ok === true
+        ? `Support AI: answered (${aiOutcome.text.length} chars)`
+        : `Support AI: failed (${aiOutcome.reason}${aiOutcome.message ? ` — ${aiOutcome.message}` : ''})`
+  if (!outcome) return `Support search query: ${q}\n${aiLine}`
   if (outcome.ok === false) {
-    return `Support search query: ${q}\nOutcome: ${outcome.reason}${outcome.reason === 'http_error' ? ` (${outcome.status})` : ''}`
+    return `Support search query: ${q}\nOutcome: ${outcome.reason}${outcome.reason === 'http_error' ? ` (${outcome.status})` : ''}\n${aiLine}`
   }
   const ids = outcome.data.results.slice(0, 3).map((r) => r.chunkId).join(', ')
-  return `Support search query: ${q}\nTop chunk ids: ${ids || 'none'}`
+  return `Support search query: ${q}\nTop chunk ids: ${ids || 'none'}\n${aiLine}`
 }
 
 function buildAttemptedSolutionsSummary(
   showDeterministicFallback: boolean,
   fallbackSections: ReturnType<typeof getDeterministicFallbackSections>,
+  aiOutcome: HelpSupportAiOutcome | null,
 ): string {
+  const aiPart =
+    aiOutcome === null
+      ? 'Support AI: not available for summary.'
+      : aiOutcome.ok === true
+        ? 'Support AI: generated a KB-grounded answer.'
+        : `Support AI: failed (${aiOutcome.reason}).`
   if (!showDeterministicFallback) {
-    return 'Curated support KB search; results looked strong enough to display.'
+    return `${aiPart} Curated KB matches looked strong enough to list as sources.`
   }
   const titles = fallbackSections.map((s) => s.title)
-  return `Deterministic fallback sections shown: ${titles.join('; ') || 'general tips'}`
+  return `${aiPart} Deterministic fallback sections shown: ${titles.join('; ') || 'general tips'}.`
+}
+
+function buildStructuredTicketMetadata(
+  supportOutcome: SupportKBQueryOutcome | null,
+  supportInput: string,
+  sessionUserId: string | null | undefined,
+  showDeterministicFallback: boolean,
+  supportAiOutcome: HelpSupportAiOutcome | null,
+  stillNotResolvedClicks: number,
+  unresolvedCompletedSearchCount: number,
+) {
+  if (!supportOutcome) return undefined
+  const escalationPayload = buildSupportEscalationPayload({
+    userQuery: fallbackQueryText(supportOutcome, supportInput),
+    supportOutcome,
+    route: '/help',
+    userIdOpaque: sessionUserId ?? null,
+    fallbackGuidanceShown: showDeterministicFallback,
+    helpSupportAiOk: supportAiOutcome?.ok === true,
+    helpSupportAiAnswerText: supportAiOutcome?.ok === true ? supportAiOutcome.text : null,
+    helpStillNotResolvedClicks: stillNotResolvedClicks,
+    helpUnresolvedCompletedSearchCount: unresolvedCompletedSearchCount,
+  })
+
+  return {
+    route: escalationPayload.route,
+    timestamp_utc: escalationPayload.timestampUtc,
+    user_id_opaque: escalationPayload.userIdOpaque,
+    app_version: escalationPayload.appVersion,
+    user_query: escalationPayload.userQuery,
+    inferred_topic: escalationPayload.inferredTopic,
+    retrieval_state: escalationPayload.retrievalState,
+    fallback_guidance_shown: escalationPayload.fallbackGuidanceShown,
+    surfaced_articles: escalationPayload.surfacedArticles,
+    help_support_ai_ok: escalationPayload.helpSupportAiOk,
+    help_support_ai_answer_hash: escalationPayload.helpSupportAiAnswerHash,
+    help_still_not_resolved_clicks: escalationPayload.helpStillNotResolvedClicks,
+    help_unresolved_completed_search_count: escalationPayload.helpUnresolvedCompletedSearchCount,
+  }
 }
 
 export default function HelpCenter() {
@@ -117,8 +178,9 @@ export default function HelpCenter() {
   const [supportInput, setSupportInput] = useState('')
   const [supportLoading, setSupportLoading] = useState(false)
   const [supportOutcome, setSupportOutcome] = useState<SupportKBQueryOutcome | null>(null)
-  const [attemptCount, setAttemptCount] = useState(0)
-  const [userMarkedUnresolved, setUserMarkedUnresolved] = useState(false)
+  const [supportAiOutcome, setSupportAiOutcome] = useState<HelpSupportAiOutcome | null>(null)
+  const [stillNotResolvedClicks, setStillNotResolvedClicks] = useState(0)
+  const [unresolvedCompletedSearchCount, setUnresolvedCompletedSearchCount] = useState(0)
   const [proposalDismissed, setProposalDismissed] = useState(false)
   const [escalationPhase, setEscalationPhase] = useState<EscalationPhase>('none')
   const [ticketId, setTicketId] = useState<string | null>(null)
@@ -128,37 +190,51 @@ export default function HelpCenter() {
   const lastCompletedQueryRef = useRef('')
   const lastProposeKeyRef = useRef<string | null>(null)
   const escalationPromptsShownRef = useRef(0)
+  /** True after user clicks "No, keep troubleshooting" so the next proposal counts toward the cap. */
+  const userDismissedProposalRef = useRef(false)
 
-  const runSupportSearch = useCallback(async (q: string) => {
-    const trimmed = q.trim()
-    if (!trimmed) return
-    setSupportLoading(true)
-    setTicketActionError(null)
-    setSupportOutcome(null)
-    setEscalationPhase((prev) => (prev === 'escalated' ? prev : 'none'))
-    try {
-      const out = await querySupportKB(trimmed, { topK: 5 })
-      const queryChanged = lastCompletedQueryRef.current !== trimmed
-      lastCompletedQueryRef.current = trimmed
+  const runSupportSearch = useCallback(
+    async (q: string) => {
+      const trimmed = q.trim()
+      if (!trimmed) return
+      setSupportLoading(true)
+      setTicketActionError(null)
+      setSupportOutcome(null)
+      setSupportAiOutcome(null)
+      setEscalationPhase((prev) => (prev === 'escalated' ? prev : 'none'))
+      try {
+        const out = await querySupportKB(trimmed, { topK: 5 })
+        const bestSim = out.ok === true ? getBestSupportSimilarity(out.data.results) : null
+        const aiOut = await postHelpCenterSupportAnswer(trimmed, out, {
+          accessToken: session?.access_token ?? null,
+        })
 
-      const bestSim = out.ok === true ? getBestSupportSimilarity(out.data.results) : null
-      const unresolved = isUnresolvedRetrievalOutcome(out, bestSim)
+        const queryChanged = lastCompletedQueryRef.current !== trimmed
+        lastCompletedQueryRef.current = trimmed
 
-      if (queryChanged) {
-        escalationPromptsShownRef.current = 0
-        lastProposeKeyRef.current = null
+        const cycleUnresolved = isHelpSupportSearchCycleUnresolved(out, bestSim, aiOut)
+
+        if (queryChanged) {
+          escalationPromptsShownRef.current = 0
+          userDismissedProposalRef.current = false
+          lastProposeKeyRef.current = null
+        }
+        if (queryChanged || cycleUnresolved) {
+          setProposalDismissed(false)
+          lastProposeKeyRef.current = null
+        }
+
+        setSupportOutcome(out)
+        setSupportAiOutcome(aiOut)
+        if (cycleUnresolved) {
+          setUnresolvedCompletedSearchCount((c) => c + 1)
+        }
+      } finally {
+        setSupportLoading(false)
       }
-      if (queryChanged || unresolved) {
-        setProposalDismissed(false)
-        lastProposeKeyRef.current = null
-      }
-
-      setSupportOutcome(out)
-      setAttemptCount((c) => c + 1)
-    } finally {
-      setSupportLoading(false)
-    }
-  }, [])
+    },
+    [session?.access_token],
+  )
 
   const showDeterministicFallback =
     supportOutcome !== null &&
@@ -190,32 +266,47 @@ export default function HelpCenter() {
     if (escalationPhase === 'escalated' || escalationPhase === 'capped') return
     if (proposalDismissed) return
     if (!supportOutcome) return
-    const propose = shouldProposeEscalation({
-      bestSimilarity,
-      attemptCount,
+    const propose = shouldProposeHelpEscalation({
       supportOutcome,
-      userMarkedUnresolved,
+      stillNotResolvedClicks,
+      unresolvedCompletedSearchCount,
     })
     if (!propose) return
 
     const proposeKey = makeEscalationProposeKey(
       supportOutcome,
-      attemptCount,
-      userMarkedUnresolved,
+      stillNotResolvedClicks,
+      unresolvedCompletedSearchCount,
       bestSimilarity,
+      aiOutcomeFingerprint(supportAiOutcome),
     )
     if (proposeKey === lastProposeKeyRef.current) return
 
-    if (escalationPromptsShownRef.current >= maxEscalationAttempts) {
+    const shouldCountNewPrompt =
+      escalationPromptsShownRef.current === 0 || userDismissedProposalRef.current
+
+    if (shouldCountNewPrompt && escalationPromptsShownRef.current >= maxEscalationAttempts) {
       lastProposeKeyRef.current = proposeKey
       setEscalationPhase('capped')
       return
     }
 
-    escalationPromptsShownRef.current += 1
+    if (shouldCountNewPrompt) {
+      escalationPromptsShownRef.current += 1
+      userDismissedProposalRef.current = false
+    }
+
     lastProposeKeyRef.current = proposeKey
     setEscalationPhase('proposing')
-  }, [supportOutcome, attemptCount, userMarkedUnresolved, proposalDismissed, bestSimilarity, escalationPhase])
+  }, [
+    supportOutcome,
+    supportAiOutcome,
+    stillNotResolvedClicks,
+    unresolvedCompletedSearchCount,
+    proposalDismissed,
+    bestSimilarity,
+    escalationPhase,
+  ])
 
   const escalationPayloadForMail = useMemo(() => {
     if (!supportOutcome) return null
@@ -225,23 +316,58 @@ export default function HelpCenter() {
       route: '/help',
       userIdOpaque: session?.user?.id ?? null,
       fallbackGuidanceShown: showDeterministicFallback,
+      helpSupportAiOk: supportAiOutcome?.ok === true,
+      helpSupportAiAnswerText: supportAiOutcome?.ok === true ? supportAiOutcome.text : null,
+      helpStillNotResolvedClicks: stillNotResolvedClicks,
+      helpUnresolvedCompletedSearchCount: unresolvedCompletedSearchCount,
     })
-  }, [session?.user?.id, showDeterministicFallback, supportInput, supportOutcome])
+  }, [
+    session?.user?.id,
+    showDeterministicFallback,
+    supportInput,
+    supportOutcome,
+    supportAiOutcome,
+    stillNotResolvedClicks,
+    unresolvedCompletedSearchCount,
+  ])
 
   const buildTicketPayload = useCallback(() => {
     const uid = session?.user?.id
     const issueSummary = fallbackQueryText(supportOutcome, supportInput) || 'Support request from Help Center'
+    const metadata = buildStructuredTicketMetadata(
+      supportOutcome,
+      supportInput,
+      uid,
+      showDeterministicFallback,
+      supportAiOutcome,
+      stillNotResolvedClicks,
+      unresolvedCompletedSearchCount,
+    )
     return {
       product: 'kinetix' as const,
       userId: typeof uid === 'string' && uid ? uid : null,
       timestamp: new Date().toISOString(),
       issueSummary,
-      conversationExcerpt: buildConversationExcerpt(supportOutcome, supportInput),
-      attemptedSolutions: buildAttemptedSolutionsSummary(showDeterministicFallback, fallbackSections),
+      conversationExcerpt: buildConversationExcerpt(supportOutcome, supportInput, supportAiOutcome),
+      attemptedSolutions: buildAttemptedSolutionsSummary(
+        showDeterministicFallback,
+        fallbackSections,
+        supportAiOutcome,
+      ),
       environment: 'web' as const,
       severity: 'unknown' as const,
+      metadata,
     }
-  }, [session?.user?.id, showDeterministicFallback, fallbackSections, supportInput, supportOutcome])
+  }, [
+    session?.user?.id,
+    showDeterministicFallback,
+    fallbackSections,
+    supportInput,
+    supportOutcome,
+    supportAiOutcome,
+    stillNotResolvedClicks,
+    unresolvedCompletedSearchCount,
+  ])
 
   const confirmEscalation = useCallback(async () => {
     setConfirmLoading(true)
@@ -268,35 +394,38 @@ export default function HelpCenter() {
   }, [buildTicketPayload, supportEmail])
 
   const dismissProposal = useCallback(() => {
+    userDismissedProposalRef.current = true
     setProposalDismissed(true)
     setEscalationPhase('none')
-    setUserMarkedUnresolved(false)
   }, [])
 
   const markStillUnresolved = useCallback(() => {
-    setUserMarkedUnresolved(true)
+    setStillNotResolvedClicks((c) => c + 1)
     setProposalDismissed(false)
     lastProposeKeyRef.current = null
   }, [])
+
+  const showSupportResults = supportOutcome !== null && !supportLoading
+  const showUniversalUnresolved = showSupportResults
 
   return (
     <div className="space-y-6 pb-24 lg:pb-6 max-w-3xl">
       <div>
         <h1 className="text-2xl font-bold text-white">Help Center</h1>
         <p className="text-slate-400 text-sm mt-1">
-          Self-service first: AI coach, then troubleshooting, then AI-proposed escalation when something is still wrong
-          (you confirm before any ticket is created).
+          Support search is AI-first: answers are generated from curated KB excerpts when available, with escalation
+          only after two unsuccessful attempts (two unresolved searches or two &quot;still not resolved&quot; signals).
+          Coach chat stays the best place for run-specific coaching. Tickets are never created without confirmation.
         </p>
       </div>
 
       <Section id="ai-help" title="AI Help" icon={MessageCircle}>
         <p>
-          The <strong className="text-slate-200">Coach chat</strong> is the AI-first path for questions about runs,{' '}
-          {KINETIX_PERFORMANCE_SCORE}, and training context available in this app.
+          The <strong className="text-slate-200">Coach chat</strong> is the dedicated path for questions about runs,{' '}
+          {KINETIX_PERFORMANCE_SCORE}, and training context from the app.
         </p>
         <p className="text-slate-400 text-xs">
-          Answers use your run context from the coach RAG. The support search below uses a separate curated knowledge
-          base (retrieval only — not a full AI answer).
+          The support search below also uses AI, grounded in the curated support knowledge base (not run-coach RAG).
         </p>
         <Link
           to="/chat"
@@ -307,12 +436,13 @@ export default function HelpCenter() {
         </Link>
       </Section>
 
-      <Section id="support-kb" title="Search support articles" icon={Search}>
+      <Section id="support-kb" title="Support search (AI + KB)" icon={Search}>
         <p className="text-slate-400 text-xs">
-          Suggested excerpts from the curated support knowledge base (same RAG service as run indexing, separate
-          collection). Requires the Kinetix RAG service to be reachable (e.g. local{' '}
-          <code className="text-slate-500">pnpm start</code> in <code className="text-slate-500">apps/rag</code> or{' '}
-          <code className="text-slate-500">VITE_RAG_SERVICE_URL</code>).
+          Runs curated KB retrieval first, then calls the app&apos;s AI support assistant with those excerpts. Requires
+          the RAG service (e.g. local <code className="text-slate-500">pnpm start</code> in{' '}
+          <code className="text-slate-500">apps/rag</code> or <code className="text-slate-500">VITE_RAG_SERVICE_URL</code>
+          ) and a reachable <code className="text-slate-500">/api/ai-chat</code> (local dev via{' '}
+          <code className="text-slate-500">pnpm dev</code>).
         </p>
         <div className="flex flex-wrap gap-2 pt-1">
           {QUICK_PROMPTS.map((p) => (
@@ -351,55 +481,88 @@ export default function HelpCenter() {
           </button>
         </div>
 
-        {supportOutcome?.ok === false && supportOutcome.reason === 'unavailable' && (
-          <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-amber-200/90 text-xs">
-            Curated support search is unavailable (RAG service not reachable). Use the deterministic tips below, Coach
-            chat, or Settings.
+        {supportLoading && (
+          <p className="text-slate-400 text-xs flex items-center gap-2 pt-2" data-testid="help-support-loading">
+            <Loader2 size={14} className="animate-spin shrink-0" />
+            Retrieving support articles and generating an answer…
           </p>
         )}
 
-        {supportOutcome?.ok === false &&
-          supportOutcome.reason !== 'unavailable' && (
-            <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-red-200/90 text-xs">
-              Support search failed ({supportOutcome.reason}
-              {supportOutcome.reason === 'http_error' ? ` ${supportOutcome.status}` : ''}). Try again later — fixed tips
-              below still apply.
+        {supportOutcome?.ok === false && supportOutcome.reason === 'unavailable' && (
+          <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-amber-200/90 text-xs">
+            Curated support search is unavailable (RAG service not reachable). The AI answer may still run with no
+            excerpts; use deterministic tips below, Coach chat, or Settings.
+          </p>
+        )}
+
+        {supportOutcome?.ok === false && supportOutcome.reason !== 'unavailable' && (
+          <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-red-200/90 text-xs">
+            Support search failed ({supportOutcome.reason}
+            {supportOutcome.reason === 'http_error' ? ` ${supportOutcome.status}` : ''}). The AI step may still run with
+            error context — fixed tips below still apply.
+          </p>
+        )}
+
+        {showSupportResults && supportAiOutcome?.ok === true && (
+          <div
+            className="mt-3 space-y-2 rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-4"
+            data-testid="help-support-ai-answer"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-200/80">Support assistant</p>
+            <p className="text-sm text-slate-200 whitespace-pre-wrap">{supportAiOutcome.text}</p>
+            <p className="text-[10px] text-slate-500">
+              Generated from curated KB excerpts when available; verify critical steps in Settings or official docs.
             </p>
-          )}
+          </div>
+        )}
+
+        {showSupportResults && supportAiOutcome && supportAiOutcome.ok === false && (
+          <p
+            className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-amber-200/90 text-xs"
+            data-testid="help-support-ai-error"
+          >
+            Could not generate a support answer ({supportAiOutcome.reason}
+            {supportAiOutcome.message ? `: ${supportAiOutcome.message}` : ''}). Sources and deterministic tips below may
+            still help.
+          </p>
+        )}
 
         {showWeakRetrievalNote && (
-          <p className="text-amber-200/85 text-xs border border-amber-500/15 rounded-lg px-3 py-2 bg-amber-500/5">
-            The matches below look weak (low similarity to your question). See deterministic fallback for clearer next
-            steps.
+          <p className="text-amber-200/85 text-xs border border-amber-500/15 rounded-lg px-3 py-2 bg-amber-500/5 mt-2">
+            Source matches look weak (low similarity). Prefer the assistant answer and deterministic tips if the excerpts
+            look off-topic.
           </p>
         )}
 
         {showRetrievalList && supportOutcome?.ok === true && (
-          <ul className="space-y-3 pt-1 border-t border-white/10 mt-2">
-            {supportOutcome.data.results.map((r) => {
-              const title =
-                typeof r.metadata.title === 'string' && r.metadata.title
-                  ? r.metadata.title
-                  : r.chunkId || 'Article'
-              const topic = typeof r.metadata.topic === 'string' ? r.metadata.topic : null
-              return (
-                <li
-                  key={r.chunkId}
-                  className="rounded-lg border border-white/10 bg-black/20 p-3 text-slate-300 text-xs space-y-1"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-slate-200">{title}</span>
-                    {topic && (
-                      <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] uppercase text-slate-400">
-                        {topic}
-                      </span>
-                    )}
-                  </div>
-                  <p className="whitespace-pre-wrap text-slate-400">{truncateDoc(r.document)}</p>
-                </li>
-              )
-            })}
-          </ul>
+          <div className="pt-3 mt-2 border-t border-white/10 space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Sources (curated KB)</p>
+            <ul className="space-y-3">
+              {supportOutcome.data.results.map((r) => {
+                const title =
+                  typeof r.metadata.title === 'string' && r.metadata.title
+                    ? r.metadata.title
+                    : r.chunkId || 'Article'
+                const topic = typeof r.metadata.topic === 'string' ? r.metadata.topic : null
+                return (
+                  <li
+                    key={r.chunkId}
+                    className="rounded-lg border border-white/10 bg-black/20 p-3 text-slate-300 text-xs space-y-1"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-slate-200">{title}</span>
+                      {topic && (
+                        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] uppercase text-slate-400">
+                          {topic}
+                        </span>
+                      )}
+                    </div>
+                    <p className="whitespace-pre-wrap text-slate-400">{truncateDoc(r.document)}</p>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         )}
 
         {showDeterministicFallback && (
@@ -419,16 +582,19 @@ export default function HelpCenter() {
                 </ul>
               </div>
             ))}
-            <div className="pt-2 border-t border-white/10">
-              <button
-                type="button"
-                onClick={markStillUnresolved}
-                className="text-xs text-amber-200/90 underline-offset-2 hover:underline"
-                data-testid="help-mark-unresolved"
-              >
-                Still not resolved — tell the Help Center this search did not fix it
-              </button>
-            </div>
+          </div>
+        )}
+
+        {showUniversalUnresolved && (
+          <div className="pt-3 border-t border-white/10 mt-2">
+            <button
+              type="button"
+              onClick={markStillUnresolved}
+              className="text-xs text-amber-200/90 underline-offset-2 hover:underline"
+              data-testid="help-mark-unresolved"
+            >
+              Still not resolved — this did not fix the issue
+            </button>
           </div>
         )}
 
@@ -527,9 +693,9 @@ export default function HelpCenter() {
           <div>
             <dt className="font-medium text-slate-200">How does escalation work?</dt>
             <dd className="text-slate-400 mt-0.5">
-              There is no self-serve &quot;open ticket&quot; control. After curated search and tips, the flow may propose
-              escalation; a ticket is created only if you confirm. The Coach chat path remains the first place for
-              run-specific help.
+              There is no self-serve &quot;open ticket&quot; control. After two unsuccessful support attempts (two
+              unresolved searches or two &quot;still not resolved&quot; clicks), the flow may propose escalation; a
+              ticket is created only if you confirm. Coach chat remains the first place for run-specific help.
             </dd>
           </div>
         </dl>
@@ -537,17 +703,17 @@ export default function HelpCenter() {
 
       <Section id="contact" title="Team escalation" icon={Mail}>
         <p>
-          Account or platform issues are escalated from this page only after a support search and your confirmation — not
-          via a direct ticket button. Use{' '}
+          Account or platform issues are escalated from this page only after the hybrid attempt rule and your
+          confirmation — not via a direct ticket button. Use{' '}
           <Link to="/chat" className="text-cyan-300/90 underline-offset-2 hover:underline">
             Coach chat
           </Link>{' '}
-          first for training and run questions.
+          for training and run questions.
         </p>
         {escalationPayloadForMail && supportEmail && (
           <p className="text-xs text-slate-500">
-            Diagnostic context from your last unresolved search is included if you use email fallback after a failed
-            ticket API (mailto uses the same structured fields when configured).
+            Diagnostic context from the last support search is included if you use email fallback after a failed ticket
+            API (mailto uses the same structured fields when configured).
           </p>
         )}
         {!supportEmail && (
@@ -562,10 +728,10 @@ export default function HelpCenter() {
       <Section id="limitations" title="Known limitations & support boundaries" icon={AlertTriangle}>
         <ul className="list-disc pl-5 space-y-1 text-slate-400">
           <li>
-            Support search shows retrieval excerpts only — not generated AI answers. Coach chat remains the AI path for
-            run-specific coaching.
+            Support search answers are AI-generated from KB excerpts; they can be wrong when retrieval is weak or the
+            model misreads context — use Sources and Settings to verify.
           </li>
-          <li>Coach chat depends on configured AI providers; behavior may differ by tier or outage (fallback is evolving).</li>
+          <li>Coach chat and support search use different context; pick the path that matches the question.</li>
           <li>Watch and phone apps are separate surfaces; this dashboard covers the web experience.</li>
         </ul>
       </Section>

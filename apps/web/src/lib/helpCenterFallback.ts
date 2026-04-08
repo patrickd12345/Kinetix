@@ -3,6 +3,7 @@
  * Not AI-generated; not from the curated KB.
  */
 
+import type { HelpSupportAiOutcome } from './helpCenterSupportAi'
 import type { SupportKBQueryOutcome, SupportKBResultItem } from './supportRagClient'
 
 /** Below this best-match similarity, retrieval is treated as not useful enough (cosine-style score from client). */
@@ -85,7 +86,7 @@ export function getDeterministicFallbackSections(query: string): FallbackSection
     bullets: [
       'Coach chat for run-specific coaching (uses your run context, not the support KB).',
       'Settings for integrations, imports, and targets.',
-      'If this search still does not fix it, use Still not resolved below — escalation to the team is AI-proposed and only sent after you confirm (no self-serve open ticket).',
+      'If this search still does not fix it, use Still not resolved — escalation is offered only after two unsuccessful attempts, and a ticket is sent only if you confirm.',
     ],
   })
 
@@ -108,25 +109,46 @@ export function getBestSupportSimilarity(results: SupportKBResultItem[]): number
   return Math.max(...sims, 0)
 }
 
-export interface EscalationProposalInput {
-  bestSimilarity: number | null
-  attemptCount: number
-  supportOutcome: SupportKBQueryOutcome | null
-  userMarkedUnresolved: boolean
+/**
+ * True when the combined KB + support-AI cycle is unresolved for escalation counting.
+ * Uses: bad/weak/empty retrieval OR failed/empty AI answer (user "still not resolved" is tracked separately).
+ */
+export function isHelpSupportSearchCycleUnresolved(
+  supportOutcome: SupportKBQueryOutcome,
+  bestSimilarity: number | null,
+  aiOutcome: HelpSupportAiOutcome | null,
+): boolean {
+  if (isUnresolvedRetrievalOutcome(supportOutcome, bestSimilarity)) return true
+  if (!aiOutcome) return true
+  if (aiOutcome.ok === false) return true
+  return !aiOutcome.text.trim()
 }
 
 /**
- * Escalation is proposed when retrieval confidence is low, the user says the issue is unresolved,
- * or a second support search still fails to resolve (weak/empty/error).
+ * Hybrid gate: escalation is offered only after two "still not resolved" clicks
+ * OR two completed support searches that each ended unresolved (session counters).
  */
-export function shouldProposeEscalation(input: EscalationProposalInput): boolean {
-  const { bestSimilarity, attemptCount, supportOutcome, userMarkedUnresolved } = input
-  if (userMarkedUnresolved) return true
-  if (supportOutcome && supportOutcome.ok === false) return true
-  if (supportOutcome?.ok === true && supportOutcome.data.results.length === 0) return true
-  if (bestSimilarity !== null && bestSimilarity < ESCALATION_CONFIDENCE_THRESHOLD) return true
-  if (attemptCount < 2 || !supportOutcome) return false
-  return supportOutcome.ok === true && isWeakOrEmptyRetrieval(supportOutcome.data.results)
+export function hybridHelpEscalationGateMet(input: {
+  stillNotResolvedClicks: number
+  unresolvedCompletedSearchCount: number
+}): boolean {
+  return input.stillNotResolvedClicks >= 2 || input.unresolvedCompletedSearchCount >= 2
+}
+
+/**
+ * Whether the Help Center should show the escalation proposal (before confirm-before-ticket).
+ * Requires a completed support outcome and the hybrid two-attempt gate.
+ */
+export function shouldProposeHelpEscalation(input: {
+  supportOutcome: SupportKBQueryOutcome | null
+  stillNotResolvedClicks: number
+  unresolvedCompletedSearchCount: number
+}): boolean {
+  if (!input.supportOutcome) return false
+  return hybridHelpEscalationGateMet({
+    stillNotResolvedClicks: input.stillNotResolvedClicks,
+    unresolvedCompletedSearchCount: input.unresolvedCompletedSearchCount,
+  })
 }
 
 /**

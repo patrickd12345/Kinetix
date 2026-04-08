@@ -2,7 +2,7 @@
 
 **Source of truth:** This file is reconstructed from the Kinetix repo, `docs/deployment/*`, feature lists, and recent `git` history. Umbrella-only standards are referenced by path where they live outside this clone.
 
-**Last reviewed:** 2026-04-04 (repo scan).
+**Last reviewed:** 2026-04-08 (Help Center closeout).
 
 ---
 
@@ -17,7 +17,7 @@ Kinetix is a **running-first personal performance** product: normalize effort vi
 **In scope (as implemented or actively maintained in this repo):**
 
 - **Web (`apps/web`):** Vite + React SPA; GPS run recording; history, filters, charts; KPS per [`KPS_CONTRACT.md`](../KPS_CONTRACT.md) and [`packages/core`](../packages/core); Garmin ZIP / `.fit` import; Strava OAuth + import; Withings OAuth + weight history; AI coach paths (local Ollama and/or gateway); Help Center / support flows as wired to RAG and APIs.
-- **RAG (`apps/rag`):** HTTP service — run indexing (`kinetix_runs`), help KB collection (`kinetix_support_kb`), LLM provider (`ollama` / `gateway`), Chroma embeddings. Support ticket endpoints writing **`kinetix.support_tickets`** (service role) per [`apps/rag/README.md`](../apps/rag/README.md).
+- **RAG (`apps/rag`):** HTTP service — run indexing (`kinetix_runs`), help KB collection (`kinetix_support_kb`), LLM provider (`ollama` / `gateway`), Chroma embeddings. Support ticket endpoints write **`kinetix.support_tickets`** first, then fan out Slack/email notification status per [`apps/rag/README.md`](../apps/rag/README.md).
 - **Serverless API (`api/`):** Vercel functions — billing checkout, Strava/Withings OAuth helpers, `ai-chat` / `ai-coach`, admlog (non-prod), shared `_lib` (Stripe, Supabase JWT user, AI/memory boundary). See `vercel.json` rewrites.
 - **Shared core (`packages/core`):** KPS math, location/physio helpers consumed by web (and intended for parity with native).
 - **Native:** `ios/KinetixPhone`, `watchos/KinetixWatch` — sensor-rich coaching and sync (see [`FEATURES_PHONE.md`](../FEATURES_PHONE.md), [`FEATURES_WATCH.md`](../FEATURES_WATCH.md)).
@@ -60,7 +60,8 @@ Kinetix is a **running-first personal performance** product: normalize effort vi
 
 - **`platform.profiles`** — profile rows keyed to auth user id (`apps/web/src/lib/platformAuth.ts`, `api/_lib/platformAuth.ts`).
 - **`platform.entitlements`** — `product_key = 'kinetix'` for subscription gating (`platformAuth.ts`, [`STRIPE_KINETIX_ENTITLEMENTS.md`](deployment/STRIPE_KINETIX_ENTITLEMENTS.md)).
-- **`kinetix.support_tickets`** — RAG support ticket creation (`apps/rag/README.md`).
+- **`kinetix.support_tickets`** — authoritative Help Center escalation records, operator notes, notification state, and KB approval state (`apps/rag/README.md`).
+- **`kinetix.support_kb_approval_bin`** — operator-reviewed drafts for reusable support knowledge before ingest (`apps/web/HELP_CENTER_ARCHITECTURE.md`).
 
 **KPS:** Computed from run facts + profile; display uses **relative KPS** vs PB per [`KPS_CONTRACT.md`](../KPS_CONTRACT.md) — not authoritative stored display state.
 
@@ -119,6 +120,9 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 - RAG collections split (runs vs support KB) — `apps/rag/README.md`.
 - Stripe checkout + Bookiji single-webhook entitlements design — [`STRIPE_KINETIX_ENTITLEMENTS.md`](deployment/STRIPE_KINETIX_ENTITLEMENTS.md).
 - Optional song BPM fields (web feature list + validation rules described in `FEATURES_WEB.md`).
+- Help Center web support flow shipped: `/help` retrieval + deterministic fallback + explicit-confirmation escalation + authoritative ticket create.
+- Operator queue shipped: `/support-queue` with status updates, internal notes, notification retry, deep-linked queue access, and resolved-only KB approval-bin moves.
+- Curated KB reinjection shipped for v1: approval drafts in `kinetix.support_kb_approval_bin` and manual ingest into `kinetix_support_kb`.
 
 ---
 
@@ -126,6 +130,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 
 - **Subscription gating and billing UX** end-to-end in production tiers (code exists; operator checklist in deployment docs).
 - **AI analysis reliability** — gateway envs, E2E allowances when AI gateway missing (see recent test/commit messages).
+- **Help Center ops hardening** — operator assignment/SLA/analytics, richer CMS authoring for fallback and KB drafts, and bulk ingest automation for support corpus artifacts.
 - **Platform standard adoption** — `PRODUCT_SCOPE.md`: CI baseline, env contract, observability, feature flags, error contract marked **Partial**.
 - **Doc hygiene:** Keep `PRODUCT_SCOPE.md` platform table aligned with deployment docs when billing or spine changes land.
 
@@ -133,9 +138,10 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 
 ## Next Priorities
 
-1. Close **Partial** rows in `PRODUCT_SCOPE.md` with measurable criteria (tests, dashboards, error contract coverage).
-2. Web **map** and **export** (GPX/TCX) when prioritizing parity with user expectations (`FEATURES_WEB.md` future list).
-3. **`pnpm run verify:vercel-parity`** on any change to `scripts/vercel-install.sh`, workspace packages, or `@bookiji-inc/*` consumption.
+1. Close the remaining Help Center v1 follow-ups: operator assignment/SLA/analytics, richer KB authoring, and corpus ingest automation.
+2. Close **Partial** rows in `PRODUCT_SCOPE.md` with measurable criteria (tests, dashboards, error contract coverage).
+3. Web **map** and **export** (GPX/TCX) when prioritizing parity with user expectations (`FEATURES_WEB.md` future list).
+4. **`pnpm run verify:vercel-parity`** on any change to `scripts/vercel-install.sh`, workspace packages, or `@bookiji-inc/*` consumption.
 
 ---
 

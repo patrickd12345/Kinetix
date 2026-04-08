@@ -76,6 +76,9 @@ importers:
       '@bookiji-inc/ai-core':
         specifier: workspace:*
         version: link:../../products/Kinetix/monorepo-packages/ai-core
+      '@bookiji-inc/observability':
+        specifier: workspace:*
+        version: link:../../products/Kinetix/monorepo-packages/observability
     devDependencies:
       '@types/node':
         specifier: ^20.19.35
@@ -137,6 +140,9 @@ importers:
 
   ../../packages/platform-auth:
     dependencies:
+      '@supabase/node-fetch':
+        specifier: ^2.6.13
+        version: 2.6.13
       '@supabase/supabase-js':
         specifier: ^2.45.0
         version: 2.95.3
@@ -342,6 +348,9 @@ importers:
       '@bookiji-inc/ai-core':
         specifier: workspace:*
         version: link:../ai-core
+      '@bookiji-inc/observability':
+        specifier: workspace:*
+        version: link:../observability
     devDependencies:
       '@types/node':
         specifier: ^20.19.35
@@ -1163,6 +1172,10 @@ packages:
   '@supabase/functions-js@2.95.3':
     resolution: {integrity: sha512-uTuOAKzs9R/IovW1krO0ZbUHSJnsnyJElTXIRhjJTqymIVGcHzkAYnBCJqd7468Fs/Foz1BQ7Dv6DCl05lr7ig==}
     engines: {node: '>=20.0.0'}
+
+  '@supabase/node-fetch@2.6.13':
+    resolution: {integrity: sha512-rEHQaDVzxLZMCK3p+JW2nzEsK4AJpOQhetppaqAzrFum0Ub8wcnoM/8f1dWRZSulY5fRDP6rJaWT/8X3VleCzg==}
+    engines: {node: 4.x || >=6.0.0}
 
   '@supabase/postgrest-js@2.95.3':
     resolution: {integrity: sha512-LTrRBqU1gOovxRm1vRXPItSMPBmEFqrfTqdPTRtzOILV4jPSueFz6pES5hpb4LRlkFwCPRmv3nQJ5N625V2Xrg==}
@@ -4306,6 +4319,10 @@ snapshots:
   '@supabase/functions-js@2.95.3':
     dependencies:
       tslib: 2.8.1
+
+  '@supabase/node-fetch@2.6.13':
+    dependencies:
+      whatwg-url: 5.0.0
 
   '@supabase/postgrest-js@2.95.3':
     dependencies:

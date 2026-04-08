@@ -314,6 +314,8 @@ For detailed feature lists and comparisons across platforms:
 - **[Architecture overview](ARCHITECTURE.md)** - How Watch, iPhone, and web fit together (canonical web path: `apps/web/`)
 - **[Web apps: canonical vs legacy](docs/WEB_APPS.md)** - `apps/web` vs `archive/web-legacy/` and RAG wiring
 - **[RAG service](apps/rag/README.md)** - HTTP API, collections, and local run instructions
+- **[Help Center contract](apps/web/HELP_CENTER.md)** - Shipped `/help` and `/support-queue` support flow
+- **[Help Center operations](docs/HELP_CENTER_OPERATIONS.md)** - Operator queue, notification retry, and KB approval runbook
 - **[Product scope](PRODUCT_SCOPE.md)** - What is in scope for audits and platform work
 - **[KPS contract](KPS_CONTRACT.md)** - Non-negotiable KPS behavior (also linked under KPS above)
 - **[Deployment and platform index](docs/deployment/README.md)** - SSO, Infisical, Stripe entitlements, verification checklists

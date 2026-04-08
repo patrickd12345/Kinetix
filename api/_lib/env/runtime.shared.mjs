@@ -63,5 +63,12 @@ export function resolveKinetixRuntimeEnvFromObject(env = getDefaultEnv()) {
     kinetixStripePriceId: pick(env, ['KINETIX_STRIPE_PRICE_ID']),
     /** Ops-only secret for RAG PATCH /support/ticket/:id/status (see apps/rag README). */
     kinetixSupportOpsSecret: pick(env, ['KINETIX_SUPPORT_OPS_SECRET']),
+    kinetixSupportOperatorUserIds: pick(env, ['KINETIX_SUPPORT_OPERATOR_USER_IDS']),
+    kinetixSupportSlackWebhookUrl: pick(env, ['KINETIX_SUPPORT_SLACK_WEBHOOK_URL']),
+    kinetixSupportEmailTo: pick(env, ['KINETIX_SUPPORT_EMAIL_TO']),
+    kinetixSupportEmailFrom: pick(env, ['KINETIX_SUPPORT_EMAIL_FROM']),
+    resendApiKey: pick(env, ['RESEND_API_KEY']),
+    kinetixAppBaseUrl: pick(env, ['KINETIX_APP_BASE_URL', 'VITE_APP_BASE_URL']),
+    kinetixRagBaseUrl: pick(env, ['KINETIX_RAG_BASE_URL', 'VITE_RAG_SERVICE_URL']),
   }
 }

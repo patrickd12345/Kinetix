@@ -20,7 +20,7 @@
     "clean": "pnpm -r clean",
     "check:no-local-ai-core": "node scripts/check-no-local-ai-core.mjs",
     "verify:vercel-parity": "node scripts/verify-vercel-parity.mjs",
-    "smoke:persistent-memory": "tsx api/smoke-persistent-memory.ts"
+    "smoke:persistent-memory": "tsx scripts/smoke-persistent-memory.ts"
   },
   "dependencies": {
     "@bookiji-inc/error-contract": "workspace:*",

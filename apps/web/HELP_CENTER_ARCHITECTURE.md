@@ -84,7 +84,7 @@ Any rollout, migration, or env change must preserve those semantics.
 - Client: `apps/web/src/lib/supportQueueClient.ts`
 - Operator auth: `api/_lib/supportOperator.ts`
 - Queue store: `api/_lib/supportQueueStore.ts`
-- Queue routes: `api/support-queue/tickets/*`
+- Queue routes (Vercel): single handler [`api/support-queue/tickets/[[...segments]].ts`](../../api/support-queue/tickets/[[...segments]].ts) — dispatches the same public paths as before: `GET /api/support-queue/tickets`, `GET|PATCH /api/support-queue/tickets/:ticketId`, `POST /api/support-queue/tickets/:ticketId/move-to-kb-bin`, `POST /api/support-queue/tickets/:ticketId/retry-notifications`.
 
 ---
 
@@ -164,6 +164,15 @@ Run analysis and support knowledge stay separate.
 | KB curation staging | `kinetix.support_kb_approval_bin` | Operator-reviewed drafts before ingest |
 
 Support content must never be inserted into `kinetix_runs`, and raw tickets must never be auto-ingested into `kinetix_support_kb`.
+
+---
+
+## Withings API (Vercel)
+
+OAuth code exchange and token refresh share one serverless handler for Hobby plan function-count limits:
+
+- Handler: [`api/withings/index.ts`](../../api/withings/index.ts) (`POST /api/withings` — branch on `code` vs `refresh_token`).
+- Production [`vercel.json`](../../vercel.json) **rewrites** preserve legacy paths: `/api/withings-oauth` and `/api/withings-refresh` both route to `/api/withings`. Web clients and local dev middleware continue to call the legacy URLs.
 
 ---
 

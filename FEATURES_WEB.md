@@ -69,6 +69,7 @@
 - ✅ **Authoritative ticket persistence**: `POST /support/ticket/create` stores the ticket first, then records Slack/email delivery state without rollback on notification failure
 - ✅ **Operator queue**: `/support-queue` supports operator-only ticket review, status changes, internal notes, notification retry, and deep-linked ticket selection from notification URLs
 - ✅ **KB approval bin**: Resolved tickets can move into a curated approval draft flow before manual ingest into `kinetix_support_kb`
+- ✅ **Vercel Hobby API layout**: Production deploy uses **12** serverless route files under root `api/` (excluding `api/_lib`), including merged Withings handler + rewrites and a single tickets catch-all; see `vercel.json` and [`apps/web/HELP_CENTER_ARCHITECTURE.md`](apps/web/HELP_CENTER_ARCHITECTURE.md).
 
 ### Data Persistence
 - ✅ **localStorage**: Run data and settings stored locally

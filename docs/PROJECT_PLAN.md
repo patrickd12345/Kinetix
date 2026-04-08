@@ -2,7 +2,7 @@
 
 **Source of truth:** This file is reconstructed from the Kinetix repo, `docs/deployment/*`, feature lists, and recent `git` history. Umbrella-only standards are referenced by path where they live outside this clone.
 
-**Last reviewed:** 2026-04-08 (Help Center closeout).
+**Last reviewed:** 2026-04-08 (Help Center closeout + Vercel Hobby API consolidation verified on production).
 
 ---
 
@@ -18,7 +18,7 @@ Kinetix is a **running-first personal performance** product: normalize effort vi
 
 - **Web (`apps/web`):** Vite + React SPA; GPS run recording; history, filters, charts; KPS per [`KPS_CONTRACT.md`](../KPS_CONTRACT.md) and [`packages/core`](../packages/core); Garmin ZIP / `.fit` import; Strava OAuth + import; Withings OAuth + weight history; AI coach paths (local Ollama and/or gateway); Help Center / support flows as wired to RAG and APIs.
 - **RAG (`apps/rag`):** HTTP service — run indexing (`kinetix_runs`), help KB collection (`kinetix_support_kb`), LLM provider (`ollama` / `gateway`), Chroma embeddings. Support ticket endpoints write **`kinetix.support_tickets`** first, then fan out Slack/email notification status per [`apps/rag/README.md`](../apps/rag/README.md).
-- **Serverless API (`api/`):** Vercel functions — billing checkout, Strava/Withings OAuth helpers, `ai-chat` / `ai-coach`, admlog (non-prod), shared `_lib` (Stripe, Supabase JWT user, AI/memory boundary). See `vercel.json` rewrites.
+- **Serverless API (`api/`):** Vercel functions — billing checkout, Strava/Withings OAuth helpers, `ai-chat` / `ai-coach`, admlog (non-prod), shared `_lib` (Stripe, Supabase JWT user, AI/memory boundary). As of 2026-04-08 the **deployed** route file count under `api/` (excluding `_lib`) is **12**, within the Vercel Hobby cap. See `vercel.json` rewrites.
 - **Shared core (`packages/core`):** KPS math, location/physio helpers consumed by web (and intended for parity with native).
 - **Native:** `ios/KinetixPhone`, `watchos/KinetixWatch` — sensor-rich coaching and sync (see [`FEATURES_PHONE.md`](../FEATURES_PHONE.md), [`FEATURES_WATCH.md`](../FEATURES_WATCH.md)).
 
@@ -123,6 +123,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 - Help Center web support flow shipped: `/help` retrieval + deterministic fallback + explicit-confirmation escalation + authoritative ticket create.
 - Operator queue shipped: `/support-queue` with status updates, internal notes, notification retry, deep-linked queue access, and resolved-only KB approval-bin moves.
 - Curated KB reinjection shipped for v1: approval drafts in `kinetix.support_kb_approval_bin` and manual ingest into `kinetix_support_kb`.
+- Vercel **Hobby** serverless footprint reduced to **12** `api/**/*.ts` handlers (excluding `_lib`): smoke script moved out of `api/`, Withings oauth+refresh merged to `api/withings` with rewrites preserving client URLs, support-queue **tickets** subtree merged to `api/support-queue/tickets/[[...segments]].ts` with unchanged public ticket paths.
 
 ---
 
@@ -148,7 +149,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 ## Technical Debt
 
 - **Scope doc vs code:** `PRODUCT_SCOPE.md` Stripe row was reconciled with checkout + Bookiji webhook docs (2026-04-04); re-check after major billing changes.
-- **Web feature list freshness:** `FEATURES_WEB.md` last updated **2026-03-05** — re-audit against `apps/web` after large UI/auth changes.
+- **Web feature list freshness:** `FEATURES_WEB.md` last updated **2026-04-08** — re-audit against `apps/web` after large UI/auth changes.
 - **Simulated HR on web** — blocks serious physio parity until Web Bluetooth or manual inputs expand.
 - **No in-repo Supabase migration inventory** for `platform.*` / `kinetix.*` — risk of unclear ownership when schema changes (TODO: pointer to umbrella migration repo).
 

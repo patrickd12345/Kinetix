@@ -13,6 +13,12 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 - Shared scoring/runtime logic lives in `packages/core`.
 - Contributor rules and deployment truth are tracked in [`REPO_STATUS.md`](REPO_STATUS.md).
 
+## Help Center and support (web)
+
+- End-user Help Center and behavior contract: [`apps/web/HELP_CENTER.md`](apps/web/HELP_CENTER.md), [`apps/web/HELP_CENTER_ARCHITECTURE.md`](apps/web/HELP_CENTER_ARCHITECTURE.md)
+- Operator runbook: [`docs/HELP_CENTER_OPERATIONS.md`](docs/HELP_CENTER_OPERATIONS.md)
+- Product roadmap and status: [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md)
+
 ## 🚀 Core Features
 
 ### 🧠 Intelligent Coaching System

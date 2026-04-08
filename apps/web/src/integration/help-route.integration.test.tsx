@@ -11,8 +11,9 @@ function renderHelpAtHelpPath() {
     session: { user: { id: 'u1' } } as AuthContextValue['session'],
     profile: { id: 'u1', age: 35, weight_kg: 70 },
     error: null,
-    signInWithPassword: vi.fn(),
-    signUp: vi.fn(),
+    sendMagicLink: vi.fn(),
+    signInWithOAuth: vi.fn(),
+    oauthProviders: { google: false, apple: false, microsoft: false },
     signOut: vi.fn(),
     refresh: vi.fn(),
   }

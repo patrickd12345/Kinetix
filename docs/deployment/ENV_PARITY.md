@@ -15,6 +15,14 @@ In the Kinetix Vercel project (or wherever the web app is deployed), set:
 | `VITE_SUPABASE_URL` | Same as Bookiji `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Same as Bookiji `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 
+Optional (identity UI): set to `true` or `1` to show the matching OAuth button on the login screen. If unset or false, that provider is hidden.
+
+| Variable | Notes |
+|----------|--------|
+| `VITE_AUTH_GOOGLE_ENABLED` | Show Continue with Google |
+| `VITE_AUTH_APPLE_ENABLED` | Show Continue with Apple |
+| `VITE_AUTH_MICROSOFT_ENABLED` | Show Continue with Microsoft (Supabase provider `azure`) |
+
 The Kinetix web client ([`apps/web/src/lib/supabaseClient.ts`](../../apps/web/src/lib/supabaseClient.ts)) reads `VITE_*` first and falls back to `NEXT_PUBLIC_*`. For Vite builds, set the `VITE_*` pair; you can also set `NEXT_PUBLIC_*` to the same values so both names work.
 
 ## Admlog (`GET /api/admlog`)
@@ -39,6 +47,18 @@ For login to work when running the app locally (`pnpm dev:web` or similar):
 
 1. Use the same values in `apps/web/.env.local`: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (same as production).
 2. In the Bookiji Supabase project: **Authentication** → **URL Configuration** → **Redirect URLs**, add `http://localhost:5173` and `http://localhost:5173/**` (or your dev server port). Otherwise Supabase will not redirect back to localhost after sign-in.
+3. In the Bookiji Supabase project: **Authentication** → **Providers**
+   - enable Email magic link / OTP
+   - disable email/password sign-in and password reset/recovery flows
+   - enable Google/Apple/Microsoft only when the provider credentials are configured
+
+## Identity standard in Kinetix web
+
+Kinetix web follows the Bookiji identity standard:
+
+- primary login: email magic link (passwordless)
+- optional login: Google, Apple, Microsoft (only shown when enabled in app env)
+- unsupported: password login, password reset, username/password signup
 
 ## If these differ
 

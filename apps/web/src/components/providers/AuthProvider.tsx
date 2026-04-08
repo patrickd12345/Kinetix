@@ -8,7 +8,7 @@ import {
 } from '../../lib/platformAuth'
 import type { PlatformProfileRecord } from '../../lib/kinetixProfile'
 import { setActivePlatformProfile } from '../../lib/authState'
-import { AuthContext, type AuthContextValue } from './useAuth'
+import { AuthContext, type AuthContextValue, type OAuthProviderAvailability } from './useAuth'
 
 type AuthStatus = 'loading' | 'unauthenticated' | 'authenticated' | 'forbidden' | 'error'
 
@@ -54,6 +54,17 @@ async function resolveAccess(userId: string): Promise<ResolveAccessResult> {
 }
 
 const SKIP_AUTH = import.meta.env.VITE_SKIP_AUTH === '1' || import.meta.env.VITE_SKIP_AUTH === 'true'
+const OAUTH_PROVIDERS: OAuthProviderAvailability = {
+  google:
+    import.meta.env.VITE_AUTH_GOOGLE_ENABLED === '1' ||
+    import.meta.env.VITE_AUTH_GOOGLE_ENABLED === 'true',
+  apple:
+    import.meta.env.VITE_AUTH_APPLE_ENABLED === '1' ||
+    import.meta.env.VITE_AUTH_APPLE_ENABLED === 'true',
+  microsoft:
+    import.meta.env.VITE_AUTH_MICROSOFT_ENABLED === '1' ||
+    import.meta.env.VITE_AUTH_MICROSOFT_ENABLED === 'true',
+}
 
 const MOCK_BYPASS_PROFILE: PlatformProfileRecord = {
   id: 'bypass-dev',
@@ -151,17 +162,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [hydrateFromSession])
 
-  const signInWithPassword = useCallback(async (email: string, password: string) => {
+  const sendMagicLink = useCallback(async (email: string, nextPath?: string) => {
     if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    if (signInError) throw signInError
+    const redirectTarget = new URL('/login', window.location.origin)
+    if (nextPath) {
+      redirectTarget.searchParams.set('next', nextPath)
+    }
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTarget.toString(),
+      },
+    })
+    if (otpError) throw otpError
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
-    const { error: signUpError } = await supabase.auth.signUp({ email, password })
-    if (signUpError) throw signUpError
-  }, [])
+  const signInWithOAuth = useCallback(
+    async (provider: 'google' | 'apple' | 'microsoft', nextPath?: string) => {
+      if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
+      const redirectTarget = new URL('/login', window.location.origin)
+      if (nextPath) {
+        redirectTarget.searchParams.set('next', nextPath)
+      }
+      const providerKey = provider === 'microsoft' ? 'azure' : provider
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: providerKey,
+        options: { redirectTo: redirectTarget.toString() },
+      })
+      if (oauthError) throw oauthError
+    },
+    []
+  )
 
   const signOut = useCallback(async () => {
     if (SKIP_AUTH) return
@@ -176,12 +207,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       profile,
       error,
-      signInWithPassword,
-      signUp,
+      sendMagicLink,
+      signInWithOAuth,
+      oauthProviders: OAUTH_PROVIDERS,
       signOut,
       refresh,
     }),
-    [status, session, profile, error, signInWithPassword, signUp, signOut, refresh]
+    [status, session, profile, error, sendMagicLink, signInWithOAuth, signOut, refresh]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -9,8 +9,9 @@ function renderWithAuth(value: Partial<AuthContextValue>) {
     session: null,
     profile: null,
     error: null,
-    signInWithPassword: async () => {},
-    signUp: async () => {},
+    sendMagicLink: async () => {},
+    signInWithOAuth: async () => {},
+    oauthProviders: { google: false, apple: false, microsoft: false },
     signOut: async () => {},
     refresh: async () => {},
   }
@@ -31,8 +32,8 @@ describe('App entry guards', () => {
       profile: null,
       error: null,
       session: { user: { id: 'user-1', email: 'runner@example.com' } } as AuthContextValue['session'],
-      signInWithPassword: vi.fn(),
-      signUp: vi.fn(),
+      sendMagicLink: vi.fn(),
+      signInWithOAuth: vi.fn(),
       signOut: vi.fn(),
       refresh: vi.fn(),
     })

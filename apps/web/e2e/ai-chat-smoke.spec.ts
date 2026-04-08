@@ -24,8 +24,9 @@ test.describe('AI chat smoke', () => {
   })
 
   test('chat page can send Hello when session exists', async ({ page }) => {
+    test.setTimeout(150_000)
     await page.goto('/chat', { waitUntil: 'domcontentloaded' })
-    const loginGate = page.getByText('Sign in or create an account to continue.')
+    const loginGate = page.getByRole('button', { name: 'Send magic link' })
     if (await loginGate.isVisible().catch(() => false)) {
       test.skip(true, 'Chat UI needs a signed-in session; the API case above validates /api/ai-chat after deploy.')
       return

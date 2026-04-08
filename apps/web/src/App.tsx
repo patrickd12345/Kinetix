@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AdSenseScript from './components/ads/AdSenseScript'
 import Layout from './components/Layout'
 import RunDashboard from './pages/RunDashboard'
@@ -43,6 +43,7 @@ function FullscreenStatus({
 
 function ProtectedRoutes() {
   const { status, error, profile } = useAuth()
+  const location = useLocation()
 
   if (status === 'loading') {
     return <FullscreenStatus title="Loading identity..." message="Checking your account and platform access." />
@@ -59,7 +60,8 @@ function ProtectedRoutes() {
   }
 
   if (status === 'unauthenticated') {
-    return <Navigate to="/login" replace />
+    const next = `${location.pathname}${location.search}${location.hash}`
+    return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />
   }
 
   if (status === 'forbidden') {

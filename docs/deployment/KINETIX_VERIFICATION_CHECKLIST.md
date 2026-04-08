@@ -27,7 +27,11 @@ This confirms that:
 ## Optional: login from kinetix subdomain
 
 1. Log out from Bookiji/Kinetix.
-2. Open `https://kinetix.bookiji.com` and sign in (email/password or configured provider).
+2. Open `https://kinetix.bookiji.com` and sign in with email magic link (or configured OAuth provider).
 3. **Confirm:** Redirect back to kinetix.bookiji.com and app loads with profile and entitlement.
 
 If this fails, check Supabase Auth redirect URLs include `https://kinetix.bookiji.com` and `https://kinetix.bookiji.com/**`.
+
+## Supabase Auth (shared Bookiji project)
+
+In **Authentication** → **Providers**: email magic link / OTP on; email+password and password recovery off. Enable Google, Apple, or Azure (Microsoft) only when credentials exist. In **URL Configuration**, allow the Kinetix origin and `/**` patterns (see [ENV_PARITY.md](./ENV_PARITY.md)).

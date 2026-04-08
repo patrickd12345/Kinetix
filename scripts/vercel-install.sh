@@ -48,7 +48,9 @@ fi
 
 # Pin pnpm 10.x via npx (avoids corepack writing under Program Files on Windows → EPERM; same on Vercel/Linux).
 # pnpm treats lockfile as frozen when CI=true unless --no-frozen-lockfile is passed.
-if [ -n "${PNPM_NO_FROZEN_LOCKFILE:-}" ]; then
+# On Vercel, Bookiji-inc is cloned fresh; Kinetix's committed lockfile can lag umbrella main (e.g. ai-runtime deps).
+# Reconcile here unless explicitly forcing frozen via PNPM_NO_FROZEN_LOCKFILE=0 and a matching lockfile.
+if [ -n "${PNPM_NO_FROZEN_LOCKFILE:-}" ] || [ -n "${VERCEL:-}" ]; then
   npx -y pnpm@10.30.3 install --no-frozen-lockfile
 else
   npx -y pnpm@10.30.3 install --frozen-lockfile

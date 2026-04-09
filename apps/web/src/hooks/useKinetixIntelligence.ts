@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getAllVisibleRunsOrdered, db, type RunRecord, RUN_VISIBLE } from '../lib/database'
-import { getProfileForRun } from '../lib/authState'
+import { getActivePlatformProfile, getProfileForRun } from '../lib/authState'
 import { calculateRelativeKPSSync, getPB, isMeaningfulRunForKPS } from '../lib/kpsUtils'
 import { computeIntelligence } from '../lib/intelligence/intelligenceEngine'
+import { buildIntelligenceHealthSignals } from '../lib/intelligence/healthMetricSignals'
 import type { IntelligenceResult, KpsSample } from '../lib/intelligence/types'
 
 function toKpsSample(run: RunRecord, kps: number): KpsSample {
@@ -40,6 +41,8 @@ export function useKinetixIntelligence() {
           if (!Number.isFinite(relativeKps) || relativeKps <= 0) continue
           nextSamples.push(toKpsSample(run, relativeKps))
         }
+        const activeProfile = getActivePlatformProfile()
+        if (activeProfile?.id) await buildIntelligenceHealthSignals(activeProfile.id)
 
         if (cancelled) return
         setSamples(nextSamples)

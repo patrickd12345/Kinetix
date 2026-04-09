@@ -18,14 +18,12 @@ import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
 import { getRunsPage } from '../lib/database'
 import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
-import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
 import ThemeSelector from './ThemeSelector'
 import AdSenseDisplayUnit from './ads/AdSenseDisplayUnit'
 
 const RAG_SYNC_PAGE_SIZE = 200
 const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
-const WITHINGS_STARTUP_RETRY_DELAYS_MS = [0, 1500, 4000, 8000, 12000] as const
 
 interface LayoutProps {
   children: ReactNode
@@ -40,9 +38,6 @@ export default function Layout({ children }: LayoutProps) {
     targetKPS,
     setStravaSyncError,
     settingsRehydrated,
-    withingsCredentials,
-    setWithingsCredentials,
-    setLastWithingsWeightKg,
   } = useSettingsStore()
   const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : session?.user.email ?? 'User'
 
@@ -98,49 +93,6 @@ export default function Layout({ children }: LayoutProps) {
     }
     return scheduleStartupAttempts([...STRAVA_STARTUP_RETRY_DELAYS_MS], runSync)
   }, [profile, stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated])
-
-  // Background Withings sync on startup: token refresh, recent history → IndexedDB, latest weight → settings.
-  const withingsWeightSyncDoneRef = useRef(false)
-  const withingsCredsKeyRef = useRef<string | null>(null)
-  useEffect(() => {
-    const key = withingsCredentials?.refreshToken ?? ''
-    if (key !== withingsCredsKeyRef.current) {
-      withingsCredsKeyRef.current = key || null
-      withingsWeightSyncDoneRef.current = false
-    }
-  }, [withingsCredentials?.refreshToken])
-
-  useEffect(() => {
-    if (!settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') {
-      return
-    }
-    if (withingsWeightSyncDoneRef.current) {
-      return
-    }
-
-    const run = async () => {
-      if (withingsWeightSyncDoneRef.current) return true
-      try {
-        const { latestKg, historyEntriesSynced } = await syncWithingsWeightsAtStartup(
-          withingsCredentials,
-          (c) => setWithingsCredentials(c)
-        )
-        if (latestKg != null) setLastWithingsWeightKg(latestKg)
-        if (historyEntriesSynced > 0) {
-          console.log('[Withings] Synced', historyEntriesSynced, 'weight row(s) into history')
-        } else if (latestKg != null) {
-          console.log('[Withings] Latest weight updated:', latestKg.toFixed(1), 'kg')
-        }
-        window.dispatchEvent(new CustomEvent(WITHINGS_WEIGHTS_SYNCED_EVENT))
-        withingsWeightSyncDoneRef.current = true
-        return true
-      } catch (e) {
-        console.warn('[Withings] Startup sync failed:', e instanceof Error ? e.message : e)
-        return false
-      }
-    }
-    return scheduleStartupAttempts([...WITHINGS_STARTUP_RETRY_DELAYS_MS], run)
-  }, [settingsRehydrated, withingsCredentials, setWithingsCredentials, setLastWithingsWeightKg])
 
   const navItems = [
     { path: '/', icon: Activity, label: 'Run' },

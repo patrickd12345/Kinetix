@@ -6,6 +6,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
 import { useWithingsAuth } from '../hooks/useWithingsAuth'
 import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
+import { syncWithingsData } from '../lib/integrations/withings/sync'
+import { evaluateWithingsSyncPolicy, isValidLocalTimeHHMM, normalizeSyncTimes } from '../lib/integrations/withings/syncPolicy'
+import { runManualSyncOnce } from '../lib/integrations/withings/manualSync'
 import { importGarminFromZipFile, importGarminFromFitFile, isGarminFitFile } from '../lib/garminImport'
 import { convertGarminToRunRecord } from '../lib/garmin'
 import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
@@ -16,6 +19,7 @@ import { hideRun, bulkPutWeightEntries, getWeightHistoryCount, backfillRunWeight
 import { getProfileForRunDate } from '../lib/authState'
 import { formatDistance, formatTime } from '@kinetix/core'
 import { Dialog } from '../components/a11y/Dialog'
+import { featureFlags } from '../lib/featureFlags'
 
 export default function Settings() {
   const {
@@ -43,6 +47,14 @@ export default function Settings() {
     setLastWithingsWeightKg,
     weightUnit,
     setWeightUnit,
+    withingsExpandedSyncEnabled,
+    setWithingsExpandedSyncEnabled,
+    withingsSyncTimes,
+    setWithingsSyncTimes,
+    lastSuccessfulWithingsSyncAt,
+    setLastSuccessfulWithingsSyncAt,
+    lastSuccessfulWithingsScheduledSlotKey,
+    setLastSuccessfulWithingsScheduledSlotKey,
   } = useSettingsStore()
   const { profile, session } = useAuth()
   const [importing, setImporting] = useState(false)
@@ -54,10 +66,14 @@ export default function Settings() {
   const { initiateOAuth, handleOAuthCallback } = useStravaAuth()
   const { initiateOAuth: initiateWithingsOAuth, handleOAuthCallback: handleWithingsCallback, disconnect: disconnectWithings } = useWithingsAuth()
   const [withingsRefreshing, setWithingsRefreshing] = useState(false)
+  const [withingsExpandedSyncStatus, setWithingsExpandedSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'failure'>('idle')
+  const [withingsExpandedSyncMessage, setWithingsExpandedSyncMessage] = useState<string | null>(null)
+  const [withingsSyncTimeErrors, setWithingsSyncTimeErrors] = useState<[string | null, string | null]>([null, null])
   const [weightHistoryCount, setWeightHistoryCount] = useState<number | null>(null)
   const [weightImporting, setWeightImporting] = useState(false)
   const [weightBackfilling, setWeightBackfilling] = useState(false)
   const weightHistoryFileRef = useRef<HTMLInputElement>(null)
+  const withingsManualSyncGate = useRef({ inFlight: false })
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -78,23 +94,8 @@ export default function Settings() {
 
     if (state === 'withings') {
       handleWithingsCallback(code)
-        .then(async () => {
-          setImportMessage('Withings connected. Fetching latest weight…')
-          const creds = useSettingsStore.getState().withingsCredentials
-          if (creds) {
-            const { latestKg, historyEntriesSynced } = await syncWithingsWeightsAtStartup(creds, (c) =>
-              useSettingsStore.getState().setWithingsCredentials(c)
-            )
-            if (latestKg != null) useSettingsStore.getState().setLastWithingsWeightKg(latestKg)
-            window.dispatchEvent(new CustomEvent(WITHINGS_WEIGHTS_SYNCED_EVENT))
-            setImportMessage(
-              latestKg != null
-                ? `Withings connected. Weight: ${latestKg.toFixed(1)} kg (${historyEntriesSynced} row(s) in history).`
-                : 'Withings connected. No weight data yet.'
-            )
-          } else {
-            setImportMessage('Withings connected.')
-          }
+        .then(() => {
+          setImportMessage('Withings connected.')
         })
         .catch((err) => {
           setImportMessage(`Error connecting to Withings: ${err.message}`)
@@ -149,6 +150,77 @@ export default function Settings() {
   }
 
   const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : ''
+  const expandedFeatureEnabled = featureFlags.ENABLE_WITHINGS_EXPANDED_INGESTION
+
+  const scheduledDecision = evaluateWithingsSyncPolicy({
+    now: new Date(),
+    manual: false,
+    featureEnabled: expandedFeatureEnabled,
+    expandedSyncEnabled: withingsExpandedSyncEnabled,
+    hasConnection: !!withingsCredentials,
+    syncTimes: normalizeSyncTimes(withingsSyncTimes),
+    lastSuccessfulScheduledSlotKey: lastSuccessfulWithingsScheduledSlotKey,
+  })
+
+  const handleWithingsSyncTimeChange = (index: 0 | 1, value: string) => {
+    const next: [string, string] = [...withingsSyncTimes] as [string, string]
+    next[index] = value
+    const errors: [string | null, string | null] = [null, null]
+    if (!isValidLocalTimeHHMM(next[0])) errors[0] = 'Use HH:MM'
+    if (!isValidLocalTimeHHMM(next[1])) errors[1] = 'Use HH:MM'
+    setWithingsSyncTimeErrors(errors)
+    if (!errors[0] && !errors[1]) setWithingsSyncTimes(normalizeSyncTimes(next))
+  }
+
+  const handleManualExpandedWithingsSync = async () => {
+    setWithingsExpandedSyncMessage(null)
+    const decision = evaluateWithingsSyncPolicy({
+      now: new Date(),
+      manual: true,
+      featureEnabled: expandedFeatureEnabled,
+      expandedSyncEnabled: withingsExpandedSyncEnabled,
+      hasConnection: !!withingsCredentials,
+      syncTimes: normalizeSyncTimes(withingsSyncTimes),
+      lastSuccessfulScheduledSlotKey: lastSuccessfulWithingsScheduledSlotKey,
+    })
+    if (!decision.shouldSync || !withingsCredentials) {
+      setWithingsExpandedSyncStatus('failure')
+      setWithingsExpandedSyncMessage(`Expanded sync blocked: ${decision.reason}`)
+      return
+    }
+
+    setWithingsExpandedSyncStatus('syncing')
+    try {
+      const wrapped = await runManualSyncOnce(withingsManualSyncGate.current, async () => {
+        const result = await syncWithingsData(withingsCredentials)
+        const nowIso = new Date().toISOString()
+        setLastSuccessfulWithingsSyncAt(nowIso)
+        const dueNow = evaluateWithingsSyncPolicy({
+          now: new Date(),
+          manual: false,
+          featureEnabled: expandedFeatureEnabled,
+          expandedSyncEnabled: withingsExpandedSyncEnabled,
+          hasConnection: !!withingsCredentials,
+          syncTimes: normalizeSyncTimes(withingsSyncTimes),
+          lastSuccessfulScheduledSlotKey: lastSuccessfulWithingsScheduledSlotKey,
+        })
+        if (dueNow.shouldSync && dueNow.scheduledSlotKey) {
+          setLastSuccessfulWithingsScheduledSlotKey(dueNow.scheduledSlotKey)
+        }
+        return result
+      })
+      if (!wrapped.started) {
+        setWithingsExpandedSyncStatus('idle')
+        return
+      }
+      const result = wrapped.result
+      setWithingsExpandedSyncStatus('success')
+      setWithingsExpandedSyncMessage(`Expanded sync complete (${result?.metricsWritten ?? 0} canonical metric row(s)).`)
+    } catch (error) {
+      setWithingsExpandedSyncStatus('failure')
+      setWithingsExpandedSyncMessage(error instanceof Error ? error.message : 'Expanded sync failed')
+    }
+  }
 
   if (!profile) {
     return (
@@ -291,7 +363,7 @@ export default function Settings() {
             <div className="rounded-xl border border-white/10 bg-gray-900/30 p-3 space-y-2">
               <div className="text-xs text-gray-400 uppercase">Withings (smart scale)</div>
               <p className="text-[11px] text-gray-500">
-                Use your latest Withings scale weight for KPS. Connect and we fetch the most recent measurement.
+                Use your latest Withings scale weight for KPS. Weight refresh and expanded ingestion run only when explicitly triggered.
               </p>
               {!withingsCredentials ? (
                 <button
@@ -343,6 +415,76 @@ export default function Settings() {
                     >
                       Disconnect
                     </button>
+                  </div>
+                  <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-gray-300">Expanded Withings sync</label>
+                      <button
+                        type="button"
+                        disabled={!expandedFeatureEnabled}
+                        onClick={() => setWithingsExpandedSyncEnabled(!withingsExpandedSyncEnabled)}
+                        aria-label="Toggle expanded Withings sync"
+                        aria-pressed={withingsExpandedSyncEnabled}
+                        className={`w-11 h-6 rounded-full transition ${withingsExpandedSyncEnabled ? 'bg-cyan-500' : 'bg-gray-700'} disabled:opacity-50`}
+                      >
+                        <div className={`w-5 h-5 bg-white rounded-full transition-all ${withingsExpandedSyncEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-gray-500">
+                      Local schedule (HH:MM): sync is due once per slot. Default slots are 08:00 and 20:00.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-gray-400">Morning</label>
+                        <input
+                          type="time"
+                          value={withingsSyncTimes[0]}
+                          disabled={!expandedFeatureEnabled}
+                          onChange={(e) => handleWithingsSyncTimeChange(0, e.target.value)}
+                          className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-2 py-1 text-xs disabled:opacity-50"
+                        />
+                        {withingsSyncTimeErrors[0] && <p className="text-[11px] text-red-400">{withingsSyncTimeErrors[0]}</p>}
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-gray-400">Evening</label>
+                        <input
+                          type="time"
+                          value={withingsSyncTimes[1]}
+                          disabled={!expandedFeatureEnabled}
+                          onChange={(e) => handleWithingsSyncTimeChange(1, e.target.value)}
+                          className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-2 py-1 text-xs disabled:opacity-50"
+                        />
+                        {withingsSyncTimeErrors[1] && <p className="text-[11px] text-red-400">{withingsSyncTimeErrors[1]}</p>}
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-gray-400">
+                      Status: {withingsExpandedSyncStatus}
+                      {scheduledDecision.reason === 'scheduled_due' && scheduledDecision.scheduledTime
+                        ? ` • Scheduled due now (${scheduledDecision.scheduledTime})`
+                        : null}
+                      {scheduledDecision.reason === 'not_due' && scheduledDecision.nextEligibleAt
+                        ? ` • Next eligible ${new Date(scheduledDecision.nextEligibleAt).toLocaleString()}`
+                        : null}
+                    </div>
+                    {lastSuccessfulWithingsSyncAt && (
+                      <p className="text-[11px] text-green-400">Last expanded sync: {new Date(lastSuccessfulWithingsSyncAt).toLocaleString()}</p>
+                    )}
+                    {withingsExpandedSyncMessage && (
+                      <p className={`text-[11px] ${withingsExpandedSyncStatus === 'failure' ? 'text-red-400' : 'text-gray-300'}`}>
+                        {withingsExpandedSyncMessage}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={withingsExpandedSyncStatus === 'syncing'}
+                      onClick={handleManualExpandedWithingsSync}
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition disabled:opacity-50"
+                    >
+                      {withingsExpandedSyncStatus === 'syncing' ? 'Syncing…' : 'Sync now'}
+                    </button>
+                    {!expandedFeatureEnabled && (
+                      <p className="text-[11px] text-amber-400">Feature flag disabled: expanded ingestion controls are read-only.</p>
+                    )}
                   </div>
                   <div className="mt-2 pt-2 border-t border-white/10">
                     <input

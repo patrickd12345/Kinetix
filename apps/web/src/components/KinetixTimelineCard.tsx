@@ -1,4 +1,4 @@
-import type { TimelineEngineResult, TimelineEvent } from '../lib/timeline/types'
+import type { TimelineEngineResult, TimelineEventType } from '../lib/timeline/types'
 
 interface KinetixTimelineCardProps {
   loading: boolean
@@ -7,8 +7,8 @@ interface KinetixTimelineCardProps {
   insufficientData: boolean
 }
 
-function labelForType(event: TimelineEvent['type']): string {
-  switch (event.type) {
+function labelForType(eventType: TimelineEventType): string {
+  switch (eventType) {
     case 'peak_window':
       return 'Peak window'
     case 'fatigue_risk':
@@ -19,8 +19,10 @@ function labelForType(event: TimelineEvent['type']): string {
       return 'Taper'
     case 'readiness_shift':
       return 'Readiness'
-    default:
-      return event.type
+    default: {
+      const _exhaustive: never = eventType
+      return _exhaustive
+    }
   }
 }
 

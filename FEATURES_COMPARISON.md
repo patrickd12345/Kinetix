@@ -17,6 +17,7 @@
 | **Voice Coaching** | ⚠️ (Via Phone) | ✅ | ❌ |
 | **Run History** | ✅ | ✅ | ✅ |
 | **Coaching timeline (deterministic 7–28d)** | ❌ | ❌ | ✅ |
+| **Goal probability (deterministic)** | ❌ | ❌ | ✅ |
 | **Settings Management** | ⚠️ (Limited) | ✅ | ✅ |
 | **Map Visualization** | ❌ | ⚠️ (Limited) | ❌ |
 | **Charts Menu (/menu)** | ❌ | ❌ | ✅ |
@@ -143,6 +144,11 @@
 - **Watch**: ❌ Not in History UI
 - **Phone**: ❌ Not in History UI
 - **Web**: ✅ History page — short forward outlook from prediction, readiness, simulation, plan, memory (no AI)
+
+#### Goal probability (deterministic)
+- **Watch**: ❌ Not in History UI
+- **Phone**: ❌ Not in History UI
+- **Web**: ✅ History page — blended odds from prediction, readiness, simulation, timeline, goal progress, memory (no AI)
 
 #### Run Detail Views
 - **Watch**: ✅ Comprehensive post-run analysis

@@ -35,6 +35,7 @@
 
 ### History View
 - ✅ **Coaching timeline** (under Weekly Coach Report): Deterministic 7–28 day forward outlook (max three events) from prediction, readiness, simulation, training plan, and coach memory — no AI
+- ✅ **Goal probability** (under Coaching timeline): Deterministic 0–100 estimate with confidence and trend direction from prediction, readiness, simulation, timeline, goal progress, and coach memory — no AI
 - ✅ **Run History List**: Paginated list of saved runs (newest first)
 - ✅ **Run Cards**: Date, activity name (from notes / import title), distance, duration, pace, weight, KPS; gold / silver / bronze medals for the top three rounded relative KPS tiers across visible history, with `KPS 100` always gold when present (ties share the same medal)
 - ✅ **Filters**: Optional filters by name text, pace range (per km or per mi), duration, distance, relative KPS (min/max), source; preset to hide unrealistically fast paces (e.g. car); when filters are on, matching runs are loaded from the full history client-side and shown in a single scrollable list (no per-page slice); with a KPS range filter, the personal-best reference run is pinned to the top

@@ -25,6 +25,19 @@ import { getProfileForRun } from '../lib/authState'
 import { KPSTrendChart } from '../components/KPSTrendChart'
 import { RunDetails } from '../components/RunDetails'
 import { RunCalendar } from '../components/RunCalendar'
+import { KinetixIntelligenceCard } from '../components/KinetixIntelligenceCard'
+import { KinetixTrainingPlanCard } from '../components/KinetixTrainingPlanCard'
+import { KinetixGoalProgressCard } from '../components/KinetixGoalProgressCard'
+import { KinetixRaceSimulationCard } from '../components/KinetixRaceSimulationCard'
+import { KinetixPeriodizationCard } from '../components/KinetixPeriodizationCard'
+import { KinetixLoadControlCard } from '../components/KinetixLoadControlCard'
+import { KinetixCoachCard } from '../components/KinetixCoachCard'
+import { KinetixCoachExplanationCard } from '../components/KinetixCoachExplanationCard'
+import { KinetixCoachMemoryCard } from '../components/KinetixCoachMemoryCard'
+import { KinetixRaceReadinessCard } from '../components/KinetixRaceReadinessCard'
+import { KinetixCoachAlertsCard } from '../components/KinetixCoachAlertsCard'
+import { KinetixWeeklyCoachReportCard } from '../components/KinetixWeeklyCoachReportCard'
+import { KinetixTrainingCalendarCard } from '../components/KinetixTrainingCalendarCard'
 import { KPS_SHORT } from '../lib/branding'
 import {
   Trash2,
@@ -58,6 +71,19 @@ import { useAuth } from '../components/providers/useAuth'
 import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
 import { computeKpsMedalsForRuns, type KpsMedal } from '../lib/kpsMedals'
 import { WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
+import { useKinetixIntelligence } from '../hooks/useKinetixIntelligence'
+import { useKinetixTrainingPlanFromIntelligence } from '../hooks/useKinetixTrainingPlan'
+import { useKinetixRaceSimulation } from '../hooks/useKinetixRaceSimulation'
+import { useKinetixPeriodization } from '../hooks/useKinetixPeriodization'
+import { useKinetixLoadControl } from '../hooks/useKinetixLoadControl'
+import { useKinetixCoach } from '../hooks/useKinetixCoach'
+import { useKinetixCoachExplanation } from '../hooks/useKinetixCoachExplanation'
+import { useKinetixCoachMemory } from '../hooks/useKinetixCoachMemory'
+import { useKinetixRaceReadiness } from '../hooks/useKinetixRaceReadiness'
+import { useKinetixCoachAlerts } from '../hooks/useKinetixCoachAlerts'
+import { useKinetixWeeklyCoachReport } from '../hooks/useKinetixWeeklyCoachReport'
+import { useKinetixTrainingCalendar } from '../hooks/useKinetixTrainingCalendar'
+import { KinetixCoachingContextProvider } from '../context/KinetixCoachingContextProvider'
 
 const DEFAULT_PAGE_SIZE = 20
 const CHART_LIMIT = 200
@@ -70,6 +96,144 @@ const KG_TO_LBS = 2.20462
 function formatWeight(kg: number, unit: 'kg' | 'lbs'): string {
   if (unit === 'lbs') return `${(kg * KG_TO_LBS).toFixed(1)} lbs`
   return `${kg.toFixed(1)} kg`
+}
+
+function CoachingStack() {
+  const {
+    loading: intelligenceLoading,
+    error: intelligenceError,
+    result: intelligenceResult,
+    samples: intelligenceSamples,
+  } = useKinetixIntelligence()
+  const {
+    loading: trainingPlanLoading,
+    error: trainingPlanError,
+    plan: trainingPlan,
+    goalProgress,
+  } = useKinetixTrainingPlanFromIntelligence({
+    loading: intelligenceLoading,
+    error: intelligenceError,
+    result: intelligenceResult,
+    samples: intelligenceSamples,
+  })
+  const { loading: simulationLoading, error: simulationError, simulation } = useKinetixRaceSimulation()
+  const {
+    loading: periodizationLoading,
+    error: periodizationError,
+    periodization,
+    isGoalDriven: isPeriodizationGoalDriven,
+  } = useKinetixPeriodization()
+  const { loading: loadControlLoading, error: loadControlError, loadControl } = useKinetixLoadControl()
+  const { loading: coachLoading, error: coachError, coach } = useKinetixCoach()
+  const {
+    loading: coachExplanationLoading,
+    error: coachExplanationError,
+    explanation: coachExplanation,
+    insufficientData: coachExplanationInsufficient,
+  } = useKinetixCoachExplanation()
+  const {
+    loading: coachMemoryLoading,
+    error: coachMemoryError,
+    memory: coachMemory,
+    insufficientData: coachMemoryInsufficient,
+  } = useKinetixCoachMemory()
+  const {
+    loading: readinessLoading,
+    error: readinessError,
+    readiness,
+    insufficientData: readinessInsufficient,
+  } = useKinetixRaceReadiness()
+  const {
+    loading: alertsLoading,
+    error: alertsError,
+    alerts,
+    insufficientData: alertsInsufficient,
+  } = useKinetixCoachAlerts()
+  const {
+    loading: weeklyReportLoading,
+    error: weeklyReportError,
+    report: weeklyReport,
+    insufficientData: weeklyReportInsufficient,
+  } = useKinetixWeeklyCoachReport()
+  const {
+    loading: trainingCalendarLoading,
+    error: trainingCalendarError,
+    calendar,
+    insufficientData: trainingCalendarInsufficient,
+  } = useKinetixTrainingCalendar()
+
+  return (
+    <>
+      <KinetixCoachCard loading={coachLoading} error={coachError} coach={coach} />
+      <KinetixCoachExplanationCard
+        loading={coachExplanationLoading}
+        error={coachExplanationError}
+        explanation={coachExplanation}
+        insufficientData={coachExplanationInsufficient}
+      />
+      <KinetixRaceReadinessCard
+        loading={readinessLoading}
+        error={readinessError}
+        readiness={readiness}
+        insufficientData={readinessInsufficient}
+      />
+      <KinetixCoachAlertsCard
+        loading={alertsLoading}
+        error={alertsError}
+        alerts={alerts}
+        insufficientData={alertsInsufficient}
+      />
+      <KinetixWeeklyCoachReportCard
+        loading={weeklyReportLoading}
+        error={weeklyReportError}
+        report={weeklyReport}
+        insufficientData={weeklyReportInsufficient}
+      />
+      <KinetixCoachMemoryCard
+        loading={coachMemoryLoading}
+        error={coachMemoryError}
+        memory={coachMemory}
+        insufficientData={coachMemoryInsufficient}
+      />
+      <KinetixGoalProgressCard
+        loading={trainingPlanLoading}
+        error={trainingPlanError}
+        progress={goalProgress}
+      />
+      <KinetixRaceSimulationCard
+        loading={simulationLoading}
+        error={simulationError}
+        simulation={simulation}
+      />
+      <KinetixPeriodizationCard
+        loading={periodizationLoading}
+        error={periodizationError}
+        periodization={periodization}
+        isGoalDriven={isPeriodizationGoalDriven}
+      />
+      <KinetixLoadControlCard
+        loading={loadControlLoading}
+        error={loadControlError}
+        loadControl={loadControl}
+      />
+      <KinetixTrainingPlanCard
+        loading={trainingPlanLoading}
+        error={trainingPlanError}
+        plan={trainingPlan}
+      />
+      <KinetixTrainingCalendarCard
+        loading={trainingCalendarLoading}
+        error={trainingCalendarError}
+        calendar={calendar}
+        insufficientData={trainingCalendarInsufficient}
+      />
+      <KinetixIntelligenceCard
+        loading={intelligenceLoading}
+        error={intelligenceError}
+        result={intelligenceResult}
+      />
+    </>
+  )
 }
 
 export default function History() {
@@ -100,7 +264,6 @@ export default function History() {
   const { profile } = useAuth()
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
   const userProfile = useStableKinetixUserProfile(profile)
-
   useEffect(() => {
     if (!profile) setHasCompletedInitialLoad(false)
   }, [profile])
@@ -756,6 +919,9 @@ export default function History() {
             <div className="lg:grid lg:grid-cols-3 lg:gap-6">
               {/* Left Column: Chart and Calendar */}
               <div className="lg:col-span-1 space-y-6">
+                <KinetixCoachingContextProvider>
+                  <CoachingStack />
+                </KinetixCoachingContextProvider>
                 {/* KPS Trend Chart (date-range zoom: scroll to zoom in/out over history) */}
                 <div className="relative">
                   {chartLoading && (

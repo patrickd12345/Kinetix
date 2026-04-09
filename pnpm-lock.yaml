@@ -415,6 +415,9 @@ importers:
 
   monorepo-packages/platform-auth:
     dependencies:
+      '@supabase/node-fetch':
+        specifier: ^2.6.13
+        version: 2.6.13
       '@supabase/supabase-js':
         specifier: ^2.45.0
         version: 2.95.3

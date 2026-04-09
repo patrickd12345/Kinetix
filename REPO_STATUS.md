@@ -34,6 +34,12 @@
 
 Strategic phases and backlog live in [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) (stub: [`PROJECT_PLAN.md`](PROJECT_PLAN.md)). Use [`REPO_STATUS.md`](REPO_STATUS.md) (this file) for *where* to implement; use the plan doc for *what* is next.
 
+## Release candidate verification (Help Center operator)
+
+**Status:** Phase-3C operator surfaces (`/operator`, `/support-queue`: flags, SLA badges, URL filters, escalation ordering, hardened Slack notification path with process-local resend suppression + rate-limit safety) are treated as **RC-ready** in-repo: lint, type-check, Vitest (see single-fork command in doc), and `pnpm test:e2e:operator` are green per [`docs/HELP_CENTER_OPERATIONS.md`](docs/HELP_CENTER_OPERATIONS.md) (Verification section).
+
+**Before production:** still required: manual operator pass with `pnpm dev`, real sign-in, and `/operator` + `/support-queue` against live API and DB (same doc).
+
 ## Accessibility (web)
 
 - **Standard:** [`docs/standards/ACCESSIBILITY_STANDARD.md`](../../docs/standards/ACCESSIBILITY_STANDARD.md) (umbrella; WCAG 2.2 AA-oriented).

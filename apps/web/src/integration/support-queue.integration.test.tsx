@@ -69,6 +69,7 @@ function renderQueue(initialEntry = '/support-queue?ticketId=kinetix-20260408-de
 
 describe('Support queue page', () => {
   beforeEach(() => {
+    vi.unstubAllEnvs()
     vi.mocked(listSupportQueueTickets).mockReset()
     vi.mocked(getSupportQueueTicket).mockReset()
     vi.mocked(listKbApprovalDrafts).mockReset()
@@ -283,6 +284,80 @@ describe('Support queue page', () => {
     await waitFor(() => {
       expect(screen.getByText('kinetix-20260408-def456')).toBeInTheDocument()
       expect(screen.getByDisplayValue('Linked operator note')).toBeInTheDocument()
+    })
+  })
+
+  it('initializes the queue from urgent and escalated URL filters and renders SLA badges', async () => {
+    vi.mocked(listSupportQueueTickets).mockResolvedValue({
+      tickets: [
+        {
+          ticket_id: 'kinetix-warning',
+          status: 'open',
+          severity: 'medium',
+          issue_summary: 'Warning ticket',
+          internal_notes: '',
+          notification_slack_status: 'pending',
+          notification_email_status: 'pending',
+          notification_error_summary: '',
+          notification_last_attempt_at: null,
+          kb_approval_status: 'none',
+          created_at: '2026-04-08T10:00:00.000Z',
+          updated_at: '2026-04-08T10:05:00.000Z',
+          assigned_to: null,
+          assigned_at: null,
+          first_response_due_at: '2026-04-08T14:00:00.000Z',
+          resolution_due_at: '2026-04-11T10:00:00.000Z',
+          last_operator_action_at: null,
+          metadata: { inferred_topic: 'general', retrieval_state: 'unknown', route: '/help' },
+          derived: { labels: ['unassigned'], nowIso: '2026-04-08T12:00:00.000Z', escalation_level: 1 },
+        },
+        {
+          ticket_id: 'kinetix-breach',
+          status: 'open',
+          severity: 'high',
+          issue_summary: 'Breach ticket',
+          internal_notes: '',
+          notification_slack_status: 'pending',
+          notification_email_status: 'pending',
+          notification_error_summary: '',
+          notification_last_attempt_at: null,
+          kb_approval_status: 'none',
+          created_at: '2026-04-08T10:01:00.000Z',
+          updated_at: '2026-04-08T10:06:00.000Z',
+          assigned_to: null,
+          assigned_at: null,
+          first_response_due_at: '2026-04-08T11:00:00.000Z',
+          resolution_due_at: '2026-04-11T10:01:00.000Z',
+          last_operator_action_at: null,
+          metadata: { inferred_topic: 'sync', retrieval_state: 'unknown', route: '/help' },
+          derived: { labels: ['unassigned', 'overdue_first_response'], nowIso: '2026-04-08T12:00:00.000Z', escalation_level: 2 },
+        },
+      ],
+      summary: {
+        ...baseSummary,
+        overdue: 1,
+        escalated: 2,
+        escalatedLevel2: 1,
+      },
+      slaMetrics: {
+        ...baseSlaMetrics,
+        overdue_count: 1,
+      },
+    })
+
+    const urgentView = renderQueue('/support-queue?urgent=1')
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Urgent' })).toHaveAttribute('class', expect.stringContaining('border-cyan-500/50'))
+      expect(screen.getAllByText('SLA Warning').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('SLA Breach').length).toBeGreaterThan(0)
+    })
+
+    urgentView.unmount()
+    renderQueue('/support-queue?escalated=1')
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Escalated' })).toHaveAttribute('class', expect.stringContaining('border-cyan-500/50'))
     })
   })
 })

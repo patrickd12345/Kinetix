@@ -13,6 +13,7 @@
         "garmin:import": "tsx scripts/import-garmin.ts",
         "withings:weights": "tsx scripts/download-withings-weights.ts",
         "test": "pnpm run build:bookiji-packages && pnpm --filter @kinetix/core build && vitest run",
+        "test:vitest:serial": "vitest run --pool forks --poolOptions.forks.minForks=1 --poolOptions.forks.maxForks=1",
         "test:e2e": "pnpm exec playwright test",
         "test:e2e:operator": "pnpm exec playwright test e2e/operator-support-queue-smoke.spec.ts",
         "test:e2e:headed": "pnpm exec playwright test --headed",

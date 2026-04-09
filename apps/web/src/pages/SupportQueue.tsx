@@ -20,6 +20,8 @@ import {
   type TriageFilter,
   ticketMatchesTriageFilter,
 } from '../lib/supportTicketDerived'
+import { featureFlags } from '../lib/featureFlags'
+import { computeSLAStatus } from '../lib/helpcenter/sla'
 
 const TICKET_STATUSES = ['open', 'triaged', 'in_progress', 'resolved', 'closed'] as const
 const KB_TOPIC_OPTIONS = ['account', 'billing', 'sync', 'import', 'kps', 'charts', 'privacy', 'general'] as const
@@ -28,6 +30,8 @@ const KB_REVIEW_STATUS_OPTIONS = ['draft', 'approved', 'ingested', 'rejected'] a
 
 const TRIAGE_FILTERS: { id: TriageFilter; label: string }[] = [
   { id: 'all', label: 'All' },
+  { id: 'urgent', label: 'Urgent' },
+  { id: 'escalated', label: 'Escalated' },
   { id: 'unassigned', label: 'Unassigned' },
   { id: 'overdue', label: 'Overdue' },
   { id: 'awaiting_retry', label: 'Awaiting retry' },
@@ -62,6 +66,7 @@ function derivedLabels(ticket: SupportQueueTicket): string[] {
 }
 
 function escalationBadge(ticket: SupportQueueTicket) {
+  if (!featureFlags.ENABLE_ESCALATION) return null
   const level = ticket.derived?.escalation_level ?? 0
   if (level === 2) {
     return { label: 'Escalated (critical)', className: 'bg-rose-500/20 text-rose-100' }
@@ -72,6 +77,25 @@ function escalationBadge(ticket: SupportQueueTicket) {
   return null
 }
 
+function slaBadge(ticket: SupportQueueTicket) {
+  if (!featureFlags.ENABLE_SLA_METRICS) return null
+  const status = computeSLAStatus(ticket)
+  if (status === 'breached') {
+    return { label: 'SLA Breach', className: 'bg-rose-500/20 text-rose-100' }
+  }
+  if (status === 'warning') {
+    return { label: 'SLA Warning', className: 'bg-amber-500/20 text-amber-100' }
+  }
+  return null
+}
+
+function triageFilterFromSearchParams(searchParams: URLSearchParams): TriageFilter {
+  if (searchParams.get('urgent') === '1') return 'urgent'
+  if (searchParams.get('assigned') === 'me') return 'assigned_to_me'
+  if (searchParams.get('escalated') === '1') return 'escalated'
+  return 'all'
+}
+
 export default function SupportQueue() {
   const location = useLocation()
   const { session } = useAuth()
@@ -79,10 +103,11 @@ export default function SupportQueue() {
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search])
   const requestedTicketId = searchParams.get('ticketId')
   const requestedDraftId = searchParams.get('draftId')
+  const requestedTriageFilter = useMemo(() => triageFilterFromSearchParams(searchParams), [searchParams])
   const [reloadToken, setReloadToken] = useState(0)
   const [tickets, setTickets] = useState<SupportQueueTicket[]>([])
   const [queueSummary, setQueueSummary] = useState<QueueSummary | null>(null)
-  const [triageFilter, setTriageFilter] = useState<TriageFilter>('all')
+  const [triageFilter, setTriageFilter] = useState<TriageFilter>(requestedTriageFilter)
   const [drafts, setDrafts] = useState<SupportKbApprovalDraft[]>([])
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(requestedTicketId)
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(requestedDraftId)
@@ -108,6 +133,10 @@ export default function SupportQueue() {
   useEffect(() => {
     if (requestedDraftId) setSelectedDraftId(requestedDraftId)
   }, [requestedDraftId])
+
+  useEffect(() => {
+    setTriageFilter(requestedTriageFilter)
+  }, [requestedTriageFilter])
 
   useEffect(() => {
     if (selectedTicket?.assigned_to) {
@@ -383,6 +412,9 @@ export default function SupportQueue() {
                     {label}
                   </span>
                 ))}
+                {slaBadge(ticket) ? (
+                  <span className={`rounded px-1.5 py-0.5 ${slaBadge(ticket)?.className}`}>{slaBadge(ticket)?.label}</span>
+                ) : null}
                 {escalationBadge(ticket) ? (
                   <span className={`rounded px-1.5 py-0.5 ${escalationBadge(ticket)?.className}`}>{escalationBadge(ticket)?.label}</span>
                 ) : null}
@@ -414,6 +446,11 @@ export default function SupportQueue() {
                     {label}
                   </span>
                 ))}
+                {slaBadge(selectedTicket) ? (
+                  <span className={`rounded-full px-2 py-0.5 ${slaBadge(selectedTicket)?.className}`}>
+                    {slaBadge(selectedTicket)?.label}
+                  </span>
+                ) : null}
                 {escalationBadge(selectedTicket) ? (
                   <span className={`rounded-full px-2 py-0.5 ${escalationBadge(selectedTicket)?.className}`}>
                     {escalationBadge(selectedTicket)?.label}

@@ -42,6 +42,8 @@ export type SlaMetrics = {
 
 export type TriageFilter =
   | 'all'
+  | 'urgent'
+  | 'escalated'
   | 'unassigned'
   | 'overdue'
   | 'awaiting_retry'
@@ -58,6 +60,14 @@ export function ticketMatchesTriageFilter(
   if (filter === 'all') return true
   const labels = ticket.derived?.labels ?? []
   const has = (label: SupportTicketDerivedLabel) => labels.includes(label)
+  const escalationLevel = ticket.derived?.escalation_level ?? 0
+
+  if (filter === 'urgent') {
+    return has('overdue_first_response') || has('overdue_resolution') || escalationLevel > 0
+  }
+  if (filter === 'escalated') {
+    return escalationLevel > 0
+  }
 
   if (filter === 'unassigned') return has('unassigned')
   if (filter === 'overdue') return has('overdue_first_response') || has('overdue_resolution')

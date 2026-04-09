@@ -3,6 +3,9 @@ import { AlertTriangle, ArrowRight, Clock3, FileWarning, LayoutList, Loader2, Re
 import { Link } from 'react-router-dom'
 import { useAuth } from '../components/providers/useAuth'
 import { listSupportQueueTickets, type QueueSummary, type SlaMetrics, type SupportQueueTicket } from '../lib/supportQueueClient'
+import { featureFlags } from '../lib/featureFlags'
+import { checkEscalations, notifyEscalation } from '../lib/helpcenter/escalation'
+import { computeSLAHealth, computeSLAStatus } from '../lib/helpcenter/sla'
 
 function formatDuration(ms: number | null) {
   if (ms == null) return 'n/a'
@@ -28,34 +31,30 @@ function isOverdue(ticket: SupportQueueTicket) {
   return labels.includes('overdue_first_response') || labels.includes('overdue_resolution')
 }
 
-function isUnassigned(ticket: SupportQueueTicket) {
-  return (ticket.derived?.labels ?? []).includes('unassigned')
+function isOpenTicket(ticket: SupportQueueTicket) {
+  return ticket.status !== 'resolved' && ticket.status !== 'closed'
 }
 
-function isAwaitingRetry(ticket: SupportQueueTicket) {
-  return (ticket.derived?.labels ?? []).includes('awaiting_retry')
-}
-
-function isAssigned(ticket: SupportQueueTicket) {
-  return (ticket.derived?.labels ?? []).includes('assigned')
-}
-
-function urgentRank(ticket: SupportQueueTicket) {
-  if (isOverdue(ticket)) return 0
-  if (isUnassigned(ticket)) return 1
-  if (isAwaitingRetry(ticket)) return 2
-  if (isAssigned(ticket)) return 3
-  return 4
-}
-
-function byUrgency(a: SupportQueueTicket, b: SupportQueueTicket) {
-  const rankDiff = urgentRank(a) - urgentRank(b)
-  if (rankDiff !== 0) return rankDiff
-  const escalationDiff = (b.derived?.escalation_level ?? 0) - (a.derived?.escalation_level ?? 0)
-  if (escalationDiff !== 0) return escalationDiff
-  const updatedDiff = Date.parse(b.updated_at) - Date.parse(a.updated_at)
-  if (!Number.isNaN(updatedDiff) && updatedDiff !== 0) return updatedDiff
-  return a.ticket_id.localeCompare(b.ticket_id)
+function healthToneClasses(health: ReturnType<typeof computeSLAHealth>) {
+  if (health === 'breached') {
+    return {
+      badge: 'border-rose-500/20 bg-rose-500/10 text-rose-100',
+      dot: 'bg-rose-400',
+      text: 'Breached',
+    }
+  }
+  if (health === 'warning') {
+    return {
+      badge: 'border-amber-500/20 bg-amber-500/10 text-amber-100',
+      dot: 'bg-amber-400',
+      text: 'Warning',
+    }
+  }
+  return {
+    badge: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-100',
+    dot: 'bg-emerald-400',
+    text: 'Healthy',
+  }
 }
 
 function SummaryCard({ label, value, tone = 'default' }: { label: string; value: number; tone?: 'default' | 'warning' | 'danger' | 'success' | 'info' }) {
@@ -89,7 +88,6 @@ function MetricCard({ label, value }: { label: string; value: string | number })
 
 export default function OperatorDashboard() {
   const { session } = useAuth()
-  const operatorUserId = session?.user?.id ?? null
   const [tickets, setTickets] = useState<SupportQueueTicket[]>([])
   const [summary, setSummary] = useState<QueueSummary | null>(null)
   const [slaMetrics, setSlaMetrics] = useState<SlaMetrics | null>(null)
@@ -125,12 +123,34 @@ export default function OperatorDashboard() {
     }
   }, [session, reloadToken])
 
-  const urgentTickets = useMemo(() => [...tickets].sort(byUrgency).slice(0, 8), [tickets])
-  const firstUrgent = urgentTickets[0] ?? null
-  const firstAssignedToMe = useMemo(
-    () => tickets.find((ticket) => operatorUserId && ticket.assigned_to === operatorUserId) ?? null,
-    [tickets, operatorUserId],
+  const openTickets = useMemo(() => tickets.filter(isOpenTicket), [tickets])
+  const escalations = useMemo(() => (featureFlags.ENABLE_ESCALATION ? checkEscalations(openTickets).slice(0, 5) : []), [openTickets])
+  const slaHealth = useMemo(() => computeSLAHealth(openTickets), [openTickets])
+  const warningCount = useMemo(() => openTickets.filter((ticket) => computeSLAStatus(ticket) === 'warning').length, [openTickets])
+  const breachCount = useMemo(() => openTickets.filter((ticket) => computeSLAStatus(ticket) === 'breached').length, [openTickets])
+  const healthTone = healthToneClasses(slaHealth)
+
+  useEffect(() => {
+    if (!featureFlags.ENABLE_ESCALATION) return
+    for (const ticket of escalations) {
+      notifyEscalation(ticket)
+    }
+  }, [escalations])
+
+  const recentEscalation = escalations[0] ?? null
+  const urgentCount = useMemo(
+    () => openTickets.filter((ticket) => isOverdue(ticket) || (ticket.derived?.escalation_level ?? 0) > 0).length,
+    [openTickets],
   )
+
+  if (!featureFlags.ENABLE_OPERATOR_DASHBOARD) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <h1 className="text-2xl font-semibold text-white">Operator dashboard</h1>
+        <p className="mt-2 text-sm text-slate-400">This dashboard is disabled by feature flag. Use the support queue directly.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -164,31 +184,35 @@ export default function OperatorDashboard() {
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Unassigned" value={summary?.unassigned ?? 0} />
-        <SummaryCard label="Overdue" value={summary?.overdue ?? 0} tone="warning" />
+        <SummaryCard label="Open tickets" value={openTickets.length} />
+        <SummaryCard label="Urgent tickets" value={urgentCount} tone="warning" />
+        <SummaryCard label="Escalated tickets" value={summary?.escalated ?? 0} tone="danger" />
         <SummaryCard label="Assigned to me" value={summary?.assignedToMe ?? 0} tone="info" />
-        <SummaryCard label="Awaiting retry" value={summary?.awaitingRetry ?? 0} tone="danger" />
-        <SummaryCard label="Ready for KB" value={summary?.readyForKb ?? 0} tone="success" />
-        <SummaryCard label="Stale resolved" value={summary?.staleResolvedNotKb ?? 0} />
-        <SummaryCard label="Escalated" value={summary?.escalated ?? 0} tone="warning" />
-        <SummaryCard label="Escalated (critical)" value={summary?.escalatedLevel2 ?? 0} tone="danger" />
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Avg first response" value={formatDuration(slaMetrics?.avg_first_response_ms ?? null)} />
-        <MetricCard label="Avg resolution" value={formatDuration(slaMetrics?.avg_resolution_ms ?? null)} />
-        <MetricCard label="Overdue" value={slaMetrics?.overdue_count ?? 0} />
-        <MetricCard label="Resolved (7d)" value={slaMetrics?.resolved_last_7_days ?? 0} />
-      </section>
+      {featureFlags.ENABLE_SLA_METRICS ? (
+        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className={`rounded-xl border p-3 ${healthTone.badge}`}>
+            <div className="text-xs">SLA health</div>
+            <div className="mt-2 flex items-center gap-2 text-lg font-semibold text-white">
+              <span className={`h-2.5 w-2.5 rounded-full ${healthTone.dot}`} />
+              {healthTone.text}
+            </div>
+          </div>
+          <MetricCard label="SLA warnings" value={warningCount} />
+          <MetricCard label="SLA breaches" value={breachCount} />
+          <MetricCard label="Avg first response" value={formatDuration(slaMetrics?.avg_first_response_ms ?? null)} />
+        </section>
+      ) : null}
 
       <section className="grid gap-6 lg:grid-cols-[1.4fr,0.8fr]">
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <div className="flex items-center gap-2">
             <AlertTriangle size={18} className="text-amber-300" />
-            <h2 className="text-lg font-semibold text-white">Recent urgent tickets</h2>
+            <h2 className="text-lg font-semibold text-white">Recent escalations</h2>
           </div>
           <div className="mt-4 space-y-3">
-            {urgentTickets.map((ticket) => {
+            {escalations.map((ticket) => {
               const escalationLevel = ticket.derived?.escalation_level ?? 0
               const escalationTone =
                 escalationLevel === 2
@@ -207,14 +231,12 @@ export default function OperatorDashboard() {
                     <div>
                       <div className="text-sm font-medium text-white">{ticket.issue_summary}</div>
                       <div className="mt-1 text-xs text-slate-400">
-                        {ticket.ticket_id} | {ticket.status} | Updated {formatTimestamp(ticket.updated_at)}
+                        {ticket.ticket_id} | {ticket.status} | Created {formatTimestamp(ticket.created_at)}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 text-[11px]">
-                      {isOverdue(ticket) ? <span className="rounded-full bg-amber-500/15 px-2 py-1 text-amber-100">Overdue</span> : null}
-                      {isUnassigned(ticket) ? <span className="rounded-full bg-slate-500/20 px-2 py-1 text-slate-100">Unassigned</span> : null}
-                      {isAwaitingRetry(ticket) ? <span className="rounded-full bg-rose-500/15 px-2 py-1 text-rose-100">Awaiting retry</span> : null}
-                      {isAssigned(ticket) ? <span className="rounded-full bg-cyan-500/15 px-2 py-1 text-cyan-100">Assigned</span> : null}
+                      {computeSLAStatus(ticket) === 'breached' ? <span className="rounded-full bg-rose-500/15 px-2 py-1 text-rose-100">SLA Breach</span> : null}
+                      {computeSLAStatus(ticket) === 'warning' ? <span className="rounded-full bg-amber-500/15 px-2 py-1 text-amber-100">SLA Warning</span> : null}
                       {escalationLevel > 0 ? (
                         <span className={`rounded-full px-2 py-1 ${escalationLevel === 2 ? 'bg-rose-500/20 text-rose-100' : 'bg-amber-500/20 text-amber-100'}`}>
                           {escalationLevel === 2 ? 'Escalated (critical)' : 'Escalated'}
@@ -225,7 +247,7 @@ export default function OperatorDashboard() {
                 </Link>
               )
             })}
-            {urgentTickets.length === 0 ? <p className="text-sm text-slate-500">No urgent tickets right now.</p> : null}
+            {escalations.length === 0 ? <p className="text-sm text-slate-500">No escalations right now.</p> : null}
           </div>
         </div>
 
@@ -240,17 +262,24 @@ export default function OperatorDashboard() {
               <ArrowRight size={16} />
             </Link>
             <Link
-              to={firstUrgent ? `/support-queue?ticketId=${encodeURIComponent(firstUrgent.ticket_id)}` : '/support-queue'}
+              to="/support-queue?urgent=1"
               className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 hover:bg-amber-500/15"
             >
-              <span>Open urgent</span>
+              <span>Open urgent queue</span>
               <ArrowRight size={16} />
             </Link>
             <Link
-              to={firstAssignedToMe ? `/support-queue?ticketId=${encodeURIComponent(firstAssignedToMe.ticket_id)}` : '/support-queue'}
+              to="/support-queue?assigned=me"
               className="flex items-center justify-between rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100 hover:bg-cyan-500/15"
             >
               <span>Open assigned to me</span>
+              <ArrowRight size={16} />
+            </Link>
+            <Link
+              to="/support-queue?escalated=1"
+              className="flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100 hover:bg-rose-500/15"
+            >
+              <span>Open escalated queue</span>
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -260,9 +289,10 @@ export default function OperatorDashboard() {
               <Clock3 size={16} />
               SLA context
             </div>
-            <div className="mt-2">Created (7d): {slaMetrics?.created_last_7_days ?? 0}</div>
-            <div className="mt-1">Resolved (7d): {slaMetrics?.resolved_last_7_days ?? 0}</div>
+            <div className="mt-2">Warnings: {warningCount}</div>
+            <div className="mt-1">Breaches: {breachCount}</div>
             <div className="mt-1">Critical escalations: {summary?.escalatedLevel2 ?? 0}</div>
+            <div className="mt-1">Latest escalated ticket: {recentEscalation?.ticket_id ?? 'n/a'}</div>
           </div>
 
           <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-slate-300">
@@ -271,7 +301,7 @@ export default function OperatorDashboard() {
               Scope
             </div>
             <p className="mt-2 text-slate-400">
-              Escalation is UI-only in phase 2. No background jobs, browser notifications, email, or Slack escalation are triggered here.
+              Escalation notifications are best-effort: when enabled and configured, the UI posts to <span className="font-mono">/api/escalationNotify</span> and the server applies resend suppression and rate limiting before forwarding to Slack. No background jobs, browser notifications, or email delivery are implemented here.
             </p>
           </div>
         </div>

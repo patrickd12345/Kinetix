@@ -12,6 +12,8 @@ import OperatorDashboard from './pages/OperatorDashboard'
 import SupportQueue from './pages/SupportQueue'
 import Login from './pages/Login'
 import EntitlementRequired from './pages/EntitlementRequired'
+import BillingSuccess from './pages/BillingSuccess'
+import BillingCancel from './pages/BillingCancel'
 import { useAuth } from './components/providers/useAuth'
 
 function FullscreenStatus({
@@ -105,6 +107,8 @@ function App() {
       <AdSenseScript />
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/billing/success" element={<BillingSuccess />} />
+        <Route path="/billing/cancel" element={<BillingCancel />} />
         <Route path="/*" element={<ProtectedRoutes />} />
       </Routes>
     </BrowserRouter>

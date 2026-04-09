@@ -2,7 +2,7 @@
 
 **Source of truth:** This file is reconstructed from the Kinetix repo, `docs/deployment/*`, feature lists, and recent `git` history. Umbrella-only standards are referenced by path where they live outside this clone.
 
-**Last reviewed:** 2026-04-08 (Help Center operator scale-up phase 2: `/operator` dashboard, additive SLA metrics, UI-only escalation counts and badges, plus prior phase-1 assignment/SLA/KB tooling.)
+**Last reviewed:** 2026-04-09 (Help Center operator **phase 3C** shipped: feature-flagged surfaces, SLA badges, query-param queue filters, hardened Slack escalation path with process-local resend suppression + rate-limit safety; RC verification in [`HELP_CENTER_OPERATIONS.md`](HELP_CENTER_OPERATIONS.md); manual `pnpm dev` operator smoke still required before production.)
 
 ---
 
@@ -105,6 +105,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 
 ## Current Status
 
+- **Help Center operator (phase 3C):** Treated as **release-candidate ready** in-repo: feature flags, SLA warning/breach presentation, query-param filters (`urgent`, `assigned`, `escalated`), deterministic escalation ordering, Slack-first escalation delivery, process-local server resend suppression, and rate-limit safety; automated verification under **Verification (release candidate)** in [`HELP_CENTER_OPERATIONS.md`](HELP_CENTER_OPERATIONS.md). **Production gate:** one manual operator pass (`pnpm dev`, real backend, `/operator` and `/support-queue`) before rollout.
 - **Production web:** `apps/web` → `kinetix.bookiji.com` per [`REPO_STATUS.md`](../REPO_STATUS.md) and `vercel.json`.
 - **Billing:** Documented as wired; live enablement depends on env (`BILLING_ENABLED`, Stripe price id, Bookiji webhook).
 - **CI / quality:** Root scripts `lint`, `type-check`, `test`; **`pnpm run verify:vercel-parity`** matches standalone clone + Vercel install path (see [`README.md`](../README.md)).
@@ -124,6 +125,8 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 - Operator queue shipped: `/support-queue` with status updates, internal notes, notification retry, deep-linked queue access, and resolved-only KB approval-bin moves.
 - Help Center operator scale-up (phase 1): ticket assignment, SLA due fields + derived triage labels, compact queue summary on ticket list API, KB draft excerpts + plaintext preview, optional curated bulk-import CLI for non-ticket artifacts (`apps/rag/scripts/kb-bulk-import.mjs`).
 - Help Center operator scale-up (phase 2): `/operator` landing page, additive queue `slaMetrics`, escalated and critical summary counts, and UI-only escalation indicators on queue/dashboard surfaces.
+- Help Center operator scale-up (phase 3): feature-flagged operator surfaces (`featureFlags.ts`), SLA badge mapping (`helpcenter/sla.ts`), escalation sort + notify path (`helpcenter/escalation.ts`), extended queue URL filters and triage keys (`supportTicketDerived.ts`), query-param deep links on `/support-queue`.
+- Help Center operator hardening (phase 3C): server-side Slack resend suppression via `ticketId + escalationLevel + dayBucket`, 24h resend window, process-local rate-limit safety, environment-aware Slack formatting, and documented no-op semantics for missing config / duplicates / delivery failure.
 - Curated KB reinjection shipped for v1: approval drafts in `kinetix.support_kb_approval_bin` and manual ingest into `kinetix_support_kb`.
 - Deterministic **LLM math guardrails** for chat (verified pace/KPS results, fail-closed on ambiguity) — [`docs/architecture/LLM_MATH_GUARDRAILS.md`](architecture/LLM_MATH_GUARDRAILS.md).
 - Vercel **Hobby** serverless footprint reduced to **12** `api/**/*.ts` handlers (excluding `_lib`): smoke script moved out of `api/`, Withings oauth+refresh merged to `api/withings` with rewrites preserving client URLs, support-queue **tickets** subtree merged to `api/support-queue/tickets/[[...segments]].ts` with unchanged public ticket paths.
@@ -134,7 +137,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 
 - **Subscription gating and billing UX** end-to-end in production tiers (code exists; operator checklist in deployment docs).
 - **AI analysis reliability** — gateway envs, E2E allowances when AI gateway missing (see recent test/commit messages).
-- **Help Center ops hardening** — richer markdown preview in operator UI and optional automation around curated corpus staging remain open; SLA reporting and operator landing/dashboard shipped additively in phase 2 while ticket-first workflow remains canonical.
+- **Help Center ops hardening** — richer markdown preview in operator UI and optional automation around curated corpus staging remain open; phase-3C escalation hardening shipped additively while ticket-first workflow remains canonical.
 - **Platform standard adoption** — `PRODUCT_SCOPE.md`: CI baseline, env contract, observability, feature flags, error contract marked **Partial**.
 - **Doc hygiene:** Keep `PRODUCT_SCOPE.md` platform table aligned with deployment docs when billing or spine changes land.
 
@@ -142,7 +145,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 
 ## Next Priorities
 
-1. Close remaining Help Center follow-ups after phase-2 operator tooling: richer markdown preview and optional corpus automation without bypassing ticket-first escalation.
+1. Close remaining Help Center follow-ups after phase-3 operator tooling: richer markdown preview and optional corpus automation without bypassing ticket-first escalation.
 2. Close **Partial** rows in `PRODUCT_SCOPE.md` with measurable criteria (tests, dashboards, error contract coverage).
 3. Web **map** and **export** (GPX/TCX) when prioritizing parity with user expectations (`FEATURES_WEB.md` future list).
 4. **`pnpm run verify:vercel-parity`** on any change to `scripts/vercel-install.sh`, workspace packages, or `@bookiji-inc/*` consumption.

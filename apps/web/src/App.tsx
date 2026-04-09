@@ -3,6 +3,7 @@ import AdSenseScript from './components/ads/AdSenseScript'
 import Layout from './components/Layout'
 import RunDashboard from './pages/RunDashboard'
 import History from './pages/History'
+import Coaching from './pages/Coaching'
 import Chat from './pages/Chat'
 import Settings from './pages/Settings'
 import WeightHistory from './pages/WeightHistory'
@@ -88,6 +89,7 @@ function ProtectedRoutes() {
       <Routes>
         <Route path="/" element={<RunDashboard />} />
         <Route path="/history" element={<History />} />
+        <Route path="/coaching" element={<Coaching />} />
         <Route path="/weight-history" element={<WeightHistory />} />
         <Route path="/menu" element={<Menu />} />
         <Route path="/chat" element={<Chat />} />

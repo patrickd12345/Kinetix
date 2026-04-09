@@ -33,7 +33,13 @@
 - ✅ **Control Buttons**: Start, pause, resume, stop, reset (idle and live; confirms before discarding progress)
 - ✅ **Save Dialog**: Confirm before saving runs
 
+### Coaching View (`/coaching`)
+- ✅ **Dedicated coaching surface**: Full deterministic coaching stack (coach decision, explanation, race readiness, alerts, weekly report, timeline, goal probability, goal progress, race simulation, periodization, load control, training plan, adaptive calendar, intelligence, coach memory) — same cards and hooks as before, moved off History for clarity
+- ✅ **Coaching timeline**: Deterministic 7–28 day forward outlook (max three events) from prediction, readiness, simulation, training plan, and coach memory — no AI
+- ✅ **Goal probability**: Deterministic 0–100 estimate with confidence and trend direction from prediction, readiness, simulation, timeline, goal progress, and coach memory — no AI
+
 ### History View
+- ✅ **Optional compact coach summary**: Single coaching decision card on History (full coaching lives on `/coaching`)
 - ✅ **Run History List**: Paginated list of saved runs (newest first)
 - ✅ **Run Cards**: Date, activity name (from notes / import title), distance, duration, pace, weight, KPS; gold / silver / bronze medals for the top three rounded relative KPS tiers across visible history, with `KPS 100` always gold when present (ties share the same medal)
 - ✅ **Filters**: Optional filters by name text, pace range (per km or per mi), duration, distance, relative KPS (min/max), source; preset to hide unrealistically fast paces (e.g. car); when filters are on, matching runs are loaded from the full history client-side and shown in a single scrollable list (no per-page slice); with a KPS range filter, the personal-best reference run is pinned to the top

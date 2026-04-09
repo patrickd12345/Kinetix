@@ -16,6 +16,8 @@
 | **Optional song → run (BPM 40–240 for coach)** | ⚠️ (Model/sync) | ⚠️ (Model/sync) | ⚠️ (Stored + RAG) |
 | **Voice Coaching** | ⚠️ (Via Phone) | ✅ | ❌ |
 | **Run History** | ✅ | ✅ | ✅ |
+| **Coaching timeline (deterministic 7–28d)** | ❌ | ❌ | ✅ |
+| **Goal probability (deterministic)** | ❌ | ❌ | ✅ |
 | **Settings Management** | ⚠️ (Limited) | ✅ | ✅ |
 | **Map Visualization** | ❌ | ⚠️ (Limited) | ❌ |
 | **Charts Menu (/menu)** | ❌ | ❌ | ✅ |
@@ -137,6 +139,16 @@
 - **Watch**: ✅ Local SwiftData storage
 - **Phone**: ✅ Syncs and displays runs from Watch
 - **Web**: ✅ localStorage (runs saved locally)
+
+#### Coaching timeline (deterministic)
+- **Watch**: ❌ Not in History UI
+- **Phone**: ❌ Not in History UI
+- **Web**: ✅ Coaching page (`/coaching`) — short forward outlook from prediction, readiness, simulation, plan, memory (no AI)
+
+#### Goal probability (deterministic)
+- **Watch**: ❌ Not in History UI
+- **Phone**: ❌ Not in History UI
+- **Web**: ✅ Coaching page (`/coaching`) — blended odds from prediction, readiness, simulation, timeline, goal progress, memory (no AI)
 
 #### Run Detail Views
 - **Watch**: ✅ Comprehensive post-run analysis

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { TrainingGoal } from '../lib/goalRace/types'
 
 export type WeightSource = 'profile' | 'withings'
 
@@ -46,6 +47,8 @@ interface SettingsState {
   /** Display unit for weight (weight history table, etc.). Default lbs. */
   weightUnit: 'kg' | 'lbs'
   setWeightUnit: (unit: 'kg' | 'lbs') => void
+  trainingGoal: TrainingGoal | null
+  setTrainingGoal: (goal: TrainingGoal | null) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -86,6 +89,9 @@ export const useSettingsStore = create<SettingsState>()(
 
       weightUnit: 'lbs',
       setWeightUnit: (unit) => set({ weightUnit: unit }),
+
+      trainingGoal: null,
+      setTrainingGoal: (goal) => set({ trainingGoal: goal }),
     }),
     {
       name: 'kinetix-settings',

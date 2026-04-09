@@ -58,6 +58,7 @@ import { useAuth } from '../components/providers/useAuth'
 import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
 import { computeKpsMedalsForRuns, type KpsMedal } from '../lib/kpsMedals'
 import { WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
+import { HistoryCoachSummaryWithProvider } from './Coaching'
 
 const DEFAULT_PAGE_SIZE = 20
 const CHART_LIMIT = 200
@@ -100,7 +101,6 @@ export default function History() {
   const { profile } = useAuth()
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
   const userProfile = useStableKinetixUserProfile(profile)
-
   useEffect(() => {
     if (!profile) setHasCompletedInitialLoad(false)
   }, [profile])
@@ -756,6 +756,7 @@ export default function History() {
             <div className="lg:grid lg:grid-cols-3 lg:gap-6">
               {/* Left Column: Chart and Calendar */}
               <div className="lg:col-span-1 space-y-6">
+                <HistoryCoachSummaryWithProvider />
                 {/* KPS Trend Chart (date-range zoom: scroll to zoom in/out over history) */}
                 <div className="relative">
                   {chartLoading && (

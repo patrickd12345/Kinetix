@@ -118,7 +118,7 @@ Resolved tickets are operational records, not ingestable knowledge.
 - Approval table: `kinetix.support_kb_approval_bin`
 - Page: `apps/web/src/pages/SupportQueue.tsx`
 - Store: `api/_lib/supportQueueStore.ts`
-- Routes: `api/support-queue/kb-approval/*`
+- Routes: `api/support-queue/kb-approval/*` (one optional catch-all serverless handler: `[[...segments]].ts`, to stay within Vercel Hobby’s 12-function cap)
 - Ingest endpoint: `POST /support/kb/ingest`
 
 ---

@@ -4,8 +4,14 @@ import History from './History'
 import * as coachingContextModule from '../hooks/useKinetixCoachingContext'
 import { useKinetixCoach } from '../hooks/useKinetixCoach'
 
+vi.mock('./Coaching', () => ({
+  HistoryCoachSummaryWithProvider: () => <div data-testid="history-coach-summary" />,
+}))
+
 vi.mock('../components/providers/useAuth', () => ({
-  useAuth: () => ({ profile: null }),
+  useAuth: () => ({
+    profile: { id: 'test-user', age: 35, weight_kg: 70 },
+  }),
 }))
 
 vi.mock('../hooks/useStableKinetixUserProfile', () => ({
@@ -68,17 +74,15 @@ describe('History provider integration', () => {
     vi.restoreAllMocks()
   })
 
-  it('uses provider-backed context without duplicate context builds in coaching stack', () => {
-    const spy = vi
-      .spyOn(coachingContextModule, 'useKinetixCoachingContext')
-      .mockReturnValue(fakeContext)
+  it('renders compact coaching summary slot without mounting full coaching stack', () => {
+    const spy = vi.spyOn(coachingContextModule, 'useKinetixCoachingContext').mockReturnValue(fakeContext)
 
     render(<History />)
 
-    expect(spy).toHaveBeenCalledTimes(1)
-    expect(screen.getByText('Not enough data for race readiness yet.')).toBeInTheDocument()
-    expect(screen.getByText('No coaching alerts right now.')).toBeInTheDocument()
-    expect(screen.getByText('Not enough data for weekly coach report yet.')).toBeInTheDocument()
+    expect(spy).not.toHaveBeenCalled()
+    expect(screen.getByTestId('history-coach-summary')).toBeInTheDocument()
+    expect(screen.queryByText('Not enough data for race readiness yet.')).not.toBeInTheDocument()
+    expect(screen.queryByText('No coaching alerts right now.')).not.toBeInTheDocument()
   })
 
   it('falls back to direct context hook when provider is absent', () => {

@@ -42,7 +42,7 @@ Strategic phases and backlog live in [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.
 
 ## Accessibility (web)
 
-- **Standard:** [`docs/standards/ACCESSIBILITY_STANDARD.md`](../../docs/standards/ACCESSIBILITY_STANDARD.md) (umbrella; WCAG 2.2 AA-oriented).
+- **Standard:** [`docs/standards/ACCESSIBILITY_STANDARD.md`](docs/standards/ACCESSIBILITY_STANDARD.md) (WCAG 2.2 AA-oriented; in-repo pointer + audit cross-link).
 - **Kinetix web audit + remediation log:** [`docs/ACCESSIBILITY_AUDIT_KINETIX_WEB.md`](docs/ACCESSIBILITY_AUDIT_KINETIX_WEB.md) (severity-ranked findings, shared shell/dialog/route fixes).
 
 ## LLM coach math (deterministic)

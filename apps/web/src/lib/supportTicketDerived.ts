@@ -58,7 +58,7 @@ export function ticketMatchesTriageFilter(
   operatorUserId: string | null,
 ): boolean {
   if (filter === 'all') return true
-  const labels = ticket.derived?.labels ?? []
+  const labels = Array.isArray(ticket.derived?.labels) ? ticket.derived.labels : []
   const has = (label: SupportTicketDerivedLabel) => labels.includes(label)
   const escalationLevel = ticket.derived?.escalation_level ?? 0
 

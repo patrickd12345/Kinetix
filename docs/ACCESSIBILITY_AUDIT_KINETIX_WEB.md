@@ -1,4 +1,6 @@
-# Kinetix Web accessibility audit (vs `docs/standards/ACCESSIBILITY_STANDARD.md`)
+# Kinetix Web accessibility audit
+
+**Baseline standard:** [`docs/standards/ACCESSIBILITY_STANDARD.md`](standards/ACCESSIBILITY_STANDARD.md)
 
 **Last updated:** 2026-04-08  
 **Scope:** `products/Kinetix/apps/web` (production routes from `src/App.tsx`).  

@@ -59,7 +59,7 @@ function metadataSummary(ticket: SupportQueueTicket | null) {
 
 function derivedLabels(ticket: SupportQueueTicket): string[] {
   const labels = ticket.derived?.labels
-  if (labels && labels.length > 0) {
+  if (Array.isArray(labels) && labels.length > 0) {
     return labels
   }
   return ticket.assigned_to ? ['assigned'] : ['unassigned']
@@ -123,7 +123,7 @@ export default function SupportQueue() {
   const selectionSummary = useMemo(() => metadataSummary(selectedTicket), [selectedTicket])
 
   const filteredTickets = useMemo(() => {
-    return tickets.filter((ticket) => ticketMatchesTriageFilter(ticket, triageFilter, operatorUserId))
+    return (tickets ?? []).filter((ticket) => ticketMatchesTriageFilter(ticket, triageFilter, operatorUserId))
   }, [tickets, triageFilter, operatorUserId])
 
   useEffect(() => {
@@ -262,7 +262,8 @@ export default function SupportQueue() {
       setSelectedDraftId(draft.id)
       setSelectedDraft(draft)
       setDrafts((current) => {
-        const next = current.filter((item) => item.id !== draft.id)
+        const list = Array.isArray(current) ? current : []
+        const next = list.filter((item) => item.id !== draft.id)
         return [draft, ...next]
       })
       const ticket = await getSupportQueueTicket(session, selectedTicketId)

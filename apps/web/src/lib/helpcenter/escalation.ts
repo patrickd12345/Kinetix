@@ -36,7 +36,8 @@ export function notifyEscalation(ticket: SupportQueueTicket) {
 }
 
 export function checkEscalations(tickets: SupportQueueTicket[]) {
-  return tickets.filter(isEscalationNeeded).sort(compareEscalations)
+  const list = Array.isArray(tickets) ? tickets : []
+  return list.filter(isEscalationNeeded).sort(compareEscalations)
 }
 
 export function __resetEscalationNotificationStateForTests() {

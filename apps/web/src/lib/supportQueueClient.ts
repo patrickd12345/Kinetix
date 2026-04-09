@@ -32,6 +32,39 @@ export interface SupportQueueListPayload {
   slaMetrics: SlaMetrics
 }
 
+const EMPTY_QUEUE_SUMMARY: QueueSummary = {
+  unassigned: 0,
+  overdue: 0,
+  awaitingRetry: 0,
+  readyForKb: 0,
+  assignedToMe: 0,
+  staleResolvedNotKb: 0,
+  recentlyUpdated: 0,
+  escalated: 0,
+  escalatedLevel2: 0,
+}
+
+const EMPTY_SLA_METRICS: SlaMetrics = {
+  avg_first_response_ms: null,
+  avg_resolution_ms: null,
+  overdue_count: 0,
+  resolved_last_7_days: 0,
+  created_last_7_days: 0,
+}
+
+/** API responses must not crash the UI if `tickets` or nested objects are missing (proxy, partial JSON, version skew). */
+export function normalizeSupportQueueListPayload(raw: Partial<SupportQueueListPayload> | null | undefined): SupportQueueListPayload {
+  const r = raw ?? {}
+  const tickets = Array.isArray(r.tickets) ? r.tickets : []
+  const summary =
+    r.summary && typeof r.summary === 'object' ? { ...EMPTY_QUEUE_SUMMARY, ...r.summary } : { ...EMPTY_QUEUE_SUMMARY }
+  const slaMetrics =
+    r.slaMetrics && typeof r.slaMetrics === 'object'
+      ? { ...EMPTY_SLA_METRICS, ...r.slaMetrics }
+      : { ...EMPTY_SLA_METRICS }
+  return { tickets, summary, slaMetrics }
+}
+
 export interface SupportKbApprovalDraft {
   id: string
   source_ticket_id: string | null
@@ -75,11 +108,11 @@ async function supportQueueRequest<T>(
 }
 
 export async function listSupportQueueTickets(session: Session | null) {
-  const data = await supportQueueRequest<SupportQueueListPayload>(
+  const data = await supportQueueRequest<Partial<SupportQueueListPayload>>(
     session,
     '/api/support-queue/tickets',
   )
-  return data
+  return normalizeSupportQueueListPayload(data)
 }
 
 export async function getSupportQueueTicket(session: Session | null, ticketId: string) {
@@ -122,8 +155,8 @@ export async function moveTicketToKbApprovalBin(session: Session | null, ticketI
 }
 
 export async function listKbApprovalDrafts(session: Session | null) {
-  const data = await supportQueueRequest<{ drafts: SupportKbApprovalDraft[] }>(session, '/api/support-queue/kb-approval')
-  return data.drafts
+  const data = await supportQueueRequest<{ drafts?: SupportKbApprovalDraft[] }>(session, '/api/support-queue/kb-approval')
+  return Array.isArray(data.drafts) ? data.drafts : []
 }
 
 export async function getKbApprovalDraft(session: Session | null, draftId: string) {

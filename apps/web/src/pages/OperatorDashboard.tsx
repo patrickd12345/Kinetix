@@ -104,9 +104,9 @@ export default function OperatorDashboard() {
         setError(null)
         const payload = await listSupportQueueTickets(session)
         if (cancelled) return
-        setTickets(payload.tickets)
-        setSummary(payload.summary)
-        setSlaMetrics(payload.slaMetrics)
+        setTickets(payload.tickets ?? [])
+        setSummary(payload.summary ?? null)
+        setSlaMetrics(payload.slaMetrics ?? null)
       } catch (loadError) {
         if (cancelled) return
         setError(loadError instanceof Error ? loadError.message : 'Operator dashboard failed to load')
@@ -123,7 +123,7 @@ export default function OperatorDashboard() {
     }
   }, [session, reloadToken])
 
-  const openTickets = useMemo(() => tickets.filter(isOpenTicket), [tickets])
+  const openTickets = useMemo(() => (tickets ?? []).filter(isOpenTicket), [tickets])
   const escalations = useMemo(() => (featureFlags.ENABLE_ESCALATION ? checkEscalations(openTickets).slice(0, 5) : []), [openTickets])
   const slaHealth = useMemo(() => computeSLAHealth(openTickets), [openTickets])
   const warningCount = useMemo(() => openTickets.filter((ticket) => computeSLAStatus(ticket) === 'warning').length, [openTickets])

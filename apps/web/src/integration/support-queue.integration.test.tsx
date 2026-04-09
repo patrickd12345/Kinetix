@@ -31,6 +31,16 @@ const baseSummary = {
   assignedToMe: 0,
   staleResolvedNotKb: 0,
   recentlyUpdated: 2,
+  escalated: 1,
+  escalatedLevel2: 0,
+}
+
+const baseSlaMetrics = {
+  avg_first_response_ms: 3600000,
+  avg_resolution_ms: 10800000,
+  overdue_count: 0,
+  resolved_last_7_days: 1,
+  created_last_7_days: 2,
 }
 
 function renderQueue(initialEntry = '/support-queue?ticketId=kinetix-20260408-def456&draftId=draft-2') {
@@ -85,7 +95,7 @@ describe('Support queue page', () => {
           resolution_due_at: '2026-04-11T10:00:00.000Z',
           last_operator_action_at: null,
           metadata: { inferred_topic: 'general', retrieval_state: 'unknown', route: '/help' },
-          derived: { labels: ['unassigned'], nowIso: '2026-04-08T12:00:00.000Z' },
+          derived: { labels: ['unassigned'], nowIso: '2026-04-08T12:00:00.000Z', escalation_level: 0 },
         },
         {
           ticket_id: 'kinetix-20260408-def456',
@@ -109,10 +119,12 @@ describe('Support queue page', () => {
           derived: {
             labels: ['unassigned', 'awaiting_retry', 'resolved_not_kb'],
             nowIso: '2026-04-08T12:00:00.000Z',
+            escalation_level: 1,
           },
         },
       ],
       summary: baseSummary,
+      slaMetrics: baseSlaMetrics,
     })
 
     vi.mocked(listKbApprovalDrafts).mockResolvedValue([
@@ -166,6 +178,7 @@ describe('Support queue page', () => {
           derived: {
             labels: ['unassigned', 'awaiting_retry', 'resolved_not_kb'],
             nowIso: '2026-04-08T12:00:00.000Z',
+            escalation_level: 1,
           },
         }
       }
@@ -189,7 +202,7 @@ describe('Support queue page', () => {
         resolution_due_at: '2026-04-11T10:00:00.000Z',
         last_operator_action_at: null,
         metadata: { inferred_topic: 'general', retrieval_state: 'unknown', route: '/help' },
-        derived: { labels: ['unassigned'], nowIso: '2026-04-08T12:00:00.000Z' },
+        derived: { labels: ['unassigned'], nowIso: '2026-04-08T12:00:00.000Z', escalation_level: 0 },
       }
     })
 
@@ -258,10 +271,11 @@ describe('Support queue page', () => {
           resolution_due_at: '2026-04-11T10:00:00.000Z',
           last_operator_action_at: null,
           metadata: { inferred_topic: 'general', retrieval_state: 'unknown', route: '/help' },
-          derived: { labels: ['unassigned'], nowIso: '2026-04-08T12:00:00.000Z' },
+          derived: { labels: ['unassigned'], nowIso: '2026-04-08T12:00:00.000Z', escalation_level: 0 },
         },
       ],
       summary: baseSummary,
+      slaMetrics: baseSlaMetrics,
     })
 
     renderQueue('/support-queue?ticketId=kinetix-20260408-def456')

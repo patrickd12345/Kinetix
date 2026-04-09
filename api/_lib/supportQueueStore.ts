@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { resolveKinetixRuntimeEnv } from './env/runtime.js'
 import { dispatchTicketNotifications } from './supportNotifications.js'
-import { enrichTicketWithDerived } from './supportTicketDerived.js'
+import { enrichTicketWithDerived, getSlaMetrics } from './supportTicketDerived.js'
 
 type SupportTicketRow = Record<string, any>
 type ApprovalDraftRow = Record<string, any>
@@ -178,6 +178,10 @@ export async function listSupportTickets() {
   if (error) throw new Error(error.message)
   const rows = data ?? []
   return rows.map((row) => toApiSupportTicket(row)!)
+}
+
+export function getSupportTicketSlaMetrics(tickets: Array<Record<string, unknown>>) {
+  return getSlaMetrics(tickets)
 }
 
 async function fetchSupportTicketRow(ticketId: string) {

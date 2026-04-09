@@ -76,6 +76,28 @@ const MOCK_BYPASS_PROFILE: PlatformProfileRecord = {
   metadata: null,
 }
 
+/** Lets operator views call `/api/support-queue/*` with Authorization in E2E and local smoke runs. */
+const SKIP_AUTH_SESSION = {
+  access_token: 'vite-skip-auth-bypass',
+  token_type: 'bearer',
+  expires_in: 3600,
+  expires_at: Math.floor(Date.now() / 1000) + 3600,
+  refresh_token: '',
+  user: {
+    id: 'bypass-dev',
+    aud: 'authenticated',
+    role: 'authenticated',
+    email: 'dev@local',
+    phone: '',
+    app_metadata: {},
+    user_metadata: {},
+    identities: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_anonymous: false,
+  },
+} as Session
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [session, setSession] = useState<Session | null>(null)
@@ -85,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (SKIP_AUTH) {
       setStatus('authenticated')
-      setSession(null)
+      setSession(SKIP_AUTH_SESSION)
       setProfile(MOCK_BYPASS_PROFILE)
       setError(null)
       setActivePlatformProfile(MOCK_BYPASS_PROFILE)

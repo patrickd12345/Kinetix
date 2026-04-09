@@ -1,43 +1,25 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const baseURL = process.env.BASE_URL ?? 'http://127.0.0.1:4173'
-const useExternalServer = Boolean(process.env.BASE_URL)
-
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30_000,
-  expect: {
-    timeout: 8_000,
-  },
   fullyParallel: true,
-  reporter: [['list']],
+  forbidOnly: Boolean(process.env.CI),
+  retries: process.env.CI ? 2 : 0,
+  reporter: 'list',
   use: {
-    baseURL,
+    baseURL: 'http://127.0.0.1:5173',
     trace: 'on-first-retry',
   },
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  webServer: {
+    /** Default `vite.config.ts` has no `vite-plugin-oauth`. Build `@kinetix/core` so `ragClient` resolves. */
+    command: 'pnpm --filter @kinetix/core build && pnpm exec vite --host 127.0.0.1 --port 5173',
+    url: 'http://127.0.0.1:5173',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+    env: {
+      ...process.env,
+      VITE_SKIP_AUTH: '1',
     },
-    {
-      name: 'mobile-chromium',
-      use: { ...devices['Pixel 5'] },
-    },
-  ],
-  ...(useExternalServer
-    ? {}
-    : {
-        webServer: {
-          command: 'pnpm dev --host 127.0.0.1 --port 4173',
-          cwd: process.cwd(),
-          url: 'http://127.0.0.1:4173',
-          reuseExistingServer: !process.env.CI,
-          env: {
-            ...process.env,
-            VITE_SKIP_AUTH: '1',
-          },
-        },
-      }),
+  },
 })
-

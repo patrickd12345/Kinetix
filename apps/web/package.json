@@ -14,6 +14,7 @@
         "withings:weights": "tsx scripts/download-withings-weights.ts",
         "test": "pnpm run build:bookiji-packages && pnpm --filter @kinetix/core build && vitest run",
         "test:e2e": "pnpm exec playwright test",
+        "test:e2e:operator": "pnpm exec playwright test e2e/operator-support-queue-smoke.spec.ts",
         "test:e2e:headed": "pnpm exec playwright test --headed",
         "support-corpus:ingest": "node ./support-corpus/ingest-corpus.mjs"
     },

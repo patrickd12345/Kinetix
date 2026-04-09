@@ -3,5 +3,13 @@
   "compilerOptions": {
     "noUnusedLocals": false,
     "noUnusedParameters": false
-  }
+  },
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/test/**",
+    "src/lib/withingsOAuthServer.ts",
+    "e2e",
+    "playwright.config.ts"
+  ]
 }

@@ -1,6 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 
-import type { QueueSummary, SupportTicketDerived } from './supportTicketDerived'
+import type { QueueSummary, SlaMetrics, SupportTicketDerived } from './supportTicketDerived'
 
 type HttpMethod = 'GET' | 'PATCH' | 'POST'
 
@@ -26,6 +26,12 @@ export interface SupportQueueTicket {
   derived?: SupportTicketDerived
 }
 
+export interface SupportQueueListPayload {
+  tickets: SupportQueueTicket[]
+  summary: QueueSummary
+  slaMetrics: SlaMetrics
+}
+
 export interface SupportKbApprovalDraft {
   id: string
   source_ticket_id: string | null
@@ -40,6 +46,7 @@ export interface SupportKbApprovalDraft {
 }
 
 export type { QueueSummary }
+export type { SlaMetrics }
 
 async function supportQueueRequest<T>(
   session: Session | null,
@@ -68,7 +75,7 @@ async function supportQueueRequest<T>(
 }
 
 export async function listSupportQueueTickets(session: Session | null) {
-  const data = await supportQueueRequest<{ tickets: SupportQueueTicket[]; summary: QueueSummary }>(
+  const data = await supportQueueRequest<SupportQueueListPayload>(
     session,
     '/api/support-queue/tickets',
   )

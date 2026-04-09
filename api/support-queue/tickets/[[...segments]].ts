@@ -5,6 +5,7 @@ import { requireSupportOperator } from '../../_lib/supportOperator.js'
 import { computeQueueSummary } from '../../_lib/supportTicketDerived.js'
 import {
   getSupportTicket,
+  getSupportTicketSlaMetrics,
   listSupportTickets,
   moveTicketToKbApprovalBin,
   retrySupportTicketNotifications,
@@ -44,7 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const tickets = await listSupportTickets()
       const summary = computeQueueSummary(tickets, { operatorUserId: operator.id })
-      return res.status(200).json({ ok: true, tickets, summary })
+      const slaMetrics = getSupportTicketSlaMetrics(tickets)
+      return res.status(200).json({ ok: true, tickets, summary, slaMetrics })
     } catch (error) {
       return sendApiError(res, 503, 'Support queue unavailable', {
         source: req.headers,

@@ -5,6 +5,7 @@ This runbook covers the shipped Kinetix web Help Center support flow.
 ## Scope
 
 - End-user support entry: `/help`
+- Operator dashboard: `/operator`
 - Operator queue: `/support-queue`
 - Ticket store: `kinetix.support_tickets`
 - Approval bin: `kinetix.support_kb_approval_bin`
@@ -63,7 +64,18 @@ Rollout must preserve the behavior locked in `apps/web/HELP_CENTER_ARCHITECTURE.
 - Operators can update ticket status and internal notes, retry notifications, and move resolved tickets into the KB approval bin.
 - Operators can assign/unassign/reassign tickets (`assigned_to` / `assigned_at` on `kinetix.support_tickets`). Assignment uses Supabase auth user ids (same identifier shape as `KINETIX_SUPPORT_OPERATOR_USER_IDS`).
 - SLA-facing fields (`first_response_due_at`, `resolution_due_at`, `last_operator_action_at`) are stored on the ticket row. The API adds a derived `labels` array for compact triage (for example `overdue_first_response`, `awaiting_retry`, `ready_for_kb`). These labels do not replace persisted `status`.
-- `GET /api/support-queue/tickets` returns `summary` counts (unassigned, overdue, awaiting retry, ready for KB, assigned to the current operator, recently updated, stale resolved-not-ingested) for the current list window.
+- The API also adds a separate derived `escalation_level` field: `0` for normal, `1` for tickets overdue by more than 4 hours, and `2` for tickets overdue by more than 24 hours.
+- `GET /api/support-queue/tickets` returns `summary` counts (unassigned, overdue, awaiting retry, ready for KB, assigned to the current operator, recently updated, stale resolved-not-ingested, escalated, critical escalated) plus additive `slaMetrics` for the same list window.
+
+### `/operator`
+
+- `/operator` is an additive operator landing page. It does not replace or alter `/support-queue`.
+- The page reuses `GET /api/support-queue/tickets` and surfaces:
+  - compact queue summary cards
+  - lightweight SLA metrics
+  - an urgency-sorted ticket list
+  - deep links back into `/support-queue`
+- Escalation is UI-only in phase 2. There is no email, Slack, browser notification, worker, or scheduled escalation behavior.
 
 ### KB approval
 

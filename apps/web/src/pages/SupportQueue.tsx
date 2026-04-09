@@ -61,6 +61,17 @@ function derivedLabels(ticket: SupportQueueTicket): string[] {
   return ticket.assigned_to ? ['assigned'] : ['unassigned']
 }
 
+function escalationBadge(ticket: SupportQueueTicket) {
+  const level = ticket.derived?.escalation_level ?? 0
+  if (level === 2) {
+    return { label: 'Escalated (critical)', className: 'bg-rose-500/20 text-rose-100' }
+  }
+  if (level === 1) {
+    return { label: 'Escalated', className: 'bg-amber-500/20 text-amber-100' }
+  }
+  return null
+}
+
 export default function SupportQueue() {
   const location = useLocation()
   const { session } = useAuth()
@@ -318,6 +329,14 @@ export default function SupportQueue() {
               <div className="text-slate-500">Recent 24h</div>
               <div className="text-lg font-semibold text-slate-100">{queueSummary.recentlyUpdated}</div>
             </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+              <div className="text-slate-500">Escalated</div>
+              <div className="text-lg font-semibold text-amber-100">{queueSummary.escalated}</div>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+              <div className="text-slate-500">Critical</div>
+              <div className="text-lg font-semibold text-rose-100">{queueSummary.escalatedLevel2}</div>
+            </div>
           </div>
         )}
         <div className="flex flex-wrap gap-2">
@@ -364,6 +383,9 @@ export default function SupportQueue() {
                     {label}
                   </span>
                 ))}
+                {escalationBadge(ticket) ? (
+                  <span className={`rounded px-1.5 py-0.5 ${escalationBadge(ticket)?.className}`}>{escalationBadge(ticket)?.label}</span>
+                ) : null}
               </div>
             </button>
           ))}
@@ -392,6 +414,11 @@ export default function SupportQueue() {
                     {label}
                   </span>
                 ))}
+                {escalationBadge(selectedTicket) ? (
+                  <span className={`rounded-full px-2 py-0.5 ${escalationBadge(selectedTicket)?.className}`}>
+                    {escalationBadge(selectedTicket)?.label}
+                  </span>
+                ) : null}
               </div>
               <div className="grid gap-1 text-xs text-slate-400 sm:grid-cols-2">
                 <div>Created: {formatTimestamp(selectedTicket.created_at)}</div>

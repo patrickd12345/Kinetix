@@ -1,6 +1,6 @@
 /**
  * Client-side triage helpers. Authoritative derived labels come from the API (`ticket.derived`);
- * these helpers mirror that logic for filtering when needed.
+ * these helpers mirror that logic for filtering and sorting.
  */
 
 export type SupportTicketDerivedLabel =
@@ -12,9 +12,12 @@ export type SupportTicketDerivedLabel =
   | 'ready_for_kb'
   | 'resolved_not_kb'
 
+export type SupportTicketEscalationLevel = 0 | 1 | 2
+
 export type SupportTicketDerived = {
   labels: SupportTicketDerivedLabel[]
   nowIso: string
+  escalation_level: SupportTicketEscalationLevel
 }
 
 export type QueueSummary = {
@@ -25,6 +28,16 @@ export type QueueSummary = {
   assignedToMe: number
   staleResolvedNotKb: number
   recentlyUpdated: number
+  escalated: number
+  escalatedLevel2: number
+}
+
+export type SlaMetrics = {
+  avg_first_response_ms: number | null
+  avg_resolution_ms: number | null
+  overdue_count: number
+  resolved_last_7_days: number
+  created_last_7_days: number
 }
 
 export type TriageFilter =

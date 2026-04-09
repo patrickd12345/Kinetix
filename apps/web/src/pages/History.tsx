@@ -37,6 +37,7 @@ import { KinetixCoachMemoryCard } from '../components/KinetixCoachMemoryCard'
 import { KinetixRaceReadinessCard } from '../components/KinetixRaceReadinessCard'
 import { KinetixCoachAlertsCard } from '../components/KinetixCoachAlertsCard'
 import { KinetixWeeklyCoachReportCard } from '../components/KinetixWeeklyCoachReportCard'
+import { KinetixTimelineCard } from '../components/KinetixTimelineCard'
 import { KinetixTrainingCalendarCard } from '../components/KinetixTrainingCalendarCard'
 import { KPS_SHORT } from '../lib/branding'
 import {
@@ -82,6 +83,7 @@ import { useKinetixCoachMemory } from '../hooks/useKinetixCoachMemory'
 import { useKinetixRaceReadiness } from '../hooks/useKinetixRaceReadiness'
 import { useKinetixCoachAlerts } from '../hooks/useKinetixCoachAlerts'
 import { useKinetixWeeklyCoachReport } from '../hooks/useKinetixWeeklyCoachReport'
+import { useKinetixTimeline } from '../hooks/useKinetixTimeline'
 import { useKinetixTrainingCalendar } from '../hooks/useKinetixTrainingCalendar'
 import { KinetixCoachingContextProvider } from '../context/KinetixCoachingContextProvider'
 
@@ -156,6 +158,12 @@ function CoachingStack() {
     insufficientData: weeklyReportInsufficient,
   } = useKinetixWeeklyCoachReport()
   const {
+    loading: timelineLoading,
+    error: timelineError,
+    timeline,
+    insufficientData: timelineInsufficient,
+  } = useKinetixTimeline()
+  const {
     loading: trainingCalendarLoading,
     error: trainingCalendarError,
     calendar,
@@ -188,6 +196,12 @@ function CoachingStack() {
         error={weeklyReportError}
         report={weeklyReport}
         insufficientData={weeklyReportInsufficient}
+      />
+      <KinetixTimelineCard
+        loading={timelineLoading}
+        error={timelineError}
+        timeline={timeline}
+        insufficientData={timelineInsufficient}
       />
       <KinetixCoachMemoryCard
         loading={coachMemoryLoading}

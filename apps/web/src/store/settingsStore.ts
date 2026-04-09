@@ -47,9 +47,19 @@ interface SettingsState {
   /** Display unit for weight (weight history table, etc.). Default lbs. */
   weightUnit: 'kg' | 'lbs'
   setWeightUnit: (unit: 'kg' | 'lbs') => void
+  withingsExpandedSyncEnabled: boolean
+  setWithingsExpandedSyncEnabled: (enabled: boolean) => void
+  withingsSyncTimes: [string, string]
+  setWithingsSyncTimes: (times: [string, string]) => void
+  lastSuccessfulWithingsSyncAt: string | null
+  setLastSuccessfulWithingsSyncAt: (iso: string | null) => void
+  lastSuccessfulWithingsScheduledSlotKey: string | null
+  setLastSuccessfulWithingsScheduledSlotKey: (slotKey: string | null) => void
   trainingGoal: TrainingGoal | null
   setTrainingGoal: (goal: TrainingGoal | null) => void
 }
+
+const DEFAULT_WITHINGS_SYNC_TIMES: [string, string] = ['08:00', '20:00']
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -90,6 +100,15 @@ export const useSettingsStore = create<SettingsState>()(
       weightUnit: 'lbs',
       setWeightUnit: (unit) => set({ weightUnit: unit }),
 
+      withingsExpandedSyncEnabled: false,
+      setWithingsExpandedSyncEnabled: (enabled) => set({ withingsExpandedSyncEnabled: enabled }),
+      withingsSyncTimes: DEFAULT_WITHINGS_SYNC_TIMES,
+      setWithingsSyncTimes: (times) => set({ withingsSyncTimes: times }),
+      lastSuccessfulWithingsSyncAt: null,
+      setLastSuccessfulWithingsSyncAt: (iso) => set({ lastSuccessfulWithingsSyncAt: iso }),
+      lastSuccessfulWithingsScheduledSlotKey: null,
+      setLastSuccessfulWithingsScheduledSlotKey: (slotKey) => set({ lastSuccessfulWithingsScheduledSlotKey: slotKey }),
+
       trainingGoal: null,
       setTrainingGoal: (goal) => set({ trainingGoal: goal }),
     }),
@@ -107,6 +126,7 @@ export const useSettingsStore = create<SettingsState>()(
         if (p.targetNPI !== undefined) out.targetKPS = p.targetNPI
         if (p.withingsCredentials && typeof p.withingsCredentials.expiresAt === 'number') out.withingsCredentials = p.withingsCredentials
         if (p.stravaCredentials && typeof p.stravaCredentials.expiresAt === 'number') out.stravaCredentials = p.stravaCredentials
+        if (!Array.isArray(p.withingsSyncTimes) || p.withingsSyncTimes.length !== 2) out.withingsSyncTimes = DEFAULT_WITHINGS_SYNC_TIMES
         out.stravaSyncError = null
         return out
       },

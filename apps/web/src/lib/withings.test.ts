@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { fetchRecentWithingsWeights } from './withings'
+import { fetchRecentWithingsWeights, syncWithingsWeightsAtStartup } from './withings'
 
 /** kg 80.0 at unit -2 → value 8000 */
 function grp(dateUnix: number, value: number) {
@@ -62,5 +62,19 @@ describe('fetchRecentWithingsWeights', () => {
     expect(entries[0].dateUnix).toBe(1_800_000_000)
     expect(entries[0].kg).toBe(81)
     expect(entries[1].kg).toBe(80)
+  })
+
+  it('does not perform expanded ingestion during startup weight sync', async () => {
+    const page = { status: 0, body: { measuregrps: [grp(1_800_000_000, 8100)], more: 0, offset: 0 } }
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(page), { status: 200 }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const result = await syncWithingsWeightsAtStartup(
+      { accessToken: 'a', refreshToken: 'r', userId: 'u1', expiresAt: Date.now() + 60_000 },
+      vi.fn()
+    )
+
+    expect(result.latestKg).toBe(81)
+    expect(fetchMock).toHaveBeenCalled()
   })
 })

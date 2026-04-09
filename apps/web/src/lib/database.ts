@@ -1,5 +1,7 @@
 import Dexie, { Table } from 'dexie'
 import { UserProfile } from '@kinetix/core'
+import type { CanonicalHealthMetric } from './integrations/healthMetrics'
+import type { WithingsCapabilityMap, WithingsCursor, WithingsRawEvent, WithingsSyncRun } from './integrations/withings/types'
 
 /** 0 = visible, 1 = logically deleted (hidden from UI and stats) */
 export const RUN_DELETED = 1
@@ -56,10 +58,36 @@ export interface WeightEntry {
   kg: number
 }
 
+export interface ProviderConnectionState {
+  id: string
+  userId: string
+  provider: 'withings'
+  connected: boolean
+  updatedAt: string
+  capabilities: WithingsCapabilityMap
+}
+
+export interface ProviderSyncCheckpoint {
+  id: string
+  userId: string
+  provider: 'withings'
+  cursor: WithingsCursor
+  updatedAt: string
+}
+
+export interface StoredHealthMetric extends CanonicalHealthMetric {
+  id: string
+}
+
 class KinetixDatabase extends Dexie {
   runs!: Table<RunRecord>
   pb!: Table<PBRecord>
   weightHistory!: Table<WeightEntry>
+  providerConnections!: Table<ProviderConnectionState>
+  providerSyncCheckpoints!: Table<ProviderSyncCheckpoint>
+  providerSyncRuns!: Table<WithingsSyncRun>
+  providerRawEvents!: Table<WithingsRawEvent>
+  healthMetrics!: Table<StoredHealthMetric>
 
   constructor() {
     super('KinetixDB')
@@ -105,6 +133,16 @@ class KinetixDatabase extends Dexie {
       return tx.table('runs').toCollection().modify((run: Record<string, unknown>) => {
         if ('kps' in run) delete run.kps
       })
+    })
+    this.version(8).stores({
+      runs: '++id, date, distance, source, external_id, deleted',
+      pb: '++id, runId, achievedAt',
+      weightHistory: 'dateUnix, date',
+      providerConnections: '&id, userId, provider, updatedAt',
+      providerSyncCheckpoints: '&id, userId, provider, updatedAt',
+      providerSyncRuns: '&id, userId, provider, startedAt, status',
+      providerRawEvents: '&id, userId, family, createdAt',
+      healthMetrics: '&id, userId, source, family, observedAt, date, sourceRecordId',
     })
   }
 }
@@ -317,4 +355,56 @@ export async function backfillRunWeights(): Promise<{ updated: number; skipped: 
     }
   }
   return { updated, skipped }
+}
+
+export async function upsertProviderConnectionState(state: ProviderConnectionState): Promise<void> {
+  await db.providerConnections.put(state)
+}
+
+export async function getProviderConnectionState(userId: string, provider: 'withings'): Promise<ProviderConnectionState | undefined> {
+  return db.providerConnections.get(`${provider}:${userId}`)
+}
+
+export async function setProviderSyncCheckpoint(
+  userId: string,
+  provider: 'withings',
+  cursor: WithingsCursor
+): Promise<void> {
+  await db.providerSyncCheckpoints.put({
+    id: `${provider}:${userId}`,
+    userId,
+    provider,
+    cursor,
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function getProviderSyncCheckpoint(
+  userId: string,
+  provider: 'withings'
+): Promise<WithingsCursor> {
+  const row = await db.providerSyncCheckpoints.get(`${provider}:${userId}`)
+  return row?.cursor ?? {}
+}
+
+export async function appendProviderSyncRun(run: WithingsSyncRun): Promise<void> {
+  await db.providerSyncRuns.add(run)
+}
+
+export async function appendProviderRawEvents(events: WithingsRawEvent[]): Promise<void> {
+  if (events.length === 0) return
+  await db.providerRawEvents.bulkAdd(events)
+}
+
+export async function putCanonicalHealthMetrics(metrics: CanonicalHealthMetric[]): Promise<void> {
+  if (metrics.length === 0) return
+  const rows: StoredHealthMetric[] = metrics.map((metric) => ({
+    ...metric,
+    id: `${metric.source}:${metric.userId}:${metric.family}:${metric.sourceRecordId}`,
+  }))
+  await db.healthMetrics.bulkPut(rows)
+}
+
+export async function getCanonicalHealthMetricsForUser(userId: string): Promise<StoredHealthMetric[]> {
+  return db.healthMetrics.where('userId').equals(userId).toArray()
 }

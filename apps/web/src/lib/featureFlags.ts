@@ -17,4 +17,7 @@ export const featureFlags = {
   get ENABLE_ESCALATION() {
     return readBooleanFlag(import.meta.env.VITE_ENABLE_ESCALATION, true)
   },
+  get ENABLE_WITHINGS_EXPANDED_INGESTION() {
+    return readBooleanFlag(import.meta.env.VITE_ENABLE_WITHINGS_EXPANDED_INGESTION, false)
+  },
 }

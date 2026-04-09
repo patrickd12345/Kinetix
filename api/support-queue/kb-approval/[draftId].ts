@@ -33,6 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const body = (req.body ?? {}) as {
         title?: string
         body_markdown?: string
+        excerpt?: string
         topic?: string
         intent?: string
         review_status?: string

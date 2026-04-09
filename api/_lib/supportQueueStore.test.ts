@@ -29,4 +29,12 @@ describe('validateKbApprovalDraftPatch', () => {
   it('rejects blank markdown before the database layer', () => {
     expect(() => validateKbApprovalDraftPatch({ body_markdown: '   ' })).toThrow('Draft body markdown is required')
   })
+
+  it('rejects excerpt that is too long', () => {
+    expect(() => validateKbApprovalDraftPatch({ excerpt: 'x'.repeat(2001) })).toThrow('Draft excerpt must be at most')
+  })
+
+  it('accepts empty excerpt', () => {
+    expect(validateKbApprovalDraftPatch({ excerpt: '' })).toEqual({ excerpt: '' })
+  })
 })

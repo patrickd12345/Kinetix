@@ -131,3 +131,19 @@ The curation path is:
 4. The approved artifact is ingested into `kinetix_support_kb`.
 
 No raw ticket thread is auto-ingested.
+
+## Curated KB bulk import (optional)
+
+For operator-reviewed **curated** articles (JSON array of ingest artifacts), use:
+
+```bash
+node scripts/kb-bulk-import.mjs --file ./curated-artifacts.json --dry-run
+KINETIX_RAG_BASE_URL=http://localhost:3001 node scripts/kb-bulk-import.mjs --file ./curated-artifacts.json --ingest
+```
+
+Rules:
+
+- Each array element must pass `validateSupportArtifactForIngest` (same as `POST /support/kb/ingest`).
+- Duplicate `artifact_id` values in one file are rejected.
+- This does **not** import tickets; it only ingests curated artifacts.
+- Chroma and embeddings must be reachable for `--ingest` (same requirements as normal ingest).

@@ -181,7 +181,8 @@ OAuth code exchange and token refresh share one serverless handler for Hobby pla
 Before end-to-end activation:
 
 1. Apply `supabase/migrations/20260408000000_support_queue_notifications_and_kb_bin.sql`.
-2. Configure:
+2. Apply `supabase/migrations/20260408140000_kinetix_support_queue_operator_sla.sql` (operator assignment + SLA columns + KB draft excerpt).
+3. Configure:
    - `KINETIX_SUPPORT_OPERATOR_USER_IDS`
    - `KINETIX_APP_BASE_URL`
    - `KINETIX_RAG_BASE_URL`
@@ -191,13 +192,20 @@ Before end-to-end activation:
    - `RESEND_API_KEY`
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
-3. Ensure curated support content exists in `kinetix_support_kb`.
+4. Ensure curated support content exists in `kinetix_support_kb`.
 
 ---
 
 ## Deferred beyond v1
 
-- Automated assignment, SLA tracking, and queue analytics
-- Bulk ingest automation for support corpus artifacts
-- Richer CMS-style authoring for fallback content and KB drafts
-- Any future merge of coach chat and Help Center support modes
+Shipped as incremental hardening (does not change the frozen contracts above):
+
+- Operator assignment + SLA timestamps + derived triage labels + compact queue summary (`GET /api/support-queue/tickets` includes `summary`)
+- KB draft **excerpt** field + operator preview (plaintext) before ingest
+- Optional curated bulk import helper for **non-ticket** artifacts (`apps/rag/scripts/kb-bulk-import.mjs`)
+
+Still deferred / not promised here:
+
+- Full BI/reporting beyond compact triage counts
+- A rich markdown preview renderer in the operator UI
+- Any merge of coach chat and Help Center support modes

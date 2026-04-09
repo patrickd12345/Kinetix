@@ -2,7 +2,7 @@
 
 **Source of truth:** This file is reconstructed from the Kinetix repo, `docs/deployment/*`, feature lists, and recent `git` history. Umbrella-only standards are referenced by path where they live outside this clone.
 
-**Last reviewed:** 2026-04-08 (Web accessibility rollout vs umbrella `ACCESSIBILITY_STANDARD.md`; audit in [`ACCESSIBILITY_AUDIT_KINETIX_WEB.md`](ACCESSIBILITY_AUDIT_KINETIX_WEB.md).)
+**Last reviewed:** 2026-04-08 (Help Center operator scale-up phase 1: assignment, SLA fields, triage summary, KB excerpt, curated bulk-import helper; migrations under `supabase/migrations/`.)
 
 ---
 
@@ -60,8 +60,8 @@ Kinetix is a **running-first personal performance** product: normalize effort vi
 
 - **`platform.profiles`** — profile rows keyed to auth user id (`apps/web/src/lib/platformAuth.ts`, `api/_lib/platformAuth.ts`).
 - **`platform.entitlements`** — `product_key = 'kinetix'` for subscription gating (`platformAuth.ts`, [`STRIPE_KINETIX_ENTITLEMENTS.md`](deployment/STRIPE_KINETIX_ENTITLEMENTS.md)).
-- **`kinetix.support_tickets`** — authoritative Help Center escalation records, operator notes, notification state, and KB approval state (`apps/rag/README.md`).
-- **`kinetix.support_kb_approval_bin`** — operator-reviewed drafts for reusable support knowledge before ingest (`apps/web/HELP_CENTER_ARCHITECTURE.md`).
+- **`kinetix.support_tickets`** — authoritative Help Center escalation records, operator notes, notification state, KB approval state, operator assignment (`assigned_to` / `assigned_at`), SLA due timestamps, and last operator action timestamp (`apps/rag/README.md`, `supabase/migrations/20260408140000_kinetix_support_queue_operator_sla.sql`).
+- **`kinetix.support_kb_approval_bin`** — operator-reviewed drafts for reusable support knowledge before ingest, including optional **excerpt** (`apps/web/HELP_CENTER_ARCHITECTURE.md`).
 
 **KPS:** Computed from run facts + profile; display uses **relative KPS** vs PB per [`KPS_CONTRACT.md`](../KPS_CONTRACT.md) — not authoritative stored display state.
 
@@ -122,6 +122,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 - Optional song BPM fields (web feature list + validation rules described in `FEATURES_WEB.md`).
 - Help Center web support flow shipped: `/help` retrieval + deterministic fallback + explicit-confirmation escalation + authoritative ticket create.
 - Operator queue shipped: `/support-queue` with status updates, internal notes, notification retry, deep-linked queue access, and resolved-only KB approval-bin moves.
+- Help Center operator scale-up (phase 1): ticket assignment, SLA due fields + derived triage labels, compact queue summary on ticket list API, KB draft excerpts + plaintext preview, optional curated bulk-import CLI for non-ticket artifacts (`apps/rag/scripts/kb-bulk-import.mjs`).
 - Curated KB reinjection shipped for v1: approval drafts in `kinetix.support_kb_approval_bin` and manual ingest into `kinetix_support_kb`.
 - Deterministic **LLM math guardrails** for chat (verified pace/KPS results, fail-closed on ambiguity) — [`docs/architecture/LLM_MATH_GUARDRAILS.md`](architecture/LLM_MATH_GUARDRAILS.md).
 - Vercel **Hobby** serverless footprint reduced to **12** `api/**/*.ts` handlers (excluding `_lib`): smoke script moved out of `api/`, Withings oauth+refresh merged to `api/withings` with rewrites preserving client URLs, support-queue **tickets** subtree merged to `api/support-queue/tickets/[[...segments]].ts` with unchanged public ticket paths.
@@ -132,7 +133,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 
 - **Subscription gating and billing UX** end-to-end in production tiers (code exists; operator checklist in deployment docs).
 - **AI analysis reliability** — gateway envs, E2E allowances when AI gateway missing (see recent test/commit messages).
-- **Help Center ops hardening** — operator assignment/SLA/analytics, richer CMS authoring for fallback and KB drafts, and bulk ingest automation for support corpus artifacts.
+- **Help Center ops hardening** — deeper analytics/SLA reporting beyond compact triage counts, richer markdown preview in operator UI, and optional automation around curated corpus staging (ticket-first workflow remains canonical).
 - **Platform standard adoption** — `PRODUCT_SCOPE.md`: CI baseline, env contract, observability, feature flags, error contract marked **Partial**.
 - **Doc hygiene:** Keep `PRODUCT_SCOPE.md` platform table aligned with deployment docs when billing or spine changes land.
 
@@ -140,7 +141,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 
 ## Next Priorities
 
-1. Close the remaining Help Center v1 follow-ups: operator assignment/SLA/analytics, richer KB authoring, and corpus ingest automation.
+1. Close remaining Help Center follow-ups now that phase-1 operator tooling exists: measurable SLA reporting, richer markdown preview, and optional corpus automation without bypassing ticket-first escalation.
 2. Close **Partial** rows in `PRODUCT_SCOPE.md` with measurable criteria (tests, dashboards, error contract coverage).
 3. Web **map** and **export** (GPX/TCX) when prioritizing parity with user expectations (`FEATURES_WEB.md` future list).
 4. **`pnpm run verify:vercel-parity`** on any change to `scripts/vercel-install.sh`, workspace packages, or `@bookiji-inc/*` consumption.

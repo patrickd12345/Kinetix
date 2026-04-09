@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, RefreshCcw, Send, CheckCircle2, FileText } from 'lucide-react'
+import { Loader2, RefreshCcw, Send, CheckCircle2, FileText, User, UserX } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../components/providers/useAuth'
 import {
@@ -10,16 +10,32 @@ import {
   listSupportQueueTickets,
   moveTicketToKbApprovalBin,
   retrySupportQueueNotifications,
+  type QueueSummary,
   type SupportKbApprovalDraft,
   type SupportQueueTicket,
   updateKbApprovalDraft,
   updateSupportQueueTicket,
 } from '../lib/supportQueueClient'
+import {
+  type TriageFilter,
+  ticketMatchesTriageFilter,
+} from '../lib/supportTicketDerived'
 
 const TICKET_STATUSES = ['open', 'triaged', 'in_progress', 'resolved', 'closed'] as const
 const KB_TOPIC_OPTIONS = ['account', 'billing', 'sync', 'import', 'kps', 'charts', 'privacy', 'general'] as const
 const KB_INTENT_OPTIONS = ['howto', 'troubleshoot', 'policy', 'limitation'] as const
 const KB_REVIEW_STATUS_OPTIONS = ['draft', 'approved', 'ingested', 'rejected'] as const
+
+const TRIAGE_FILTERS: { id: TriageFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'unassigned', label: 'Unassigned' },
+  { id: 'overdue', label: 'Overdue' },
+  { id: 'awaiting_retry', label: 'Awaiting retry' },
+  { id: 'ready_for_kb', label: 'Ready for KB' },
+  { id: 'assigned_to_me', label: 'Assigned to me' },
+  { id: 'recent', label: 'Recently updated' },
+  { id: 'stale_resolved', label: 'Stale resolved (no KB)' },
+]
 
 function formatTimestamp(value: string | null | undefined) {
   if (!value) return 'n/a'
@@ -37,14 +53,25 @@ function metadataSummary(ticket: SupportQueueTicket | null) {
   }
 }
 
+function derivedLabels(ticket: SupportQueueTicket): string[] {
+  const labels = ticket.derived?.labels
+  if (labels && labels.length > 0) {
+    return labels
+  }
+  return ticket.assigned_to ? ['assigned'] : ['unassigned']
+}
+
 export default function SupportQueue() {
   const location = useLocation()
   const { session } = useAuth()
+  const operatorUserId = session?.user?.id ?? null
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search])
   const requestedTicketId = searchParams.get('ticketId')
   const requestedDraftId = searchParams.get('draftId')
   const [reloadToken, setReloadToken] = useState(0)
   const [tickets, setTickets] = useState<SupportQueueTicket[]>([])
+  const [queueSummary, setQueueSummary] = useState<QueueSummary | null>(null)
+  const [triageFilter, setTriageFilter] = useState<TriageFilter>('all')
   const [drafts, setDrafts] = useState<SupportKbApprovalDraft[]>([])
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(requestedTicketId)
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(requestedDraftId)
@@ -52,10 +79,16 @@ export default function SupportQueue() {
   const [selectedDraft, setSelectedDraft] = useState<SupportKbApprovalDraft | null>(null)
   const [notesDraft, setNotesDraft] = useState('')
   const [statusDraft, setStatusDraft] = useState('open')
+  const [assigneeInput, setAssigneeInput] = useState('')
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busyAction, setBusyAction] = useState<string | null>(null)
+  const [kbPreview, setKbPreview] = useState(false)
 
   const selectionSummary = useMemo(() => metadataSummary(selectedTicket), [selectedTicket])
+
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => ticketMatchesTriageFilter(ticket, triageFilter, operatorUserId))
+  }, [tickets, triageFilter, operatorUserId])
 
   useEffect(() => {
     if (requestedTicketId) setSelectedTicketId(requestedTicketId)
@@ -66,20 +99,29 @@ export default function SupportQueue() {
   }, [requestedDraftId])
 
   useEffect(() => {
+    if (selectedTicket?.assigned_to) {
+      setAssigneeInput(selectedTicket.assigned_to)
+    } else {
+      setAssigneeInput('')
+    }
+  }, [selectedTicket?.ticket_id, selectedTicket?.assigned_to])
+
+  useEffect(() => {
     let cancelled = false
 
     async function load() {
       try {
         setLoadError(null)
-        const [ticketRows, draftRows] = await Promise.all([
+        const [queuePayload, draftRows] = await Promise.all([
           listSupportQueueTickets(session),
           listKbApprovalDrafts(session),
         ])
         if (cancelled) return
-        setTickets(ticketRows)
+        setTickets(queuePayload.tickets)
+        setQueueSummary(queuePayload.summary)
         setDrafts(draftRows)
 
-        const preferredTicketId = requestedTicketId ?? selectedTicketId ?? ticketRows[0]?.ticket_id ?? null
+        const preferredTicketId = requestedTicketId ?? selectedTicketId ?? queuePayload.tickets[0]?.ticket_id ?? null
         const preferredDraftId = requestedDraftId ?? selectedDraftId ?? draftRows[0]?.id ?? null
 
         const [preferredTicket, preferredDraft] = await Promise.all([
@@ -89,8 +131,8 @@ export default function SupportQueue() {
         if (cancelled) return
 
         const fallbackTicket = selectedTicketId
-          ? ticketRows.find((item) => item.ticket_id === selectedTicketId) ?? null
-          : ticketRows[0] ?? null
+          ? queuePayload.tickets.find((item) => item.ticket_id === selectedTicketId) ?? null
+          : queuePayload.tickets[0] ?? null
         const fallbackDraft = selectedDraftId
           ? draftRows.find((item) => item.id === selectedDraftId) ?? null
           : draftRows[0] ?? null
@@ -99,7 +141,9 @@ export default function SupportQueue() {
         const draft = preferredDraft ?? fallbackDraft
 
         setTickets(
-          ticket && !ticketRows.some((item) => item.ticket_id === ticket.ticket_id) ? [ticket, ...ticketRows] : ticketRows,
+          ticket && !queuePayload.tickets.some((item) => item.ticket_id === ticket.ticket_id)
+            ? [ticket, ...queuePayload.tickets]
+            : queuePayload.tickets,
         )
         setDrafts(draft && !draftRows.some((item) => item.id === draft.id) ? [draft, ...draftRows] : draftRows)
         setSelectedTicketId(ticket?.ticket_id ?? null)
@@ -136,6 +180,21 @@ export default function SupportQueue() {
       setTickets((current) => current.map((item) => (item.ticket_id === ticket.ticket_id ? ticket : item)))
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : 'Could not update ticket')
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  async function applyAssignment(nextAssignedTo: string | null) {
+    if (!selectedTicketId) return
+    setBusyAction('assign')
+    try {
+      const ticket = await updateSupportQueueTicket(session, selectedTicketId, { assignedTo: nextAssignedTo })
+      setSelectedTicket(ticket)
+      setTickets((current) => current.map((item) => (item.ticket_id === ticket.ticket_id ? ticket : item)))
+      setAssigneeInput(ticket.assigned_to ?? '')
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Could not update assignment')
     } finally {
       setBusyAction(null)
     }
@@ -182,6 +241,7 @@ export default function SupportQueue() {
     try {
       const draft = await updateKbApprovalDraft(session, selectedDraft.id, {
         title: selectedDraft.title,
+        excerpt: selectedDraft.excerpt,
         body_markdown: selectedDraft.body_markdown,
         topic: selectedDraft.topic,
         intent: selectedDraft.intent,
@@ -232,13 +292,57 @@ export default function SupportQueue() {
             Refresh
           </button>
         </div>
+        {queueSummary && (
+          <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+              <div className="text-slate-500">Unassigned</div>
+              <div className="text-lg font-semibold text-white">{queueSummary.unassigned}</div>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+              <div className="text-slate-500">Overdue</div>
+              <div className="text-lg font-semibold text-amber-200">{queueSummary.overdue}</div>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+              <div className="text-slate-500">Awaiting retry</div>
+              <div className="text-lg font-semibold text-rose-200">{queueSummary.awaitingRetry}</div>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+              <div className="text-slate-500">Ready for KB</div>
+              <div className="text-lg font-semibold text-emerald-200">{queueSummary.readyForKb}</div>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+              <div className="text-slate-500">Assigned to me</div>
+              <div className="text-lg font-semibold text-cyan-200">{queueSummary.assignedToMe}</div>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+              <div className="text-slate-500">Recent 24h</div>
+              <div className="text-lg font-semibold text-slate-100">{queueSummary.recentlyUpdated}</div>
+            </div>
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {TRIAGE_FILTERS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTriageFilter(item.id)}
+              className={`rounded-full border px-3 py-1 text-[11px] ${
+                triageFilter === item.id
+                  ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-100'
+                  : 'border-white/10 bg-black/20 text-slate-300 hover:bg-white/5'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
         {loadError && (
           <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-200" role="alert">
             {loadError}
           </p>
         )}
-        <div className="space-y-2">
-          {tickets.map((ticket) => (
+        <div className="space-y-2 max-h-[480px] overflow-auto pr-1">
+          {filteredTickets.map((ticket) => (
             <button
               key={ticket.ticket_id}
               type="button"
@@ -250,13 +354,20 @@ export default function SupportQueue() {
                   : 'border-white/10 bg-black/20 text-slate-300 hover:bg-white/5'
               }`}
             >
-              <div className="font-medium">{ticket.issue_summary}</div>
+              <div className="font-medium line-clamp-2">{ticket.issue_summary}</div>
               <div className="mt-1 text-xs text-slate-400">
                 {ticket.ticket_id} · {ticket.status} · {formatTimestamp(ticket.created_at)}
               </div>
+              <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
+                {derivedLabels(ticket).map((label) => (
+                  <span key={label} className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-indigo-100">
+                    {label}
+                  </span>
+                ))}
+              </div>
             </button>
           ))}
-          {tickets.length === 0 && <p className="text-sm text-slate-500">No tickets yet.</p>}
+          {filteredTickets.length === 0 && <p className="text-sm text-slate-500">No tickets in this view.</p>}
         </div>
       </section>
 
@@ -269,16 +380,76 @@ export default function SupportQueue() {
           <>
             <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-300 space-y-2">
               <div className="font-medium text-slate-100">{selectedTicket.issue_summary}</div>
-              <div>Ticket: <span className="font-mono text-xs">{selectedTicket.ticket_id}</span></div>
+              <div>
+                Ticket: <span className="font-mono text-xs">{selectedTicket.ticket_id}</span>
+              </div>
               <div>Topic: {selectionSummary.topic}</div>
               <div>Retrieval: {selectionSummary.retrieval}</div>
               <div>Route: {selectionSummary.route}</div>
+              <div className="flex flex-wrap gap-2 text-[11px]">
+                {derivedLabels(selectedTicket).map((label) => (
+                  <span key={label} className="rounded-full bg-white/10 px-2 py-0.5 text-slate-200">
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <div className="grid gap-1 text-xs text-slate-400 sm:grid-cols-2">
+                <div>Created: {formatTimestamp(selectedTicket.created_at)}</div>
+                <div>Updated: {formatTimestamp(selectedTicket.updated_at)}</div>
+                <div>Assigned: {formatTimestamp(selectedTicket.assigned_at)}</div>
+                <div>Last operator action: {formatTimestamp(selectedTicket.last_operator_action_at)}</div>
+                <div className="text-amber-100">First response due: {formatTimestamp(selectedTicket.first_response_due_at)}</div>
+                <div className="text-amber-100">Resolution due: {formatTimestamp(selectedTicket.resolution_due_at)}</div>
+              </div>
               <div>Slack: {selectedTicket.notification_slack_status}</div>
               <div>Email: {selectedTicket.notification_email_status}</div>
               <div>Last notification attempt: {formatTimestamp(selectedTicket.notification_last_attempt_at)}</div>
               {selectedTicket.notification_error_summary && (
                 <div className="text-red-200">Notification errors: {selectedTicket.notification_error_summary}</div>
               )}
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-white/10 bg-black/10 p-3">
+              <div className="text-sm text-slate-200">Assignment</div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busyAction !== null || !operatorUserId}
+                  onClick={() => void applyAssignment(operatorUserId)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/5 px-3 py-2 text-xs text-cyan-100 disabled:opacity-40"
+                >
+                  <User size={14} />
+                  Assign to me
+                </button>
+                <button
+                  type="button"
+                  disabled={busyAction !== null}
+                  onClick={() => void applyAssignment(null)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-200 disabled:opacity-40"
+                >
+                  <UserX size={14} />
+                  Unassign
+                </button>
+              </div>
+              <label className="space-y-1 block text-xs text-slate-400">
+                Operator user id (Supabase auth id)
+                <div className="flex gap-2">
+                  <input
+                    value={assigneeInput}
+                    onChange={(event) => setAssigneeInput(event.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white"
+                    placeholder="uuid"
+                  />
+                  <button
+                    type="button"
+                    disabled={busyAction !== null || !assigneeInput.trim()}
+                    onClick={() => void applyAssignment(assigneeInput.trim())}
+                    className="shrink-0 rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-200 disabled:opacity-40"
+                  >
+                    Set assignee
+                  </button>
+                </div>
+              </label>
             </div>
 
             <label className="space-y-2 block">
@@ -380,6 +551,17 @@ export default function SupportQueue() {
               />
             </label>
             <label className="space-y-2 block">
+              <span className="text-sm text-slate-200">Excerpt (summary)</span>
+              <textarea
+                value={selectedDraft.excerpt ?? ''}
+                onChange={(event) =>
+                  setSelectedDraft((current) => (current ? { ...current, excerpt: event.target.value } : current))
+                }
+                rows={3}
+                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+              />
+            </label>
+            <label className="space-y-2 block">
               <span className="text-sm text-slate-200">Body markdown</span>
               <textarea
                 value={selectedDraft.body_markdown}
@@ -390,6 +572,23 @@ export default function SupportQueue() {
                 className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
               />
             </label>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-slate-400">Preview</span>
+              <button
+                type="button"
+                className="text-xs text-cyan-200 hover:underline"
+                onClick={() => setKbPreview((current) => !current)}
+              >
+                {kbPreview ? 'Hide' : 'Show'} rendered preview
+              </button>
+            </div>
+            {kbPreview && (
+              <div className="rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-slate-200 whitespace-pre-wrap">
+                <div className="text-base font-semibold text-white">{selectedDraft.title}</div>
+                {selectedDraft.excerpt ? <div className="mt-2 text-slate-300">{selectedDraft.excerpt}</div> : null}
+                <div className="mt-3 text-slate-200">{selectedDraft.body_markdown}</div>
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="space-y-2 block">
                 <span className="text-sm text-slate-200">Topic</span>

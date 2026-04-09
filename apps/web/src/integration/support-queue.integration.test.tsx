@@ -23,6 +23,16 @@ import {
   listSupportQueueTickets,
 } from '../lib/supportQueueClient'
 
+const baseSummary = {
+  unassigned: 1,
+  overdue: 0,
+  awaitingRetry: 1,
+  readyForKb: 0,
+  assignedToMe: 0,
+  staleResolvedNotKb: 0,
+  recentlyUpdated: 2,
+}
+
 function renderQueue(initialEntry = '/support-queue?ticketId=kinetix-20260408-def456&draftId=draft-2') {
   const value: AuthContextValue = {
     status: 'authenticated',
@@ -54,38 +64,56 @@ describe('Support queue page', () => {
     vi.mocked(listKbApprovalDrafts).mockReset()
     vi.mocked(getKbApprovalDraft).mockReset()
 
-    vi.mocked(listSupportQueueTickets).mockResolvedValue([
-      {
-        ticket_id: 'kinetix-20260408-abc123',
-        status: 'open',
-        severity: 'unknown',
-        issue_summary: 'First ticket',
-        internal_notes: '',
-        notification_slack_status: 'pending',
-        notification_email_status: 'pending',
-        notification_error_summary: '',
-        notification_last_attempt_at: null,
-        kb_approval_status: 'none',
-        created_at: '2026-04-08T10:00:00.000Z',
-        updated_at: '2026-04-08T10:00:00.000Z',
-        metadata: { inferred_topic: 'general', retrieval_state: 'unknown', route: '/help' },
-      },
-      {
-        ticket_id: 'kinetix-20260408-def456',
-        status: 'resolved',
-        severity: 'medium',
-        issue_summary: 'Linked ticket',
-        internal_notes: 'Linked operator note',
-        notification_slack_status: 'failed',
-        notification_email_status: 'sent',
-        notification_error_summary: 'slack:500',
-        notification_last_attempt_at: '2026-04-08T10:05:00.000Z',
-        kb_approval_status: 'drafted',
-        created_at: '2026-04-08T10:01:00.000Z',
-        updated_at: '2026-04-08T10:06:00.000Z',
-        metadata: { inferred_topic: 'sync', retrieval_state: 'service_unavailable', route: '/help' },
-      },
-    ])
+    vi.mocked(listSupportQueueTickets).mockResolvedValue({
+      tickets: [
+        {
+          ticket_id: 'kinetix-20260408-abc123',
+          status: 'open',
+          severity: 'unknown',
+          issue_summary: 'First ticket',
+          internal_notes: '',
+          notification_slack_status: 'pending',
+          notification_email_status: 'pending',
+          notification_error_summary: '',
+          notification_last_attempt_at: null,
+          kb_approval_status: 'none',
+          created_at: '2026-04-08T10:00:00.000Z',
+          updated_at: '2026-04-08T10:00:00.000Z',
+          assigned_to: null,
+          assigned_at: null,
+          first_response_due_at: '2026-04-08T14:00:00.000Z',
+          resolution_due_at: '2026-04-11T10:00:00.000Z',
+          last_operator_action_at: null,
+          metadata: { inferred_topic: 'general', retrieval_state: 'unknown', route: '/help' },
+          derived: { labels: ['unassigned'], nowIso: '2026-04-08T12:00:00.000Z' },
+        },
+        {
+          ticket_id: 'kinetix-20260408-def456',
+          status: 'resolved',
+          severity: 'medium',
+          issue_summary: 'Linked ticket',
+          internal_notes: 'Linked operator note',
+          notification_slack_status: 'failed',
+          notification_email_status: 'sent',
+          notification_error_summary: 'slack:500',
+          notification_last_attempt_at: '2026-04-08T10:05:00.000Z',
+          kb_approval_status: 'drafted',
+          created_at: '2026-04-08T10:01:00.000Z',
+          updated_at: '2026-04-08T10:06:00.000Z',
+          assigned_to: null,
+          assigned_at: null,
+          first_response_due_at: '2026-04-08T14:00:00.000Z',
+          resolution_due_at: '2026-04-11T10:01:00.000Z',
+          last_operator_action_at: '2026-04-08T10:06:00.000Z',
+          metadata: { inferred_topic: 'sync', retrieval_state: 'service_unavailable', route: '/help' },
+          derived: {
+            labels: ['unassigned', 'awaiting_retry', 'resolved_not_kb'],
+            nowIso: '2026-04-08T12:00:00.000Z',
+          },
+        },
+      ],
+      summary: baseSummary,
+    })
 
     vi.mocked(listKbApprovalDrafts).mockResolvedValue([
       {
@@ -93,6 +121,7 @@ describe('Support queue page', () => {
         source_ticket_id: 'kinetix-20260408-abc123',
         artifact_id: 'ticket-resolution-kinetix-20260408-abc123',
         title: 'Draft one',
+        excerpt: '',
         body_markdown: '# Draft one',
         review_status: 'draft',
         topic: 'general',
@@ -104,6 +133,7 @@ describe('Support queue page', () => {
         source_ticket_id: 'kinetix-20260408-def456',
         artifact_id: 'ticket-resolution-kinetix-20260408-def456',
         title: 'Draft two',
+        excerpt: 'Short summary',
         body_markdown: '# Draft two',
         review_status: 'approved',
         topic: 'sync',
@@ -127,7 +157,16 @@ describe('Support queue page', () => {
           kb_approval_status: 'drafted',
           created_at: '2026-04-08T10:01:00.000Z',
           updated_at: '2026-04-08T10:06:00.000Z',
+          assigned_to: null,
+          assigned_at: null,
+          first_response_due_at: '2026-04-08T14:00:00.000Z',
+          resolution_due_at: '2026-04-11T10:01:00.000Z',
+          last_operator_action_at: '2026-04-08T10:06:00.000Z',
           metadata: { inferred_topic: 'sync', retrieval_state: 'service_unavailable', route: '/help' },
+          derived: {
+            labels: ['unassigned', 'awaiting_retry', 'resolved_not_kb'],
+            nowIso: '2026-04-08T12:00:00.000Z',
+          },
         }
       }
 
@@ -144,7 +183,13 @@ describe('Support queue page', () => {
         kb_approval_status: 'none',
         created_at: '2026-04-08T10:00:00.000Z',
         updated_at: '2026-04-08T10:00:00.000Z',
+        assigned_to: null,
+        assigned_at: null,
+        first_response_due_at: '2026-04-08T14:00:00.000Z',
+        resolution_due_at: '2026-04-11T10:00:00.000Z',
+        last_operator_action_at: null,
         metadata: { inferred_topic: 'general', retrieval_state: 'unknown', route: '/help' },
+        derived: { labels: ['unassigned'], nowIso: '2026-04-08T12:00:00.000Z' },
       }
     })
 
@@ -155,6 +200,7 @@ describe('Support queue page', () => {
           source_ticket_id: 'kinetix-20260408-def456',
           artifact_id: 'ticket-resolution-kinetix-20260408-def456',
           title: 'Draft two',
+          excerpt: 'Short summary',
           body_markdown: '# Draft two',
           review_status: 'approved',
           topic: 'sync',
@@ -167,6 +213,7 @@ describe('Support queue page', () => {
         source_ticket_id: 'kinetix-20260408-abc123',
         artifact_id: 'ticket-resolution-kinetix-20260408-abc123',
         title: 'Draft one',
+        excerpt: '',
         body_markdown: '# Draft one',
         review_status: 'draft',
         topic: 'general',
@@ -190,23 +237,32 @@ describe('Support queue page', () => {
   })
 
   it('resolves deep links even when the requested ticket is outside the initial list window', async () => {
-    vi.mocked(listSupportQueueTickets).mockResolvedValue([
-      {
-        ticket_id: 'kinetix-20260408-abc123',
-        status: 'open',
-        severity: 'unknown',
-        issue_summary: 'First ticket',
-        internal_notes: '',
-        notification_slack_status: 'pending',
-        notification_email_status: 'pending',
-        notification_error_summary: '',
-        notification_last_attempt_at: null,
-        kb_approval_status: 'none',
-        created_at: '2026-04-08T10:00:00.000Z',
-        updated_at: '2026-04-08T10:00:00.000Z',
-        metadata: { inferred_topic: 'general', retrieval_state: 'unknown', route: '/help' },
-      },
-    ])
+    vi.mocked(listSupportQueueTickets).mockResolvedValue({
+      tickets: [
+        {
+          ticket_id: 'kinetix-20260408-abc123',
+          status: 'open',
+          severity: 'unknown',
+          issue_summary: 'First ticket',
+          internal_notes: '',
+          notification_slack_status: 'pending',
+          notification_email_status: 'pending',
+          notification_error_summary: '',
+          notification_last_attempt_at: null,
+          kb_approval_status: 'none',
+          created_at: '2026-04-08T10:00:00.000Z',
+          updated_at: '2026-04-08T10:00:00.000Z',
+          assigned_to: null,
+          assigned_at: null,
+          first_response_due_at: '2026-04-08T14:00:00.000Z',
+          resolution_due_at: '2026-04-11T10:00:00.000Z',
+          last_operator_action_at: null,
+          metadata: { inferred_topic: 'general', retrieval_state: 'unknown', route: '/help' },
+          derived: { labels: ['unassigned'], nowIso: '2026-04-08T12:00:00.000Z' },
+        },
+      ],
+      summary: baseSummary,
+    })
 
     renderQueue('/support-queue?ticketId=kinetix-20260408-def456')
 

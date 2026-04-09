@@ -1,5 +1,7 @@
 import type { Session } from '@supabase/supabase-js'
 
+import type { QueueSummary, SupportTicketDerived } from './supportTicketDerived'
+
 type HttpMethod = 'GET' | 'PATCH' | 'POST'
 
 export interface SupportQueueTicket {
@@ -15,7 +17,13 @@ export interface SupportQueueTicket {
   kb_approval_status: string
   created_at: string
   updated_at: string
+  assigned_to?: string | null
+  assigned_at?: string | null
+  first_response_due_at?: string | null
+  resolution_due_at?: string | null
+  last_operator_action_at?: string | null
   metadata: Record<string, unknown> | null
+  derived?: SupportTicketDerived
 }
 
 export interface SupportKbApprovalDraft {
@@ -23,12 +31,15 @@ export interface SupportKbApprovalDraft {
   source_ticket_id: string | null
   artifact_id: string
   title: string
+  excerpt?: string
   body_markdown: string
   review_status: string
   topic: string
   intent: string
   updated_at: string
 }
+
+export type { QueueSummary }
 
 async function supportQueueRequest<T>(
   session: Session | null,
@@ -57,8 +68,11 @@ async function supportQueueRequest<T>(
 }
 
 export async function listSupportQueueTickets(session: Session | null) {
-  const data = await supportQueueRequest<{ tickets: SupportQueueTicket[] }>(session, '/api/support-queue/tickets')
-  return data.tickets
+  const data = await supportQueueRequest<{ tickets: SupportQueueTicket[]; summary: QueueSummary }>(
+    session,
+    '/api/support-queue/tickets',
+  )
+  return data
 }
 
 export async function getSupportQueueTicket(session: Session | null, ticketId: string) {
@@ -72,7 +86,7 @@ export async function getSupportQueueTicket(session: Session | null, ticketId: s
 export async function updateSupportQueueTicket(
   session: Session | null,
   ticketId: string,
-  patch: { status?: string; internalNotes?: string },
+  patch: { status?: string; internalNotes?: string; assignedTo?: string | null },
 ) {
   const data = await supportQueueRequest<{ ticket: SupportQueueTicket }>(
     session,
@@ -116,7 +130,7 @@ export async function getKbApprovalDraft(session: Session | null, draftId: strin
 export async function updateKbApprovalDraft(
   session: Session | null,
   draftId: string,
-  patch: Partial<Pick<SupportKbApprovalDraft, 'title' | 'body_markdown' | 'topic' | 'intent' | 'review_status'>>,
+  patch: Partial<Pick<SupportKbApprovalDraft, 'title' | 'excerpt' | 'body_markdown' | 'topic' | 'intent' | 'review_status'>>,
 ) {
   const data = await supportQueueRequest<{ draft: SupportKbApprovalDraft }>(
     session,

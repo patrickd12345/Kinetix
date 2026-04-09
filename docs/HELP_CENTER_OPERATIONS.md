@@ -28,6 +28,11 @@ Email notifications:
 - `KINETIX_SUPPORT_EMAIL_FROM`
 - `RESEND_API_KEY`
 
+Optional SLA defaults (used when creating new tickets and when backfilling missing due timestamps):
+
+- `KINETIX_SUPPORT_SLA_FIRST_RESPONSE_HOURS` (default `4`)
+- `KINETIX_SUPPORT_SLA_RESOLUTION_HOURS` (default `72`)
+
 ## Runtime behavior
 
 1. `/help` queries the curated support KB, then calls `/api/ai-chat` with grounded excerpts for the primary reply.
@@ -56,6 +61,9 @@ Rollout must preserve the behavior locked in `apps/web/HELP_CENTER_ARCHITECTURE.
 - Only allowlisted operators may use the queue routes.
 - Queue links from notifications target `/support-queue?ticketId=<id>` and must open the referenced ticket when present.
 - Operators can update ticket status and internal notes, retry notifications, and move resolved tickets into the KB approval bin.
+- Operators can assign/unassign/reassign tickets (`assigned_to` / `assigned_at` on `kinetix.support_tickets`). Assignment uses Supabase auth user ids (same identifier shape as `KINETIX_SUPPORT_OPERATOR_USER_IDS`).
+- SLA-facing fields (`first_response_due_at`, `resolution_due_at`, `last_operator_action_at`) are stored on the ticket row. The API adds a derived `labels` array for compact triage (for example `overdue_first_response`, `awaiting_retry`, `ready_for_kb`). These labels do not replace persisted `status`.
+- `GET /api/support-queue/tickets` returns `summary` counts (unassigned, overdue, awaiting retry, ready for KB, assigned to the current operator, recently updated, stale resolved-not-ingested) for the current list window.
 
 ### KB approval
 
@@ -85,8 +93,13 @@ Rollout must preserve the behavior locked in `apps/web/HELP_CENTER_ARCHITECTURE.
 3. Open the draft in the KB approval panel.
 4. Rewrite the content into reusable support guidance.
 5. Remove ticket-specific or user-specific details.
-6. Save the draft with a valid topic, intent, and review status.
-7. Use `Approve and ingest` only when the artifact is ready for the curated KB.
+6. Edit optional **excerpt** (short summary) plus **body markdown**; preview in the operator UI is plaintext (not a full markdown renderer).
+7. Save the draft with a valid topic, intent, and review status.
+8. Use `Approve and ingest` only when the artifact is ready for the curated KB.
+
+## Curated bulk import (optional)
+
+For operator-reviewed curated articles (not tickets), see `apps/rag/scripts/kb-bulk-import.mjs` and `apps/rag/README.md`. This validates the same artifact shape as `POST /support/kb/ingest` and can optionally POST each artifact to a running RAG base URL. It does not bypass the ticket-first workflow for escalations.
 
 ## Content rules
 

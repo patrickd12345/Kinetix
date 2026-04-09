@@ -9,6 +9,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { randomBytes } from 'node:crypto';
 import { resolveKinetixRuntimeEnvFromObject } from '../../../api/_lib/env/runtime.shared.mjs';
+import { computeSlaDueDatesFromCreatedAt } from '../../../api/_lib/supportSla.mjs';
 import { dispatchSupportNotifications } from './supportNotifications.js';
 
 const SEVERITY_ALLOWED = new Set(['unknown', 'low', 'medium', 'high', 'critical']);
@@ -143,6 +144,7 @@ export function buildSupportTicketRow(validatedValue, ticketId, receivedAt) {
   const metadata = validatedValue.metadata && typeof validatedValue.metadata === 'object'
     ? validatedValue.metadata
     : {};
+  const sla = computeSlaDueDatesFromCreatedAt(receivedAt);
   return {
     ticket_id: ticketId,
     product_key: 'kinetix',
@@ -166,6 +168,11 @@ export function buildSupportTicketRow(validatedValue, ticketId, receivedAt) {
     notification_email_status: 'pending',
     notification_last_attempt_at: null,
     notification_error_summary: '',
+    assigned_to: null,
+    assigned_at: null,
+    first_response_due_at: sla.firstResponseDueAt,
+    resolution_due_at: sla.resolutionDueAt,
+    last_operator_action_at: null,
   };
 }
 

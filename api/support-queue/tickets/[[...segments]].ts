@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { applyCors } from '../../_lib/cors.js'
 import { sendApiError } from '../../_lib/apiError.js'
 import { requireSupportOperator } from '../../_lib/supportOperator.js'
+import { computeQueueSummary } from '../../_lib/supportTicketDerived.js'
 import {
   getSupportTicket,
   listSupportTickets,
@@ -42,7 +43,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
       const tickets = await listSupportTickets()
-      return res.status(200).json({ ok: true, tickets })
+      const summary = computeQueueSummary(tickets, { operatorUserId: operator.id })
+      return res.status(200).json({ ok: true, tickets, summary })
     } catch (error) {
       return sendApiError(res, 503, 'Support queue unavailable', {
         source: req.headers,
@@ -73,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (req.method === 'PATCH') {
-        const body = (req.body ?? {}) as { status?: string; internalNotes?: string }
+        const body = (req.body ?? {}) as { status?: string; internalNotes?: string; assignedTo?: string | null }
         const ticket = await updateSupportTicket(ticketId, body)
         if (!ticket) return sendApiError(res, 404, 'Ticket not found', { source: req.headers })
         return res.status(200).json({ ok: true, ticket })
@@ -82,6 +84,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return sendApiError(res, 405, 'Method not allowed', { source: req.headers })
     } catch (error) {
       if (isTicketStatusValidationError(error)) {
+        return sendApiError(res, 400, error.message, { source: req.headers })
+      }
+      if (error instanceof Error && (error.message.startsWith('assignedTo') || error.message.includes('assignedTo'))) {
         return sendApiError(res, 400, error.message, { source: req.headers })
       }
       return sendApiError(res, 503, 'Support queue unavailable', {

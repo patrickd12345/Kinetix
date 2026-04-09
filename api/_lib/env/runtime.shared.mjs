@@ -38,6 +38,12 @@ export function resolveKinetixRuntimeEnvFromObject(env = getDefaultEnv()) {
     openAiModel: pick(env, ['OPENAI_MODEL', 'AI_GATEWAY_MODEL'], 'gpt-4o-mini'),
     ollamaBaseUrl: pick(env, ['OLLAMA_BASE_URL', 'OLLAMA_API_URL'], 'http://localhost:11434'),
     ollamaModel: pick(env, ['OLLAMA_MODEL', 'LLM_MODEL'], 'llama3.2'),
+    /** Ollama model for `/api/embed` (RAG). Keep separate from chat `ollamaModel`; chat LLMs are not valid embedding models. */
+    ollamaEmbedModel: pick(
+      env,
+      ['OLLAMA_EMBED_MODEL', 'KINETIX_OLLAMA_EMBEDDING_MODEL', 'EMBEDDING_MODEL', 'OLLAMA_EMBEDDING_MODEL'],
+      'nomic-embed-text',
+    ),
     apiRequireAuthRaw: pick(env, ['KINETIX_API_REQUIRE_AUTH']),
     stravaClientId: pick(env, ['VITE_STRAVA_CLIENT_ID', 'STRAVA_CLIENT_ID'], '157217'),
     stravaClientSecret: pick(env, ['STRAVA_CLIENT_SECRET']),

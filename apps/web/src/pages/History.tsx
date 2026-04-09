@@ -528,6 +528,8 @@ export default function History() {
             onClick={() => setFiltersOpen((o) => !o)}
             className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
             aria-expanded={filtersOpen}
+            aria-controls="history-filters-panel"
+            id="history-filters-toggle"
           >
             <span className="flex items-center gap-2 text-sm font-semibold text-white">
               <Filter size={16} className="text-cyan-400" aria-hidden />
@@ -540,8 +542,13 @@ export default function History() {
             </span>
             <span className="text-xs text-gray-500">{filtersOpen ? 'Hide' : 'Show'}</span>
           </button>
-          {filtersOpen && (
-            <div className="space-y-3 border-t border-white/10 px-4 pb-4 pt-3">
+          <div
+            id="history-filters-panel"
+            role="region"
+            aria-labelledby="history-filters-toggle"
+            hidden={!filtersOpen}
+            className="space-y-3 border-t border-white/10 px-4 pb-4 pt-3"
+          >
               <p className="text-xs text-gray-500">
                 Pace values are in {paceUnitShort} (decimal minutes). Use the preset to hide unrealistically fast activities (e.g. car trips).{' '}
                 {KPS_SHORT} bounds use the same relative score as the list (vs your personal-best reference). With
@@ -705,7 +712,6 @@ export default function History() {
                 </button>
               </div>
             </div>
-          )}
         </div>
 
         {runs.length === 0 && !loading ? (

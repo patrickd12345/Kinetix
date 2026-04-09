@@ -143,7 +143,13 @@ export default function Layout({ children }: LayoutProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 text-slate-900 dark:from-slate-950 dark:to-black dark:text-white">
+    <div className="relative min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 text-slate-900 dark:from-slate-950 dark:to-black dark:text-white">
+      <a
+        href="#main-content"
+        className="absolute left-4 top-3 z-[60] -translate-y-[140%] rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-transform focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-950"
+      >
+        Skip to main content
+      </a>
       <header className="sticky top-0 z-40 border-b border-slate-200/90 bg-white/85 backdrop-blur dark:border-white/10 dark:bg-slate-950/90">
         <div className="mx-auto max-w-7xl px-4 py-3">
           <div className="flex items-center justify-between gap-4">
@@ -151,7 +157,10 @@ export default function Layout({ children }: LayoutProps) {
               <h1 className="text-xl font-black tracking-wide">KINETIX</h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">Web dashboard</p>
             </div>
-            <div className="hidden md:flex items-center gap-1 rounded-lg border border-slate-200/90 bg-slate-100/90 p-1 dark:border-white/10 dark:bg-white/5">
+            <nav
+              className="hidden md:flex items-center gap-1 rounded-lg border border-slate-200/90 bg-slate-100/90 p-1 dark:border-white/10 dark:bg-white/5"
+              aria-label="Primary navigation"
+            >
               {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive = location.pathname === item.path
@@ -159,6 +168,7 @@ export default function Layout({ children }: LayoutProps) {
                   <Link
                     key={item.path}
                     to={item.path}
+                    aria-current={isActive ? 'page' : undefined}
                     className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all ${
                       isActive
                         ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300'
@@ -170,7 +180,7 @@ export default function Layout({ children }: LayoutProps) {
                   </Link>
                 )
               })}
-            </div>
+            </nav>
             <div className="flex items-center gap-3">
               <ThemeSelector />
               <span className="hidden sm:block max-w-[180px] truncate text-xs text-slate-500 dark:text-slate-400">
@@ -192,7 +202,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
           <aside className="hidden lg:block">
             <div className="rounded-xl border border-slate-200/90 bg-white/70 p-2 dark:border-white/10 dark:bg-white/[0.03]">
-              <nav className="space-y-1">
+              <nav className="space-y-1" aria-label="Sidebar navigation">
                 {navItems.map((item) => {
                   const Icon = item.icon
                   const isActive = location.pathname === item.path
@@ -200,6 +210,7 @@ export default function Layout({ children }: LayoutProps) {
                     <Link
                       key={item.path}
                       to={item.path}
+                      aria-current={isActive ? 'page' : undefined}
                       className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all ${
                         isActive
                           ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300'
@@ -214,14 +225,17 @@ export default function Layout({ children }: LayoutProps) {
               </nav>
             </div>
           </aside>
-          <main className="min-w-0 text-slate-900 dark:text-white">
+          <main id="main-content" className="min-w-0 text-slate-900 dark:text-white" tabIndex={-1}>
             {children}
             <AdSenseDisplayUnit />
           </main>
         </div>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-slate-950/95 md:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-slate-950/95 md:hidden"
+        aria-label="Mobile navigation"
+      >
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-around px-2">
           {navItems.map((item) => {
             const Icon = item.icon
@@ -230,6 +244,7 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 key={item.path}
                 to={item.path}
+                aria-current={isActive ? 'page' : undefined}
                 className={`flex flex-col items-center gap-1 rounded px-2 py-1 text-[10px] ${
                   isActive ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-500 dark:text-slate-400'
                 }`}

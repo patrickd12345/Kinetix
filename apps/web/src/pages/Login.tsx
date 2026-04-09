@@ -55,14 +55,24 @@ export default function Login() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-100 via-slate-200 to-slate-100 flex items-center justify-center px-4 dark:from-gray-950 dark:via-black dark:to-gray-950">
+      <a
+        href="#main-content"
+        className="absolute left-4 top-3 z-[60] -translate-y-[140%] rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-transform focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-950"
+      >
+        Skip to main content
+      </a>
       <div className="absolute right-4 top-4 z-10">
         <ThemeSelector />
       </div>
-      <div className="w-full max-w-md glass rounded-2xl border border-slate-200/90 p-6 space-y-4 dark:border-white/10">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="w-full max-w-md glass rounded-2xl border border-slate-200/90 p-6 space-y-4 dark:border-white/10"
+      >
         <h1 className="text-2xl font-black italic tracking-wider text-slate-900 dark:text-white">KINETIX</h1>
         <p className="text-sm text-slate-600 dark:text-gray-400">Continue with email</p>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4" aria-busy={submitting || oauthSubmitting}>
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-2">Email</label>
             <input
@@ -76,8 +86,16 @@ export default function Login() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-          {success && <p className="text-sm text-green-700 dark:text-green-400">{success}</p>}
+          {error && (
+            <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+              {error}
+            </p>
+          )}
+          {success && (
+            <p className="text-sm text-green-700 dark:text-green-400" role="status" aria-live="polite">
+              {success}
+            </p>
+          )}
 
           <button
             type="submit"
@@ -123,7 +141,7 @@ export default function Login() {
             )}
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }

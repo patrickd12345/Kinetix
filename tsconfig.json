@@ -16,6 +16,9 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
+      "@kinetix/core": [
+        "packages/core/src/index.ts"
+      ],
       "@bookiji-inc/error-contract": [
         "monorepo-packages/error-contract/src",
         "../../packages/error-contract/src",

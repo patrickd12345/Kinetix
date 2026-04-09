@@ -253,7 +253,7 @@ export function getLLMClient(
         fallbackReason: result.fallbackReason,
       }
       logAiEvent('kinetix_ai_chat_completed', response, { surface: 'llmClient' })
-      const boundary = buildKinetixBoundaryFromChat(messages, result.text, 'llmClient')
+      const boundary = buildKinetixBoundaryFromChat(messages, result.text)
       try {
         await commitSessionBoundary(memoryHandle, boundary)
       } catch {
@@ -281,7 +281,7 @@ export function getLLMClient(
           surface: 'llmClient',
           fallbackPath: 'generate',
         })
-        const boundaryFb = buildKinetixBoundaryFromChat(messages, result.text, 'llmClient:generate_fallback')
+        const boundaryFb = buildKinetixBoundaryFromChat(messages, result.text)
         try {
           await commitSessionBoundary(memoryHandle, boundaryFb)
         } catch {

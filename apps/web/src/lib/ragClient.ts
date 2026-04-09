@@ -3,8 +3,14 @@
  * apps/rag service (avgPace, avgKPS, etc.) and indexes after save.
  */
 
+import type {
+  CoachGuardrailPayload,
+  Provenance,
+  UserProfile,
+  VerifiedFactContract,
+} from '@kinetix/core'
+import { extractNumericTokensFromText } from '@kinetix/core'
 import type { RunRecord } from './database'
-import type { UserProfile } from '@kinetix/core'
 import { calculateAbsoluteKPS } from './kpsUtils'
 import { getProfileForRun } from './authState'
 
@@ -46,6 +52,43 @@ export interface RAGRunShape {
   songArtist?: string | null
   songBpm?: number | null
 }
+
+export interface CoachContextBundle {
+  context: string
+  contract: VerifiedFactContract
+}
+
+export type CoachUnitSystem = 'metric' | 'imperial'
+
+const FALLBACK_CONTEXT =
+  "RAG unavailable. No run data. Give general advice only. Do not invent NPI or pace from the user's runs."
+
+const DEFAULT_ALLOWED_OUTPUT_MODES: VerifiedFactContract['allowedOutputModes'] = [
+  'explanation',
+  'comparison',
+  'coaching_summary',
+  'motivation',
+  'insufficient_data',
+  'verified_math',
+]
+
+const DEFAULT_FORBIDDEN_OPERATIONS: VerifiedFactContract['forbiddenOperations'] = [
+  'invent_numbers',
+  'introduce_new_numeric_value',
+  'derive_new_numeric_target',
+  'modify_verified_values',
+  'infer_missing_inputs',
+  'medical_diagnosis',
+  'unsupported_prediction',
+  'future_performance_prediction',
+  'physiological_claim',
+  'injury_prediction',
+  'training_effect_prediction',
+  'performance_ranking_claim',
+  'trend_claim',
+  'improvement_claim',
+  'regression_claim',
+]
 
 /**
  * Map a RunRecord to the RAG service run shape (id, avgPace, avgKPS, etc.).
@@ -151,8 +194,81 @@ export async function syncNewRunsToRAG(
   return { indexed, errors, skipped }
 }
 
-const FALLBACK_CONTEXT =
-  "RAG unavailable. No run data. Give general advice only. Do not invent NPI or pace from the user's runs."
+function createFallbackCoachContext(unitSystem: CoachUnitSystem): CoachContextBundle {
+  return {
+    context: FALLBACK_CONTEXT,
+    contract: {
+      verifiedFacts: {
+        unitSystem,
+        dataAvailability: {
+          hasRetrievedRuns: false,
+          hasPbTargets: false,
+        },
+        retrievedRunCount: 0,
+        retrievedRuns: [],
+        pbPaceToBeat: null,
+      },
+      userStatedFacts: {},
+      allowedOutputModes: DEFAULT_ALLOWED_OUTPUT_MODES,
+      forbiddenOperations: DEFAULT_FORBIDDEN_OPERATIONS,
+      provenance: [
+        {
+          kind: 'verified_fact',
+          source: 'coach-context:fallback',
+          path: 'verifiedFacts.dataAvailability',
+        },
+      ],
+    },
+  }
+}
+
+function extractGoalFact(message: string): string | undefined {
+  const goalMatch =
+    message.match(/\bgoal\s+(?:is|=)\s+([^.!?\n]+)/i) ??
+    message.match(/\b(?:training for|trying to|want to|aiming to)\s+([^.!?\n]+)/i) ??
+    message.match(/\bimprove\s+([^.!?\n]+)/i)
+
+  const value = goalMatch?.[1]?.trim()
+  return value ? value.replace(/\s+/g, ' ') : undefined
+}
+
+export function buildCoachGuardrailPayload(
+  message: string,
+  contract: VerifiedFactContract,
+): CoachGuardrailPayload {
+  const numericMentions = extractNumericTokensFromText(message)
+  const goal = extractGoalFact(message)
+  const userStatedFacts: Record<string, unknown> = { numericMentions }
+  const provenance: Provenance[] = [...contract.provenance]
+
+  provenance.push({
+    kind: 'user_input',
+    source: 'chat-message',
+    path: 'userStatedFacts.numericMentions',
+  })
+
+  if (goal) {
+    userStatedFacts.goal = goal
+    provenance.push({
+      kind: 'user_input',
+      source: 'chat-message',
+      path: 'userStatedFacts.goal',
+    })
+  }
+
+  return {
+    mode: 'coach',
+    templateHint: 'auto',
+    contract: {
+      ...contract,
+      userStatedFacts: {
+        ...contract.userStatedFacts,
+        ...userStatedFacts,
+      },
+      provenance,
+    },
+  }
+}
 
 /**
  * Get coach context from RAG for a user message (retrieval + pace-to-beat).
@@ -161,14 +277,16 @@ const FALLBACK_CONTEXT =
 export async function getCoachContext(
   message: string,
   userProfile?: UserProfile | null,
-  pbRun?: RunRecord | null
-): Promise<string> {
+  pbRun?: RunRecord | null,
+  unitSystem: CoachUnitSystem = 'metric',
+): Promise<CoachContextBundle> {
   try {
     const body: {
       message: string
+      unitSystem?: CoachUnitSystem
       userProfile?: UserProfile
       pbRun?: { distance: number; duration: number; averagePace?: number; avgKPS?: number; kps?: number }
-    } = { message }
+    } = { message, unitSystem }
     if (userProfile) body.userProfile = userProfile
     if (pbRun && pbRun.distance && pbRun.duration) {
       const pbAvgKPS = userProfile ? calculateAbsoluteKPS(pbRun, userProfile) : undefined
@@ -181,18 +299,24 @@ export async function getCoachContext(
       }
     }
     const base = await getRAGBaseUrl()
-    if (!base) return FALLBACK_CONTEXT
+    if (!base) return createFallbackCoachContext(unitSystem)
     const res = await fetch(`${base}/coach-context`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(10000),
     })
-    if (!res.ok) return FALLBACK_CONTEXT
-    const data = (await res.json()) as { context?: string }
-    return typeof data.context === 'string' ? data.context : FALLBACK_CONTEXT
+    if (!res.ok) return createFallbackCoachContext(unitSystem)
+    const data = (await res.json()) as { context?: string; contract?: VerifiedFactContract }
+    if (typeof data.context !== 'string' || !data.contract || typeof data.contract !== 'object') {
+      return createFallbackCoachContext(unitSystem)
+    }
+    return {
+      context: data.context,
+      contract: data.contract,
+    }
   } catch {
-    return FALLBACK_CONTEXT
+    return createFallbackCoachContext(unitSystem)
   }
 }
 

@@ -31,16 +31,22 @@ export default function Chat() {
             type="button"
             onClick={clearChat}
             className="text-gray-400 hover:text-gray-300 text-sm flex items-center gap-1"
+            aria-label="Clear chat history"
             title="Clear chat"
           >
-            <Trash2 size={16} />
+            <Trash2 size={16} aria-hidden />
             Clear
           </button>
         )}
       </div>
 
       <div className="flex-1 glass rounded-2xl overflow-hidden flex flex-col min-h-0">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+        <div
+          className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-atomic="false"
+        >
           {messages.length === 0 && !error && (
             <div className="text-center text-gray-500 py-12 px-4">
               <MessageCircle size={48} className="mx-auto mb-3 opacity-50" />
@@ -54,6 +60,8 @@ export default function Chat() {
               className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
+                role="article"
+                aria-label={m.role === 'user' ? 'You' : 'Coach'}
                 className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
                   m.role === 'user'
                     ? 'bg-cyan-500/20 text-cyan-100 border border-cyan-500/30'
@@ -73,7 +81,10 @@ export default function Chat() {
             </div>
           )}
           {error && (
-            <div className="rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm px-4 py-2">
+            <div
+              className="rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm px-4 py-2"
+              role="alert"
+            >
               {error}
             </div>
           )}
@@ -83,8 +94,13 @@ export default function Chat() {
         <form
           onSubmit={handleSubmit}
           className="p-4 border-t border-white/10 flex gap-2"
+          aria-label="Coach chat message"
         >
+          <label htmlFor="coach-chat-input" className="sr-only">
+            Message to coach
+          </label>
           <input
+            id="coach-chat-input"
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -97,8 +113,9 @@ export default function Chat() {
             type="submit"
             disabled={isLoading || !inputValue.trim()}
             className="bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 disabled:pointer-events-none text-white rounded-xl px-4 py-3 flex items-center justify-center"
+            aria-label="Send message"
           >
-            <Send size={20} />
+            <Send size={20} aria-hidden />
           </button>
         </form>
       </div>

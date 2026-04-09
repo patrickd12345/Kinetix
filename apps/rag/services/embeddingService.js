@@ -5,6 +5,8 @@
 
 import { resolveKinetixRuntimeEnvFromObject } from '../../../api/_lib/env/runtime.shared.mjs';
 
+const runtimeConsole = globalThis.console ?? console;
+
 function getRuntime() {
   return resolveKinetixRuntimeEnvFromObject();
 }
@@ -13,8 +15,48 @@ function getOllamaApiUrl() {
   return getRuntime().ollamaApiUrl || 'http://localhost:11434';
 }
 
+/** Strip Ollama tag (e.g. `:latest`) for comparisons. */
+function modelBase(name) {
+  return String(name || '')
+    .trim()
+    .split(':')[0]
+    .toLowerCase();
+}
+
+/**
+ * True when the name is almost certainly a chat/completion model, not an embedding model.
+ * Prevents EMBEDDING_MODEL / OLLAMA_EMBED_MODEL from being set to the same value as OLLAMA_MODEL.
+ */
+function looksLikeOllamaChatModel(name) {
+  const b = modelBase(name);
+  if (!b) return false;
+  if (b.includes('embed')) return false;
+  if (b.startsWith('nomic-embed') || b.startsWith('bge-') || b.includes('mxbai') || b.startsWith('snowflake')) {
+    return false;
+  }
+  return /^(llama|tinyllama|mistral|mixtral|gemma|phi|qwen|vicuna|orca|neural-chat|openchat|wizard|codellama|deepseek)/i.test(
+    b,
+  );
+}
+
+function resolveEmbeddingModel() {
+  const rt = getRuntime();
+  const configured = (rt.ollamaEmbedModel || 'nomic-embed-text').trim();
+  const chat = (rt.ollamaModel || '').trim();
+  if (
+    looksLikeOllamaChatModel(configured) ||
+    (chat && modelBase(configured) === modelBase(chat) && !modelBase(configured).includes('embed'))
+  ) {
+    runtimeConsole.warn(
+      `[RAG] Ollama embedding model "${configured}" looks like a chat LLM (or matches OLLAMA_MODEL). Using "nomic-embed-text" for /api/embed. Set OLLAMA_EMBED_MODEL to an embedding model and run: ollama pull nomic-embed-text`,
+    );
+    return 'nomic-embed-text';
+  }
+  return configured || 'nomic-embed-text';
+}
+
 function getEmbeddingModel() {
-  return getRuntime().ollamaModel || 'nomic-embed-text';
+  return resolveEmbeddingModel();
 }
 
 export class EmbeddingService {

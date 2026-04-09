@@ -4,6 +4,14 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --focus-color: #0891b2;
+}
+
+html.dark {
+  --focus-color: #22d3ee;
+}
+
 body {
   background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
   color: #0f172a;
@@ -12,6 +20,26 @@ body {
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
   padding: 0;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 html.dark body {
@@ -41,7 +69,7 @@ html.dark .glass {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Smooth transitions */
+/* Smooth transitions; duration collapsed under prefers-reduced-motion above */
 * {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }

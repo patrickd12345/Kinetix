@@ -15,6 +15,7 @@ import { findOutlierRuns, calculateAbsoluteKPS } from '../lib/kpsUtils'
 import { hideRun, bulkPutWeightEntries, getWeightHistoryCount, backfillRunWeights, type WeightEntry } from '../lib/database'
 import { getProfileForRunDate } from '../lib/authState'
 import { formatDistance, formatTime } from '@kinetix/core'
+import { Dialog } from '../components/a11y/Dialog'
 
 export default function Settings() {
   const {
@@ -168,11 +169,17 @@ export default function Settings() {
 
   return (
     <div className="pb-20 lg:pb-4">
-      {outlierRuns != null && outlierRuns.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-labelledby="outlier-title" aria-modal="true">
+      {outlierRuns != null && outlierRuns.length > 0 ? (
+        <Dialog
+          open
+          onClose={() => setOutlierRuns(null)}
+          ariaLabelledBy="outlier-title"
+          ariaDescribedBy="outlier-desc"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
           <div className="glass rounded-2xl border border-amber-500/40 p-6 max-w-md w-full shadow-xl">
             <h2 id="outlier-title" className="text-lg font-bold text-amber-300 mb-2">Possible outliers</h2>
-            <p className="text-sm text-gray-300 mb-4">
+            <p id="outlier-desc" className="text-sm text-gray-300 mb-4">
               These runs have KPS &gt; 125% of your current PB and may be bad data (e.g. GPS glitch). Hide them so they don&apos;t affect your stats?
             </p>
             <ul className="space-y-2 mb-4 max-h-48 overflow-y-auto">
@@ -208,8 +215,8 @@ export default function Settings() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </Dialog>
+      ) : null}
       <div className="max-w-md lg:max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Settings</h1>
         <div className="glass rounded-2xl p-6 space-y-6">
@@ -425,6 +432,7 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium">Physio-Pacer Mode</label>
             <button
+              type="button"
               onClick={() => setPhysioMode(!physioMode)}
               aria-label="Toggle Physio-Pacer Mode"
               aria-pressed={physioMode}

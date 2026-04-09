@@ -26,6 +26,9 @@ importers:
       '@bookiji-inc/stripe-runtime':
         specifier: workspace:*
         version: link:monorepo-packages/stripe-runtime
+      '@kinetix/core':
+        specifier: workspace:*
+        version: link:packages/core
       '@supabase/ssr':
         specifier: ^0.5.2
         version: 0.5.2(@supabase/supabase-js@2.95.3)

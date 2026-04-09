@@ -15,6 +15,8 @@ export type KinetixRuntimeEnv = {
   openAiModel: string;
   ollamaBaseUrl: string;
   ollamaModel: string;
+  /** Ollama embedding model for RAG (`/api/embed`); not the chat LLM. */
+  ollamaEmbedModel: string;
   apiRequireAuth: boolean;
   stravaClientId: string;
   stravaClientSecret: string;

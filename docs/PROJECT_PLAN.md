@@ -2,7 +2,7 @@
 
 **Source of truth:** This file is reconstructed from the Kinetix repo, `docs/deployment/*`, feature lists, and recent `git` history. Umbrella-only standards are referenced by path where they live outside this clone.
 
-**Last reviewed:** 2026-04-08 (Help Center closeout + Vercel Hobby API consolidation verified on production).
+**Last reviewed:** 2026-04-08 (Web accessibility rollout vs umbrella `ACCESSIBILITY_STANDARD.md`; audit in [`ACCESSIBILITY_AUDIT_KINETIX_WEB.md`](ACCESSIBILITY_AUDIT_KINETIX_WEB.md).)
 
 ---
 
@@ -81,7 +81,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 
 ### Phase 2 — Intelligence Layer
 
-**Shipped / partial:** RAG service (`apps/rag`), AI coach + chat API routes (`api/ai-coach`, `api/ai-chat`), Ollama + gateway resolution (`apps/rag/README.md`, recent commits on provider resolution). **Persistent memory boundary:** `api/_lib/ai/kinetixMemoryBoundary.ts`, `@bookiji-inc/persistent-memory-runtime`, `umbrellaRuntimeBridge.ts` (session payload shaping / optional umbrella bridge).
+**Shipped / partial:** RAG service (`apps/rag`), AI coach + chat API routes (`api/ai-coach`, `api/ai-chat`), Ollama + gateway resolution (`apps/rag/README.md`, recent commits on provider resolution). **Persistent memory boundary:** `api/_lib/ai/kinetixMemoryBoundary.ts`, `@bookiji-inc/persistent-memory-runtime`, `umbrellaRuntimeBridge.ts` (session payload shaping / optional umbrella bridge). **Deterministic chat math guardrails:** `packages/core` `chatMath/*`, `api/_lib/ai/chatMathGate.ts` — server-verified pace/KPS math with fail-closed replies; see [`docs/architecture/LLM_MATH_GUARDRAILS.md`](architecture/LLM_MATH_GUARDRAILS.md).
 
 **In progress / tighten:** Entitlement-aware UX, error surfaces, observability consistency (`PRODUCT_SCOPE.md` marks several platform standards **Partial**).
 
@@ -123,6 +123,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 - Help Center web support flow shipped: `/help` retrieval + deterministic fallback + explicit-confirmation escalation + authoritative ticket create.
 - Operator queue shipped: `/support-queue` with status updates, internal notes, notification retry, deep-linked queue access, and resolved-only KB approval-bin moves.
 - Curated KB reinjection shipped for v1: approval drafts in `kinetix.support_kb_approval_bin` and manual ingest into `kinetix_support_kb`.
+- Deterministic **LLM math guardrails** for chat (verified pace/KPS results, fail-closed on ambiguity) — [`docs/architecture/LLM_MATH_GUARDRAILS.md`](architecture/LLM_MATH_GUARDRAILS.md).
 - Vercel **Hobby** serverless footprint reduced to **12** `api/**/*.ts` handlers (excluding `_lib`): smoke script moved out of `api/`, Withings oauth+refresh merged to `api/withings` with rewrites preserving client URLs, support-queue **tickets** subtree merged to `api/support-queue/tickets/[[...segments]].ts` with unchanged public ticket paths.
 
 ---

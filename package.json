@@ -23,6 +23,7 @@
     "smoke:persistent-memory": "tsx scripts/smoke-persistent-memory.ts"
   },
   "dependencies": {
+    "@kinetix/core": "workspace:*",
     "@bookiji-inc/error-contract": "workspace:*",
     "@bookiji-inc/ai-runtime": "workspace:*",
     "@bookiji-inc/observability": "workspace:*",

@@ -79,7 +79,11 @@ export function RunGaugePanel({ displayKPS, progress, isRunning, timeToBeat }: R
   return (
     <div>
       <div className="relative flex items-center justify-center mb-4">
-        <svg className="w-48 h-48 transform -rotate-90">
+        <svg
+          className="w-48 h-48 transform -rotate-90"
+          role="img"
+          aria-label={`${KPS_SHORT} gauge: ${Math.floor(displayKPS)}. Progress toward target: ${Math.round(Math.min(Math.max(progress, 0), 1) * 100)} percent.`}
+        >
           <defs>
             <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#22d3ee" />
@@ -214,6 +218,7 @@ export function RunControlsPanel({
               <RotateCcw size={22} strokeWidth={2.25} />
             </button>
             <button
+              type="button"
               onClick={startRun}
               aria-label="Start run"
               disabled={isActionLocked}
@@ -224,6 +229,7 @@ export function RunControlsPanel({
           </div>
 
           <button
+            type="button"
             onClick={openBeatPB}
             disabled={isActionLocked}
             className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-amber-400 border border-amber-500/30 hover:border-amber-500/50 hover:bg-amber-500/10 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -233,6 +239,7 @@ export function RunControlsPanel({
           </button>
 
           <button
+            type="button"
             onClick={openBeatRecents}
             disabled={isActionLocked}
             className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-violet-400 border border-violet-500/30 hover:border-violet-500/50 hover:bg-violet-500/10 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -243,6 +250,7 @@ export function RunControlsPanel({
 
           {showAICoach && (
             <button
+              type="button"
               onClick={handleAIAnalysis}
               disabled={isActionLocked || isAiAnalyzing}
               className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm font-bold text-cyan-400 border border-cyan-500/30 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -256,6 +264,7 @@ export function RunControlsPanel({
         <div className="flex gap-3">
           {isPaused ? (
             <button
+              type="button"
               onClick={resumeRun}
               aria-label="Resume run"
               disabled={isActionLocked}
@@ -265,6 +274,7 @@ export function RunControlsPanel({
             </button>
           ) : (
             <button
+              type="button"
               onClick={pauseRun}
               aria-label="Pause run"
               disabled={isActionLocked}
@@ -274,6 +284,7 @@ export function RunControlsPanel({
             </button>
           )}
           <button
+            type="button"
             onClick={stopRun}
             aria-label="Stop run"
             disabled={isActionLocked}

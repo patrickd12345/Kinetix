@@ -30,8 +30,8 @@ Core runtime:
 - `PORT`
 - `KINETIX_LLM_PROVIDER`
 - `OLLAMA_API_URL` / `OLLAMA_BASE_URL`
-- `OLLAMA_MODEL` / `LLM_MODEL`
-- `EMBEDDING_MODEL`
+- `OLLAMA_MODEL` / `LLM_MODEL` (chat / LLM only)
+- `OLLAMA_EMBED_MODEL` / `KINETIX_OLLAMA_EMBEDDING_MODEL` / `EMBEDDING_MODEL` / `OLLAMA_EMBEDDING_MODEL` — Ollama model for `/api/embed` (RAG). Defaults to `nomic-embed-text`; do not set this to the same value as the chat model unless that model supports embeddings.
 - `AI_GATEWAY_BASE_URL`
 - `AI_GATEWAY_API_KEY`
 - `AI_GATEWAY_MODEL`

@@ -16,6 +16,7 @@ import { postHelpCenterSupportAnswer } from '../lib/helpCenterSupportAi'
 import type { HelpSupportAiOutcome } from '../lib/helpCenterSupportAi'
 import { buildSupportEscalationPayload, buildTicketPayloadMailtoHref } from '../lib/helpCenterEscalation'
 import { useAuth } from '../components/providers/useAuth'
+import { Dialog } from '../components/a11y/Dialog'
 import { createSupportTicket, querySupportKB } from '../lib/supportRagClient'
 import type { SupportKBQueryOutcome } from '../lib/supportRagClient'
 
@@ -461,14 +462,18 @@ export default function HelpCenter() {
           ))}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label htmlFor="help-support-search" className="sr-only">
+            Support search question
+          </label>
           <input
+            id="help-support-search"
             type="text"
             value={supportInput}
             onChange={(e) => setSupportInput(e.target.value)}
             placeholder="e.g. Withings scale not syncing"
             className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/40 focus:outline-none"
             disabled={supportLoading}
-            aria-label="Support search question"
+            autoComplete="off"
           />
           <button
             type="button"
@@ -482,8 +487,13 @@ export default function HelpCenter() {
         </div>
 
         {supportLoading && (
-          <p className="text-slate-400 text-xs flex items-center gap-2 pt-2" data-testid="help-support-loading">
-            <Loader2 size={14} className="animate-spin shrink-0" />
+          <p
+            className="text-slate-400 text-xs flex items-center gap-2 pt-2"
+            data-testid="help-support-loading"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 size={14} className="animate-spin shrink-0" aria-hidden />
             Retrieving support articles and generating an answer…
           </p>
         )}
@@ -607,48 +617,59 @@ export default function HelpCenter() {
           </p>
         )}
 
-        {escalationPhase === 'proposing' && (
-          <div
-            className="mt-4 rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-4 space-y-3"
-            data-testid="help-escalation-proposal"
+        {escalationPhase === 'proposing' ? (
+          <Dialog
+            open
+            onClose={dismissProposal}
+            ariaLabelledBy="help-escalation-title"
+            ariaDescribedBy="help-escalation-desc"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
           >
-            <p className="text-sm text-slate-200">
-              I couldn&apos;t resolve this. Would you like me to escalate this to the team?
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={confirmLoading}
-                onClick={() => void confirmEscalation()}
-                className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/50 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50"
-                data-testid="help-escalation-confirm-yes"
-              >
-                {confirmLoading ? <Loader2 size={18} className="animate-spin" /> : null}
-                Yes, escalate to the team
-              </button>
-              <button
-                type="button"
-                disabled={confirmLoading}
-                onClick={dismissProposal}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
-                data-testid="help-escalation-confirm-no"
-              >
-                No, keep troubleshooting
-              </button>
+            <div
+              className="max-w-md w-full rounded-lg border border-cyan-500/30 bg-slate-950/95 p-4 space-y-3 shadow-xl"
+              data-testid="help-escalation-proposal"
+            >
+              <h2 id="help-escalation-title" className="text-base font-semibold text-cyan-100">
+                Escalate to the team
+              </h2>
+              <p id="help-escalation-desc" className="text-sm text-slate-200">
+                I couldn&apos;t resolve this. Would you like me to escalate this to the team?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={confirmLoading}
+                  onClick={() => void confirmEscalation()}
+                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/50 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50"
+                  data-testid="help-escalation-confirm-yes"
+                >
+                  {confirmLoading ? <Loader2 size={18} className="animate-spin" /> : null}
+                  Yes, escalate to the team
+                </button>
+                <button
+                  type="button"
+                  disabled={confirmLoading}
+                  onClick={dismissProposal}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
+                  data-testid="help-escalation-confirm-no"
+                >
+                  No, keep troubleshooting
+                </button>
+              </div>
+              {ticketActionError && (
+                <p className="text-xs text-red-300/90" data-testid="help-escalation-error" role="alert">
+                  {ticketActionError}
+                </p>
+              )}
+              {supportEmail && (
+                <p className="text-[11px] text-slate-500">
+                  If ticket creation fails, the app opens a mailto with the same structured payload when{' '}
+                  <code className="text-slate-400">VITE_SUPPORT_EMAIL</code> is set.
+                </p>
+              )}
             </div>
-            {ticketActionError && (
-              <p className="text-xs text-red-300/90" data-testid="help-escalation-error">
-                {ticketActionError}
-              </p>
-            )}
-            {supportEmail && (
-              <p className="text-[11px] text-slate-500">
-                If ticket creation fails, the app opens a mailto with the same structured payload when{' '}
-                <code className="text-slate-400">VITE_SUPPORT_EMAIL</code> is set.
-              </p>
-            )}
-          </div>
-        )}
+          </Dialog>
+        ) : null}
 
         {escalationPhase === 'escalated' && ticketId && (
           <p

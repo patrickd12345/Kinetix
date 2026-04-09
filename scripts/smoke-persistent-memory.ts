@@ -18,7 +18,6 @@ async function main() {
       { role: 'user', content: 'easy run today' },
     ],
     'Keep it easy.',
-    'smoke',
   )
   await commitSessionBoundary(h, boundary)
   const path = resolveMemoryFilePath('kinetix', 'smoke-tenant')

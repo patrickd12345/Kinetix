@@ -34,6 +34,16 @@
 
 Strategic phases and backlog live in [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) (stub: [`PROJECT_PLAN.md`](PROJECT_PLAN.md)). Use [`REPO_STATUS.md`](REPO_STATUS.md) (this file) for *where* to implement; use the plan doc for *what* is next.
 
+## Accessibility (web)
+
+- **Standard:** [`docs/standards/ACCESSIBILITY_STANDARD.md`](../../docs/standards/ACCESSIBILITY_STANDARD.md) (umbrella; WCAG 2.2 AA-oriented).
+- **Kinetix web audit + remediation log:** [`docs/ACCESSIBILITY_AUDIT_KINETIX_WEB.md`](docs/ACCESSIBILITY_AUDIT_KINETIX_WEB.md) (severity-ranked findings, shared shell/dialog/route fixes).
+
+## LLM coach math (deterministic)
+
+- Architecture: [`docs/architecture/LLM_MATH_GUARDRAILS.md`](docs/architecture/LLM_MATH_GUARDRAILS.md).
+- Implementation: `@kinetix/core` `chatMath/*`, `api/_lib/ai/chatMathGate.ts`, `api/_lib/ai/requestHandlers.ts` (math-bearing prompts get verified numbers server-side; fail-closed when inputs are ambiguous).
+
 ## Immediate Next-Step Guidance
 - If working on the live web product: change `apps/web/` first, validate build/test from workspace scripts, and keep Vercel wiring intact.
 - Help Center surfaces: routes **`/help`** and **`/support-queue`**; implementation in `apps/web/src/pages/HelpCenter.tsx` and `apps/web/src/pages/SupportQueue.tsx`; contract and operator docs in `apps/web/HELP_CENTER*.md` and `docs/HELP_CENTER_OPERATIONS.md`.

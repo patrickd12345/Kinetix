@@ -233,13 +233,16 @@ export default function SupportQueue() {
           </button>
         </div>
         {loadError && (
-          <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-200">{loadError}</p>
+          <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-200" role="alert">
+            {loadError}
+          </p>
         )}
         <div className="space-y-2">
           {tickets.map((ticket) => (
             <button
               key={ticket.ticket_id}
               type="button"
+              aria-pressed={selectedTicketId === ticket.ticket_id}
               onClick={() => setSelectedTicketId(ticket.ticket_id)}
               className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
                 selectedTicketId === ticket.ticket_id
@@ -349,6 +352,7 @@ export default function SupportQueue() {
             <button
               key={draft.id}
               type="button"
+              aria-pressed={selectedDraftId === draft.id}
               onClick={() => setSelectedDraftId(draft.id)}
               className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
                 selectedDraftId === draft.id

@@ -36,19 +36,86 @@
 
 Interpretation: serverless invocation health restored for probed routes; admlog production-safety behavior now matches checklist expectations.
 
+## Manual production gates — execution record (2026-04-10)
+
+**Environment:** `production` (`https://kinetix.bookiji.com`). **Scope:** manual verification and evidence updates only (no architecture changes).
+
+### Step 1 — Run list (from canonical checklists)
+
+**[`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md)**
+
+1. Admlog: production `GET /api/admlog` must be **403** and must not instruct enabling `ADMLOG_ENABLED` in prod.
+2. Infisical: `node scripts/verify-infisical.mjs --env=prod` must exit **0** and not flag `ADMLOG_ENABLED` in prod.
+3. SSO happy path: Bookiji login, then Kinetix tab — no login wall; profile present; entitlement passes.
+4. Entitlement gating: remove `kinetix` entitlement in DB for test user; refresh Kinetix — **Entitlement required** (no protected routes).
+5. Optional: logout; open Kinetix; sign in via magic link/OAuth — return to Kinetix with profile + entitlement.
+6. Supabase Auth (dashboard): providers + URL allowlist per [`ENV_PARITY.md`](deployment/ENV_PARITY.md).
+
+**[`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md)**
+
+1. Help Center (`/help`): KB load, `POST /api/ai-chat`, sources, escalation gate, ticket creation with confirmation + DB visibility.
+2. Support queue (`/support-queue`): non-operator **403** on `GET /api/support-queue/tickets`; operator list with summary/slaMetrics; `?ticketId=`; PATCH flows; move-to-KB rules.
+3. Operator dashboard (`/operator`): summary cards, links with filters.
+4. KB staging: `GET /api/support-queue/kb-approval`, PATCH drafts, `POST .../approve-ingest`.
+5. Escalation proxy (optional): Slack or documented no-op; UI resilient.
+
+### Fail template (for any FAIL)
+
+| Field | Value |
+|-------|--------|
+| Step | (exact checklist step) |
+| Observed | (what happened) |
+| Expected | (from checklist) |
+| Likely cause | (hypothesis) |
+| Severity | Blocker / Non-blocker |
+
+---
+
 ## Manual: [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md)
 
 | Step | Status | Evidence |
 |------|--------|----------|
-| Production `GET https://kinetix.bookiji.com/api/admlog` | **PASS** | After serverless packaging fix + redeploy on 2026-04-10: **403** with safe JSON body (`disabled_in_production`) and request id, as required by [`ENV_PARITY.md`](deployment/ENV_PARITY.md). |
-| SSO happy path (Bookiji tab then Kinetix) | **Not run** | Requires interactive login and two origins — record when performed. |
-| Entitlement gating (remove `kinetix` entitlement) | **Not run** | Requires DB access — record when performed. |
+| Production `GET https://kinetix.bookiji.com/api/admlog` | **PASS** | **2026-04-10** (re-probe): **403** JSON `criteria":"disabled_in_production"`, `howToEnable` points to non-production only; `requestId` present. |
+| `node scripts/verify-infisical.mjs --env=prod` | **PASS** | **2026-04-10**: exit **0** — `[verify:infisical] OK — env=prod platform_keys=8 kinetix_keys=0 supabase_url=set service_role_alias=yes` |
+| SSO happy path (Bookiji tab then Kinetix) | **NOT RUN** | Requires interactive browser session across two origins (login/MFA takeover per runbook). Not executed in this automated session. |
+| Post-login landing + entitlement pass (Coach/History/Settings) | **NOT RUN** | Blocked on SSO step. |
+| Entitlement gating (remove `kinetix` in `platform.entitlements`) | **NOT RUN** | Requires DB toggle for a known test user plus authenticated Kinetix session. Not executed here. |
+| Optional: login from kinetix subdomain | **NOT RUN** | Blocked on prior steps. |
+| Supabase Auth dashboard (providers + URL config) | **NOT RUN** | Console verification; not performed in this session. |
 
 ## Manual: [`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md)
 
-| Section | Status | Evidence |
-|---------|--------|----------|
-| Help Center, queue, operator, KB, escalation | **Not run** | Requires allowlisted operator session + configured backend — record environment, operator id, and pass/fail when executed. |
+| Section / step | Status | Evidence |
+|----------------|--------|----------|
+| 1. Help Center (full) | **NOT RUN** | Requires signed-in user + optional RAG/notification backends; not executed in this session. |
+| 2. `GET /api/support-queue/tickets` non-operator | **FAIL** | **2026-04-10** `curl.exe` without auth cookies: **HTTP 200** `Content-Type: text/html`, body is SPA shell (`index.html`, `Content-Disposition: inline; filename="index.html"`). **Expected:** JSON **403** (or **401**) per smoke doc. **Likely cause:** `/api/support-queue/*` not served by deployed serverless handlers in this production deployment (static/SPA fallback). **Severity:** **Blocker** for operator smoke API gate until unauthenticated API calls return JSON errors, not the SPA document. |
+| 2. Operator list / ticket PATCH / KB move rules | **NOT RUN** | Blocked: requires allowlisted operator session; also blocked until non-operator API behavior is corrected or explained. |
+| 3. Operator dashboard | **NOT RUN** | Browser + feature flags. |
+| 4. KB approval API | **NOT RUN** | `GET https://kinetix.bookiji.com/api/support-queue/kb-approval` without auth returned same **SPA 200** as tickets path (not JSON). Same routing concern as support-queue gate. |
+| 5. Escalation proxy (optional) | **NOT RUN** | Not attempted. |
+
+**Anonymous API control probes (same session, non-browser):**
+
+- `POST https://kinetix.bookiji.com/api/ai-chat` with `{}` -> JSON `invalid_request` (handler reachable); aligns with prior post-fix probes.
+- `POST https://kinetix.bookiji.com/api/support-queue/tickets` with `{}` -> **HTTP 405** empty body (differs from GET returning SPA; suggests routing is not consistently exposing this path as the JSON API expected by the smoke checklist).
+
+### Blockers (production manual gates)
+
+1. **Support queue / KB API routing on production:** Unauthenticated `GET` to `/api/support-queue/tickets` and `/api/support-queue/kb-approval` returns the SPA HTML document (**200**) instead of a JSON **403**/**401**. Treat as **blocker** for completing Phase 4 operator smoke as written until Vercel/`vercel.json`/`api/` deployment is verified for these routes.
+
+2. **SSO + entitlement + operator UI:** Not executed here; remain **open** until interactive session + DB entitlement toggle are run.
+
+### Non-blocking gaps
+
+- Supabase Auth dashboard spot-check (operator console) still outstanding.
+- Optional escalation proxy verification.
+
+### Release recommendation (manual gate pass)
+
+- **Not** "ready for next phase" for Phase 4 operator/support-queue **API** acceptance: **stop and fix** production routing or deployment coverage for `/api/support-queue/*` so API clients get JSON error responses, then re-run smoke **section 2–4**.
+- **Proceed with caution** on unrelated surfaces: admlog + Infisical prod checks **PASS**; core `ai-chat` handler responds with JSON errors for bad requests.
+
+**Umbrella `PROJECT_PLAN.md`:** Per Phase 4 plan, a full "all manual gates run" umbrella snapshot sync applies only when **every** intended manual step is executed. This session did **not** complete SSO, entitlement DB toggle, Help Center, or operator-authenticated flows; umbrella update is **minimal status only** (see umbrella file **Last updated**).
 
 ## Playwright (`pnpm test:e2e` from repo root)
 

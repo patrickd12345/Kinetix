@@ -57,6 +57,9 @@ importers:
 
   apps/rag:
     dependencies:
+      '@bookiji-inc/ai-runtime':
+        specifier: workspace:*
+        version: link:../../monorepo-packages/ai-runtime
       '@supabase/supabase-js':
         specifier: ^2.57.4
         version: 2.95.3

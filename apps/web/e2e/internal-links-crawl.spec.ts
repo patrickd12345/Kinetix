@@ -19,6 +19,7 @@ const ALLOWED_PATHS = new Set<string>([
   '/weight-history',
   '/menu',
   '/chat',
+  '/coaching',
   '/settings',
   '/help',
   '/operator',

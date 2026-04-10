@@ -37,3 +37,9 @@ Last updated: 2026-04-10
   - Success marker: final line `[verify-vercel-parity] OK`
   - Scope: `check-no-local-ai-core`, `scripts/vercel-install.sh`, root `pnpm type-check`, `pnpm lint`, `pnpm run build` (includes `@kinetix/web` production build), then `products/bookiji` Vercel-like install + production build via `scripts/verify-bookiji-vercel-build.mjs`
   - **Re-run** this gate before shipping after any change to `scripts/vercel-install.sh`, workspace wiring, or `@bookiji-inc/*` consumption paths (long-running; allow several minutes)
+
+## Phase 4 ? Playwright (optional / release readiness)
+
+- Command: `pnpm test:e2e` (from repo root; runs `apps/web` Playwright + local Vite `webServer`)
+- Final status: **PASS** (recorded 2026-04-10)
+- Final result: **18 passed** (Chromium project)

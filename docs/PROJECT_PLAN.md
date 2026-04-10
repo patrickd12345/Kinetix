@@ -156,7 +156,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 ## In Progress
 
 - **Phase 3 — Platform hardening (not blocking release):** Close **Partial** rows in [`PRODUCT_SCOPE.md`](../PRODUCT_SCOPE.md) with measurable criteria — CI beyond web, env contract uniformity, observability consistency, feature-flag governance, error-contract adoption across `api/*` where not yet uniform. See [`KINETIX_SCOPE_CLOSURE.md`](KINETIX_SCOPE_CLOSURE.md) § Phase 3.
-- **Phase 4 — Release readiness:** ENV parity ([`ENV_PARITY.md`](deployment/ENV_PARITY.md)), deployment checklist ([`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md)), Help Center operator smoke ([`HELP_CENTER_OPERATIONS.md`](HELP_CENTER_OPERATIONS.md)), Playwright / release-candidate validation.
+- **Phase 4 — Release readiness:** ENV parity ([`ENV_PARITY.md`](deployment/ENV_PARITY.md)), deployment checklist ([`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md)), Help Center operator smoke ([`HELP_CENTER_OPERATIONS.md`](HELP_CENTER_OPERATIONS.md)), Playwright / release-candidate validation — execution log [`PHASE4_RELEASE_EVIDENCE.md`](PHASE4_RELEASE_EVIDENCE.md).
 - **Help Center ops** — phase-3C surfaces remain RC in-repo; production operator pass remains a Phase 4 gate.
 - **Doc hygiene:** Keep `PRODUCT_SCOPE.md` and [`KINETIX_SCOPE_CLOSURE.md`](KINETIX_SCOPE_CLOSURE.md) aligned when billing or spine changes land.
 

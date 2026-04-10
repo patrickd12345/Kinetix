@@ -1,6 +1,6 @@
 # Phase 4 — Release evidence log
 
-**Last updated:** 2026-04-10  
+**Last updated:** 2026-04-10 (post workspace-fix production deploy smoke)  
 **Guardrail:** Wave 2 web **closed**; this file records **execution evidence** for Phase 4 gates. No secrets.
 
 ## Automated gates (local, repo: `products/Kinetix`)
@@ -35,6 +35,36 @@
 - `POST /api/ai-chat` with `{}` -> **400** JSON (`invalid_request`), no invocation failure.
 
 Interpretation: serverless invocation health restored for probed routes; admlog production-safety behavior now matches checklist expectations.
+
+## Post workspace / `apps/rag` dependency fix — production deploy smoke (2026-04-10)
+
+**Purpose:** Confirm production parity after PNPM workspace + `monorepo-packages/*` source-of-truth + explicit `@bookiji-inc/ai-runtime` on `@kinetix/rag`, before resuming Phase 4 manual gates.
+
+**Deploy (Vercel production)**
+
+| Field | Value |
+|-------|--------|
+| Deployment id | `dpl_7KEbEfYnUAqLdHNrKp3xMgMwWodF` |
+| Inspector | `https://vercel.com/patrick-duchesneaus-projects/kinetix/7KEbEfYnUAqLdHNrKp3xMgMwWodF` |
+| Primary probe host | `https://kinetix.bookiji.com` |
+| CLI deploy | `vercel deploy --prod` from clean `main` at **`91d7c59`** (workspace rag dependency commit) |
+
+**Endpoint smoke (read-only, `curl.exe`)**
+
+| Endpoint | HTTP | Behavior |
+|----------|------|----------|
+| `GET /api/admlog` | **403** | JSON: admlog disabled in production; `requestId` present; **no** `FUNCTION_INVOCATION_FAILED` / `X-Vercel-Error` on sample |
+| `POST /api/ai-chat` with `{}` | **400** | JSON `invalid_request` (`systemInstruction and contents are required.`); `Content-Type: application/json`; **no** invocation failure headers on sample |
+| `GET /api/support-queue/tickets` | **200** | **`text/html`** SPA shell (`Content-Disposition: inline; filename="index.html"`), **not** JSON 401/403 |
+| `GET /api/support-queue/kb-approval` | **200** | Same SPA **HTML** shell as tickets path |
+| `POST /api/support-queue/tickets` with `{}` | **405** | Empty body (same inconsistent routing signal as prior evidence) |
+
+**Parity verdict**
+
+- **Confirmed** for shared-package **serverless runtime** on probed healthy API routes: `/api/admlog` and `/api/ai-chat` return expected JSON and show no invocation-failure signal on these probes.
+- **`/api/support-queue/*` (anonymous GET)** remains **misaligned** with [`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md) (expects JSON **403** for non-operator API). Behavior matches the **2026-04-10** blocker notes above (SPA fallback). Vercel deployment output lists lambdas under `api/support-queue/.../[[...segments]]`; public GET to the bare paths still does not surface JSON API responses in this check.
+
+**Next action:** **investigate support-queue routing** (or path/method matching vs catch-all SPA rewrite) before treating operator API smoke as PASS; other Phase 4 manual gates can proceed in parallel only where independent.
 
 ## Manual production gates — execution record (2026-04-10)
 

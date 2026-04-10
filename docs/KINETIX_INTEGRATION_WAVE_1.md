@@ -98,3 +98,11 @@ Status: Pending (blocked by environment)
 
 - Execution order remains: Authentication → Layout / Navigation → Help Center → History.
 - Irreducible prerequisite to execute Wave 1 in this environment: outbound access to `registry.npmjs.org` for at least `jsdom` + testing-library packages (or an internal mirror providing those exact artifacts).
+
+## First command after unblock
+
+```bash
+pnpm install --no-frozen-lockfile
+```
+
+If that install finishes without `ERR_PNPM_FETCH_403`, Wave 1 execution can immediately continue with the targeted test command documented in `docs/KINETIX_LOCAL_VERIFICATION_BASELINE.md`.

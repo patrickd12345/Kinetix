@@ -58,3 +58,25 @@ pnpm --filter @kinetix/web test -- \
   src/integration/help-center-support.integration.test.ts \
   src/pages/History.integration.test.tsx
 ```
+
+## Resume checklist after npm unblock
+
+1. Verify direct registry artifact access on the exact irreducible blocker package:
+   ```bash
+   curl -I https://registry.npmjs.org/jsdom/-/jsdom-24.1.3.tgz
+   ```
+2. Retry the first required install step:
+   ```bash
+   pnpm install --no-frozen-lockfile
+   ```
+3. Run the next Wave 1 test command:
+   ```bash
+   pnpm --filter @kinetix/web test -- \
+     src/integration/auth-entitlement.integration.test.ts \
+     src/integration/app-entry-guard.integration.test.ts \
+     src/integration/menu-route.integration.test.ts \
+     src/integration/help-route.integration.test.ts \
+     src/integration/help-center-support.integration.test.ts \
+     src/pages/History.integration.test.tsx
+   ```
+4. Success condition for resuming execution: the `curl -I` command returns HTTP 200 for the `jsdom` tarball and `pnpm install --no-frozen-lockfile` completes without any `ERR_PNPM_FETCH_403`, after which Wave 1 lint/tests can run normally.

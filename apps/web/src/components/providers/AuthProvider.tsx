@@ -129,6 +129,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus('loading')
     try {
       const access = await resolveAccess(currentSession.user.id)
+      // #region agent log
+      fetch('http://127.0.0.1:7789/ingest/debccb56-a01b-47eb-93a4-de89464fce64', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e90f82' },
+        body: JSON.stringify({
+          sessionId: 'e90f82',
+          runId: 'sso-verify',
+          hypothesisId: 'H4',
+          location: 'AuthProvider.tsx:hydrateFromSession',
+          message: 'kinetix_access_resolved',
+          data: {
+            host: typeof window !== 'undefined' ? window.location.hostname : '',
+            accessStatus: access.status,
+            hasProfile: Boolean(access.profile),
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+      // #endregion
       setProfile(access.profile)
       setError(access.error)
       setStatus(access.status)
@@ -163,6 +182,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const init = async () => {
       const { data, error: sessionError } = await client.auth.getSession()
       if (!mounted) return
+      let supabaseHost: string | null = null
+      try {
+        const u = import.meta.env.VITE_SUPABASE_URL as string | undefined
+        if (u) supabaseHost = new URL(u).hostname
+      } catch {
+        supabaseHost = null
+      }
+      // #region agent log
+      fetch('http://127.0.0.1:7789/ingest/debccb56-a01b-47eb-93a4-de89464fce64', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e90f82' },
+        body: JSON.stringify({
+          sessionId: 'e90f82',
+          runId: 'sso-verify',
+          hypothesisId: 'H2',
+          location: 'AuthProvider.tsx:init:getSession',
+          message: 'kinetix_initial_session',
+          data: {
+            host: typeof window !== 'undefined' ? window.location.hostname : '',
+            supabaseHost,
+            hasSession: Boolean(data.session),
+            sessionError: Boolean(sessionError),
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+      // #endregion
       if (sessionError) {
         setStatus('error')
         setError(sessionError.message)

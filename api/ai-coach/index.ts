@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fallbackStatus: 502,
       requestId,
     })
-    const status = normalized.status || 502
-    return res.status(status).json(serializeApiError({ ...normalized, status }))
+    const status = normalized.status ?? 502
+    return res.status(status).json(serializeApiError({ ...normalized.error, status }))
   }
 }

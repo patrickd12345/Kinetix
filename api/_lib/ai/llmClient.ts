@@ -224,13 +224,9 @@ export function getLLMClient(
     const effectiveModel = options.model ?? model
     const memoryHandle = await startSession('kinetix', resolvePersistentMemoryTenant(env))
     const prior = memoryHandle.memory.lastCommitted ?? emptySessionBoundaryPayload()
-    const memorySummary = [
-      prior.sessionSummary,
-      ...prior.current_focus,
-      ...prior.next_actions.slice(0, 3),
-    ]
-      .filter(Boolean)
-      .join(' | ')
+    const focus = prior.current_focus ?? []
+    const actions = prior.next_actions ?? []
+    const memorySummary = [prior.sessionSummary, ...focus, ...actions.slice(0, 3)].filter(Boolean).join(' | ')
     const messagesWithMemory = injectMemoryContext(messages, memorySummary)
     try {
       const result = await executeSharedChat({
@@ -248,7 +244,7 @@ export function getLLMClient(
         text: result.text,
         provider,
         model: effectiveModel,
-        mode: result.mode as any,
+        mode: result.mode as CanonicalMode,
         latencyMs: result.latencyMs,
         fallbackReason: result.fallbackReason,
       }
@@ -273,7 +269,7 @@ export function getLLMClient(
           ...result,
           provider,
           model: effectiveModel,
-          mode: 'ollama',
+          mode: 'ollama' as CanonicalMode,
           latencyMs: Date.now() - startedAt,
           fallbackReason: 'ollama_chat_failed_generate_fallback',
         }
@@ -322,7 +318,7 @@ export function getLLMClient(
       embedding: result.embedding,
       provider,
       model: effectiveModel,
-      mode: result.mode,
+      mode: result.mode as CanonicalMode,
       latencyMs: result.latencyMs,
       fallbackReason: result.fallbackReason,
     }

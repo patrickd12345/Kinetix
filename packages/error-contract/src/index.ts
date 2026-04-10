@@ -6,7 +6,14 @@ export type CanonicalError = {
 }
 
 export type RequestIdSource = unknown
-export type ToHttpErrorOptions = { defaultCode?: string; defaultStatus?: number }
+export type ToHttpErrorOptions = {
+  defaultCode?: string
+  defaultStatus?: number
+  fallbackCode?: string
+  fallbackMessage?: string
+  fallbackStatus?: number
+  requestId?: string
+}
 
 export function getOrCreateRequestId(source?: RequestIdSource): string {
   if (typeof source === 'string' && source.trim()) return source
@@ -14,14 +21,20 @@ export function getOrCreateRequestId(source?: RequestIdSource): string {
 }
 
 export function buildError(code: string, message: string, details?: string, requestId?: string): CanonicalError {
-  return { code, message, details, requestId }
+  const err: CanonicalError = { code, message }
+  if (details !== undefined) err.details = details
+  if (requestId !== undefined) err.requestId = requestId
+  return err
 }
 
 export function toHttpError(error: unknown, options: ToHttpErrorOptions = {}) {
-  const status = options.defaultStatus ?? 500
-  const code = options.defaultCode ?? 'internal_error'
-  if (error instanceof Error) {
-    return { status, error: buildError(code, error.message) }
+  const status = options.fallbackStatus ?? options.defaultStatus ?? 500
+  const code = options.fallbackCode ?? options.defaultCode ?? 'internal_error'
+  const message = error instanceof Error
+    ? error.message
+    : (options.fallbackMessage ?? String(error ?? 'Unknown error'))
+  return {
+    status,
+    error: buildError(code, message, undefined, options.requestId),
   }
-  return { status, error: buildError(code, String(error ?? 'Unknown error')) }
 }

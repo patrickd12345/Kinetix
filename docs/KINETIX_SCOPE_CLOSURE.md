@@ -246,6 +246,8 @@ Integration Notes:
 
 # Integration Wave 1
 
+Integration Wave 1 Status: Not started
+
 Included surfaces:
 1. Authentication / Access
 2. Layout / Navigation

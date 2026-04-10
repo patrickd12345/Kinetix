@@ -2,10 +2,11 @@
 node_modules/
 .bookiji-packages/
 .bookiji-tmp/
-monorepo-packages
 
 # Build / cache
 dist/
+monorepo-packages/**/dist/
+
 .vite/
 *.tsbuildinfo
 

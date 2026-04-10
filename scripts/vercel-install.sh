@@ -16,7 +16,7 @@ clone_url() {
 rm -rf .bookiji-tmp
 rm -rf .bookiji-packages
 # Shallow clone of main tree only. Do not use --recurse-submodules: umbrella submodules (ai-core,
-# products/*) are huge and not needed; Kinetix only needs repo-root packages/* for @bookiji-inc/*.
+# products/*) are huge and not needed; Kinetix copies Bookiji-inc repo-root packages/* into monorepo-packages/ for @bookiji-inc/*.
 git clone --depth 1 "$(clone_url)" .bookiji-tmp
 mv .bookiji-tmp/packages .bookiji-packages
 rm -rf .bookiji-tmp
@@ -34,7 +34,7 @@ if [ ! -f .bookiji-packages/ai-core/package.json ]; then
   git clone --depth 1 https://github.com/patrickd12345/ai-core.git .bookiji-packages/ai-core
 fi
 
-# Must exist before pnpm install so workspace:* resolves @bookiji-inc/* (do not use `packages/` — @kinetix/core).
+# Refreshes monorepo-packages/ before pnpm install so workspace:* resolves @bookiji-inc/* (Kinetix-only code stays under packages/core).
 # Use a real directory copy, not a symlink: Vercel's serverless file tracer can miss workspace targets
 # behind symlinks, causing ERR_MODULE_NOT_FOUND for @bookiji-inc/* in production.
 rm -rf monorepo-packages
@@ -56,7 +56,5 @@ else
   npx -y pnpm@10.30.3 install --frozen-lockfile
 fi
 
-# Bookiji-inc workspace packages are source-only (no committed dist/). Vercel may trace /api
-# serverless bundles before buildCommand runs apps/web (which also builds these). Emit dist/
-# here so @bookiji-inc/* resolve to real files during function compilation.
-node scripts/build-bookiji-packages.mjs
+# monorepo-packages/* are source-only (dist/ gitignored). Root `pnpm install` runs `prepare`, which
+# builds shared packages so @bookiji-inc/* resolve to dist/ before Vercel traces /api and before apps/web build.

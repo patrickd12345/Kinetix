@@ -48,7 +48,7 @@ function runPnpm(args) {
   run('npx', ['-y', 'pnpm@10.30.3', ...args], true)
 }
 
-console.log('[verify-vercel-parity] check-no-local-ai-core')
+console.log('[verify-vercel-parity] check-workspace-package-layout')
 run('node', [join(scriptDir, 'check-no-local-ai-core.mjs')])
 
 const bash = bashPath()

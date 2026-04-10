@@ -20,25 +20,25 @@
         "packages/core/src/index.ts"
       ],
       "@bookiji-inc/error-contract": [
-        "packages/error-contract/src"
+        "monorepo-packages/error-contract/src"
       ],
       "@bookiji-inc/ai-core": [
-        "packages/ai-core/src"
+        "monorepo-packages/ai-core/src"
       ],
       "@bookiji-inc/ai-runtime": [
-        "packages/ai-runtime/src"
+        "monorepo-packages/ai-runtime/src"
       ],
       "@bookiji-inc/observability": [
-        "packages/observability/src"
+        "monorepo-packages/observability/src"
       ],
       "@bookiji-inc/persistent-memory-runtime": [
-        "packages/persistent-memory-runtime/src"
+        "monorepo-packages/persistent-memory-runtime/src"
       ],
       "@bookiji-inc/stripe-runtime": [
-        "packages/stripe-runtime/src"
+        "monorepo-packages/stripe-runtime/src"
       ],
       "@bookiji-inc/platform-auth": [
-        "packages/platform-auth/src"
+        "monorepo-packages/platform-auth/src"
       ]
     }
   },

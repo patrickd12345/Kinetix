@@ -1,3 +1,4 @@
 packages:
-  - 'packages/*'
-  - 'apps/web'
+  - 'packages/core'
+  - 'monorepo-packages/*'
+  - 'apps/*'

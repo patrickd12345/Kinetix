@@ -2,7 +2,6 @@ import type { IntelligenceResult, KpsSample } from '../lib/intelligence/types'
 import type { GoalProgressResult } from '../lib/goalRace/types'
 import type { TrainingPlanResult } from '../lib/trainingPlan/types'
 import { useKinetixCoachingContext } from './useKinetixCoachingContext'
-import { useOptionalKinetixCoachingContextFromProvider } from '../context/KinetixCoachingContextProvider'
 
 export function useKinetixTrainingPlan(): {
   loading: boolean
@@ -10,8 +9,7 @@ export function useKinetixTrainingPlan(): {
   plan: TrainingPlanResult | null
   goalProgress: GoalProgressResult | null
 } {
-  const provided = useOptionalKinetixCoachingContextFromProvider()
-  const { loading, error, data } = provided ?? useKinetixCoachingContext()
+  const { loading, error, data } = useKinetixCoachingContext()
   return {
     loading,
     error,

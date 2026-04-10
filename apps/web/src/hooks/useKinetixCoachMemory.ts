@@ -3,28 +3,18 @@ import { useKinetixCoachingContext } from './useKinetixCoachingContext'
 import { buildTrendSummary } from '../lib/coachMemory/trendSummary'
 import { appendCoachMemory, readCoachMemory } from '../lib/coachMemory/memoryStore'
 import type { CoachMemoryResult } from '../lib/coachMemory/types'
-import { useOptionalKinetixCoachingContextFromProvider } from '../context/KinetixCoachingContextProvider'
-
 function toDayKey(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
-export function useKinetixCoachMemory(): {
+export function useKinetixCoachMemory(options: { persist?: boolean } = {}): {
   loading: boolean
   error: string | null
   memory: CoachMemoryResult | null
   insufficientData: boolean
-}
-export function useKinetixCoachMemory(options: { persist?: boolean }): {
-  loading: boolean
-  error: string | null
-  memory: CoachMemoryResult | null
-  insufficientData: boolean
-} 
-export function useKinetixCoachMemory(options: { persist?: boolean } = {}) {
+} {
   const persist = options.persist ?? true
-  const provided = useOptionalKinetixCoachingContextFromProvider()
-  const { loading, error, data } = provided ?? useKinetixCoachingContext()
+  const { loading, error, data } = useKinetixCoachingContext()
   const [history, setHistory] = useState(() => {
     if (typeof window === 'undefined') return []
     return readCoachMemory(window.localStorage)

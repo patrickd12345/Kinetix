@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { useOptionalKinetixCoachingContextFromProvider } from '../context/KinetixCoachingContextProvider'
 import { useKinetixCoachingContext } from './useKinetixCoachingContext'
 import { useKinetixRaceReadiness } from './useKinetixRaceReadiness'
 import { useKinetixCoachMemory } from './useKinetixCoachMemory'
@@ -12,8 +11,7 @@ export function useKinetixTimeline(): {
   timeline: TimelineEngineResult | null
   insufficientData: boolean
 } {
-  const provided = useOptionalKinetixCoachingContextFromProvider()
-  const { loading, error, data } = provided ?? useKinetixCoachingContext()
+  const { loading, error, data } = useKinetixCoachingContext()
   const { readiness } = useKinetixRaceReadiness()
   const { memory } = useKinetixCoachMemory({ persist: false })
 

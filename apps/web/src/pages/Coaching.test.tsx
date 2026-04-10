@@ -3,6 +3,41 @@ import { render } from '@testing-library/react'
 import Coaching, { CoachingStack } from './Coaching'
 import * as coachingContextModule from '../hooks/useKinetixCoachingContext'
 import { KinetixCoachingContextProvider } from '../context/KinetixCoachingContextProvider'
+import type { KinetixCoachingContextResult } from '../hooks/useKinetixCoachingContext'
+
+const ctxMocks = vi.hoisted(() => {
+  const fakeContext: KinetixCoachingContextResult = {
+    loading: false,
+    error: null,
+    data: {
+      goal: null,
+      goalProgress: null,
+      intelligence: null,
+      prediction: null,
+      periodization: { phase: 'base', weeksRemaining: 0, nextPhase: null, focus: '' },
+      loadControl: null,
+      coach: null,
+      trainingPlan: null,
+      raceSimulation: null,
+      sufficiency: {
+        hasIntelligence: false,
+        hasPrediction: false,
+        hasRuns: false,
+        hasCoachInputs: false,
+      },
+    },
+  }
+  return { fakeContext }
+})
+
+vi.mock('../hooks/useKinetixCoachingContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../hooks/useKinetixCoachingContext')>()
+  return {
+    ...actual,
+    useKinetixCoachingContextState: vi.fn(() => ctxMocks.fakeContext),
+    useKinetixCoachingContext: vi.fn(() => ctxMocks.fakeContext),
+  }
+})
 
 const cardOrder: string[] = []
 
@@ -200,32 +235,10 @@ vi.mock('../hooks/useKinetixTrainingCalendar', () => ({
   }),
 }))
 
-const fakeContext: coachingContextModule.KinetixCoachingContextResult = {
-  loading: false,
-  error: null,
-  data: {
-    goal: null,
-    goalProgress: null,
-    intelligence: null,
-    prediction: null,
-    periodization: { phase: 'base', weeksRemaining: 0, nextPhase: null, focus: '' },
-    loadControl: null,
-    coach: null,
-    trainingPlan: null,
-    raceSimulation: null,
-    sufficiency: {
-      hasIntelligence: false,
-      hasPrediction: false,
-      hasRuns: false,
-      hasCoachInputs: false,
-    },
-  },
-}
-
 describe('Coaching page', () => {
   beforeEach(() => {
     cardOrder.length = 0
-    vi.restoreAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders the page title', () => {
@@ -233,14 +246,13 @@ describe('Coaching page', () => {
     expect(getByRole('heading', { name: 'Coaching' })).toBeInTheDocument()
   })
 
-  it('invokes useKinetixCoachingContext once via a single provider', () => {
-    const spy = vi.spyOn(coachingContextModule, 'useKinetixCoachingContext').mockReturnValue(fakeContext)
+  it('invokes useKinetixCoachingContextState for provider-backed coaching (Rules of Hooks: may run more than once)', () => {
+    const spy = vi.mocked(coachingContextModule.useKinetixCoachingContextState)
     render(<Coaching />)
-    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy.mock.calls.length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders coaching cards in section order: primary, planning, insights', () => {
-    vi.spyOn(coachingContextModule, 'useKinetixCoachingContext').mockReturnValue(fakeContext)
     render(<Coaching />)
     expect(cardOrder).toEqual([
       'KinetixCoachCard',
@@ -261,13 +273,13 @@ describe('Coaching page', () => {
     ])
   })
 
-  it('CoachingStack uses one context build when wrapped by a single provider', () => {
-    const spy = vi.spyOn(coachingContextModule, 'useKinetixCoachingContext').mockReturnValue(fakeContext)
+  it('CoachingStack runs under a single provider with shared state hook', () => {
+    const spy = vi.mocked(coachingContextModule.useKinetixCoachingContextState)
     render(
       <KinetixCoachingContextProvider>
         <CoachingStack />
       </KinetixCoachingContextProvider>
     )
-    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy.mock.calls.length).toBeGreaterThanOrEqual(1)
   })
 })

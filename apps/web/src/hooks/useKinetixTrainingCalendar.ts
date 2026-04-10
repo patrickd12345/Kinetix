@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { useOptionalKinetixCoachingContextFromProvider } from '../context/KinetixCoachingContextProvider'
 import { useKinetixCoachingContext } from './useKinetixCoachingContext'
 import { computeTrainingCalendar } from '../lib/trainingCalendar/calendarEngine'
 import type { TrainingCalendarResult } from '../lib/trainingCalendar/types'
@@ -10,8 +9,7 @@ export function useKinetixTrainingCalendar(): {
   calendar: TrainingCalendarResult | null
   insufficientData: boolean
 } {
-  const provided = useOptionalKinetixCoachingContextFromProvider()
-  const { loading, error, data } = provided ?? useKinetixCoachingContext()
+  const { loading, error, data } = useKinetixCoachingContext()
 
   const calendar = useMemo(() => {
     if (!data.trainingPlan) return null

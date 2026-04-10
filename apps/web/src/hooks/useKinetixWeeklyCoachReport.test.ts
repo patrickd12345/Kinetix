@@ -2,11 +2,30 @@ import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useKinetixWeeklyCoachReport } from './useKinetixWeeklyCoachReport'
 
-vi.mock('../context/KinetixCoachingContextProvider', () => ({
-  useOptionalKinetixCoachingContextFromProvider: () => null,
-}))
-
 vi.mock('./useKinetixCoachingContext', () => ({
+  KinetixCoachingContext: { Provider: ({ children }: { children: unknown }) => children },
+  useOptionalKinetixCoachingContextFromProvider: () => null,
+  useKinetixCoachingContextState: () => ({
+    loading: false,
+    error: null,
+    data: {
+      goal: null,
+      goalProgress: null,
+      intelligence: null,
+      prediction: null,
+      periodization: { phase: 'base', weeksRemaining: 8, nextPhase: 'build', focus: '' },
+      loadControl: null,
+      coach: null,
+      trainingPlan: null,
+      raceSimulation: null,
+      sufficiency: {
+        hasIntelligence: false,
+        hasPrediction: false,
+        hasRuns: false,
+        hasCoachInputs: false,
+      },
+    },
+  }),
   useKinetixCoachingContext: () => ({
     loading: false,
     error: null,

@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { useOptionalKinetixCoachingContextFromProvider } from '../context/KinetixCoachingContextProvider'
 import { useKinetixCoachingContext } from './useKinetixCoachingContext'
 import { computeCoachAlerts } from '../lib/alerts/alertEngine'
 import { computeRaceReadiness } from '../lib/readinessScore/readinessScoreEngine'
@@ -11,8 +10,7 @@ export function useKinetixCoachAlerts(): {
   alerts: CoachAlertsResult
   insufficientData: boolean
 } {
-  const provided = useOptionalKinetixCoachingContextFromProvider()
-  const { loading, error, data } = provided ?? useKinetixCoachingContext()
+  const { loading, error, data } = useKinetixCoachingContext()
 
   const alerts = useMemo<CoachAlertsResult>(() => {
     const readiness = data.intelligence

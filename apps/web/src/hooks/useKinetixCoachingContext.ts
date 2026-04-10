@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useSettingsStore } from '../store/settingsStore'
 import { useKinetixIntelligence } from './useKinetixIntelligence'
 import { getAllVisibleRunsOrdered, type RunRecord } from '../lib/database'
@@ -100,7 +100,13 @@ export interface KinetixCoachingContextResult {
   data: KinetixCoachingContextData
 }
 
-export function useKinetixCoachingContext(): KinetixCoachingContextResult {
+export const KinetixCoachingContext = createContext<KinetixCoachingContextResult | null>(null)
+
+export function useOptionalKinetixCoachingContextFromProvider(): KinetixCoachingContextResult | null {
+  return useContext(KinetixCoachingContext)
+}
+
+export function useKinetixCoachingContextState(): KinetixCoachingContextResult {
   const goal = useSettingsStore((s) => s.trainingGoal)
   const { loading, error, result, samples } = useKinetixIntelligence()
   const [runs, setRuns] = useState<RunRecord[]>([])
@@ -198,6 +204,12 @@ export function useKinetixCoachingContext(): KinetixCoachingContextResult {
     error,
     data,
   }
+}
+
+export function useKinetixCoachingContext(): KinetixCoachingContextResult {
+  const injected = useOptionalKinetixCoachingContextFromProvider()
+  const fallback = useKinetixCoachingContextState()
+  return injected ?? fallback
 }
 
 export const __testables = {

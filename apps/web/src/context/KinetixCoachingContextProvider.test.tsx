@@ -1,13 +1,12 @@
+import React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import {
-  KinetixCoachingContextProvider,
-  useKinetixCoachingContextFromProvider,
-} from './KinetixCoachingContextProvider'
+import { KinetixCoachingContextProvider } from './KinetixCoachingContextProvider'
+import { useKinetixCoachingContextFromProvider } from './useKinetixCoachingContextFromProvider'
 import { useKinetixCoach } from '../hooks/useKinetixCoach'
 
-vi.mock('../hooks/useKinetixCoachingContext', () => ({
-  useKinetixCoachingContext: () => ({
+vi.mock('../hooks/useKinetixCoachingContext', () => {
+  const fake = {
     loading: false,
     error: null,
     data: {
@@ -27,8 +26,14 @@ vi.mock('../hooks/useKinetixCoachingContext', () => ({
         hasCoachInputs: false,
       },
     },
-  }),
-}))
+  }
+  return {
+    KinetixCoachingContext: React.createContext(null),
+    useOptionalKinetixCoachingContextFromProvider: () => null,
+    useKinetixCoachingContextState: () => fake,
+    useKinetixCoachingContext: () => fake,
+  }
+})
 
 function ProviderProbe() {
   const context = useKinetixCoachingContextFromProvider()

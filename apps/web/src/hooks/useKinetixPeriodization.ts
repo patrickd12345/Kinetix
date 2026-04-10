@@ -1,6 +1,5 @@
 import type { PeriodizationResult } from '../lib/periodization/types'
 import { useKinetixCoachingContext } from './useKinetixCoachingContext'
-import { useOptionalKinetixCoachingContextFromProvider } from '../context/KinetixCoachingContextProvider'
 
 export function useKinetixPeriodization(): {
   loading: boolean
@@ -8,8 +7,7 @@ export function useKinetixPeriodization(): {
   periodization: PeriodizationResult
   isGoalDriven: boolean
 } {
-  const provided = useOptionalKinetixCoachingContextFromProvider()
-  const { loading, error, data } = provided ?? useKinetixCoachingContext()
+  const { loading, error, data } = useKinetixCoachingContext()
 
   return {
     loading,

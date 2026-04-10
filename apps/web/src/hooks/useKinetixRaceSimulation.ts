@@ -2,7 +2,6 @@ import type { RaceSplit } from '../lib/simulation/types'
 import { useKinetixCoachingContext } from './useKinetixCoachingContext'
 import type { Distance } from '../lib/calibration/types'
 import type { GoalDistance } from '../lib/goalRace/types'
-import { useOptionalKinetixCoachingContextFromProvider } from '../context/KinetixCoachingContextProvider'
 
 const DISTANCE_LABEL: Record<Distance, string> = {
   '5k': '5K',
@@ -65,8 +64,7 @@ export function useKinetixRaceSimulation(): {
   error: string | null
   simulation: KinetixRaceSimulationViewModel
 } {
-  const provided = useOptionalKinetixCoachingContextFromProvider()
-  const { loading, error, data } = provided ?? useKinetixCoachingContext()
+  const { loading, error, data } = useKinetixCoachingContext()
   const selectedDistance = mapGoalDistance(data.goal?.distance)
   const predictionConfidence = data.prediction?.confidence ?? null
 

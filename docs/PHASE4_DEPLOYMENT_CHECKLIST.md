@@ -3,6 +3,8 @@
 **Last updated:** 2026-04-10  
 **Guardrail:** Wave 2 web **closed**; checklist is for **release** — no feature work.
 
+**Gate A3 note:** If Vitest fails on `@bookiji-inc/*` imports, confirm [`apps/web/vitest.config.ts`](../apps/web/vitest.config.ts) aliases point at **`../../monorepo-packages/<pkg>/src`**, not `../../packages/*`. Evidence: [`PHASE4_RELEASE_EVIDENCE.md`](PHASE4_RELEASE_EVIDENCE.md).
+
 ## A. Build and quality (pre-merge / pre-deploy)
 
 - [ ] `pnpm lint` — clean (warnings treated as failures per project practice).
@@ -28,6 +30,8 @@
 
 - [ ] [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md) — admlog 403 on production, SSO smoke, entitlement gating.
 - [ ] [`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md) — if Help Center is in scope for the release.
+
+**Interactive sign-off (human session):** §A scripted gates can be green while §D **authenticated** rows remain open. Record execution in [`PHASE4_RELEASE_EVIDENCE.md`](PHASE4_RELEASE_EVIDENCE.md) (**Interactive closure session**). As of **2026-04-10**, SSO / DB entitlement / Supabase dashboard / operator-authenticated Help Center and queue steps were still **NOT RUN** in the agent-run session (human OAuth, SQL, dashboard, operator allowlist required).
 
 ## E. DNS / domain
 

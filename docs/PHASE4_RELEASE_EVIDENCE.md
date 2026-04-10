@@ -1,6 +1,6 @@
 # Phase 4 — Release evidence log
 
-**Last updated:** 2026-04-10 (authenticated closure **attempt** via Cursor browser MCP + evidence refresh; Phase 4 manual sign-off **still blocked**)  
+**Last updated:** 2026-04-10 (gate A3 Vitest **PASS**; **Bookiji prod** `GET https://app.bookiji.com/api/auth/health-check` now **`{"ok":true,"status":200}`** after Vercel publishable-key correction + `app.bookiji.com` alias repoint; **interactive** Phase 4 rows still **NOT RUN** — human OAuth/DB/Supabase/operator session required; see **Interactive closure session (2026-04-10 continuation)**)  
 **Guardrail:** Wave 2 web **closed**; this file records **execution evidence** for Phase 4 gates. No secrets.
 
 ## Phase 4 consolidated manual gate run order
@@ -24,10 +24,56 @@ Single execution order for [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINE
 |------|--------|--------|
 | `pnpm lint` | PASS | 2026-04-10; re-run **PASS** same day (Phase 4 evidence session) |
 | `pnpm type-check` | PASS | 2026-04-10; re-run **PASS** same day (Phase 4 evidence session) |
-| `pnpm --filter @kinetix/web test` | PASS | **346** tests, 79 files — 2026-04-10 |
+| `pnpm --filter @kinetix/web test` | PASS | **346** tests, 79 files — 2026-04-10 after fix: [`apps/web/vitest.config.ts`](../apps/web/vitest.config.ts) aliases `@bookiji-inc/*` -> `../../monorepo-packages/<pkg>/src` (was stale `../../packages/*`). |
 | `pnpm run verify:vercel-parity` | PASS | Ends with `[verify-vercel-parity] OK` — 2026-04-10 (includes Bookiji `verify-bookiji-vercel-build`) |
 | `pnpm verify:infisical` (dev) | PASS | `[verify:infisical] OK` |
 | `node scripts/verify-infisical.mjs --env=prod` | PASS | prod merge rules satisfied |
+| `pnpm test:e2e` | PASS | **18 passed** (Playwright) — includes `/help`, `/support-queue`, `/operator` UI paths in local smoke environment. |
+
+**Production probe snapshot (2026-04-10, read-only):**
+
+- `GET /api/admlog` -> **403**
+- `POST /api/ai-chat` with `{}` -> **400**
+- `GET /api/support-queue/tickets` -> **403**
+- `GET /api/support-queue/kb-approval` -> **403**
+- `GET /help` -> **200** SPA shell (auth redirect occurs client-side after app boot)
+- `GET /operator` -> **200** SPA shell (auth redirect occurs client-side after app boot)
+
+**Production API probes reconfirmed (same session, `curl.exe`):** `admlog` **403**, `ai-chat` POST `{}` **400**, `support-queue/tickets` **403**, `kb-approval` **403**.
+
+## Interactive closure session (2026-04-10 continuation)
+
+**Scope:** Execute remaining items from [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md) and [`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md) that require **authenticated** production access, **Supabase project dashboard**, **SQL** on `platform.entitlements`, or an **allowlisted operator** user.
+
+**Agent limitation:** This session cannot complete Google OAuth, email magic-link inbox flows, dashboard login, or database edits. Evidence below is **PASS / NOT RUN / partial observation** with explicit blockers.
+
+### Chrome DevTools MCP (production URLs)
+
+| Step | Result | Evidence / blocker |
+|------|--------|-------------------|
+| Open `https://app.bookiji.com/login` | **PARTIAL** | Page title **Bookiji - Universal Booking Platform**; heading **Sign in to your account**; **Sign in with Google** present. **Update 2026-04-10:** prod **`/api/auth/health-check`** fixed (wrong publishable key + stale `app.bookiji.com` alias); re-test **Sign in with Google** / magic link in a normal browser for SSO gate closure. |
+| Open `https://kinetix.bookiji.com/login` | **PARTIAL** | **KINETIX** heading; **Continue with email**, email field, **Send magic link** (disabled until email). **No** Bookiji-style auth-unreachable banner in this snapshot. **Magic link not sent** (no inbox access). |
+
+### Checklist mapping ([`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md))
+
+| Checklist item | Status | Evidence / blocker |
+|----------------|--------|-------------------|
+| SSO + entitlement happy path (Bookiji then Kinetix, no login wall) | **NOT RUN** | Requires completed Bookiji session + Kinetix tab verification. No authenticated session established in this session. |
+| Entitlement gating (remove `kinetix` in `platform.entitlements`) | **NOT RUN** | Requires Supabase SQL Editor or service-role path + test user id; not executed here. |
+| Optional: login from Kinetix subdomain | **NOT RUN** | Requires magic link or OAuth completion end-to-end. |
+| Supabase Auth dashboard (providers + URL allowlist) | **NOT RUN** | Requires human Supabase org login; not performed here. |
+
+### Operator smoke mapping ([`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md))
+
+| Section | Status | Evidence / blocker |
+|---------|--------|-------------------|
+| 1 Help Center full (KB, ai-chat, sources, escalation, ticket + DB) | **NOT RUN** | Requires signed-in end-user; anonymous API probes only. |
+| 2 Support queue (operator list, PATCH, move-to-KB, etc.) | **NOT RUN** (except known anonymous 403) | Non-operator **403** already **PASS** via `curl`. Operator JWT + ticket ids not available to agent. |
+| 3 Operator dashboard UI | **NOT RUN** | Requires signed-in operator (`KINETIX_SUPPORT_OPERATOR_USER_IDS`). |
+| 4 KB approval (operator GET/PATCH/approve-ingest) | **NOT RUN** | Same as operator session. |
+| 5 Escalation proxy (optional) | **NOT RUN** | Needs configured webhooks + signed-in operator context. |
+
+**Conclusion:** Scripted/anonymous production gates remain **PASS**. **Full Phase 4 manual sign-off** is still **blocked** on human-interactive rows above.
 
 ## Parity prerequisite fix (same session)
 
@@ -200,11 +246,11 @@ Interpretation: serverless invocation health restored for probed routes; admlog 
 |------|--------|----------|
 | Production `GET https://kinetix.bookiji.com/api/admlog` | **PASS** | **2026-04-10** (this session re-probe): **403** JSON; `howToEnable` explicitly says admlog is not available in production and not to enable `ADMLOG_ENABLED` on Vercel Production; `requestId` e.g. `fb441633-704f-49bc-ae4f-9512a318b725`. |
 | `node scripts/verify-infisical.mjs --env=prod` | **PASS** | **2026-04-10** (this session): exit **0** — `[verify:infisical] OK — env=prod platform_keys=8 kinetix_keys=0 supabase_url=set service_role_alias=yes` |
-| SSO happy path (Bookiji tab then Kinetix) | **NOT RUN** | **Authenticated closure attempt:** `app.bookiji.com/login` + **Sign in with Google** did not complete to logged-in state in MCP (see **Authenticated production closure attempt**). Kinetix second tab remained `/login?next=%2F`. |
-| Post-login landing + entitlement pass (Coach/History/Settings) | **NOT RUN** | No signed-in Kinetix session after OAuth probe. |
-| Entitlement gating (remove `kinetix` in `platform.entitlements`) | **NOT RUN** | Human DB toggle not performed in this session. |
-| Optional: login from kinetix subdomain | **NOT RUN** | Not executed end-to-end (depends on completed auth). |
-| Supabase Auth dashboard (providers + URL config) | **NOT RUN** | Human Supabase console check not performed in this session. |
+| SSO happy path (Bookiji tab then Kinetix) | **NOT RUN** | **2026-04-10 continuation:** Chrome DevTools MCP reached `app.bookiji.com/login` (Google button visible; **Auth service unreachable** banner in snapshot — verify in normal browser). No OAuth completion; no shared session. See **Interactive closure session (2026-04-10 continuation)**. |
+| Post-login landing + entitlement pass (Coach/History/Settings) | **NOT RUN** | No authenticated Kinetix session. |
+| Entitlement gating (remove `kinetix` in `platform.entitlements`) | **NOT RUN** | No SQL/dashboard entitlement edit in this session. |
+| Optional: login from kinetix subdomain | **NOT RUN** | Kinetix login page observed (magic link UI); end-to-end sign-in not completed. |
+| Supabase Auth dashboard (providers + URL config) | **NOT RUN** | Dashboard not opened in this session. |
 
 ## Manual: [`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md)
 
@@ -230,7 +276,9 @@ Interpretation: serverless invocation health restored for probed routes; admlog 
 
 1. **Support queue / KB list API routing:** **Resolved.** Anonymous `GET` to `/api/support-queue/tickets` and `/api/support-queue/kb-approval` returns JSON **403** (not SPA HTML). Re-confirmed **2026-04-10** this session.
 
-2. **Interactive Phase 4 sign-off:** **Blocked** until the following are **PASS** in production (or documented FAIL with remediation): Bookiji-first **SSO happy path**, **entitlement** pass + **DB entitlement removal** check, **Supabase Auth** dashboard spot-check, **Help Center** end-to-end, **operator** queue/dashboard/KB **authenticated** actions, and (if in scope) **optional escalation**. **2026-04-10 authenticated MCP attempt:** Google OAuth on `app.bookiji.com/login` did not complete; dependent steps remain **NOT RUN** (see **Authenticated production closure attempt**).
+2. **Interactive Phase 4 sign-off:** **Still blocked.** Same required **PASS** set as above. **2026-04-10 continuation:** Chrome MCP loaded Bookiji + Kinetix login URLs; **did not** establish sessions, run SQL, open Supabase dashboard, or execute operator-authenticated API/UI (see **Interactive closure session (2026-04-10 continuation)**). Prior MCP OAuth attempt also incomplete (see **Authenticated production closure attempt**).
+
+3. **Scripted checklist gate A3 (`pnpm --filter @kinetix/web test`):** **Resolved** — Vitest aliases aligned with `monorepo-packages/*` layout; full suite green (see Automated gates table).
 
 ### Non-blocking gaps (for future runs)
 
@@ -242,19 +290,20 @@ Interpretation: serverless invocation health restored for probed routes; admlog 
 |--------|------|
 | **Phase 4 complete** | All checklist rows **PASS** including interactive/operator/DB/console steps. **Not met** as of **2026-04-10**. |
 | **Phase 4 complete with noted issues** | Reserved for documented non-blockers; **not** used this run. |
-| **Phase 4 blocked on remaining items** | **Selected.** Automated/admlog/Infisical/anonymous support-queue API **PASS**; interactive rows remain **NOT RUN** after **2026-04-10** MCP authenticated attempt (OAuth incomplete). Complete sign-in + DB + console + operator flows in a **human** or fully interactive browser session, then update this file. |
+| **Phase 4 blocked on remaining items** | **Selected.** Automated gates including **A3 Vitest** are **PASS**; Phase 4 closure remains blocked on **interactive production** rows (SSO, entitlement DB toggle, Help Center/operator authenticated flows, Supabase dashboard) until recorded **PASS** with human evidence. |
 
 **Umbrella `PROJECT_PLAN.md`:** Do not treat Phase 4 manual closure as complete until interactive rows above are **PASS** with human-recorded evidence.
 
-## Vitest: `@bookiji-inc/error-contract` resolver (follow-up; not blocking manual sign-off verdict)
+## Vitest: `@bookiji-inc/error-contract` resolver (resolved)
 
-Some Vitest runs may still fail when Vite resolves `@bookiji-inc/error-contract` via shared API helpers (e.g. paths touching `api/_lib` error mapping). That is **separate** from the production support-queue routing fix. **Phase 4 manual closure is blocked by interactive checklist items above**, not by this resolver issue.
+**Root cause:** [`apps/web/vitest.config.ts`](../apps/web/vitest.config.ts) aliased `@bookiji-inc/*` to `../../packages/<name>/src`, but Kinetix shared packages live under **`monorepo-packages/`** (see root `tsconfig.json` paths and `scripts/check-no-local-ai-core.mjs`). Vitest could not resolve `@bookiji-inc/error-contract` when loading `api/_lib/apiError.ts` and `api/_lib/ai/error-contract.ts`.
+
+**Fix:** Point each `@bookiji-inc/*` alias at `../../monorepo-packages/<name>/src`. Production Vite build is unchanged (`vite.config.shared.ts` has only `@`; bundling uses `node_modules` + package `exports`).
 
 | Classification | Rationale |
 |----------------|-----------|
-| **Non-blocking for Phase 4 manual sign-off** | Full interactive/operator/DB/console gates must **PASS** first; Vitest resolver fixes do not substitute for those. |
-| **Non-blocking for scripted evidence rows in this doc** | Recording **PASS**/**NOT RUN** for curl/CLI gates does not require a green full Vitest run. Lint and type-check for the product were **PASS** **2026-04-10** (evidence session). |
-| **Follow-up stabilization** | Track a dedicated task to fix Vite/Vitest resolution for `@bookiji-inc/error-contract` so local `pnpm --filter @kinetix/web test` stays reliable in all environments. |
+| **Gate A3** | **PASS** — `pnpm --filter @kinetix/web test` green after alias correction. |
+| **Production** | Unchanged — no edits to app/API runtime code. |
 
 ## Playwright (`pnpm test:e2e` from repo root)
 

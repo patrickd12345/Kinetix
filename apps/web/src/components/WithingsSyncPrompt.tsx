@@ -28,7 +28,7 @@ export default function WithingsSyncPrompt() {
     return `Last sync: ${new Date(lastSuccessfulWithingsSyncAt).toLocaleString()}`
   }, [lastSuccessfulWithingsSyncAt])
 
-  const shouldRender = !dismissed && prompt.expandedEnabled && prompt.connectionExists && prompt.reason === 'scheduled_due'
+  const shouldRender = !dismissed && prompt.expandedEnabled && prompt.connectionExists && prompt.isDue
 
   if (!shouldRender) return null
 
@@ -76,7 +76,7 @@ export default function WithingsSyncPrompt() {
           dueSlotKeyAtSyncEnd: dueAtEnd.scheduledSlotKey,
         })
       ) {
-        setLastSuccessfulWithingsScheduledSlotKey(dueAtEnd.scheduledSlotKey ?? null)
+        setLastSuccessfulWithingsScheduledSlotKey(dueAtStart.scheduledSlotKey ?? null)
       }
 
       setStatus('success')

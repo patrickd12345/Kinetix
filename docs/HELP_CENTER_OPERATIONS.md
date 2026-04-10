@@ -158,13 +158,18 @@ Rollout must preserve the behavior locked in `apps/web/HELP_CENTER_ARCHITECTURE.
 3. Open the draft in the KB approval panel.
 4. Rewrite the content into reusable support guidance.
 5. Remove ticket-specific or user-specific details.
-6. Edit optional **excerpt** (short summary) plus **body markdown**; preview in the operator UI is plaintext (not a full markdown renderer).
+6. Edit optional **excerpt** (short summary) plus **body markdown**; preview in the operator UI renders markdown (GFM) for readability checks before ingest.
 7. Save the draft with a valid topic, intent, and review status.
 8. Use `Approve and ingest` only when the artifact is ready for the curated KB.
 
 ## Curated bulk import (optional)
 
-For operator-reviewed curated articles (not tickets), see `apps/rag/scripts/kb-bulk-import.mjs` and `apps/rag/README.md`. This validates the same artifact shape as `POST /support/kb/ingest` and can optionally POST each artifact to a running RAG base URL. It does not bypass the ticket-first workflow for escalations.
+For operator-reviewed curated articles (not tickets), use:
+
+- `apps/rag/scripts/kb-bulk-import.mjs` for explicit artifact file validation/ingest
+- `apps/rag/scripts/kb-stage-from-approval-bin.mjs` to stage approved/ingested approval-bin drafts into a corpus JSON, with optional direct ingest
+
+Both paths preserve the ticket-first workflow for escalations (no raw ticket auto-ingest).
 
 ## Content rules
 

@@ -201,11 +201,11 @@ Before end-to-end activation:
 Shipped as incremental hardening (does not change the frozen contracts above):
 
 - Operator assignment + SLA timestamps + derived triage labels + compact queue summary (`GET /api/support-queue/tickets` includes `summary`)
-- KB draft **excerpt** field + operator preview (plaintext) before ingest
+- KB draft **excerpt** field + operator markdown preview (GFM rendering) before ingest
 - Optional curated bulk import helper for **non-ticket** artifacts (`apps/rag/scripts/kb-bulk-import.mjs`)
+- Optional approval-bin staging automation for curated corpus review/ingest (`apps/rag/scripts/kb-stage-from-approval-bin.mjs`)
 
 Still deferred / not promised here:
 
 - Full BI/reporting beyond compact triage counts
-- A rich markdown preview renderer in the operator UI
 - Any merge of coach chat and Help Center support modes

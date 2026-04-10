@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Loader2, RefreshCcw, Send, CheckCircle2, FileText, User, UserX } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useAuth } from '../components/providers/useAuth'
 import {
   approveAndIngestKbApprovalDraft,
@@ -94,6 +96,44 @@ function triageFilterFromSearchParams(searchParams: URLSearchParams): TriageFilt
   if (searchParams.get('assigned') === 'me') return 'assigned_to_me'
   if (searchParams.get('escalated') === '1') return 'escalated'
   return 'all'
+}
+
+function KbMarkdownPreview({ title, excerpt, bodyMarkdown }: { title: string; excerpt?: string; bodyMarkdown: string }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-slate-200">
+      <div className="text-base font-semibold text-white">{title}</div>
+      {excerpt ? <div className="mt-2 text-slate-300">{excerpt}</div> : null}
+      <div className="mt-3 space-y-2 leading-6">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            h1: ({ children }) => <h1 className="mt-2 text-lg font-semibold text-white">{children}</h1>,
+            h2: ({ children }) => <h2 className="mt-2 text-base font-semibold text-slate-100">{children}</h2>,
+            h3: ({ children }) => <h3 className="mt-2 text-sm font-semibold text-slate-100">{children}</h3>,
+            p: ({ children }) => <p className="text-slate-200">{children}</p>,
+            ul: ({ children }) => <ul className="ml-5 list-disc space-y-1">{children}</ul>,
+            ol: ({ children }) => <ol className="ml-5 list-decimal space-y-1">{children}</ol>,
+            li: ({ children }) => <li>{children}</li>,
+            code: ({ children }) => (
+              <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-xs text-cyan-100">{children}</code>
+            ),
+            a: ({ href, children }) => (
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="text-cyan-200 underline decoration-cyan-500/50 underline-offset-2 hover:text-cyan-100"
+              >
+                {children}
+              </a>
+            ),
+          }}
+        >
+          {bodyMarkdown}
+        </ReactMarkdown>
+      </div>
+    </div>
+  )
 }
 
 export default function SupportQueue() {
@@ -648,11 +688,11 @@ export default function SupportQueue() {
               </button>
             </div>
             {kbPreview && (
-              <div className="rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-slate-200 whitespace-pre-wrap">
-                <div className="text-base font-semibold text-white">{selectedDraft.title}</div>
-                {selectedDraft.excerpt ? <div className="mt-2 text-slate-300">{selectedDraft.excerpt}</div> : null}
-                <div className="mt-3 text-slate-200">{selectedDraft.body_markdown}</div>
-              </div>
+              <KbMarkdownPreview
+                title={selectedDraft.title}
+                excerpt={selectedDraft.excerpt}
+                bodyMarkdown={selectedDraft.body_markdown}
+              />
             )}
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="space-y-2 block">

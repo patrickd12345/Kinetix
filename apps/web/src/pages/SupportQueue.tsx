@@ -100,29 +100,37 @@ function triageFilterFromSearchParams(searchParams: URLSearchParams): TriageFilt
 
 function KbMarkdownPreview({ title, excerpt, bodyMarkdown }: { title: string; excerpt?: string; bodyMarkdown: string }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-slate-200">
-      <div className="text-base font-semibold text-white">{title}</div>
-      {excerpt ? <div className="mt-2 text-slate-300">{excerpt}</div> : null}
+    <div className="rounded-lg border border-slate-200/90 bg-white p-3 text-sm text-slate-800 shadow-sm dark:border-white/10 dark:bg-black/30 dark:text-slate-200 dark:shadow-none">
+      <div className="text-base font-semibold text-slate-900 dark:text-white">{title}</div>
+      {excerpt ? <div className="mt-2 text-slate-700 dark:text-slate-300">{excerpt}</div> : null}
       <div className="mt-3 space-y-2 leading-6">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
-            h1: ({ children }) => <h1 className="mt-2 text-lg font-semibold text-white">{children}</h1>,
-            h2: ({ children }) => <h2 className="mt-2 text-base font-semibold text-slate-100">{children}</h2>,
-            h3: ({ children }) => <h3 className="mt-2 text-sm font-semibold text-slate-100">{children}</h3>,
-            p: ({ children }) => <p className="text-slate-200">{children}</p>,
+            h1: ({ children }) => (
+              <h1 className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{children}</h1>
+            ),
+            h2: ({ children }) => (
+              <h2 className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">{children}</h2>
+            ),
+            h3: ({ children }) => (
+              <h3 className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{children}</h3>
+            ),
+            p: ({ children }) => <p className="text-slate-800 dark:text-slate-200">{children}</p>,
             ul: ({ children }) => <ul className="ml-5 list-disc space-y-1">{children}</ul>,
             ol: ({ children }) => <ol className="ml-5 list-decimal space-y-1">{children}</ol>,
             li: ({ children }) => <li>{children}</li>,
             code: ({ children }) => (
-              <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-xs text-cyan-100">{children}</code>
+              <code className="rounded bg-slate-200/90 px-1 py-0.5 font-mono text-xs text-slate-900 dark:bg-white/10 dark:text-cyan-100">
+                {children}
+              </code>
             ),
             a: ({ href, children }) => (
               <a
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                className="text-cyan-200 underline decoration-cyan-500/50 underline-offset-2 hover:text-cyan-100"
+                className="text-cyan-800 underline decoration-cyan-600/50 underline-offset-2 hover:text-cyan-950 dark:text-cyan-200 dark:decoration-cyan-500/50 dark:hover:text-cyan-100"
               >
                 {children}
               </a>
@@ -358,54 +366,54 @@ export default function SupportQueue() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[280px,1fr,1fr]">
-      <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+      <section className="rounded-xl border border-slate-200/90 bg-white/90 p-4 space-y-3 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-white">Support Queue</h1>
-            <p className="text-xs text-slate-400">Operator-only queue inside Kinetix web.</p>
+            <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Support Queue</h1>
+            <p className="text-xs text-slate-600 dark:text-slate-400">Operator-only queue inside Kinetix web.</p>
           </div>
           <button
             type="button"
             onClick={() => void refreshAll()}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-200 hover:bg-white/5"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300/90 px-3 py-2 text-xs text-slate-800 hover:bg-slate-50 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5"
           >
             <RefreshCcw size={14} />
             Refresh
           </button>
         </div>
         {queueSummary && (
-          <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
-            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
-              <div className="text-slate-500">Unassigned</div>
-              <div className="text-lg font-semibold text-white">{queueSummary.unassigned}</div>
+          <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-800 dark:text-slate-300">
+            <div className="rounded-lg border border-slate-200/90 bg-slate-50 px-2 py-2 dark:border-white/10 dark:bg-black/20">
+              <div className="text-slate-600 dark:text-slate-500">Unassigned</div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-white">{queueSummary.unassigned}</div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
-              <div className="text-slate-500">Overdue</div>
-              <div className="text-lg font-semibold text-amber-200">{queueSummary.overdue}</div>
+            <div className="rounded-lg border border-slate-200/90 bg-slate-50 px-2 py-2 dark:border-white/10 dark:bg-black/20">
+              <div className="text-slate-600 dark:text-slate-500">Overdue</div>
+              <div className="text-lg font-semibold text-amber-800 dark:text-amber-200">{queueSummary.overdue}</div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
-              <div className="text-slate-500">Awaiting retry</div>
-              <div className="text-lg font-semibold text-rose-200">{queueSummary.awaitingRetry}</div>
+            <div className="rounded-lg border border-slate-200/90 bg-slate-50 px-2 py-2 dark:border-white/10 dark:bg-black/20">
+              <div className="text-slate-600 dark:text-slate-500">Awaiting retry</div>
+              <div className="text-lg font-semibold text-rose-800 dark:text-rose-200">{queueSummary.awaitingRetry}</div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
-              <div className="text-slate-500">Ready for KB</div>
-              <div className="text-lg font-semibold text-emerald-200">{queueSummary.readyForKb}</div>
+            <div className="rounded-lg border border-slate-200/90 bg-slate-50 px-2 py-2 dark:border-white/10 dark:bg-black/20">
+              <div className="text-slate-600 dark:text-slate-500">Ready for KB</div>
+              <div className="text-lg font-semibold text-emerald-800 dark:text-emerald-200">{queueSummary.readyForKb}</div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
-              <div className="text-slate-500">Assigned to me</div>
-              <div className="text-lg font-semibold text-cyan-200">{queueSummary.assignedToMe}</div>
+            <div className="rounded-lg border border-slate-200/90 bg-slate-50 px-2 py-2 dark:border-white/10 dark:bg-black/20">
+              <div className="text-slate-600 dark:text-slate-500">Assigned to me</div>
+              <div className="text-lg font-semibold text-cyan-800 dark:text-cyan-200">{queueSummary.assignedToMe}</div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
-              <div className="text-slate-500">Recent 24h</div>
-              <div className="text-lg font-semibold text-slate-100">{queueSummary.recentlyUpdated}</div>
+            <div className="rounded-lg border border-slate-200/90 bg-slate-50 px-2 py-2 dark:border-white/10 dark:bg-black/20">
+              <div className="text-slate-600 dark:text-slate-500">Recent 24h</div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{queueSummary.recentlyUpdated}</div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
-              <div className="text-slate-500">Escalated</div>
-              <div className="text-lg font-semibold text-amber-100">{queueSummary.escalated}</div>
+            <div className="rounded-lg border border-slate-200/90 bg-slate-50 px-2 py-2 dark:border-white/10 dark:bg-black/20">
+              <div className="text-slate-600 dark:text-slate-500">Escalated</div>
+              <div className="text-lg font-semibold text-amber-900 dark:text-amber-100">{queueSummary.escalated}</div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
-              <div className="text-slate-500">Critical</div>
-              <div className="text-lg font-semibold text-rose-100">{queueSummary.escalatedLevel2}</div>
+            <div className="rounded-lg border border-slate-200/90 bg-slate-50 px-2 py-2 dark:border-white/10 dark:bg-black/20">
+              <div className="text-slate-600 dark:text-slate-500">Critical</div>
+              <div className="text-lg font-semibold text-rose-900 dark:text-rose-100">{queueSummary.escalatedLevel2}</div>
             </div>
           </div>
         )}
@@ -417,8 +425,8 @@ export default function SupportQueue() {
               onClick={() => setTriageFilter(item.id)}
               className={`rounded-full border px-3 py-1 text-[11px] ${
                 triageFilter === item.id
-                  ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-100'
-                  : 'border-white/10 bg-black/20 text-slate-300 hover:bg-white/5'
+                  ? 'border-cyan-600/50 bg-cyan-500/15 text-cyan-950 dark:border-cyan-500/50 dark:bg-cyan-500/10 dark:text-cyan-100'
+                  : 'border-slate-300/80 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-black/20 dark:text-slate-300 dark:hover:bg-white/5'
               }`}
             >
               {item.label}
@@ -426,7 +434,10 @@ export default function SupportQueue() {
           ))}
         </div>
         {loadError && (
-          <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-200" role="alert">
+          <p
+            className="rounded-lg border border-red-600/35 bg-red-500/10 px-3 py-2 text-xs text-red-950 dark:text-red-200"
+            role="alert"
+          >
             {loadError}
           </p>
         )}
@@ -439,17 +450,20 @@ export default function SupportQueue() {
               onClick={() => setSelectedTicketId(ticket.ticket_id)}
               className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
                 selectedTicketId === ticket.ticket_id
-                  ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-100'
-                  : 'border-white/10 bg-black/20 text-slate-300 hover:bg-white/5'
+                  ? 'border-cyan-600/45 bg-cyan-500/15 text-cyan-950 ring-1 ring-cyan-600/25 dark:border-cyan-500/40 dark:bg-cyan-500/10 dark:text-cyan-100 dark:ring-cyan-400/30'
+                  : 'border-slate-200/90 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-black/20 dark:text-slate-300 dark:hover:bg-white/5'
               }`}
             >
               <div className="font-medium line-clamp-2">{ticket.issue_summary}</div>
-              <div className="mt-1 text-xs text-slate-400">
+              <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                 {ticket.ticket_id} · {ticket.status} · {formatTimestamp(ticket.created_at)}
               </div>
               <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
                 {derivedLabels(ticket).map((label) => (
-                  <span key={label} className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-indigo-100">
+                  <span
+                    key={label}
+                    className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-indigo-950 dark:bg-indigo-500/10 dark:text-indigo-100"
+                  >
                     {label}
                   </span>
                 ))}
@@ -462,19 +476,23 @@ export default function SupportQueue() {
               </div>
             </button>
           ))}
-          {filteredTickets.length === 0 && <p className="text-sm text-slate-500">No tickets in this view.</p>}
+          {filteredTickets.length === 0 && (
+            <p className="text-sm text-slate-600 dark:text-slate-500">No tickets in this view.</p>
+          )}
         </div>
       </section>
 
-      <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
+      <section className="rounded-xl border border-slate-200/90 bg-white/90 p-4 space-y-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none">
         <div>
-          <h2 className="text-lg font-semibold text-white">Ticket Detail</h2>
-          <p className="text-xs text-slate-400">Persistence is authoritative. Notification failures stay visible here.</p>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Ticket Detail</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            Persistence is authoritative. Notification failures stay visible here.
+          </p>
         </div>
         {selectedTicket ? (
           <>
-            <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-300 space-y-2">
-              <div className="font-medium text-slate-100">{selectedTicket.issue_summary}</div>
+            <div className="rounded-lg border border-slate-200/90 bg-slate-50 p-3 text-sm text-slate-800 space-y-2 dark:border-white/10 dark:bg-black/20 dark:text-slate-300">
+              <div className="font-medium text-slate-900 dark:text-slate-100">{selectedTicket.issue_summary}</div>
               <div>
                 Ticket: <span className="font-mono text-xs">{selectedTicket.ticket_id}</span>
               </div>
@@ -483,7 +501,10 @@ export default function SupportQueue() {
               <div>Route: {selectionSummary.route}</div>
               <div className="flex flex-wrap gap-2 text-[11px]">
                 {derivedLabels(selectedTicket).map((label) => (
-                  <span key={label} className="rounded-full bg-white/10 px-2 py-0.5 text-slate-200">
+                  <span
+                    key={label}
+                    className="rounded-full bg-slate-200/90 px-2 py-0.5 text-slate-900 dark:bg-white/10 dark:text-slate-200"
+                  >
                     {label}
                   </span>
                 ))}
@@ -498,30 +519,36 @@ export default function SupportQueue() {
                   </span>
                 ) : null}
               </div>
-              <div className="grid gap-1 text-xs text-slate-400 sm:grid-cols-2">
+              <div className="grid gap-1 text-xs text-slate-700 dark:text-slate-400 sm:grid-cols-2">
                 <div>Created: {formatTimestamp(selectedTicket.created_at)}</div>
                 <div>Updated: {formatTimestamp(selectedTicket.updated_at)}</div>
                 <div>Assigned: {formatTimestamp(selectedTicket.assigned_at)}</div>
                 <div>Last operator action: {formatTimestamp(selectedTicket.last_operator_action_at)}</div>
-                <div className="text-amber-100">First response due: {formatTimestamp(selectedTicket.first_response_due_at)}</div>
-                <div className="text-amber-100">Resolution due: {formatTimestamp(selectedTicket.resolution_due_at)}</div>
+                <div className="text-amber-900 dark:text-amber-100">
+                  First response due: {formatTimestamp(selectedTicket.first_response_due_at)}
+                </div>
+                <div className="text-amber-900 dark:text-amber-100">
+                  Resolution due: {formatTimestamp(selectedTicket.resolution_due_at)}
+                </div>
               </div>
               <div>Slack: {selectedTicket.notification_slack_status}</div>
               <div>Email: {selectedTicket.notification_email_status}</div>
               <div>Last notification attempt: {formatTimestamp(selectedTicket.notification_last_attempt_at)}</div>
               {selectedTicket.notification_error_summary && (
-                <div className="text-red-200">Notification errors: {selectedTicket.notification_error_summary}</div>
+                <div className="text-red-800 dark:text-red-200">
+                  Notification errors: {selectedTicket.notification_error_summary}
+                </div>
               )}
             </div>
 
-            <div className="space-y-2 rounded-lg border border-white/10 bg-black/10 p-3">
-              <div className="text-sm text-slate-200">Assignment</div>
+            <div className="space-y-2 rounded-lg border border-slate-200/90 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-black/10">
+              <div className="text-sm text-slate-900 dark:text-slate-200">Assignment</div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   disabled={busyAction !== null || !operatorUserId}
                   onClick={() => void applyAssignment(operatorUserId)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/5 px-3 py-2 text-xs text-cyan-100 disabled:opacity-40"
+                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-600/40 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-950 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-500 dark:border-cyan-500/30 dark:bg-cyan-500/5 dark:text-cyan-100 dark:disabled:border-white/10 dark:disabled:bg-white/[0.06] dark:disabled:text-slate-500"
                 >
                   <User size={14} />
                   Assign to me
@@ -530,26 +557,26 @@ export default function SupportQueue() {
                   type="button"
                   disabled={busyAction !== null}
                   onClick={() => void applyAssignment(null)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-200 disabled:opacity-40"
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300/90 px-3 py-2 text-xs text-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:text-slate-200"
                 >
                   <UserX size={14} />
                   Unassign
                 </button>
               </div>
-              <label className="space-y-1 block text-xs text-slate-400">
+              <label className="space-y-1 block text-xs text-slate-700 dark:text-slate-400">
                 Operator user id (Supabase auth id)
                 <div className="flex gap-2">
                   <input
                     value={assigneeInput}
                     onChange={(event) => setAssigneeInput(event.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white"
+                    className="w-full rounded-lg border border-slate-300/90 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-500 read-only:bg-slate-100 dark:border-white/10 dark:bg-black/30 dark:text-white"
                     placeholder="uuid"
                   />
                   <button
                     type="button"
                     disabled={busyAction !== null || !assigneeInput.trim()}
                     onClick={() => void applyAssignment(assigneeInput.trim())}
-                    className="shrink-0 rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-200 disabled:opacity-40"
+                    className="shrink-0 rounded-lg border border-slate-300/90 px-3 py-2 text-xs text-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:text-slate-200"
                   >
                     Set assignee
                   </button>
@@ -558,11 +585,11 @@ export default function SupportQueue() {
             </div>
 
             <label className="space-y-2 block">
-              <span className="text-sm text-slate-200">Status</span>
+              <span className="text-sm text-slate-900 dark:text-slate-200">Status</span>
               <select
                 value={statusDraft}
                 onChange={(event) => setStatusDraft(event.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                className="w-full rounded-lg border border-slate-300/90 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/30 dark:text-white"
               >
                 {TICKET_STATUSES.map((status) => (
                   <option key={status} value={status}>
@@ -573,12 +600,12 @@ export default function SupportQueue() {
             </label>
 
             <label className="space-y-2 block">
-              <span className="text-sm text-slate-200">Internal notes</span>
+              <span className="text-sm text-slate-900 dark:text-slate-200">Internal notes</span>
               <textarea
                 value={notesDraft}
                 onChange={(event) => setNotesDraft(event.target.value)}
                 rows={8}
-                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                className="w-full rounded-lg border border-slate-300/90 bg-white px-3 py-2 text-sm text-slate-900 read-only:bg-slate-100 dark:border-white/10 dark:bg-black/30 dark:text-white"
               />
             </label>
 
@@ -587,7 +614,7 @@ export default function SupportQueue() {
                 type="button"
                 onClick={() => void saveTicket()}
                 disabled={busyAction !== null}
-                className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-cyan-600/45 bg-cyan-500/15 px-4 py-2 text-sm text-cyan-950 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-500 dark:border-cyan-500/40 dark:bg-cyan-500/10 dark:text-cyan-100 dark:disabled:border-white/10 dark:disabled:bg-white/[0.06] dark:disabled:text-slate-500"
               >
                 {busyAction === 'ticket-save' ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
                 Save ticket
@@ -596,7 +623,7 @@ export default function SupportQueue() {
                 type="button"
                 onClick={() => void retryNotifications()}
                 disabled={busyAction !== null}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm text-slate-200 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-300/90 px-4 py-2 text-sm text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:text-slate-200"
               >
                 {busyAction === 'notifications' ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 Retry notifications
@@ -605,7 +632,7 @@ export default function SupportQueue() {
                 type="button"
                 onClick={() => void moveToKbBin()}
                 disabled={busyAction !== null || statusDraft !== 'resolved'}
-                className="inline-flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-100 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-600/45 bg-amber-500/15 px-4 py-2 text-sm text-amber-950 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-500 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100 dark:disabled:border-white/10 dark:disabled:bg-white/[0.06] dark:disabled:text-slate-500"
               >
                 {busyAction === 'kb-bin' ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
                 Move to KB approval bin
@@ -613,14 +640,16 @@ export default function SupportQueue() {
             </div>
           </>
         ) : (
-          <p className="text-sm text-slate-500">Select a ticket to inspect and update it.</p>
+          <p className="text-sm text-slate-600 dark:text-slate-500">Select a ticket to inspect and update it.</p>
         )}
       </section>
 
-      <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
+      <section className="rounded-xl border border-slate-200/90 bg-white/90 p-4 space-y-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none">
         <div>
-          <h2 className="text-lg font-semibold text-white">KB Approval Bin</h2>
-          <p className="text-xs text-slate-400">Resolved tickets become curated drafts here. Nothing auto-ingests.</p>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">KB Approval Bin</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            Resolved tickets become curated drafts here. Nothing auto-ingests.
+          </p>
         </div>
 
         <div className="space-y-2 max-h-48 overflow-auto">
@@ -632,56 +661,56 @@ export default function SupportQueue() {
               onClick={() => setSelectedDraftId(draft.id)}
               className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
                 selectedDraftId === draft.id
-                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
-                  : 'border-white/10 bg-black/20 text-slate-300 hover:bg-white/5'
+                  ? 'border-emerald-600/45 bg-emerald-500/15 text-emerald-950 ring-1 ring-emerald-600/25 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100 dark:ring-emerald-400/30'
+                  : 'border-slate-200/90 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-black/20 dark:text-slate-300 dark:hover:bg-white/5'
               }`}
             >
               <div className="font-medium">{draft.title}</div>
-              <div className="mt-1 text-xs text-slate-400">
+              <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                 {draft.review_status} · {draft.topic} · {formatTimestamp(draft.updated_at)}
               </div>
             </button>
           ))}
-          {drafts.length === 0 && <p className="text-sm text-slate-500">No KB drafts yet.</p>}
+          {drafts.length === 0 && <p className="text-sm text-slate-600 dark:text-slate-500">No KB drafts yet.</p>}
         </div>
 
         {selectedDraft ? (
           <>
             <label className="space-y-2 block">
-              <span className="text-sm text-slate-200">Title</span>
+              <span className="text-sm text-slate-900 dark:text-slate-200">Title</span>
               <input
                 value={selectedDraft.title}
                 onChange={(event) => setSelectedDraft((current) => (current ? { ...current, title: event.target.value } : current))}
-                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                className="w-full rounded-lg border border-slate-300/90 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/30 dark:text-white"
               />
             </label>
             <label className="space-y-2 block">
-              <span className="text-sm text-slate-200">Excerpt (summary)</span>
+              <span className="text-sm text-slate-900 dark:text-slate-200">Excerpt (summary)</span>
               <textarea
                 value={selectedDraft.excerpt ?? ''}
                 onChange={(event) =>
                   setSelectedDraft((current) => (current ? { ...current, excerpt: event.target.value } : current))
                 }
                 rows={3}
-                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                className="w-full rounded-lg border border-slate-300/90 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/30 dark:text-white"
               />
             </label>
             <label className="space-y-2 block">
-              <span className="text-sm text-slate-200">Body markdown</span>
+              <span className="text-sm text-slate-900 dark:text-slate-200">Body markdown</span>
               <textarea
                 value={selectedDraft.body_markdown}
                 onChange={(event) =>
                   setSelectedDraft((current) => (current ? { ...current, body_markdown: event.target.value } : current))
                 }
                 rows={10}
-                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                className="w-full rounded-lg border border-slate-300/90 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/30 dark:text-white"
               />
             </label>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-slate-400">Preview</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">Preview</span>
               <button
                 type="button"
-                className="text-xs text-cyan-200 hover:underline"
+                className="text-xs text-cyan-800 hover:underline dark:text-cyan-200"
                 onClick={() => setKbPreview((current) => !current)}
               >
                 {kbPreview ? 'Hide' : 'Show'} rendered preview
@@ -696,11 +725,11 @@ export default function SupportQueue() {
             )}
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="space-y-2 block">
-                <span className="text-sm text-slate-200">Topic</span>
+                <span className="text-sm text-slate-900 dark:text-slate-200">Topic</span>
                 <select
                   value={selectedDraft.topic}
                   onChange={(event) => setSelectedDraft((current) => (current ? { ...current, topic: event.target.value } : current))}
-                  className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-lg border border-slate-300/90 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/30 dark:text-white"
                 >
                   {KB_TOPIC_OPTIONS.map((topic) => (
                     <option key={topic} value={topic}>
@@ -710,11 +739,11 @@ export default function SupportQueue() {
                 </select>
               </label>
               <label className="space-y-2 block">
-                <span className="text-sm text-slate-200">Intent</span>
+                <span className="text-sm text-slate-900 dark:text-slate-200">Intent</span>
                 <select
                   value={selectedDraft.intent}
                   onChange={(event) => setSelectedDraft((current) => (current ? { ...current, intent: event.target.value } : current))}
-                  className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-lg border border-slate-300/90 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/30 dark:text-white"
                 >
                   {KB_INTENT_OPTIONS.map((intent) => (
                     <option key={intent} value={intent}>
@@ -724,13 +753,13 @@ export default function SupportQueue() {
                 </select>
               </label>
               <label className="space-y-2 block">
-                <span className="text-sm text-slate-200">Review status</span>
+                <span className="text-sm text-slate-900 dark:text-slate-200">Review status</span>
                 <select
                   value={selectedDraft.review_status}
                   onChange={(event) =>
                     setSelectedDraft((current) => (current ? { ...current, review_status: event.target.value } : current))
                   }
-                  className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-lg border border-slate-300/90 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/30 dark:text-white"
                 >
                   {KB_REVIEW_STATUS_OPTIONS.map((reviewStatus) => (
                     <option key={reviewStatus} value={reviewStatus}>
@@ -745,7 +774,7 @@ export default function SupportQueue() {
                 type="button"
                 onClick={() => void saveDraft()}
                 disabled={busyAction !== null}
-                className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-cyan-600/45 bg-cyan-500/15 px-4 py-2 text-sm text-cyan-950 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-500 dark:border-cyan-500/40 dark:bg-cyan-500/10 dark:text-cyan-100 dark:disabled:border-white/10 dark:disabled:bg-white/[0.06] dark:disabled:text-slate-500"
               >
                 {busyAction === 'draft-save' ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
                 Save draft
@@ -754,7 +783,7 @@ export default function SupportQueue() {
                 type="button"
                 onClick={() => void approveDraft()}
                 disabled={busyAction !== null}
-                className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-100 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-emerald-600/45 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-950 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-500 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100 dark:disabled:border-white/10 dark:disabled:bg-white/[0.06] dark:disabled:text-slate-500"
               >
                 {busyAction === 'draft-approve' ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 Approve and ingest
@@ -762,7 +791,7 @@ export default function SupportQueue() {
             </div>
           </>
         ) : (
-          <p className="text-sm text-slate-500">Select a KB draft to edit and ingest it.</p>
+          <p className="text-sm text-slate-600 dark:text-slate-500">Select a KB draft to edit and ingest it.</p>
         )}
       </section>
     </div>

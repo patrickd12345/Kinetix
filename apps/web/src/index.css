@@ -5,11 +5,35 @@
 @tailwind utilities;
 
 :root {
-  --focus-color: #0891b2;
+  --focus-color: #0f766e;
+  --shell-text-primary: #0f172a;
+  --shell-text-secondary: #334155;
+  --shell-text-tertiary: #475569;
+  --shell-text-placeholder: #64748b;
+  --shell-text-disabled: #475569;
+  --shell-surface-disabled: #e2e8f0;
+  --shell-border-disabled: #94a3b8;
+  --shell-active-surface: #cffafe;
+  --shell-active-border: #0891b2;
+  --shell-active-text: #0f172a;
+  --shell-focus-ring: #0f766e;
+  --shell-focus-offset: #f8fafc;
 }
 
 html.dark {
-  --focus-color: #22d3ee;
+  --focus-color: #67e8f9;
+  --shell-text-primary: #f8fafc;
+  --shell-text-secondary: #dbeafe;
+  --shell-text-tertiary: #cbd5e1;
+  --shell-text-placeholder: #94a3b8;
+  --shell-text-disabled: #94a3b8;
+  --shell-surface-disabled: #1e293b;
+  --shell-border-disabled: #475569;
+  --shell-active-surface: #0f3f50;
+  --shell-active-border: #67e8f9;
+  --shell-active-text: #ffffff;
+  --shell-focus-ring: #67e8f9;
+  --shell-focus-offset: #020617;
 }
 
 body {
@@ -29,6 +53,62 @@ body {
 :focus-visible {
   outline: 2px solid var(--focus-color);
   outline-offset: 2px;
+}
+
+.shell-focus-ring {
+  outline: none;
+}
+
+.shell-focus-ring:focus-visible {
+  outline: 2px solid var(--shell-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--shell-focus-offset);
+}
+
+.shell-text-primary {
+  color: var(--shell-text-primary);
+}
+
+.shell-text-secondary {
+  color: var(--shell-text-secondary);
+}
+
+.shell-text-tertiary {
+  color: var(--shell-text-tertiary);
+}
+
+.shell-placeholder::placeholder {
+  color: var(--shell-text-placeholder);
+  opacity: 1;
+}
+
+.shell-readonly {
+  background: var(--shell-surface-disabled);
+  color: var(--shell-text-tertiary);
+}
+
+.shell-disabled:disabled,
+.shell-disabled[aria-disabled='true'] {
+  background: var(--shell-surface-disabled);
+  border-color: var(--shell-border-disabled);
+  color: var(--shell-text-disabled);
+  opacity: 1;
+}
+
+.shell-nav-active {
+  border: 1px solid var(--shell-active-border);
+  background: var(--shell-active-surface);
+  color: var(--shell-active-text);
+}
+
+.shell-nav-inactive {
+  border: 1px solid transparent;
+  color: var(--shell-text-secondary);
+}
+
+.shell-nav-inactive:hover {
+  background: rgba(148, 163, 184, 0.18);
+  color: var(--shell-text-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -76,19 +156,4 @@ html.dark .glass {
 
 #root {
   min-height: 100vh;
-}
-
-/* Light mode: common muted text inside main until pages use explicit dark: pairs */
-html:not(.dark) main .text-gray-400,
-html:not(.dark) main .text-slate-400 {
-  color: rgb(100 116 139);
-}
-
-html:not(.dark) main .text-gray-300,
-html:not(.dark) main .text-slate-300 {
-  color: rgb(71 85 105);
-}
-
-html:not(.dark) main .text-gray-500 {
-  color: rgb(100 116 139);
 }

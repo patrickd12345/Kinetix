@@ -12,6 +12,7 @@ Single execution order for [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINE
 3. **Entitlement gating:** remove `kinetix` row in `platform.entitlements` for test user; refresh Kinetix — **Entitlement required**.
 4. **Optional logout / login from Kinetix subdomain:** magic link or OAuth; land on Kinetix with profile + entitlement.
 5. **Supabase Auth (dashboard):** providers + URL allowlist per [`ENV_PARITY.md`](deployment/ENV_PARITY.md).
+5b. **Shell / Help visual accessibility:** light/dark, browser zoom 100/125/150%, keyboard focus, disabled/loading/readonly legibility — matrix in [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md) (shell + Help Center).
 6. **Help Center `/help`:** KB, `POST /api/ai-chat`, sources, escalation gate, ticket after confirmation + DB row.
 7. **Support queue:** non-operator **403** on list API (already scriptable); then **operator** list with `summary`/`slaMetrics`, `?ticketId=`, PATCH, move-to-KB rules.
 8. **Operator dashboard `/operator`:** cards + filter deep links.

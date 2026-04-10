@@ -32,7 +32,7 @@ export default function ThemeSelector() {
 
   return (
     <div
-      className="inline-flex items-center gap-0.5 rounded-full border border-slate-300/25 bg-slate-200/40 p-0.5 dark:border-white/10 dark:bg-white/[0.08]"
+      className="inline-flex items-center gap-0.5 rounded-full border border-slate-300/40 bg-slate-200/60 p-0.5 dark:border-white/10 dark:bg-white/[0.08]"
       role="group"
       aria-label="Color theme"
     >
@@ -45,15 +45,15 @@ export default function ThemeSelector() {
             aria-label={label}
             aria-pressed={selected}
             onClick={() => setTheme(value)}
-            className={`relative flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+            className={`shell-focus-ring relative flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
               selected
-                ? 'text-slate-900 dark:text-white'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'text-[var(--shell-text-primary)] dark:text-[var(--shell-text-primary)]'
+                : 'text-[var(--shell-text-secondary)] hover:text-[var(--shell-text-primary)] dark:text-[var(--shell-text-tertiary)] dark:hover:text-[var(--shell-text-primary)]'
             }`}
           >
             {selected ? (
               <span
-                className="absolute inset-0.5 rounded-full bg-rose-500/25 dark:bg-rose-900/50"
+                className="absolute inset-0.5 rounded-full border border-[var(--shell-active-border)] bg-[var(--shell-active-surface)]"
                 aria-hidden
               />
             ) : null}

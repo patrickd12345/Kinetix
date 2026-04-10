@@ -3,6 +3,8 @@
 Product: Kinetix  
 Type: mixed platform
 
+**Wave 2 web verification:** CLOSED (2026-04-10 recorded evidence). Remaining **Partial** platform rows track **Phase 3 — Platform Hardening** in [`docs/KINETIX_SCOPE_CLOSURE.md`](docs/KINETIX_SCOPE_CLOSURE.md) (not blocking release).
+
 ## Platform Standards Applicability
 
 | Capability | Status | Notes |

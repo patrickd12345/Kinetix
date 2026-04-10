@@ -2,7 +2,11 @@
 
 **Source of truth:** This file is reconstructed from the Kinetix repo, `docs/deployment/*`, feature lists, and recent `git` history. Umbrella-only standards are referenced by path where they live outside this clone.
 
-**Last reviewed:** 2026-04-10 (Wave 2 closure: `docs/KINETIX_SCOPE_CLOSURE.md` + baseline; web Vitest **346**; `pnpm lint` + `pnpm type-check`; **`pnpm run verify:vercel-parity` PASS** with `[verify-vercel-parity] OK`. Next: `PRODUCT_SCOPE.md` Partial platform rows and production gates — see **Next Priorities**.)
+**Last reviewed:** 2026-04-11 (Wave 2 web **CLOSED**; stabilization/release mode. Evidence unchanged: Vitest **346**, lint, type-check, **`pnpm run verify:vercel-parity` PASS** 2026-04-10. Next: Phase 3 hardening + Phase 4 release readiness — see [`KINETIX_SCOPE_CLOSURE.md`](KINETIX_SCOPE_CLOSURE.md) and **Next Priorities**.)
+
+**Current phase:** Stabilization / Release  
+**Wave 2 (web):** Closed  
+**Next focus:** Platform hardening (Phase 3) + release readiness (Phase 4)
 
 ---
 
@@ -130,26 +134,25 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 - Curated KB reinjection shipped for v1: approval drafts in `kinetix.support_kb_approval_bin` and manual ingest into `kinetix_support_kb`.
 - Deterministic **LLM math guardrails** for chat (verified pace/KPS results, fail-closed on ambiguity) — [`docs/architecture/LLM_MATH_GUARDRAILS.md`](architecture/LLM_MATH_GUARDRAILS.md).
 - Vercel **Hobby** serverless footprint reduced to **12** `api/**/*.ts` handlers (excluding `_lib`): smoke script moved out of `api/`, Withings oauth+refresh merged to `api/withings` with rewrites preserving client URLs, support-queue **tickets** subtree merged to `api/support-queue/tickets/[[...segments]].ts` with unchanged public ticket paths.
-- **Scope closure Wave 2 (web):** [`docs/KINETIX_SCOPE_CLOSURE.md`](KINETIX_SCOPE_CLOSURE.md) updated with per-surface closure criteria and evidence; [`docs/KINETIX_LOCAL_VERIFICATION_BASELINE.md`](KINETIX_LOCAL_VERIFICATION_BASELINE.md) records full `@kinetix/web` Vitest run (**346** tests) plus lint/type-check; coaching context hooks consolidated to satisfy `react-hooks/rules-of-hooks` (merged `useKinetixCoachingContext` + `useKinetixCoachingContextState`).
+- **Wave 2 web closure (CLOSED):** [`docs/KINETIX_SCOPE_CLOSURE.md`](KINETIX_SCOPE_CLOSURE.md) records per-surface closure criteria, CLOSED status, feature freeze, and Phase 3-5 follow-through; [`docs/KINETIX_LOCAL_VERIFICATION_BASELINE.md`](KINETIX_LOCAL_VERIFICATION_BASELINE.md) records full `@kinetix/web` Vitest run (**346** tests) plus lint/type-check; coaching context hooks consolidated to satisfy `react-hooks/rules-of-hooks` (merged `useKinetixCoachingContext` + `useKinetixCoachingContextState`).
 - **Vercel parity gate (pre-ship):** `pnpm run verify:vercel-parity` **PASS** recorded **2026-04-10** in [`KINETIX_LOCAL_VERIFICATION_BASELINE.md`](KINETIX_LOCAL_VERIFICATION_BASELINE.md) (Kinetix install + build + Bookiji Vercel-like build).
 
 ---
 
 ## In Progress
 
-- **Subscription gating and billing UX** end-to-end in production tiers (code exists; operator checklist in deployment docs).
-- **AI analysis reliability** — gateway envs, E2E allowances when AI gateway missing (see recent test/commit messages).
-- **Help Center ops hardening** — phase-3C escalation hardening plus follow-up operator tooling shipped additively while ticket-first workflow remains canonical.
-- **Platform standard adoption** — `PRODUCT_SCOPE.md`: CI baseline, env contract, observability, feature flags, error contract marked **Partial**.
-- **Doc hygiene:** Keep `PRODUCT_SCOPE.md` platform table aligned with deployment docs when billing or spine changes land.
+- **Phase 3 — Platform hardening (not blocking release):** Close **Partial** rows in [`PRODUCT_SCOPE.md`](../PRODUCT_SCOPE.md) with measurable criteria — CI beyond web, env contract uniformity, observability consistency, feature-flag governance, error-contract adoption across `api/*` where not yet uniform. See [`KINETIX_SCOPE_CLOSURE.md`](KINETIX_SCOPE_CLOSURE.md) § Phase 3.
+- **Phase 4 — Release readiness:** ENV parity ([`ENV_PARITY.md`](deployment/ENV_PARITY.md)), deployment checklist ([`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md)), Help Center operator smoke ([`HELP_CENTER_OPERATIONS.md`](HELP_CENTER_OPERATIONS.md)), Playwright / release-candidate validation.
+- **Help Center ops** — phase-3C surfaces remain RC in-repo; production operator pass remains a Phase 4 gate.
+- **Doc hygiene:** Keep `PRODUCT_SCOPE.md` and [`KINETIX_SCOPE_CLOSURE.md`](KINETIX_SCOPE_CLOSURE.md) aligned when billing or spine changes land.
 
 ---
 
 ## Next Priorities
 
-1. Continue closing **Partial** rows in `PRODUCT_SCOPE.md` (observability consistency, env contract uniformity, feature-flag governance, error-contract adoption across `api/*` where not yet uniform) using measurable criteria; Wave 2 added web test + lint/type-check + Vercel parity evidence in [`PRODUCT_SCOPE.md`](../PRODUCT_SCOPE.md) notes and [`KINETIX_LOCAL_VERIFICATION_BASELINE.md`](KINETIX_LOCAL_VERIFICATION_BASELINE.md).
-2. **Production release path:** deployment checklist ([`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md)), env parity ([`ENV_PARITY.md`](deployment/ENV_PARITY.md)), and Help Center manual operator smoke ([`HELP_CENTER_OPERATIONS.md`](HELP_CENTER_OPERATIONS.md)) — parity does not replace these.
-3. Web **map** and **export** (GPX/TCX) when prioritizing parity with user expectations (`FEATURES_WEB.md` future list).
+1. **Phase 3:** Platform standard adoption toward **Full** where applicable — same dimensions as [`PRODUCT_SCOPE.md`](../PRODUCT_SCOPE.md) (observability, env contract, feature flags, error contract); baseline evidence for Wave 2 remains in [`KINETIX_LOCAL_VERIFICATION_BASELINE.md`](KINETIX_LOCAL_VERIFICATION_BASELINE.md).
+2. **Phase 4:** Production release path — checklist, env parity, operator smoke; parity gate does not replace these.
+3. **Phase 5 (post launch):** Web **map** and **export** (GPX/TCX) when prioritized ([`FEATURES_WEB.md`](../FEATURES_WEB.md)); production-tier **billing UX**; **AI reliability** in real gateway envs.
 4. **Regression:** Re-run **`pnpm run verify:vercel-parity`** after changes to `scripts/vercel-install.sh`, workspace packages, or `@bookiji-inc/*` consumption (last green **2026-04-10**).
 
 ---

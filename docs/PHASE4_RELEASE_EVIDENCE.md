@@ -18,11 +18,25 @@
 
 - Removed **`packages/ai-core`** (forbidden by `scripts/check-no-local-ai-core.mjs`) and dropped unused **`@bookiji-inc/ai-core`** dependency from [`packages/ai-runtime/package.json`](../packages/ai-runtime/package.json); refreshed lockfile via `pnpm install`.
 
+## Production probes (automated, read-only)
+
+**SPA:** `GET https://kinetix.bookiji.com/` returned **200** (2026-04-10).
+
+**Serverless (`api/*`):** Probed routes returned **500** with **`X-Vercel-Error: FUNCTION_INVOCATION_FAILED`** and body `FUNCTION_INVOCATION_FAILED` (plain text), including:
+
+- `GET /api/admlog`
+- `POST /api/ai-chat` (minimal JSON body)
+- `GET /api/strava-proxy` (sample query)
+
+Interpretation: this is a **Vercel function invocation failure for the whole `api/*` deployment surface**, not a JSON **403** from [`api/admlog/index.ts`](../api/admlog/index.ts) alone. Until functions boot successfully, the admlog production-safety check in [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md) cannot be satisfied via HTTP.
+
+**Ops next (no repo secrets here):** Vercel project **Functions** logs for `api/*`, confirm **Node** matches `package.json` `engines` (22.x), confirm **install/build** output includes serverless dependencies (`scripts/vercel-install.sh` path), and verify required **server env** for API routes (Supabase keys, etc.) in the deployment environment that runs functions.
+
 ## Manual: [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md)
 
 | Step | Status | Evidence |
 |------|--------|----------|
-| Production `GET https://kinetix.bookiji.com/api/admlog` | **MISMATCH** | Automated probe returned **HTTP 500** (curl/Invoke-WebRequest) on **2026-04-10**. Checklist expects **403** and safe JSON. **Follow-up:** ops / serverless logs — not treated as Wave 2 scope reopen; investigate as platform/config regression. |
+| Production `GET https://kinetix.bookiji.com/api/admlog` | **Blocked / mismatch** | See **Production probes** above: **500** + `FUNCTION_INVOCATION_FAILED` (2026-04-10). Once functions are healthy, re-check for **403** + safe JSON per checklist (admlog must stay disabled in production per [`ENV_PARITY.md`](deployment/ENV_PARITY.md)). |
 | SSO happy path (Bookiji tab then Kinetix) | **Not run** | Requires interactive login and two origins — record when performed. |
 | Entitlement gating (remove `kinetix` entitlement) | **Not run** | Requires DB access — record when performed. |
 

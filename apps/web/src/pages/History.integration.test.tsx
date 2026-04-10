@@ -4,6 +4,18 @@ import History from './History'
 import * as coachingContextModule from '../hooks/useKinetixCoachingContext'
 import { useKinetixCoach } from '../hooks/useKinetixCoach'
 
+const mockRun = {
+  id: 1,
+  date: '2026-04-01T10:00:00.000Z',
+  distance: 5000,
+  duration: 1500,
+  averagePace: 300,
+  targetKPS: 80,
+  locations: [],
+  splits: [],
+  deleted: 0 as const,
+}
+
 vi.mock('./Coaching', () => ({
   HistoryCoachSummaryWithProvider: () => <div data-testid="history-coach-summary" />,
 }))
@@ -15,7 +27,7 @@ vi.mock('../components/providers/useAuth', () => ({
 }))
 
 vi.mock('../hooks/useStableKinetixUserProfile', () => ({
-  useStableKinetixUserProfile: () => null,
+  useStableKinetixUserProfile: () => ({ id: 'test-user', age: 35, weight_kg: 70 }),
 }))
 
 vi.mock('../hooks/useAICoach', () => ({
@@ -28,14 +40,28 @@ vi.mock('../hooks/useAICoach', () => ({
   }),
 }))
 
+vi.mock('../lib/kpsUtils', () => ({
+  getPB: vi.fn(async () => null),
+  isValidKPS: vi.fn(() => true),
+  calculateAbsoluteKPS: vi.fn(() => 80),
+  ensurePBInitialized: vi.fn(async () => undefined),
+  calculateRelativeKPSSync: vi.fn(() => 80),
+  isMeaningfulRunForKPS: vi.fn(() => true),
+  filterRunsByRelativeKpsBounds: vi.fn(async (runs: unknown[]) => runs),
+}))
+
+vi.mock('../lib/authState', () => ({
+  getProfileForRun: vi.fn(async () => ({ age: 35, weight_kg: 70 })),
+}))
+
 vi.mock('../lib/database', () => ({
   db: { runs: { get: vi.fn(async () => null) } },
-  getRunsPage: vi.fn(async () => ({ items: [], total: 0 })),
+  getRunsPage: vi.fn(async () => ({ items: [mockRun], total: 1 })),
   getRunsPageForDate: vi.fn(async () => ({ items: [], total: 0 })),
-  getRunsInDateRange: vi.fn(async () => []),
+  getRunsInDateRange: vi.fn(async () => [mockRun]),
   getWeightsForDates: vi.fn(async () => new Map()),
-  getAllVisibleRunsOrdered: vi.fn(async () => []),
-  RUN_VISIBLE: 1,
+  getAllVisibleRunsOrdered: vi.fn(async () => [mockRun]),
+  RUN_VISIBLE: 0,
 }))
 
 vi.mock('../components/KPSTrendChart', () => ({ KPSTrendChart: () => null }))
@@ -74,13 +100,13 @@ describe('History provider integration', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders compact coaching summary slot without mounting full coaching stack', () => {
+  it('renders compact coaching summary slot without mounting full coaching stack', async () => {
     const spy = vi.spyOn(coachingContextModule, 'useKinetixCoachingContext').mockReturnValue(fakeContext)
 
     render(<History />)
 
+    expect(await screen.findByTestId('history-coach-summary')).toBeInTheDocument()
     expect(spy).not.toHaveBeenCalled()
-    expect(screen.getByTestId('history-coach-summary')).toBeInTheDocument()
     expect(screen.queryByText('Not enough data for race readiness yet.')).not.toBeInTheDocument()
     expect(screen.queryByText('No coaching alerts right now.')).not.toBeInTheDocument()
   })

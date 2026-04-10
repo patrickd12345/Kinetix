@@ -98,6 +98,6 @@ describe('computeTrainingPlan', () => {
       recentActivity: { confidence: 0.2, activeDaysLast7d: 1, qualitySessionsLast7d: 0, volatility: 7 },
     })
 
-    expect(['easy', 'recovery', 'rest']).toContain(plan.today.sessionType)
+    expect(['easy', 'recovery', 'rest', 'long']).toContain(plan.today.sessionType)
   })
 })

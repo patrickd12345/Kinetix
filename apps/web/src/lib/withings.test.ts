@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import * as database from './database'
 import { fetchRecentWithingsWeights, syncWithingsWeightsAtStartup } from './withings'
 
 /** kg 80.0 at unit -2 → value 8000 */
@@ -65,16 +66,25 @@ describe('fetchRecentWithingsWeights', () => {
   })
 
   it('does not perform expanded ingestion during startup weight sync', async () => {
+    const bulkSpy = vi.spyOn(database, 'bulkPutWeightEntries').mockResolvedValue({ count: 1, latestKg: 81 })
+    const maxSpy = vi.spyOn(database, 'getMaxWeightDateUnix').mockResolvedValue(null)
     const page = { status: 0, body: { measuregrps: [grp(1_800_000_000, 8100)], more: 0, offset: 0 } }
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(page), { status: 200 }))
+    const fetchMock = vi.fn().mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify(page), { status: 200 }))
+    )
     globalThis.fetch = fetchMock as unknown as typeof fetch
 
-    const result = await syncWithingsWeightsAtStartup(
-      { accessToken: 'a', refreshToken: 'r', userId: 'u1', expiresAt: Date.now() + 60_000 },
-      vi.fn()
-    )
+    try {
+      const result = await syncWithingsWeightsAtStartup(
+        { accessToken: 'a', refreshToken: 'r', userId: 'u1', expiresAt: Date.now() + 60_000 },
+        vi.fn()
+      )
 
-    expect(result.latestKg).toBe(81)
-    expect(fetchMock).toHaveBeenCalled()
+      expect(result.latestKg).toBe(81)
+      expect(fetchMock).toHaveBeenCalled()
+    } finally {
+      bulkSpy.mockRestore()
+      maxSpy.mockRestore()
+    }
   })
 })

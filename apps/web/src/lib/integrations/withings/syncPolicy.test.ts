@@ -7,8 +7,9 @@ describe('withings sync policy', () => {
   })
 
   it('is not due before first scheduled slot and computes next eligible', () => {
+    const now = new Date(2026, 3, 9, 7, 30, 0)
     const decision = evaluateWithingsSyncPolicy({
-      now: new Date('2026-04-09T07:30:00'),
+      now,
       manual: false,
       featureEnabled: true,
       expandedSyncEnabled: true,
@@ -18,7 +19,7 @@ describe('withings sync policy', () => {
     })
     expect(decision.shouldSync).toBe(false)
     expect(decision.reason).toBe('not_due')
-    expect(decision.nextEligibleAt).toContain('2026-04-09T08:00:00')
+    expect(decision.nextEligibleAt).toBe(new Date(2026, 3, 9, 8, 0, 0).toISOString())
   })
 
   it('is due after morning slot until fulfilled', () => {

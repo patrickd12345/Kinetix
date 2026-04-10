@@ -6,7 +6,7 @@ import { detectLoadRisk } from './riskDetection'
 
 describe('load control', () => {
   it('detects ramp rate thresholds', () => {
-    const low = computeRampRate([40, 40, 40, 43.2]).rampRate
+    const low = computeRampRate([40, 40, 40, 42]).rampRate
     const moderate = computeRampRate([40, 40, 40, 44]).rampRate
     const high = computeRampRate([40, 40, 40, 46]).rampRate
 

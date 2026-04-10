@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import SupportQueue from '../pages/SupportQueue'
 import { AuthContext, type AuthContextValue } from '../components/providers/useAuth'
@@ -147,7 +147,7 @@ describe('Support queue page', () => {
         artifact_id: 'ticket-resolution-kinetix-20260408-def456',
         title: 'Draft two',
         excerpt: 'Short summary',
-        body_markdown: '# Draft two',
+        body_markdown: '# Draft two\n\n- Step A\n- Step B',
         review_status: 'approved',
         topic: 'sync',
         intent: 'howto',
@@ -215,7 +215,7 @@ describe('Support queue page', () => {
           artifact_id: 'ticket-resolution-kinetix-20260408-def456',
           title: 'Draft two',
           excerpt: 'Short summary',
-          body_markdown: '# Draft two',
+          body_markdown: '# Draft two\n\n- Step A\n- Step B',
           review_status: 'approved',
           topic: 'sync',
           intent: 'howto',
@@ -358,6 +358,22 @@ describe('Support queue page', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Escalated' })).toHaveAttribute('class', expect.stringContaining('border-cyan-500/50'))
+    })
+  })
+
+  it('renders KB preview as markdown when preview is enabled', async () => {
+    renderQueue()
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Draft two')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /show rendered preview/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Step A')).toBeInTheDocument()
+      expect(screen.getByText('Step B')).toBeInTheDocument()
+      expect(screen.queryByText(/^# Draft two$/)).not.toBeInTheDocument()
     })
   })
 })

@@ -1,0 +1,12 @@
+{
+  "name": "@bookiji-inc/error-contract",
+  "version": "0.0.0-local",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "echo '[stub] error-contract build'"
+  }
+}

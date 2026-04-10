@@ -31,7 +31,7 @@
       "destination": "/api/strava-refresh"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],

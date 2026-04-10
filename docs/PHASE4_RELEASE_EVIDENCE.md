@@ -1,6 +1,6 @@
 # Phase 4 — Release evidence log
 
-**Last updated:** 2026-04-10 (post workspace-fix production deploy smoke)  
+**Last updated:** 2026-04-10 (support-queue routing + merged serverless entry)  
 **Guardrail:** Wave 2 web **closed**; this file records **execution evidence** for Phase 4 gates. No secrets.
 
 ## Automated gates (local, repo: `products/Kinetix`)
@@ -36,6 +36,35 @@
 
 Interpretation: serverless invocation health restored for probed routes; admlog production-safety behavior now matches checklist expectations.
 
+## Support-queue API routing fix (2026-04-10)
+
+**Problems**
+
+1. **SPA rewrite:** `vercel.json` used `"/(.*)"` -> `/index.html`, so `/api/support-queue/*` was served as the Vite SPA (**200** `text/html`) instead of serverless JSON.
+2. **Bare list paths:** After narrowing the SPA rewrite to `/((?!api/).*)` -> `/index.html`, anonymous `GET` to `/api/support-queue/tickets` and `/api/support-queue/kb-approval` returned platform **404** JSON: nested `api/support-queue/tickets/[[...segments]].ts` did not bind the directory root (no `index` route), and `req.query.segments` was not populated for the consolidated optional catch-all in production.
+
+**Fix (minimal, Hobby plan)**
+
+- Keep SPA fallback: [`vercel.json`](../vercel.json) `source` `/((?!api/).*)` -> `/index.html` so `/api/**` is not rewritten to the SPA.
+- **Single function** for all support-queue HTTP: [`api/support-queue/[[...segments]].ts`](../api/support-queue/[[...segments]].ts) dispatches `tickets` vs `kb-approval` (removes two nested `[[...segments]]` bundles and avoids extra `index.ts` routes that would exceed the **12 serverless function** Hobby cap).
+- **Segment resolution:** If `req.query.segments` is missing, derive segments from `req.url` pathname after `/api/support-queue/` so list and sub-routes match reliably.
+
+**Deploy (Vercel production)**
+
+| Field | Value |
+|-------|--------|
+| Deployment id | `dpl_HdeZzNuPDg8UgAoXLBppcg1ds5ip` |
+| Inspector | `https://vercel.com/patrick-duchesneaus-projects/kinetix/HdeZzNuPDg8UgAoXLBppcg1ds5ip` |
+| Primary probe host | `https://kinetix.bookiji.com` |
+
+**Post-fix probes (anonymous `curl.exe`, production)**
+
+| Endpoint | HTTP | Notes |
+|----------|------|--------|
+| `GET /api/support-queue/tickets` | **403** | JSON `code":"forbidden"`, `Support operator access required`; **not** SPA HTML |
+| `GET /api/support-queue/kb-approval` | **403** | Same JSON contract as tickets list |
+| `POST /api/support-queue/tickets` with `{}` | **405** | List route allows **GET** only; `method_not_allowed` JSON (expected) |
+
 ## Post workspace / `apps/rag` dependency fix — production deploy smoke (2026-04-10)
 
 **Purpose:** Confirm production parity after PNPM workspace + `monorepo-packages/*` source-of-truth + explicit `@bookiji-inc/ai-runtime` on `@kinetix/rag`, before resuming Phase 4 manual gates.
@@ -62,9 +91,9 @@ Interpretation: serverless invocation health restored for probed routes; admlog 
 **Parity verdict**
 
 - **Confirmed** for shared-package **serverless runtime** on probed healthy API routes: `/api/admlog` and `/api/ai-chat` return expected JSON and show no invocation-failure signal on these probes.
-- **`/api/support-queue/*` (anonymous GET)** remains **misaligned** with [`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md) (expects JSON **403** for non-operator API). Behavior matches the **2026-04-10** blocker notes above (SPA fallback). Vercel deployment output lists lambdas under `api/support-queue/.../[[...segments]]`; public GET to the bare paths still does not surface JSON API responses in this check.
+- **`/api/support-queue/*` (anonymous GET)** was **misaligned** in this snapshot (SPA HTML **200** on bare paths). **Superseded** by the **Support-queue API routing fix (2026-04-10)** section above: production anonymous `GET` now returns JSON **403** on list routes.
 
-**Next action:** **investigate support-queue routing** (or path/method matching vs catch-all SPA rewrite) before treating operator API smoke as PASS; other Phase 4 manual gates can proceed in parallel only where independent.
+**Next action (historical):** addressed by merged `api/support-queue/[[...segments]].ts` + SPA rewrite exclusion; re-run operator-authenticated smoke per [`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md) when ready.
 
 ## Manual production gates — execution record (2026-04-10)
 
@@ -118,20 +147,20 @@ Interpretation: serverless invocation health restored for probed routes; admlog 
 | Section / step | Status | Evidence |
 |----------------|--------|----------|
 | 1. Help Center (full) | **NOT RUN** | Requires signed-in user + optional RAG/notification backends; not executed in this session. |
-| 2. `GET /api/support-queue/tickets` non-operator | **FAIL** | **2026-04-10** `curl.exe` without auth cookies: **HTTP 200** `Content-Type: text/html`, body is SPA shell (`index.html`, `Content-Disposition: inline; filename="index.html"`). **Expected:** JSON **403** (or **401**) per smoke doc. **Likely cause:** `/api/support-queue/*` not served by deployed serverless handlers in this production deployment (static/SPA fallback). **Severity:** **Blocker** for operator smoke API gate until unauthenticated API calls return JSON errors, not the SPA document. |
+| 2. `GET /api/support-queue/tickets` non-operator | **PASS** (post-routing fix) | **2026-04-10** (`dpl_HdeZzNuPDg8UgAoXLBppcg1ds5ip`): anonymous `curl.exe` -> **403** JSON `forbidden` / `Support operator access required`; not SPA HTML. Earlier **FAIL** in this file (SPA **200**) is historical pre-fix. |
 | 2. Operator list / ticket PATCH / KB move rules | **NOT RUN** | Blocked: requires allowlisted operator session; also blocked until non-operator API behavior is corrected or explained. |
 | 3. Operator dashboard | **NOT RUN** | Browser + feature flags. |
-| 4. KB approval API | **NOT RUN** | `GET https://kinetix.bookiji.com/api/support-queue/kb-approval` without auth returned same **SPA 200** as tickets path (not JSON). Same routing concern as support-queue gate. |
+| 4. KB approval API | **PARTIAL** | Anonymous list path: **PASS** same session as tickets (**403** JSON). Authenticated PATCH / `approve-ingest` not re-run here. |
 | 5. Escalation proxy (optional) | **NOT RUN** | Not attempted. |
 
 **Anonymous API control probes (same session, non-browser):**
 
 - `POST https://kinetix.bookiji.com/api/ai-chat` with `{}` -> JSON `invalid_request` (handler reachable); aligns with prior post-fix probes.
-- `POST https://kinetix.bookiji.com/api/support-queue/tickets` with `{}` -> **HTTP 405** empty body (differs from GET returning SPA; suggests routing is not consistently exposing this path as the JSON API expected by the smoke checklist).
+- `POST https://kinetix.bookiji.com/api/support-queue/tickets` with `{}` -> **HTTP 405** JSON `method_not_allowed` (list route is **GET**-only; expected).
 
 ### Blockers (production manual gates)
 
-1. **Support queue / KB API routing on production:** Unauthenticated `GET` to `/api/support-queue/tickets` and `/api/support-queue/kb-approval` returns the SPA HTML document (**200**) instead of a JSON **403**/**401**. Treat as **blocker** for completing Phase 4 operator smoke as written until Vercel/`vercel.json`/`api/` deployment is verified for these routes.
+1. **Support queue / KB list API routing:** **Resolved** for anonymous `GET` list probes (**403** JSON) as of `dpl_HdeZzNuPDg8UgAoXLBppcg1ds5ip`. Remaining operator smoke steps still require authenticated sessions.
 
 2. **SSO + entitlement + operator UI:** Not executed here; remain **open** until interactive session + DB entitlement toggle are run.
 
@@ -142,7 +171,7 @@ Interpretation: serverless invocation health restored for probed routes; admlog 
 
 ### Release recommendation (manual gate pass)
 
-- **Not** "ready for next phase" for Phase 4 operator/support-queue **API** acceptance: **stop and fix** production routing or deployment coverage for `/api/support-queue/*` so API clients get JSON error responses, then re-run smoke **section 2–4**.
+- **Operator/support-queue anonymous API:** List routes return JSON **403** for unauthenticated callers; routing fix shipped. Complete **PHASE4_OPERATOR_SMOKE** sections 2–4 with operator sessions when ready.
 - **Proceed with caution** on unrelated surfaces: admlog + Infisical prod checks **PASS**; core `ai-chat` handler responds with JSON errors for bad requests.
 
 **Umbrella `PROJECT_PLAN.md`:** Per Phase 4 plan, a full "all manual gates run" umbrella snapshot sync applies only when **every** intended manual step is executed. This session did **not** complete SSO, entitlement DB toggle, Help Center, or operator-authenticated flows; umbrella update is **minimal status only** (see umbrella file **Last updated**).

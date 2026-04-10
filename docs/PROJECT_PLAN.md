@@ -2,11 +2,25 @@
 
 **Source of truth:** This file is reconstructed from the Kinetix repo, `docs/deployment/*`, feature lists, and recent `git` history. Umbrella-only standards are referenced by path where they live outside this clone.
 
-**Last reviewed:** 2026-04-11 (Wave 2 web **CLOSED**; stabilization/release mode. Evidence unchanged: Vitest **346**, lint, type-check, **`pnpm run verify:vercel-parity` PASS** 2026-04-10. Next: Phase 3 hardening + Phase 4 release readiness — see [`KINETIX_SCOPE_CLOSURE.md`](KINETIX_SCOPE_CLOSURE.md) and **Next Priorities**.)
+**Last reviewed:** 2026-04-10 (Wave 2 web **CLOSED**; controlled Phase 3-5 **doc** execution. Evidence unchanged: Vitest **346**, lint, type-check, **`pnpm run verify:vercel-parity` PASS** 2026-04-10. Audits: [`PHASE3_ERROR_CONTRACT_ROLLOUT.md`](PHASE3_ERROR_CONTRACT_ROLLOUT.md), [`PHASE3_OBSERVABILITY_AUDIT.md`](PHASE3_OBSERVABILITY_AUDIT.md), [`PHASE3_CI_AUDIT.md`](PHASE3_CI_AUDIT.md), [`PHASE3_ENV_AUDIT.md`](PHASE3_ENV_AUDIT.md). Release planning: [`PHASE4_ENV_PARITY.md`](PHASE4_ENV_PARITY.md), [`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md), [`PHASE4_DEPLOYMENT_CHECKLIST.md`](PHASE4_DEPLOYMENT_CHECKLIST.md), [`PHASE4_E2E_PLAN.md`](PHASE4_E2E_PLAN.md). Post-launch backlog: [`PHASE5_BACKLOG.md`](PHASE5_BACKLOG.md).)
 
-**Current phase:** Stabilization / Release  
+**Current phase:** Phase 3 (Platform Hardening) — audit-first; not a Wave 2 scope reopen  
 **Wave 2 (web):** Closed  
-**Next focus:** Platform hardening (Phase 3) + release readiness (Phase 4)
+**Next focus:** Execute Phase 3 audit follow-ups as prioritized + Phase 4 release readiness gates (no Wave 2 feature expansion)
+
+---
+
+## Stabilization phases (post-Wave 2)
+
+These phases are **documentation and operational** tracks after Wave 2 web closure. They do **not** reopen Wave 2 UI scope. The **Feature Roadmap** sections below (Phase 1-4) remain the historical product phasing; use this table for **current** engineering focus.
+
+| Phase | Theme | Canonical docs |
+|-------|--------|------------------|
+| **Phase 3** | Platform hardening (error contract, observability, CI, env uniformity) | [`PHASE3_ERROR_CONTRACT_ROLLOUT.md`](PHASE3_ERROR_CONTRACT_ROLLOUT.md), [`PHASE3_OBSERVABILITY_AUDIT.md`](PHASE3_OBSERVABILITY_AUDIT.md), [`PHASE3_CI_AUDIT.md`](PHASE3_CI_AUDIT.md), [`PHASE3_ENV_AUDIT.md`](PHASE3_ENV_AUDIT.md) |
+| **Phase 4** | Release readiness (env parity validation, operator smoke, deploy checklist, E2E plan) | [`PHASE4_ENV_PARITY.md`](PHASE4_ENV_PARITY.md), [`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md), [`PHASE4_DEPLOYMENT_CHECKLIST.md`](PHASE4_DEPLOYMENT_CHECKLIST.md), [`PHASE4_E2E_PLAN.md`](PHASE4_E2E_PLAN.md) |
+| **Phase 5** | Post-launch enhancements (classified backlog) | [`PHASE5_BACKLOG.md`](PHASE5_BACKLOG.md) |
+
+Tracker: [`KINETIX_SCOPE_CLOSURE.md`](KINETIX_SCOPE_CLOSURE.md) (includes **Current phase** line).
 
 ---
 

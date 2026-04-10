@@ -1,60 +1,39 @@
 # Kinetix Local Verification Baseline
 
-This runbook is the minimum baseline required before executing Integration Wave 1.
+Last updated: 2026-04-10
 
-## Required workspace health conditions
+## Environment
 
-1. Local `packages/*` includes deterministic `@bookiji-inc/*` stub manifests:
-   - `ai-runtime/package.json`
-   - `error-contract/package.json`
-   - `observability/package.json`
-   - `persistent-memory-runtime/package.json`
-   - `platform-auth/package.json`
-   - `stripe-runtime/package.json`
-2. `packages/core/package.json` and `apps/web/package.json` are resolvable in the workspace graph.
-3. `pnpm-lock.yaml` can be consumed by the installed pnpm version (`10.30.3` from `packageManager`).
+- Node.js: `v22.14.0`
+- pnpm: `10.30.3`
+- Corepack: `0.31.0`
 
-## Current blocker classification (2026-04-10, updated)
+## Install Baseline
 
-### Product verification blockers
+- Command: `pnpm install --no-frozen-lockfile`
+- Result: Success (lockfile up to date; dependencies already installed)
 
-- None confirmed yet. Wave 1 product assertions have not executed in this environment.
+## Wave 1 Test Baseline
 
-### Workspace/tooling blockers
+- Workspace: `@kinetix/web`
+- Test surfaces: Authentication / Access, Layout / Navigation, Help Center, History
+- Execution mode: deterministic rerun until pass or irreducible blocker
+- Final status: PASS
+- Final result: `Test Files 6 passed (6)`, `Tests 17 passed (17)`
 
-- Workspace-package integrity blocker is resolved by local stubs under `packages/*`; `workspace:*` links now resolve.
-- `pnpm install` currently fails in this environment with registry fetch/auth restrictions (`ERR_PNPM_FETCH_403`) from `https://registry.npmjs.org/*`.
-- Smallest irreducible package prerequisite for Wave 1 execution is currently `jsdom@24.1.3` (`apps/web` test runtime), plus `@testing-library/react` and `@testing-library/user-event`.
+## Wave 2 Test Baseline (scope closure)
 
-## Deterministic setup steps
+- Workspace: `@kinetix/web`
+- Command: `pnpm --filter @kinetix/web test` (includes `build:bookiji-packages`, `pnpm --filter @kinetix/core build`, `vitest run`)
+- Final status: PASS (recorded 2026-04-10)
+- Final result: `Test Files 79 passed (79)`, `Tests 346 passed (346)`
 
-```bash
-# 1) Prepare shared Bookiji packages for workspace:* references
-pnpm install --no-frozen-lockfile
+## Repo quality gates (Wave 2)
 
-# 3) Run Wave 1 lint gate
-pnpm --filter @kinetix/web lint
-
-# 4) Run targeted Wave 1 integration tests
-pnpm --filter @kinetix/web test -- \
-  src/integration/auth-entitlement.integration.test.ts \
-  src/integration/app-entry-guard.integration.test.ts \
-  src/integration/menu-route.integration.test.ts \
-  src/integration/help-route.integration.test.ts \
-  src/integration/help-center-support.integration.test.ts \
-  src/pages/History.integration.test.tsx
-```
-
-## Exact rerun command bundle for Wave 1 (after npm registry access is restored)
-
-```bash
-pnpm install --no-frozen-lockfile && \
-pnpm --filter @kinetix/web lint && \
-pnpm --filter @kinetix/web test -- \
-  src/integration/auth-entitlement.integration.test.ts \
-  src/integration/app-entry-guard.integration.test.ts \
-  src/integration/menu-route.integration.test.ts \
-  src/integration/help-route.integration.test.ts \
-  src/integration/help-center-support.integration.test.ts \
-  src/pages/History.integration.test.tsx
-```
+- `pnpm lint`: PASS (2026-04-10)
+- `pnpm type-check`: PASS (2026-04-10)
+- `pnpm run verify:vercel-parity`: **PASS** (2026-04-10)
+  - Command: `pnpm run verify:vercel-parity` (from repo root `products/Kinetix`; see `scripts/verify-vercel-parity.mjs`)
+  - Success marker: final line `[verify-vercel-parity] OK`
+  - Scope: `check-no-local-ai-core`, `scripts/vercel-install.sh`, root `pnpm type-check`, `pnpm lint`, `pnpm run build` (includes `@kinetix/web` production build), then `products/bookiji` Vercel-like install + production build via `scripts/verify-bookiji-vercel-build.mjs`
+  - **Re-run** this gate before shipping after any change to `scripts/vercel-install.sh`, workspace wiring, or `@bookiji-inc/*` consumption paths (long-running; allow several minutes)

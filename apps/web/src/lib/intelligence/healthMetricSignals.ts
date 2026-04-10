@@ -1,3 +1,4 @@
+import type { StoredHealthMetric } from '../database'
 import { getCanonicalHealthMetricsForUser } from '../database'
 
 export interface IntelligenceHealthSignals {
@@ -12,12 +13,18 @@ export interface IntelligenceHealthSignals {
 export async function buildIntelligenceHealthSignals(userId: string): Promise<IntelligenceHealthSignals> {
   const metrics = await getCanonicalHealthMetricsForUser(userId)
   const recentHeart = metrics
-    .filter((m) => m.family === 'heart' && m.metric.heartRateBpm != null)
+    .filter(
+      (m): m is Extract<StoredHealthMetric, { family: 'heart' }> =>
+        m.family === 'heart' && m.metric.heartRateBpm != null
+    )
     .sort((a, b) => a.observedAt.localeCompare(b.observedAt))
     .slice(-5)
 
   const recentSleep = metrics
-    .filter((m) => m.family === 'sleep' && m.metric.sleepEfficiencyPct != null)
+    .filter(
+      (m): m is Extract<StoredHealthMetric, { family: 'sleep' }> =>
+        m.family === 'sleep' && m.metric.sleepEfficiencyPct != null
+    )
     .sort((a, b) => a.observedAt.localeCompare(b.observedAt))
     .slice(-7)
 

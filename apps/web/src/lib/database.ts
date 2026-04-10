@@ -75,9 +75,7 @@ export interface ProviderSyncCheckpoint {
   updatedAt: string
 }
 
-export interface StoredHealthMetric extends CanonicalHealthMetric {
-  id: string
-}
+export type StoredHealthMetric = CanonicalHealthMetric & { id: string }
 
 class KinetixDatabase extends Dexie {
   runs!: Table<RunRecord>

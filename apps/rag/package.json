@@ -10,6 +10,7 @@
     "dev": "node index.js",
     "index": "node scripts/index-runs.js",
     "index-all": "node scripts/index-all-from-json.js",
+    "kb:stage": "node scripts/kb-stage-from-approval-bin.mjs --dry-run",
     "test": "node --test services/*.test.js"
   },
   "dependencies": {

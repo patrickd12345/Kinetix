@@ -177,7 +177,7 @@ export async function listSupportTickets() {
     .limit(100)
   if (error) throw new Error(error.message)
   const rows = data ?? []
-  return rows.map((row) => toApiSupportTicket(row)!)
+  return rows.map((row: SupportTicketRow) => toApiSupportTicket(row)!)
 }
 
 export function getSupportTicketSlaMetrics(tickets: Array<Record<string, unknown>>) {

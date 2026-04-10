@@ -2,9 +2,9 @@
   "name": "@bookiji-inc/ai-runtime",
   "version": "0.0.0-local",
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./src/index.js",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.js"
   },
   "scripts": {
     "build": "echo '[stub] ai-runtime build'"

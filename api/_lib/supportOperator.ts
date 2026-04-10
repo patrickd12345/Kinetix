@@ -2,6 +2,12 @@ import type { VercelRequest } from '@vercel/node'
 import { resolveKinetixRuntimeEnv } from './env/runtime.js'
 import { getSupabaseUserFromJwt } from './supabaseUserFromJwt.js'
 
+const MASTER_ACCESS =
+  process.env.KINETIX_MASTER_ACCESS === '1' || process.env.KINETIX_MASTER_ACCESS === 'true'
+
+/** Matches `SKIP_AUTH_SESSION.access_token` in apps/web AuthProvider when VITE_SKIP_AUTH is set. */
+const VITE_SKIP_AUTH_BYPASS_TOKEN = 'vite-skip-auth-bypass'
+
 export interface SupportOperatorUser {
   id: string
   email: string | null
@@ -21,15 +27,20 @@ function getOperatorAllowlist(): string[] {
 
 export async function requireSupportOperator(req: VercelRequest): Promise<SupportOperatorUser | null> {
   const runtime = resolveKinetixRuntimeEnv()
-  if (!runtime.supabaseUrl || !runtime.supabaseAnonKey) return null
   const token = parseBearerToken(req)
   if (!token) return null
+
+  if (MASTER_ACCESS && token === VITE_SKIP_AUTH_BYPASS_TOKEN) {
+    return { id: 'bypass-dev', email: 'dev@local' }
+  }
+
+  if (!runtime.supabaseUrl || !runtime.supabaseAnonKey) return null
 
   const user = await getSupabaseUserFromJwt(runtime.supabaseUrl, runtime.supabaseAnonKey, token)
   if (!user?.id) return null
 
   const allowlist = getOperatorAllowlist()
-  if (!allowlist.includes(user.id)) return null
+  if (!allowlist.includes(user.id) && !MASTER_ACCESS) return null
 
   return user
 }

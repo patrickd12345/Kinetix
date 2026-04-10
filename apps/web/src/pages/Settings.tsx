@@ -8,7 +8,7 @@ import { useWithingsAuth } from '../hooks/useWithingsAuth'
 import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { syncWithingsData } from '../lib/integrations/withings/sync'
 import { evaluateWithingsSyncPolicy, isValidLocalTimeHHMM, normalizeSyncTimes } from '../lib/integrations/withings/syncPolicy'
-import { runManualSyncOnce } from '../lib/integrations/withings/manualSync'
+import { runManualSyncOnce, shouldMarkScheduledSlotFulfilled } from '../lib/integrations/withings/manualSync'
 import { importGarminFromZipFile, importGarminFromFitFile, isGarminFitFile } from '../lib/garminImport'
 import { convertGarminToRunRecord } from '../lib/garmin'
 import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
@@ -190,6 +190,16 @@ export default function Settings() {
     }
 
     setWithingsExpandedSyncStatus('syncing')
+    const dueAtStart = evaluateWithingsSyncPolicy({
+      now: new Date(),
+      manual: false,
+      featureEnabled: expandedFeatureEnabled,
+      expandedSyncEnabled: withingsExpandedSyncEnabled,
+      hasConnection: !!withingsCredentials,
+      syncTimes: normalizeSyncTimes(withingsSyncTimes),
+      lastSuccessfulScheduledSlotKey: lastSuccessfulWithingsScheduledSlotKey,
+    })
+
     try {
       const wrapped = await runManualSyncOnce(withingsManualSyncGate.current, async () => {
         const result = await syncWithingsData(withingsCredentials)
@@ -204,8 +214,15 @@ export default function Settings() {
           syncTimes: normalizeSyncTimes(withingsSyncTimes),
           lastSuccessfulScheduledSlotKey: lastSuccessfulWithingsScheduledSlotKey,
         })
-        if (dueNow.shouldSync && dueNow.scheduledSlotKey) {
-          setLastSuccessfulWithingsScheduledSlotKey(dueNow.scheduledSlotKey)
+        if (
+          shouldMarkScheduledSlotFulfilled({
+            syncSucceeded: true,
+            dueReasonAtSyncStart: dueAtStart.reason,
+            dueSlotKeyAtSyncStart: dueAtStart.scheduledSlotKey,
+            dueSlotKeyAtSyncEnd: dueNow.scheduledSlotKey,
+          })
+        ) {
+          setLastSuccessfulWithingsScheduledSlotKey(dueNow.scheduledSlotKey ?? null)
         }
         return result
       })

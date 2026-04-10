@@ -21,6 +21,7 @@ import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
 import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
 import ThemeSelector from './ThemeSelector'
 import AdSenseDisplayUnit from './ads/AdSenseDisplayUnit'
+import WithingsSyncPrompt from './WithingsSyncPrompt'
 
 const RAG_SYNC_PAGE_SIZE = 200
 const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
@@ -191,6 +192,7 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </aside>
           <main id="main-content" className="min-w-0 text-slate-900 dark:text-white" tabIndex={-1}>
+            <WithingsSyncPrompt />
             {children}
             <AdSenseDisplayUnit />
           </main>

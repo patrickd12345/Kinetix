@@ -1,6 +1,6 @@
 # Phase 4 — Release evidence log
 
-**Last updated:** 2026-04-10 (gate A3 Vitest **PASS**; **Bookiji prod** `GET https://app.bookiji.com/api/auth/health-check` now **`{"ok":true,"status":200}`** after Vercel publishable-key correction + `app.bookiji.com` alias repoint; **interactive** Phase 4 rows still **NOT RUN** — human OAuth/DB/Supabase/operator session required; see **Interactive closure session (2026-04-10 continuation)**)  
+**Last updated:** 2026-04-10 (gate A3 Vitest **PASS**; **Bookiji prod** `GET https://app.bookiji.com/api/auth/health-check` now **`{"ok":true,"status":200}`** after Vercel publishable-key correction + `app.bookiji.com` alias repoint; **Kinetix prod magic link** sign-in **verified OK** for pilot; remaining **interactive** Phase 4: Bookiji-first SSO cross-tab, entitlement SQL toggle, Supabase Auth dashboard, authenticated Help/operator/a11y — see **Interactive closure session** and **Operator verification (2026-04-10)**)  
 **Guardrail:** Wave 2 web **closed**; this file records **execution evidence** for Phase 4 gates. No secrets.
 
 ## Phase 4 consolidated manual gate run order
@@ -46,14 +46,20 @@ Single execution order for [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINE
 
 **Scope:** Execute remaining items from [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md) and [`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md) that require **authenticated** production access, **Supabase project dashboard**, **SQL** on `platform.entitlements`, or an **allowlisted operator** user.
 
-**Agent limitation:** This session cannot complete Google OAuth, email magic-link inbox flows, dashboard login, or database edits. Evidence below is **PASS / NOT RUN / partial observation** with explicit blockers.
+**Agent limitation:** This session cannot complete Google OAuth, Bookiji magic-link inbox flows in automation, Supabase dashboard login, or database edits. **Kinetix** production **magic link** is verified by operator (see **Operator verification (2026-04-10)**). Evidence below is **PASS / NOT RUN / partial observation** with explicit blockers.
 
 ### Chrome DevTools MCP (production URLs)
 
 | Step | Result | Evidence / blocker |
 |------|--------|-------------------|
 | Open `https://app.bookiji.com/login` | **PARTIAL** | Page title **Bookiji - Universal Booking Platform**; heading **Sign in to your account**; **Sign in with Google** present. **Update 2026-04-10:** prod **`/api/auth/health-check`** fixed (wrong publishable key + stale `app.bookiji.com` alias); re-test **Sign in with Google** / magic link in a normal browser for SSO gate closure. |
-| Open `https://kinetix.bookiji.com/login` | **PARTIAL** | **KINETIX** heading; **Continue with email**, email field, **Send magic link** (disabled until email). **No** Bookiji-style auth-unreachable banner in this snapshot. **Magic link not sent** (no inbox access). |
+| Open `https://kinetix.bookiji.com/login` | **PASS** (magic link) | **KINETIX** heading; **Continue with email**, email field, **Send magic link**. **Operator verification 2026-04-10:** magic link sign-in **works as expected** for pilot; acceptable primary path for now. (Agent snapshot had no inbox; human confirmed end-to-end.) |
+
+### Operator verification (2026-04-10)
+
+| Item | Result | Notes |
+|------|--------|-------|
+| Kinetix production **email magic link** | **PASS** | Reported working as expected; fine for pilot. Does not by itself close Bookiji-first SSO or Google OAuth rows. |
 
 ### Checklist mapping ([`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md))
 
@@ -61,7 +67,7 @@ Single execution order for [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINE
 |----------------|--------|-------------------|
 | SSO + entitlement happy path (Bookiji then Kinetix, no login wall) | **NOT RUN** | Requires completed Bookiji session + Kinetix tab verification. No authenticated session established in this session. |
 | Entitlement gating (remove `kinetix` in `platform.entitlements`) | **NOT RUN** | Requires Supabase SQL Editor or service-role path + test user id; not executed here. |
-| Optional: login from Kinetix subdomain | **NOT RUN** | Requires magic link or OAuth completion end-to-end. |
+| Optional: login from Kinetix subdomain | **PASS** (magic link) | Magic link path verified in production (2026-04-10); acceptable for pilot. OAuth on Kinetix optional. |
 | Supabase Auth dashboard (providers + URL allowlist) | **NOT RUN** | Requires human Supabase org login; not performed here. |
 
 ### Operator smoke mapping ([`PHASE4_OPERATOR_SMOKE.md`](PHASE4_OPERATOR_SMOKE.md))
@@ -74,7 +80,7 @@ Single execution order for [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINE
 | 4 KB approval (operator GET/PATCH/approve-ingest) | **NOT RUN** | Same as operator session. |
 | 5 Escalation proxy (optional) | **NOT RUN** | Needs configured webhooks + signed-in operator context. |
 
-**Conclusion:** Scripted/anonymous production gates remain **PASS**. **Full Phase 4 manual sign-off** is still **blocked** on human-interactive rows above.
+**Conclusion:** Scripted/anonymous production gates remain **PASS**. **Kinetix magic link** is **verified** for pilot. **Full Phase 4 manual sign-off** remains **incomplete** on: Bookiji-first SSO + entitlement cross-check, entitlement SQL toggle, Supabase Auth dashboard review, authenticated Help Center + operator smoke + shell a11y matrix (rows marked **NOT RUN** or **PARTIAL** above).
 
 ## Parity prerequisite fix (same session)
 

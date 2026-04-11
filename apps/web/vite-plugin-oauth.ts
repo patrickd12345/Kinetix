@@ -1,6 +1,7 @@
 import type { Plugin } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { loadEnv } from 'vite'
+import { adaptNodeResponseToVercel } from '../../api/_lib/nodeVercelResponse'
 import { handleAiChatRequest, handleAiCoachRequest } from '../../api/_lib/ai/requestHandlers'
 import {
   exchangeStravaCodeForToken,
@@ -321,6 +322,33 @@ export function vitePluginOAuth(): Plugin {
         ...env,
       }
       
+      server.middlewares.use(async (req, res, next) => {
+        const pathOnly = req.url?.split('?')[0]
+        if (pathOnly !== '/api/admlog') {
+          next()
+          return
+        }
+        if (req.method !== 'GET') {
+          res.statusCode = 405
+          res.end('Method not allowed')
+          return
+        }
+        try {
+          Object.assign(process.env, mergedEnv)
+          const { default: admlogHandler } = await import('../../api/admlog/index.ts')
+          const url = new URL(req.url || '/', 'http://127.0.0.1:5173')
+          const mockReq = {
+            method: req.method,
+            headers: req.headers,
+            query: Object.fromEntries(url.searchParams.entries()),
+            url: req.url,
+          }
+          await admlogHandler(mockReq as never, adaptNodeResponseToVercel(res as ServerResponse))
+        } catch (err) {
+          next(err)
+        }
+      })
+
       server.middlewares.use('/api/strava-oauth', (req, res, next) => {
         handleStravaOAuthRequest(req, res, mergedEnv).catch(next)
       })

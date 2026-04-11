@@ -52,8 +52,19 @@ export function resolveKinetixRuntimeEnvFromObject(env = getDefaultEnv()) {
     /** Canonical OAuth callback; set on Vercel to https://kinetix.bookiji.com/settings to match Withings partner URL */
     withingsRedirectUri: pick(env, ['WITHINGS_REDIRECT_URI', 'VITE_WITHINGS_REDIRECT_URI']),
     supabaseUrl: pick(env, ['SUPABASE_URL', 'VITE_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL']),
-    supabaseAnonKey: pick(env, ['SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY']),
-    supabaseServiceRoleKey: pick(env, ['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY']),
+    supabaseAnonKey: pick(env, [
+      'SUPABASE_ANON_KEY',
+      'VITE_SUPABASE_ANON_KEY',
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+      'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+      'VITE_SUPABASE_PUBLISHABLE_KEY',
+    ]),
+    /** Elevated server key for Auth admin / bypass RLS: prefer next-gen secret (`sb_secret_...`). */
+    supabaseServiceRoleKey: pick(env, [
+      'SUPABASE_SECRET_KEY',
+      'SUPABASE_SERVICE_KEY',
+      'SUPABASE_SERVICE_ROLE_KEY',
+    ]),
     corsAllowedOrigins: pick(env, ['CORS_ALLOWED_ORIGINS', 'ALLOWED_ORIGINS']),
     nodeEnv: pick(env, ['NODE_ENV']),
     port: pick(env, ['PORT']),

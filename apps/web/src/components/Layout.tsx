@@ -21,6 +21,7 @@ import { getRunsPage } from '../lib/database'
 import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
 import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
+import { runWithingsStartupReload } from '../lib/integrations/withings/startupSync'
 import ThemeSelector from './ThemeSelector'
 import AdSenseDisplayUnit from './ads/AdSenseDisplayUnit'
 import WithingsSyncPrompt from './WithingsSyncPrompt'
@@ -31,6 +32,7 @@ const RAG_SYNC_FAIL_THRESHOLD = 3
 const SK_RAG_FAIL_STREAK = 'kinetix_rag_sync_fail_streak'
 const SK_RAG_BANNER_DISMISSED = 'kinetix_rag_sync_banner_dismissed'
 const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
+const WITHINGS_STARTUP_RETRY_DELAYS_MS = [0, 1500, 4000] as const
 
 function readRagFailStreak(): number {
   if (typeof sessionStorage === 'undefined') return 0
@@ -60,6 +62,19 @@ export default function Layout({ children }: LayoutProps) {
     targetKPS,
     setStravaSyncError,
     settingsRehydrated,
+    withingsCredentials,
+    withingsExpandedSyncEnabled,
+    withingsSyncTimes,
+    lastSuccessfulWithingsScheduledSlotKey,
+    lastSuccessfulWithingsStartupSyncDate,
+    setWithingsCredentials,
+    setLastWithingsWeightKg,
+    setLastSuccessfulWithingsSyncAt,
+    setLastSuccessfulWithingsScheduledSlotKey,
+    setLastSuccessfulWithingsStartupSyncDate,
+    withingsStartupSyncError,
+    setWithingsStartupSyncInFlight,
+    setWithingsStartupSyncError,
   } = useSettingsStore()
   const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : session?.user.email ?? 'User'
 
@@ -147,6 +162,72 @@ export default function Layout({ children }: LayoutProps) {
     }
     return scheduleStartupAttempts([...STRAVA_STARTUP_RETRY_DELAYS_MS], runSync)
   }, [profile, stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated])
+
+  const withingsStartupSyncDoneRef = useRef(false)
+  useEffect(() => {
+    if (!profile || !settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') return
+    withingsStartupSyncDoneRef.current = false
+
+    const runStartupReload = async () => {
+      if (withingsStartupSyncDoneRef.current) return true
+      const currentState = useSettingsStore.getState()
+      if (currentState.withingsStartupSyncInFlight) return true
+
+      setWithingsStartupSyncError(null)
+      setWithingsStartupSyncInFlight(true)
+      try {
+        const result = await runWithingsStartupReload(
+          {
+            withingsCredentials: currentState.withingsCredentials,
+            withingsExpandedSyncEnabled: currentState.withingsExpandedSyncEnabled,
+            withingsSyncTimes: currentState.withingsSyncTimes,
+            lastSuccessfulWithingsScheduledSlotKey: currentState.lastSuccessfulWithingsScheduledSlotKey,
+            lastSuccessfulWithingsStartupSyncDate: currentState.lastSuccessfulWithingsStartupSyncDate,
+          },
+          {
+            setWithingsCredentials,
+            setLastWithingsWeightKg,
+            setLastSuccessfulWithingsSyncAt,
+            setLastSuccessfulWithingsScheduledSlotKey,
+            setLastSuccessfulWithingsStartupSyncDate,
+          }
+        )
+        withingsStartupSyncDoneRef.current = true
+        if (result.started) {
+          emitStructuredLog('info', 'withings_startup_sync_complete', {
+            expandedSyncRan: result.expandedSyncRan,
+            historyEntriesSynced: result.historyEntriesSynced,
+            latestKgUpdated: result.latestKg != null,
+          })
+        }
+        return true
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Withings startup sync failed'
+        setWithingsStartupSyncError(message)
+        emitStructuredLog('warn', 'withings_startup_sync_failed', { message })
+        return false
+      } finally {
+        setWithingsStartupSyncInFlight(false)
+      }
+    }
+
+    return scheduleStartupAttempts([...WITHINGS_STARTUP_RETRY_DELAYS_MS], runStartupReload)
+  }, [
+    profile,
+    settingsRehydrated,
+    withingsCredentials,
+    withingsExpandedSyncEnabled,
+    withingsSyncTimes,
+    lastSuccessfulWithingsScheduledSlotKey,
+    lastSuccessfulWithingsStartupSyncDate,
+    setWithingsCredentials,
+    setLastWithingsWeightKg,
+    setLastSuccessfulWithingsSyncAt,
+    setLastSuccessfulWithingsScheduledSlotKey,
+    setLastSuccessfulWithingsStartupSyncDate,
+    setWithingsStartupSyncInFlight,
+    setWithingsStartupSyncError,
+  ])
 
   const navItems = [
     { path: '/', icon: Activity, label: 'Run' },
@@ -268,6 +349,14 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             ) : null}
             <WithingsSyncPrompt />
+            {withingsStartupSyncError ? (
+              <div
+                role="status"
+                className="mb-4 rounded-xl border border-amber-400/80 bg-amber-50/95 px-4 py-3 text-sm text-amber-950 shadow-sm dark:border-amber-500/50 dark:bg-amber-950/40 dark:text-amber-50"
+              >
+                Withings background reload did not complete: {withingsStartupSyncError}
+              </div>
+            ) : null}
             {children}
             <AdSenseDisplayUnit />
           </main>

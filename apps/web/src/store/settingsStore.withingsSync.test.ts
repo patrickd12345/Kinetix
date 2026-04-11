@@ -9,6 +9,9 @@ describe('settingsStore withings expanded sync settings', () => {
       withingsSyncTimes: ['08:00', '20:00'],
       lastSuccessfulWithingsSyncAt: null,
       lastSuccessfulWithingsScheduledSlotKey: null,
+      lastSuccessfulWithingsStartupSyncDate: null,
+      withingsStartupSyncInFlight: false,
+      withingsStartupSyncError: null,
     })
   })
 
@@ -23,6 +26,9 @@ describe('settingsStore withings expanded sync settings', () => {
     useSettingsStore.getState().setWithingsSyncTimes(['07:30', '19:45'])
     useSettingsStore.getState().setLastSuccessfulWithingsSyncAt('2026-04-09T08:05:00.000Z')
     useSettingsStore.getState().setLastSuccessfulWithingsScheduledSlotKey('2026-04-09@08:00')
+    useSettingsStore.getState().setLastSuccessfulWithingsStartupSyncDate('2026-04-09')
+    useSettingsStore.getState().setWithingsStartupSyncInFlight(true)
+    useSettingsStore.getState().setWithingsStartupSyncError('temporary failure')
 
     const raw = localStorage.getItem('kinetix-settings')
     expect(raw).toBeTruthy()
@@ -31,5 +37,8 @@ describe('settingsStore withings expanded sync settings', () => {
     expect(state.withingsExpandedSyncEnabled).toBe(true)
     expect(state.withingsSyncTimes).toEqual(['07:30', '19:45'])
     expect(state.lastSuccessfulWithingsScheduledSlotKey).toBe('2026-04-09@08:00')
+    expect(state.lastSuccessfulWithingsStartupSyncDate).toBe('2026-04-09')
+    expect(state.withingsStartupSyncInFlight).toBeUndefined()
+    expect(state.withingsStartupSyncError).toBeUndefined()
   })
 })

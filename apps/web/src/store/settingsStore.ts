@@ -55,6 +55,12 @@ interface SettingsState {
   setLastSuccessfulWithingsSyncAt: (iso: string | null) => void
   lastSuccessfulWithingsScheduledSlotKey: string | null
   setLastSuccessfulWithingsScheduledSlotKey: (slotKey: string | null) => void
+  lastSuccessfulWithingsStartupSyncDate: string | null
+  setLastSuccessfulWithingsStartupSyncDate: (dateKey: string | null) => void
+  withingsStartupSyncInFlight: boolean
+  setWithingsStartupSyncInFlight: (inFlight: boolean) => void
+  withingsStartupSyncError: string | null
+  setWithingsStartupSyncError: (message: string | null) => void
   trainingGoal: TrainingGoal | null
   setTrainingGoal: (goal: TrainingGoal | null) => void
 }
@@ -108,6 +114,12 @@ export const useSettingsStore = create<SettingsState>()(
       setLastSuccessfulWithingsSyncAt: (iso) => set({ lastSuccessfulWithingsSyncAt: iso }),
       lastSuccessfulWithingsScheduledSlotKey: null,
       setLastSuccessfulWithingsScheduledSlotKey: (slotKey) => set({ lastSuccessfulWithingsScheduledSlotKey: slotKey }),
+      lastSuccessfulWithingsStartupSyncDate: null,
+      setLastSuccessfulWithingsStartupSyncDate: (dateKey) => set({ lastSuccessfulWithingsStartupSyncDate: dateKey }),
+      withingsStartupSyncInFlight: false,
+      setWithingsStartupSyncInFlight: (inFlight) => set({ withingsStartupSyncInFlight: inFlight }),
+      withingsStartupSyncError: null,
+      setWithingsStartupSyncError: (message) => set({ withingsStartupSyncError: message }),
 
       trainingGoal: null,
       setTrainingGoal: (goal) => set({ trainingGoal: goal }),
@@ -115,8 +127,15 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'kinetix-settings',
       partialize: (state) => {
-        const { settingsRehydrated: _rehydrated, ...rest } = state
+        const {
+          settingsRehydrated: _rehydrated,
+          withingsStartupSyncInFlight: _withingsStartupSyncInFlight,
+          withingsStartupSyncError: _withingsStartupSyncError,
+          ...rest
+        } = state
         void _rehydrated
+        void _withingsStartupSyncInFlight
+        void _withingsStartupSyncError
         return rest
       },
       merge: (persisted, current) => {

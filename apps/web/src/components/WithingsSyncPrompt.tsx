@@ -28,7 +28,7 @@ export default function WithingsSyncPrompt() {
     return `Last sync: ${new Date(lastSuccessfulWithingsSyncAt).toLocaleString()}`
   }, [lastSuccessfulWithingsSyncAt])
 
-  const shouldRender = !dismissed && prompt.expandedEnabled && prompt.connectionExists && prompt.isDue
+  const shouldRender = !dismissed && !prompt.startupInFlight && prompt.expandedEnabled && prompt.connectionExists && prompt.isDue
 
   if (!shouldRender) return null
 

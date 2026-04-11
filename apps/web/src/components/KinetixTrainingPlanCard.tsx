@@ -1,4 +1,4 @@
-import type { TrainingPlanResult } from '../lib/trainingPlan/types'
+﻿import type { TrainingPlanResult } from '../lib/trainingPlan/types'
 
 interface KinetixTrainingPlanCardProps {
   loading: boolean
@@ -18,7 +18,7 @@ export function KinetixTrainingPlanCard({ loading, error, plan }: KinetixTrainin
   if (loading) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
-        <p className="text-sm text-gray-400">Building training prescription…</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Building training prescription…</p>
       </section>
     )
   }
@@ -34,7 +34,7 @@ export function KinetixTrainingPlanCard({ loading, error, plan }: KinetixTrainin
   if (!plan) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
-        <p className="text-sm text-gray-400">Not enough data to prescribe a training plan yet.</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Not enough data to prescribe a training plan yet.</p>
       </section>
     )
   }
@@ -42,29 +42,29 @@ export function KinetixTrainingPlanCard({ loading, error, plan }: KinetixTrainin
   return (
     <section className="glass rounded-2xl p-5 border border-purple-500/20 space-y-4" aria-label="Kinetix training plan">
       <header>
-        <h3 className="text-lg font-black text-white">Training Prescription</h3>
-        <p className="text-xs text-gray-400">Deterministic recommendation based on readiness, fatigue, trend, and plan guardrails.</p>
+        <h3 className="text-lg font-black text-slate-900 dark:text-white">Training Prescription</h3>
+        <p className="text-xs text-slate-600 dark:text-gray-400">Deterministic recommendation based on readiness, fatigue, trend, and plan guardrails.</p>
       </header>
 
-      <div className="rounded-xl border border-white/10 p-3 bg-black/20">
-        <p className="text-xs uppercase tracking-wide text-purple-300 mb-1">Today</p>
-        <p className="text-sm font-semibold text-white">
+      <div className="rounded-xl border border-slate-200/90 bg-slate-50/90 p-3 dark:border-white/10 dark:bg-black/20">
+        <p className="text-xs uppercase tracking-wide text-purple-800 mb-1 dark:text-purple-300">Today</p>
+        <p className="text-sm font-semibold text-slate-900 dark:text-white">
           {titleCase(plan.today.sessionType)} · {renderDuration(plan.today.durationMinutes)}
           {plan.today.intensity ? ` · ${titleCase(plan.today.intensity)}` : ''}
         </p>
-        <p className="text-xs text-gray-400 mt-1">{plan.today.rationale}</p>
+        <p className="text-xs text-slate-600 dark:text-gray-400 mt-1">{plan.today.rationale}</p>
       </div>
 
       <div>
-        <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">7-day micro-plan</p>
+        <p className="text-xs uppercase tracking-wide text-slate-600 dark:text-gray-400 mb-2">7-day micro-plan</p>
         {plan.weeklyEmphasis && (
-          <p className="mb-2 text-xs text-purple-300">Weekly emphasis: {plan.weeklyEmphasis}</p>
+          <p className="mb-2 text-xs text-purple-800 dark:text-purple-300">Weekly emphasis: {plan.weeklyEmphasis}</p>
         )}
         <ul className="space-y-2">
           {plan.week.map((session) => (
-            <li key={session.dayOffset} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-3 py-2">
-              <span className="text-sm text-gray-300">{session.label}</span>
-              <span className="text-sm font-semibold text-white">
+            <li key={session.dayOffset} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200/90 px-3 py-2 dark:border-white/10">
+              <span className="text-sm text-slate-700 dark:text-gray-300">{session.label}</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-white">
                 {titleCase(session.sessionType)} · {renderDuration(session.durationMinutes)}
               </span>
             </li>

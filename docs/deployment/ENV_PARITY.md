@@ -34,6 +34,8 @@ Optional (auth callback pinning): set when magic-link or OAuth must return to th
 
 The Kinetix web client ([`apps/web/src/lib/supabaseClient.ts`](../../apps/web/src/lib/supabaseClient.ts)) reads `VITE_*` first and falls back to `NEXT_PUBLIC_*`. For Vite builds, set the `VITE_*` pair; you can also set `NEXT_PUBLIC_*` to the same values so both names work.
 
+Optional (Withings **expanded** sync — activity/sleep ingestion + scheduled HH:MM slots in Settings): in **production** builds this is off unless enabled. **`pnpm dev`** defaults it **on** so the toggles and Sync now control work without env. To turn it off locally, set `VITE_ENABLE_WITHINGS_EXPANDED_INGESTION=false` in `apps/web/.env.local`. To turn it **on** on Vercel, set `VITE_ENABLE_WITHINGS_EXPANDED_INGESTION=true`. See [`apps/web/src/lib/featureFlags.ts`](../../apps/web/src/lib/featureFlags.ts).
+
 **Session persistence:** The Supabase client uses `persistSession: true` and `autoRefreshToken: true`, so a successful sign-in is kept in the browser (per-origin storage, typically `localStorage`) and refreshed automatically. New magic links are only needed after sign-out, session expiry, or cleared site data. **Origins are isolated:** `http://localhost:5173` and `http://127.0.0.1:4173` are different sites for storage—use one consistent dev URL. Incognito/private windows drop storage when closed.
 
 ## Admlog (`GET /api/admlog`)
@@ -44,6 +46,25 @@ Admin one-shot login is implemented in [`api/admlog/index.ts`](../../api/admlog/
 
 - Do **not** set `ADMLOG_ENABLED=true` (or `BOOKIJI_TEST_MODE=true` for admlog) in **Infisical `prod`** or Vercel Production env. `pnpm verify:infisical` with `--env=prod` fails if `ADMLOG_ENABLED` is true in merged prod secrets.
 - Use Preview / local dev with explicit flags when you need admlog; expect the JSON 403 body to state clearly when the deployment is production.
+
+**How to use admlog (non-production only):**
+
+- Open `GET /api/admlog` in the **browser** (same tab you use for the app). The handler returns a short HTML page that writes the Supabase session into **browser `localStorage`** (what the Vite app uses) and then navigates to the app. Cookie-only sessions do not work with `@supabase/supabase-js` in the SPA, so this HTML bridge is required.
+- Optional path: `GET /api/admlog?next=/` or `?next=/operator`. Invalid values fall back to `/operator`.
+- On success, the handler upserts an active **`kinetix`** row in `platform.entitlements` for `admlog@bookiji.test` (via `ensureEntitlementProductKeys` in `@bookiji-inc/platform-auth`) so the app passes entitlement gating without a separate seed step.
+- **Local dev (`pnpm dev` / port 5173):** Vite registers `/api/admlog` in [`apps/web/vite-plugin-oauth.ts`](../../apps/web/vite-plugin-oauth.ts) so the route is not swallowed by the SPA. Restart the dev server after changing env.
+- **Required server env in `apps/web/.env.local` (not `VITE_*` — never commit):**
+  - `ADMLOG_ENABLED=true` (or `BOOKIJI_TEST_MODE=true` for the default local admlog password path in platform-auth).
+  - `ADMLOG_PASSWORD` — dev password used for the synthetic `admlog@bookiji.test` user (required when admlog flags are set).
+  - **`SUPABASE_SECRET_KEY`** — **recommended:** next-gen secret key `sb_secret_...` from Supabase Dashboard → **Project Settings → API Keys** (admlog uses Auth Admin APIs; this works when **JWT legacy API keys are disabled**).
+  - **`SUPABASE_SERVICE_ROLE_KEY`** — legacy **service_role** JWT (Legacy API Keys tab). Only use if the project still allows legacy keys; otherwise Auth returns errors such as `Legacy API keys are disabled`.
+
+If `/api/admlog` returns **500** with text about missing elevated key, either:
+
+- Add **`SUPABASE_SECRET_KEY`** manually (Dashboard → **API Keys** → secret key `sb_secret_...`), or
+- Run **`pnpm sync:admlog-service-role`** from the repo root (uses `SUPABASE_ACCESS_TOKEN` + `VITE_SUPABASE_URL` in `apps/web/.env.local` to call the Supabase Management API and append **`SUPABASE_SECRET_KEY`** when available — **never commit** `.env.local`).
+
+Then restart `pnpm dev`.
 
 ## Where to get values
 

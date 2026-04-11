@@ -65,7 +65,7 @@ export function RunDashboardHeader({ targetKPS, isRunning, hasGPSFix }: RunDashb
               ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
               : hasGPSFix
                 ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                : 'bg-gray-800/50 text-gray-400 border border-gray-700/50'
+                : 'border border-slate-300/70 bg-slate-200/90 text-slate-800 dark:border-gray-700/50 dark:bg-gray-800/50 dark:text-gray-400'
           }`}
         >
           {isRunning ? 'LIVE' : hasGPSFix ? 'READY' : 'WAITING'}
@@ -158,29 +158,29 @@ export function RunStatsPanel({
   return (
     <div className="grid grid-cols-2 gap-3 mb-4 lg:grid-cols-3">
       <div className="glass rounded-xl p-3 text-center">
-        <div className="text-xs text-gray-400 uppercase mb-1">PACE</div>
+        <div className="text-xs text-slate-600 dark:text-gray-400 uppercase mb-1">PACE</div>
         <div className="text-xl font-black font-mono text-cyan-400">{formatPace(averagePace, unitSystem)}</div>
       </div>
       {physioMode && (
         <div className="glass rounded-xl p-3 text-center">
-          <div className="text-xs text-gray-400 uppercase mb-1 flex items-center justify-center gap-1">
+          <div className="text-xs text-slate-600 dark:text-gray-400 uppercase mb-1 flex items-center justify-center gap-1">
             <Heart size={10} />
             BPM
           </div>
-          <div className={`text-xl font-black font-mono ${heartRate > 170 ? 'text-red-400' : 'text-white'}`}>
+          <div className={`text-xl font-black font-mono ${heartRate > 170 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'}`}>
             {Math.floor(heartRate)}
           </div>
         </div>
       )}
       <div className="glass rounded-xl p-3 text-center">
-        <div className="text-xs text-gray-400 uppercase mb-1">DIST</div>
+        <div className="text-xs text-slate-600 dark:text-gray-400 uppercase mb-1">DIST</div>
         <div className="text-xl font-black font-mono text-purple-400">
           {formatDistance(distance, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}
         </div>
       </div>
       <div className="glass rounded-xl p-3 text-center">
-        <div className="text-xs text-gray-400 uppercase mb-1">TIME</div>
-        <div className="text-xl font-black font-mono text-white">{formatTime(duration)}</div>
+        <div className="text-xs text-slate-600 dark:text-gray-400 uppercase mb-1">TIME</div>
+        <div className="text-xl font-black font-mono text-slate-900 dark:text-white">{formatTime(duration)}</div>
       </div>
     </div>
   )
@@ -310,19 +310,19 @@ export function RunControlsPanel({
 
 export function RunDesktopSummary({ displayKPS, targetKPS, physioMode }: RunDesktopSummaryProps) {
   return (
-    <div className="hidden lg:block glass rounded-2xl p-4 mb-4 border border-white/10">
+    <div className="glass mb-4 hidden rounded-2xl border border-slate-200/90 p-4 dark:border-white/10 lg:block">
       <div className="grid grid-cols-3 gap-4 text-sm">
         <div>
-          <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">Current KPS</div>
-          <div className="font-black text-white">{Math.floor(displayKPS)}</div>
+          <div className="text-xs uppercase tracking-wide text-slate-600 dark:text-gray-400 mb-1">Current KPS</div>
+          <div className="font-black text-slate-900 dark:text-white">{Math.floor(displayKPS)}</div>
         </div>
         <div>
-          <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">Target KPS</div>
-          <div className="font-black text-cyan-300">{Math.round(targetKPS)}</div>
+          <div className="text-xs uppercase tracking-wide text-slate-600 dark:text-gray-400 mb-1">Target KPS</div>
+          <div className="font-black text-cyan-700 dark:text-cyan-300">{Math.round(targetKPS)}</div>
         </div>
         <div>
-          <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">Mode</div>
-          <div className="font-black text-gray-200">{physioMode ? 'Physio' : 'Standard'}</div>
+          <div className="text-xs uppercase tracking-wide text-slate-600 dark:text-gray-400 mb-1">Mode</div>
+          <div className="font-black text-slate-800 dark:text-gray-200">{physioMode ? 'Physio' : 'Standard'}</div>
         </div>
       </div>
     </div>

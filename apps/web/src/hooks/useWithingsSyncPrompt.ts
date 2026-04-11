@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { featureFlags } from '../lib/featureFlags'
 import { evaluateWithingsSyncPolicy, normalizeSyncTimes, type WithingsSyncDecision, type WithingsSyncReason } from '../lib/integrations/withings/syncPolicy'
 import { useSettingsStore } from '../store/settingsStore'
@@ -11,10 +11,10 @@ export interface WithingsSyncPromptState {
   nextEligibleAt?: string
   connectionExists: boolean
   expandedEnabled: boolean
+  startupInFlight: boolean
 }
 
-function evaluatePromptPolicy(now: Date): WithingsSyncPromptState {
-  const state = useSettingsStore.getState()
+function evaluatePromptPolicy(now: Date, state: ReturnType<typeof useSettingsStore.getState>): WithingsSyncPromptState {
   const decision: WithingsSyncDecision = evaluateWithingsSyncPolicy({
     now,
     manual: false,
@@ -33,14 +33,22 @@ function evaluatePromptPolicy(now: Date): WithingsSyncPromptState {
     nextEligibleAt: decision.nextEligibleAt,
     connectionExists: !!state.withingsCredentials,
     expandedEnabled: state.withingsExpandedSyncEnabled,
+    startupInFlight: state.withingsStartupSyncInFlight,
   }
 }
 
 export function useWithingsSyncPrompt(): WithingsSyncPromptState {
-  const [promptState, setPromptState] = useState<WithingsSyncPromptState>(() => evaluatePromptPolicy(new Date()))
+  const {
+    withingsCredentials,
+    withingsExpandedSyncEnabled,
+    withingsSyncTimes,
+    lastSuccessfulWithingsScheduledSlotKey,
+    withingsStartupSyncInFlight,
+  } = useSettingsStore()
+  const [now, setNow] = useState(() => new Date())
 
   const refresh = useCallback(() => {
-    setPromptState(evaluatePromptPolicy(new Date()))
+    setNow(new Date())
   }, [])
 
   useEffect(() => {
@@ -62,5 +70,23 @@ export function useWithingsSyncPrompt(): WithingsSyncPromptState {
     }
   }, [refresh])
 
-  return promptState
+  return useMemo(
+    () =>
+      evaluatePromptPolicy(now, {
+        ...useSettingsStore.getState(),
+        withingsCredentials,
+        withingsExpandedSyncEnabled,
+        withingsSyncTimes,
+        lastSuccessfulWithingsScheduledSlotKey,
+        withingsStartupSyncInFlight,
+      }),
+    [
+      now,
+      withingsCredentials,
+      withingsExpandedSyncEnabled,
+      withingsSyncTimes,
+      lastSuccessfulWithingsScheduledSlotKey,
+      withingsStartupSyncInFlight,
+    ]
+  )
 }

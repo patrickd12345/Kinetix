@@ -173,14 +173,14 @@ export default function Kps100CurveChart({
       </p>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-lg font-black text-white">
+          <h3 className="text-lg font-black text-slate-900 dark:text-white">
             Pace to hit {KPS_SHORT} 100
           </h3>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-slate-600 dark:text-gray-400">
             Target pace at each distance to match your current PB.
           </p>
         </div>
-        <span className="text-xs text-gray-500">Select a point for details (keyboard: Tab to points, Enter or Space)</span>
+        <span className="text-xs text-slate-500 dark:text-gray-500">Select a point for details (keyboard: Tab to points, Enter or Space)</span>
       </div>
 
       <div
@@ -275,10 +275,10 @@ export default function Kps100CurveChart({
             <p className="text-sm font-bold text-cyan-300">
               {selectedPoint.distanceLabel}
             </p>
-            <p className="text-[11px] text-gray-200">
+            <p className="text-[11px] text-slate-800 dark:text-gray-200">
               Target pace: {selectedPoint.paceLabel}
             </p>
-            <p className="text-[11px] text-gray-400">
+            <p className="text-[11px] text-slate-600 dark:text-gray-400">
               Finish time: {selectedPoint.timeLabel}
             </p>
           </div>
@@ -288,18 +288,18 @@ export default function Kps100CurveChart({
       <div className="mt-4 rounded-xl border border-violet-500/20 bg-black/30 p-4">
         {selectedPoint ? (
           <div>
-            <p className="text-xs text-gray-400 mb-1">
+            <p className="text-xs text-slate-600 dark:text-gray-400 mb-1">
               {selectedPoint.distanceLabel} — target for {KPS_SHORT} 100
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-gray-500 uppercase">Pace</p>
+                <p className="text-xs text-slate-500 dark:text-gray-500 uppercase">Pace</p>
                 <p className="text-xl font-black text-cyan-300">
                   {selectedPoint.paceLabel}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase">Finish time</p>
+                <p className="text-xs text-slate-500 dark:text-gray-500 uppercase">Finish time</p>
                 <p className="text-xl font-black text-violet-300">
                   {selectedPoint.timeLabel}
                 </p>
@@ -307,7 +307,7 @@ export default function Kps100CurveChart({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-slate-600 dark:text-gray-400">
             Select a chart point to see target pace and finish time.
           </p>
         )}

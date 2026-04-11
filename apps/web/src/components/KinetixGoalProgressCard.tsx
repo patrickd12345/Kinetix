@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { useSettingsStore } from '../store/settingsStore'
 import type { GoalDistance, GoalPriority, GoalProgressResult, TrainingGoal } from '../lib/goalRace/types'
 
@@ -80,14 +80,14 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
   return (
     <section className="glass rounded-2xl p-5 border border-emerald-500/20 space-y-4" aria-label="Goal progress">
       <header>
-        <h3 className="text-lg font-black text-white">Goal Progress</h3>
-        <p className="text-xs text-gray-400">Define race target, then track projected outcome and weekly emphasis.</p>
+        <h3 className="text-lg font-black text-slate-900 dark:text-white">Goal Progress</h3>
+        <p className="text-xs text-slate-600 dark:text-gray-400">Define race target, then track projected outcome and weekly emphasis.</p>
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-gray-400">Distance</span>
-          <select aria-label="Goal distance" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" value={distance} onChange={(e) => setDistance(e.target.value as GoalDistance)}>
+          <span className="text-xs text-slate-600 dark:text-gray-400">Distance</span>
+          <select aria-label="Goal distance" className="rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white" value={distance} onChange={(e) => setDistance(e.target.value as GoalDistance)}>
             <option value="5K">5K</option>
             <option value="10K">10K</option>
             <option value="Half">Half</option>
@@ -95,8 +95,8 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-gray-400">Priority</span>
-          <select aria-label="Goal priority" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" value={priority} onChange={(e) => setPriority(e.target.value as GoalPriority)}>
+          <span className="text-xs text-slate-600 dark:text-gray-400">Priority</span>
+          <select aria-label="Goal priority" className="rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white" value={priority} onChange={(e) => setPriority(e.target.value as GoalPriority)}>
             <option value="finish">Finish</option>
             <option value="improve">Improve</option>
             <option value="PB">PB</option>
@@ -104,38 +104,38 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
           </select>
         </label>
         <label className="col-span-2 flex flex-col gap-1">
-          <span className="text-xs text-gray-400">Event date</span>
-          <input aria-label="Goal event date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" />
+          <span className="text-xs text-slate-600 dark:text-gray-400">Event date</span>
+          <input aria-label="Goal event date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white" />
         </label>
         <label className="col-span-2 flex flex-col gap-1">
-          <span className="text-xs text-gray-400">Target time (optional, mm:ss or hh:mm:ss)</span>
-          <input aria-label="Goal target time" type="text" value={targetTime} onChange={(e) => setTargetTime(e.target.value)} placeholder="1:45:00" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" />
+          <span className="text-xs text-slate-600 dark:text-gray-400">Target time (optional, mm:ss or hh:mm:ss)</span>
+          <input aria-label="Goal target time" type="text" value={targetTime} onChange={(e) => setTargetTime(e.target.value)} placeholder="1:45:00" className="rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-slate-500" />
         </label>
       </div>
 
-      <button type="button" aria-label="Save race goal" onClick={saveGoal} disabled={!eventDate || (targetTime.trim().length > 0 && parsedTarget == null)} className="w-full rounded-lg bg-emerald-500/20 border border-emerald-500/40 px-3 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-60">
+      <button type="button" aria-label="Save race goal" onClick={saveGoal} disabled={!eventDate || (targetTime.trim().length > 0 && parsedTarget == null)} className="w-full rounded-lg border border-emerald-600/40 bg-emerald-500/15 px-3 py-2 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200 dark:hover:bg-emerald-500/30">
         Save Goal
       </button>
       {targetTime.trim().length > 0 && parsedTarget == null ? (
-        <p className="text-xs text-amber-300">Use mm:ss or hh:mm:ss with seconds under 60.</p>
+        <p className="text-xs text-amber-800 dark:text-amber-300">Use mm:ss or hh:mm:ss with seconds under 60.</p>
       ) : null}
 
       {loading ? (
-        <p className="text-sm text-gray-400">Computing goal progress…</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Computing goal progress…</p>
       ) : error ? (
         <p className="text-sm text-red-300">Unable to compute goal progress: {error}</p>
       ) : !goal ? (
-        <p className="text-sm text-gray-400">Set a race goal to activate goal-driven coaching mode.</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Set a race goal to activate goal-driven coaching mode.</p>
       ) : (
         <dl className="space-y-1 text-sm">
-          <div className="flex justify-between"><dt className="text-gray-400">Goal</dt><dd className="text-white font-semibold">{goal.distance}</dd></div>
-          <div className="flex justify-between"><dt className="text-gray-400">Event Date</dt><dd className="text-white">{new Date(goal.eventDate).toLocaleDateString('en-US')}</dd></div>
-          <div className="flex justify-between"><dt className="text-gray-400">Target</dt><dd className="text-white">{formatSeconds(goal.targetTimeSeconds)}</dd></div>
-          <div className="flex justify-between"><dt className="text-gray-400">Projected</dt><dd className="text-white">{formatSeconds(progress?.projectedTimeSeconds)}</dd></div>
-          <div className="flex justify-between"><dt className="text-gray-400">Gap</dt><dd className="text-white">{progress?.targetDeltaSeconds != null ? `${progress.targetDeltaSeconds > 0 ? '+' : ''}${progress.targetDeltaSeconds}s` : '—'}</dd></div>
-          <div className="flex justify-between"><dt className="text-gray-400">Status</dt><dd className="text-white">{titleCase(progress?.status ?? 'unknown')}</dd></div>
-          <div className="flex justify-between"><dt className="text-gray-400">Days Remaining</dt><dd className="text-white">{progress?.daysRemaining ?? '—'}</dd></div>
-          <div className="flex justify-between"><dt className="text-gray-400">Weekly Emphasis</dt><dd className="text-emerald-200">{titleCase(progress?.weeklyEmphasis ?? 'base_building')}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Goal</dt><dd className="font-semibold text-slate-900 dark:text-white">{goal.distance}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Event Date</dt><dd className="text-slate-900 dark:text-white">{new Date(goal.eventDate).toLocaleDateString('en-US')}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Target</dt><dd className="text-slate-900 dark:text-white">{formatSeconds(goal.targetTimeSeconds)}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Projected</dt><dd className="text-slate-900 dark:text-white">{formatSeconds(progress?.projectedTimeSeconds)}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Gap</dt><dd className="text-slate-900 dark:text-white">{progress?.targetDeltaSeconds != null ? `${progress.targetDeltaSeconds > 0 ? '+' : ''}${progress.targetDeltaSeconds}s` : '—'}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Status</dt><dd className="text-slate-900 dark:text-white">{titleCase(progress?.status ?? 'unknown')}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Days Remaining</dt><dd className="text-slate-900 dark:text-white">{progress?.daysRemaining ?? '—'}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Weekly Emphasis</dt><dd className="text-emerald-800 dark:text-emerald-200">{titleCase(progress?.weeklyEmphasis ?? 'base_building')}</dd></div>
         </dl>
       )}
     </section>

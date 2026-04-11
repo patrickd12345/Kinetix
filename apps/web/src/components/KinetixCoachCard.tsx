@@ -1,4 +1,4 @@
-import type { CoachResult } from '../lib/coach/types'
+﻿import type { CoachResult } from '../lib/coach/types'
 
 interface KinetixCoachCardProps {
   loading: boolean
@@ -14,7 +14,7 @@ export function KinetixCoachCard({ loading, error, coach }: KinetixCoachCardProp
   if (loading) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
-        <p className="text-sm text-gray-400">Computing coaching decision…</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Computing coaching decision…</p>
       </section>
     )
   }
@@ -30,7 +30,7 @@ export function KinetixCoachCard({ loading, error, coach }: KinetixCoachCardProp
   if (!coach) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
-        <p className="text-sm text-gray-400">Not enough data to produce a coaching decision yet.</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Not enough data to produce a coaching decision yet.</p>
       </section>
     )
   }
@@ -38,18 +38,18 @@ export function KinetixCoachCard({ loading, error, coach }: KinetixCoachCardProp
   return (
     <section className="glass rounded-2xl p-5 border border-teal-500/20 space-y-4" aria-label="Kinetix coaching decision">
       <header>
-        <h3 className="text-lg font-black text-white">Kinetix Coaching Brain</h3>
-        <p className="text-xs text-gray-400">Deterministic decision orchestrator across risk, fatigue, phase, and prediction.</p>
+        <h3 className="text-lg font-black text-slate-900 dark:text-white">Kinetix Coaching Brain</h3>
+        <p className="text-xs text-slate-600 dark:text-gray-400">Deterministic decision orchestrator across risk, fatigue, phase, and prediction.</p>
       </header>
 
       <dl className="space-y-2 text-sm">
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-gray-400">Decision</dt>
-          <dd className="font-semibold text-white">{titleCase(coach.decision)}</dd>
+          <dt className="text-slate-600 dark:text-gray-400">Decision</dt>
+          <dd className="font-semibold text-slate-900 dark:text-white">{titleCase(coach.decision)}</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-gray-400">Confidence</dt>
-          <dd className="font-semibold text-white">{titleCase(coach.confidence)}</dd>
+          <dt className="text-slate-600 dark:text-gray-400">Confidence</dt>
+          <dd className="font-semibold text-slate-900 dark:text-white">{titleCase(coach.confidence)}</dd>
         </div>
       </dl>
 

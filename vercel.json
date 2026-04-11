@@ -37,6 +37,15 @@
   ],
   "headers": [
     {
+      "source": "/api/admlog",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {

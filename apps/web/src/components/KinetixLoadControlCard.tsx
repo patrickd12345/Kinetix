@@ -1,4 +1,4 @@
-import type { LoadControlResult } from '../lib/loadControl/types'
+﻿import type { LoadControlResult } from '../lib/loadControl/types'
 
 interface KinetixLoadControlCardProps {
   loading: boolean
@@ -14,7 +14,7 @@ export function KinetixLoadControlCard({ loading, error, loadControl }: KinetixL
   if (loading) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
-        <p className="text-sm text-gray-400">Computing adaptive load control…</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Computing adaptive load control…</p>
       </section>
     )
   }
@@ -30,7 +30,7 @@ export function KinetixLoadControlCard({ loading, error, loadControl }: KinetixL
   if (!loadControl) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
-        <p className="text-sm text-gray-400">Not enough data to compute load-control guidance yet.</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Not enough data to compute load-control guidance yet.</p>
       </section>
     )
   }
@@ -38,26 +38,26 @@ export function KinetixLoadControlCard({ loading, error, loadControl }: KinetixL
   return (
     <section className="glass rounded-2xl p-5 border border-rose-500/20 space-y-4" aria-label="Kinetix load control">
       <header>
-        <h3 className="text-lg font-black text-white">Adaptive Load Controller</h3>
-        <p className="text-xs text-gray-400">Deterministic injury-risk and load-progression guardrails.</p>
+        <h3 className="text-lg font-black text-slate-900 dark:text-white">Adaptive Load Controller</h3>
+        <p className="text-xs text-slate-600 dark:text-gray-400">Deterministic injury-risk and load-progression guardrails.</p>
       </header>
 
       <dl className="space-y-2 text-sm">
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-gray-400">Current weekly load</dt>
-          <dd className="font-semibold text-white">{loadControl.currentWeeklyLoad.toFixed(1)} km</dd>
+          <dt className="text-slate-600 dark:text-gray-400">Current weekly load</dt>
+          <dd className="font-semibold text-slate-900 dark:text-white">{loadControl.currentWeeklyLoad.toFixed(1)} km</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-gray-400">Ramp rate</dt>
-          <dd className="font-semibold text-white">{loadControl.rampRate.toFixed(1)}%</dd>
+          <dt className="text-slate-600 dark:text-gray-400">Ramp rate</dt>
+          <dd className="font-semibold text-slate-900 dark:text-white">{loadControl.rampRate.toFixed(1)}%</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-gray-400">Risk</dt>
-          <dd className="font-semibold text-white">{titleCase(loadControl.riskLevel)}</dd>
+          <dt className="text-slate-600 dark:text-gray-400">Risk</dt>
+          <dd className="font-semibold text-slate-900 dark:text-white">{titleCase(loadControl.riskLevel)}</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-gray-400">Recommended load</dt>
-          <dd className="font-semibold text-white">{loadControl.recommendedLoad.toFixed(1)} km</dd>
+          <dt className="text-slate-600 dark:text-gray-400">Recommended load</dt>
+          <dd className="font-semibold text-slate-900 dark:text-white">{loadControl.recommendedLoad.toFixed(1)} km</dd>
         </div>
       </dl>
 

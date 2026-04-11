@@ -1,4 +1,4 @@
-import type { IntelligenceResult } from '../lib/intelligence/types'
+﻿import type { IntelligenceResult } from '../lib/intelligence/types'
 
 interface KinetixIntelligenceCardProps {
   result: IntelligenceResult | null
@@ -19,7 +19,7 @@ export function KinetixIntelligenceCard({ result, loading, error = null }: Kinet
   if (loading) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
-        <p className="text-sm text-gray-400">Computing performance intelligence…</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Computing performance intelligence…</p>
       </section>
     )
   }
@@ -35,7 +35,7 @@ export function KinetixIntelligenceCard({ result, loading, error = null }: Kinet
   if (!result) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
-        <p className="text-sm text-gray-400">Not enough data to compute intelligence yet.</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Not enough data to compute intelligence yet.</p>
       </section>
     )
   }
@@ -43,26 +43,26 @@ export function KinetixIntelligenceCard({ result, loading, error = null }: Kinet
   return (
     <section className="glass rounded-2xl p-5 border border-cyan-500/20 space-y-4" aria-label="Kinetix intelligence">
       <div>
-        <h3 className="text-lg font-black text-white">Kinetix Intelligence</h3>
-        <p className="text-xs text-gray-400">Performance Intelligence Engine (KPS-based)</p>
+        <h3 className="text-lg font-black text-slate-900 dark:text-white">Kinetix Intelligence</h3>
+        <p className="text-xs text-slate-600 dark:text-gray-400">Performance Intelligence Engine (KPS-based)</p>
       </div>
 
       <dl className="space-y-2 text-sm">
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-gray-400">Readiness</dt>
-          <dd className="font-semibold text-white">{result.readiness.score} ({titleCase(result.readiness.status)})</dd>
+          <dt className="text-slate-600 dark:text-gray-400">Readiness</dt>
+          <dd className="font-semibold text-slate-900 dark:text-white">{result.readiness.score} ({titleCase(result.readiness.status)})</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-gray-400">Fatigue</dt>
-          <dd className="font-semibold text-white">{titleCase(result.fatigue.level)}</dd>
+          <dt className="text-slate-600 dark:text-gray-400">Fatigue</dt>
+          <dd className="font-semibold text-slate-900 dark:text-white">{titleCase(result.fatigue.level)}</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-gray-400">Recommendation</dt>
+          <dt className="text-slate-600 dark:text-gray-400">Recommendation</dt>
           <dd className="font-semibold text-cyan-300">{result.recommendation.message}</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-gray-400">Trend</dt>
-          <dd className="font-semibold text-white">{formatTrend(result.trend)}</dd>
+          <dt className="text-slate-600 dark:text-gray-400">Trend</dt>
+          <dd className="font-semibold text-slate-900 dark:text-white">{formatTrend(result.trend)}</dd>
         </div>
       </dl>
     </section>

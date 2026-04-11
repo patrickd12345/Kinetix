@@ -11,6 +11,7 @@
     "dev": "concurrently -n rag,web -c cyan,yellow \"pnpm --filter @kinetix/rag start\" \"pnpm --filter @kinetix/web dev\"",
     "dev:infisical": "node scripts/dev-with-infisical.mjs",
     "verify:infisical": "node scripts/verify-infisical.mjs",
+    "sync:admlog-service-role": "node scripts/sync-admlog-service-role.mjs",
     "dev:web": "pnpm --filter @kinetix/web dev",
     "dev:rag": "pnpm --filter @kinetix/rag start",
     "build": "pnpm --filter @kinetix/core build && pnpm --filter @kinetix/web build",

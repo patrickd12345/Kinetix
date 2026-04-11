@@ -33,6 +33,7 @@ describe('WithingsSyncPrompt', () => {
       nextEligibleAt: undefined,
       connectionExists: true,
       expandedEnabled: true,
+      startupInFlight: false,
     })
     evaluateWithingsSyncPolicyMock.mockReturnValue({
       shouldSync: true,
@@ -65,6 +66,19 @@ describe('WithingsSyncPrompt', () => {
       reason: 'not_due',
       connectionExists: true,
       expandedEnabled: true,
+      startupInFlight: false,
+    })
+    render(<WithingsSyncPrompt />)
+    expect(screen.queryByText('Withings sync due')).not.toBeInTheDocument()
+  })
+
+  it('banner hidden while startup sync is already in flight', () => {
+    useWithingsSyncPromptMock.mockReturnValueOnce({
+      isDue: true,
+      reason: 'scheduled_due',
+      connectionExists: true,
+      expandedEnabled: true,
+      startupInFlight: true,
     })
     render(<WithingsSyncPrompt />)
     expect(screen.queryByText('Withings sync due')).not.toBeInTheDocument()

@@ -224,7 +224,7 @@ export default function Menu() {
             <BarChart3 size={26} className="text-violet-400" />
             Charts
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-slate-600 dark:text-gray-400 mt-1">
             Informative performance charts powered by your run history.
           </p>
         </div>
@@ -250,7 +250,7 @@ export default function Menu() {
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   activeTab === 'pbs'
                     ? 'bg-violet-500/30 text-cyan-300'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    : 'text-slate-600 dark:text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 PBs by duration
@@ -266,7 +266,7 @@ export default function Menu() {
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   activeTab === 'curve'
                     ? 'bg-violet-500/30 text-cyan-300'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    : 'text-slate-600 dark:text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 Pace to hit KPS 100

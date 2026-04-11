@@ -30,7 +30,7 @@ export default function Chat() {
           <button
             type="button"
             onClick={clearChat}
-            className="text-gray-400 hover:text-gray-300 text-sm flex items-center gap-1"
+            className="text-slate-600 dark:text-gray-400 hover:text-slate-700 dark:hover:text-slate-700 dark:text-gray-300 text-sm flex items-center gap-1"
             aria-label="Clear chat history"
             title="Clear chat"
           >
@@ -48,7 +48,7 @@ export default function Chat() {
           aria-atomic="false"
         >
           {messages.length === 0 && !error && (
-            <div className="text-center text-gray-500 py-12 px-4">
+            <div className="text-center text-slate-500 dark:text-gray-500 py-12 px-4">
               <MessageCircle size={48} className="mx-auto mb-3 opacity-50" />
               <p className="text-sm">Ask about your training, pacing, {KINETIX_PERFORMANCE_SCORE}, or recovery.</p>
               <p className="text-xs mt-1">e.g. &quot;How should I pace my next 10K?&quot;</p>
@@ -65,7 +65,7 @@ export default function Chat() {
                 className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
                   m.role === 'user'
                     ? 'bg-cyan-500/20 text-cyan-100 border border-cyan-500/30'
-                    : 'bg-white/10 text-gray-200 border border-white/10'
+                    : 'bg-white/10 text-slate-800 dark:text-gray-200 border border-white/10'
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap">{m.content}</p>
@@ -76,7 +76,7 @@ export default function Chat() {
             <div className="flex justify-start">
               <div className="bg-white/10 border border-white/10 rounded-2xl px-4 py-2.5 flex items-center gap-2">
                 <Loader2 size={18} className="animate-spin text-cyan-400" />
-                <span className="text-sm text-gray-400">Thinking…</span>
+                <span className="text-sm text-slate-600 dark:text-gray-400">Thinking…</span>
               </div>
             </div>
           )}

@@ -245,7 +245,7 @@ export default function Settings() {
         <div className="max-w-md lg:max-w-2xl mx-auto">
           <div className="glass rounded-2xl border border-yellow-500/30 p-6 space-y-2">
             <h1 className="text-lg font-bold text-yellow-300">Loading profile...</h1>
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-slate-700 dark:text-gray-300">
               Your platform profile is still loading. If this persists, refresh the page.
             </p>
           </div>
@@ -268,12 +268,12 @@ export default function Settings() {
         >
           <div className="glass rounded-2xl border border-amber-500/40 p-6 max-w-md w-full shadow-xl">
             <h2 id="outlier-title" className="text-lg font-bold text-amber-300 mb-2">Possible outliers</h2>
-            <p id="outlier-desc" className="text-sm text-gray-300 mb-4">
+            <p id="outlier-desc" className="text-sm text-slate-700 dark:text-gray-300 mb-4">
               These runs have KPS &gt; 125% of your current PB and may be bad data (e.g. GPS glitch). Hide them so they don&apos;t affect your stats?
             </p>
             <ul className="space-y-2 mb-4 max-h-48 overflow-y-auto">
               {outlierRuns.map((run) => (
-                <li key={run.id} className="text-xs text-gray-300 flex justify-between gap-2">
+                <li key={run.id} className="text-xs text-slate-700 dark:text-gray-300 flex justify-between gap-2">
                   <span>{run.date ? new Date(run.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
                   <span>{formatDistance(run.distance, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}</span>
                   <span>{formatTime(run.duration)}</span>
@@ -285,7 +285,7 @@ export default function Settings() {
               <button
                 type="button"
                 onClick={() => setOutlierRuns(null)}
-                className="px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800"
+                className="px-4 py-2 rounded-lg border border-gray-600 text-slate-700 dark:text-gray-300 hover:bg-gray-800"
               >
                 Keep
               </button>
@@ -310,9 +310,9 @@ export default function Settings() {
         <h1 className="text-2xl font-bold mb-4">Settings</h1>
         <div className="glass rounded-2xl p-6 space-y-6">
           <div className="rounded-xl border border-white/10 bg-gray-900/30 p-3">
-            <div className="text-xs text-gray-400 uppercase mb-1">Platform identity</div>
+            <div className="text-xs text-slate-600 dark:text-gray-400 uppercase mb-1">Platform identity</div>
             <div className="text-sm text-white font-medium">{profileLabel}</div>
-            <div className="text-xs text-gray-500 mt-1">Profile ID: {profile.id}</div>
+            <div className="text-xs text-slate-500 dark:text-gray-500 mt-1">Profile ID: {profile.id}</div>
           </div>
           
           <div>
@@ -327,7 +327,7 @@ export default function Settings() {
 
           <div>
             <label className="block text-sm font-medium mb-2">Beat PB target %</label>
-            <p className="text-[11px] text-gray-500 mb-1">Used for &quot;Beat PB&quot; run suggestions on the Run view (e.g. 2 = beat PB by 2%).</p>
+            <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-1">Used for &quot;Beat PB&quot; run suggestions on the Run view (e.g. 2 = beat PB by 2%).</p>
             <input
               type="number"
               min={0.5}
@@ -341,7 +341,7 @@ export default function Settings() {
 
           <div>
             <label className="block text-sm font-medium mb-2">Beat recents: last N runs</label>
-            <p className="text-[11px] text-gray-500 mb-1">Used for &quot;Beat recents&quot; on the Run view (best of last N runs, then beat by the % above).</p>
+            <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-1">Used for &quot;Beat recents&quot; on the Run view (best of last N runs, then beat by the % above).</p>
             <input
               type="number"
               min={2}
@@ -378,8 +378,8 @@ export default function Settings() {
               </label>
             </div>
             <div className="rounded-xl border border-white/10 bg-gray-900/30 p-3 space-y-2">
-              <div className="text-xs text-gray-400 uppercase">Withings (smart scale)</div>
-              <p className="text-[11px] text-gray-500">
+              <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">Withings (smart scale)</div>
+              <p className="text-[11px] text-slate-500 dark:text-gray-500">
                 Use your latest Withings scale weight for KPS. Weight refresh and expanded ingestion run only when explicitly triggered.
               </p>
               {!withingsCredentials ? (
@@ -408,7 +408,10 @@ export default function Settings() {
                             withingsCredentials,
                             setWithingsCredentials
                           )
-                          if (latestKg != null) setLastWithingsWeightKg(latestKg)
+                          if (latestKg != null) {
+                            setLastWithingsWeightKg(latestKg)
+                            setWeightSource('withings')
+                          }
                           window.dispatchEvent(new CustomEvent(WITHINGS_WEIGHTS_SYNCED_EVENT))
                           setImportMessage(
                             latestKg != null
@@ -435,7 +438,7 @@ export default function Settings() {
                   </div>
                   <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 space-y-3">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs text-gray-300">Expanded Withings sync</label>
+                      <label className="text-xs text-slate-700 dark:text-gray-300">Expanded Withings sync</label>
                       <button
                         type="button"
                         disabled={!expandedFeatureEnabled}
@@ -447,12 +450,12 @@ export default function Settings() {
                         <div className={`w-5 h-5 bg-white rounded-full transition-all ${withingsExpandedSyncEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
                       </button>
                     </div>
-                    <p className="text-[11px] text-gray-500">
+                    <p className="text-[11px] text-slate-500 dark:text-gray-500">
                       Local schedule (HH:MM): sync is due once per slot. Default slots are 08:00 and 20:00.
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[11px] text-gray-400">Morning</label>
+                        <label className="text-[11px] text-slate-600 dark:text-gray-400">Morning</label>
                         <input
                           type="time"
                           value={withingsSyncTimes[0]}
@@ -463,7 +466,7 @@ export default function Settings() {
                         {withingsSyncTimeErrors[0] && <p className="text-[11px] text-red-400">{withingsSyncTimeErrors[0]}</p>}
                       </div>
                       <div>
-                        <label className="text-[11px] text-gray-400">Evening</label>
+                        <label className="text-[11px] text-slate-600 dark:text-gray-400">Evening</label>
                         <input
                           type="time"
                           value={withingsSyncTimes[1]}
@@ -474,7 +477,7 @@ export default function Settings() {
                         {withingsSyncTimeErrors[1] && <p className="text-[11px] text-red-400">{withingsSyncTimeErrors[1]}</p>}
                       </div>
                     </div>
-                    <div className="text-[11px] text-gray-400">
+                    <div className="text-[11px] text-slate-600 dark:text-gray-400">
                       Status: {withingsExpandedSyncStatus}
                       {scheduledDecision.reason === 'scheduled_due' && scheduledDecision.scheduledTime
                         ? ` • Scheduled due now (${scheduledDecision.scheduledTime})`
@@ -487,7 +490,7 @@ export default function Settings() {
                       <p className="text-[11px] text-green-400">Last expanded sync: {new Date(lastSuccessfulWithingsSyncAt).toLocaleString()}</p>
                     )}
                     {withingsExpandedSyncMessage && (
-                      <p className={`text-[11px] ${withingsExpandedSyncStatus === 'failure' ? 'text-red-400' : 'text-gray-300'}`}>
+                      <p className={`text-[11px] ${withingsExpandedSyncStatus === 'failure' ? 'text-red-400' : 'text-slate-700 dark:text-gray-300'}`}>
                         {withingsExpandedSyncMessage}
                       </p>
                     )}
@@ -520,7 +523,7 @@ export default function Settings() {
                       {weightImporting ? 'Importing…' : 'Import weight history (JSON)'}
                     </button>
                     {weightHistoryCount != null && (
-                      <p className="text-[11px] text-gray-400 mt-1">Weight history: {weightHistoryCount} entries</p>
+                      <p className="text-[11px] text-slate-600 dark:text-gray-400 mt-1">Weight history: {weightHistoryCount} entries</p>
                     )}
                     <button
                       type="button"
@@ -585,7 +588,7 @@ export default function Settings() {
                 <span className="text-sm">lbs</span>
               </label>
             </div>
-            <p className="text-[11px] text-gray-500 mt-1">Used in Weight History and run details.</p>
+            <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-1">Used in Weight History and run details.</p>
           </div>
           
           <div className="flex items-center justify-between">
@@ -608,8 +611,8 @@ export default function Settings() {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <div>
-                <div className="text-xs text-gray-400 uppercase">Strava Sync</div>
-                <p className="text-[11px] text-gray-500 mb-2">
+                <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">Strava Sync</div>
+                <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-2">
                   Connect your Strava account to import your running history.
                 </p>
                 {!stravaCredentials && !stravaToken?.trim() ? (
@@ -728,19 +731,19 @@ export default function Settings() {
               </div>
             )}
             {importMessage && (
-              <div className={`text-xs ${importMessage.startsWith('Error:') ? 'text-red-400' : 'text-gray-300'}`}>
+              <div className={`text-xs ${importMessage.startsWith('Error:') ? 'text-red-400' : 'text-slate-700 dark:text-gray-300'}`}>
                 {importMessage}
               </div>
             )}
           </div>
 
           <div className="space-y-3">
-            <div className="text-xs text-gray-400 uppercase">Garmin export</div>
-            <p className="text-[11px] text-gray-500 mb-2">
-              Upload a <strong className="text-gray-400">full Garmin account export</strong> ZIP (
-              <code className="text-gray-400">DI_CONNECT/DI-Connect-Fitness/*_summarizedActivities.json</code>
-              ), a ZIP that contains <code className="text-gray-400">.fit</code> files, or a single running activity{' '}
-              <code className="text-gray-400">.fit</code> file. Re-import is idempotent.
+            <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">Garmin export</div>
+            <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-2">
+              Upload a <strong className="text-slate-600 dark:text-gray-400">full Garmin account export</strong> ZIP (
+              <code className="text-slate-600 dark:text-gray-400">DI_CONNECT/DI-Connect-Fitness/*_summarizedActivities.json</code>
+              ), a ZIP that contains <code className="text-slate-600 dark:text-gray-400">.fit</code> files, or a single running activity{' '}
+              <code className="text-slate-600 dark:text-gray-400">.fit</code> file. Re-import is idempotent.
             </p>
             <input
               ref={garminZipInputRef}
@@ -818,8 +821,8 @@ export default function Settings() {
           </div>
 
           <div className="space-y-3">
-            <div className="text-xs text-gray-400 uppercase">RAG (coach context)</div>
-            <p className="text-[11px] text-gray-500 mb-2">
+            <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">RAG (coach context)</div>
+            <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-2">
               New runs are synced to RAG automatically on app start. Use “Reindex all” only to repair or after clearing RAG.
             </p>
             <button
@@ -851,7 +854,7 @@ export default function Settings() {
               {reindexing ? 'Reindexing…' : 'Reindex all runs in RAG'}
             </button>
             {reindexMessage && (
-              <div className="text-xs text-gray-300">{reindexMessage}</div>
+              <div className="text-xs text-slate-700 dark:text-gray-300">{reindexMessage}</div>
             )}
           </div>
         </div>

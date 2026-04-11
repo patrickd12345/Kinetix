@@ -1,4 +1,4 @@
-import type { TimelineEngineResult, TimelineEventType } from '../lib/timeline/types'
+﻿import type { TimelineEngineResult, TimelineEventType } from '../lib/timeline/types'
 
 interface KinetixTimelineCardProps {
   loading: boolean
@@ -35,7 +35,7 @@ export function KinetixTimelineCard({
   if (loading) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10">
-        <p className="text-sm text-gray-400">Building coaching timeline…</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Building coaching timeline…</p>
       </section>
     )
   }
@@ -49,7 +49,7 @@ export function KinetixTimelineCard({
   if (insufficientData || !timeline) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10">
-        <p className="text-sm text-gray-400">Not enough data for coaching timeline yet.</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Not enough data for coaching timeline yet.</p>
       </section>
     )
   }
@@ -59,14 +59,14 @@ export function KinetixTimelineCard({
   return (
     <section className="glass rounded-2xl p-5 border border-violet-500/25 space-y-3" aria-label="Coaching timeline">
       <header>
-        <h3 className="text-lg font-black text-white">Coaching timeline</h3>
-        <p className="text-xs text-gray-400">
+        <h3 className="text-lg font-black text-slate-900 dark:text-white">Coaching timeline</h3>
+        <p className="text-xs text-slate-600 dark:text-gray-400">
           Deterministic {projection.minHorizonDays}–{projection.maxHorizonDays} day outlook (no AI). Anchor:{' '}
           {projection.anchorDate}.
         </p>
       </header>
       {events.length === 0 ? (
-        <p className="text-sm text-gray-400">No forward events match current signals — check back after more runs.</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">No forward events match current signals — check back after more runs.</p>
       ) : (
         <ol className="space-y-3">
           {events.map((ev) => (
@@ -75,15 +75,15 @@ export function KinetixTimelineCard({
               className="rounded-xl border border-white/10 bg-white/5 p-3"
             >
               <div className="flex items-start justify-between gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-violet-200">
+                <span className="text-xs font-semibold uppercase tracking-wide text-violet-800 dark:text-violet-200">
                   {labelForType(ev.type)}
                 </span>
-                <span className="text-xs text-gray-400 shrink-0">
+                <span className="text-xs text-slate-600 dark:text-gray-400 shrink-0">
                   Day +{ev.dayOffset} · {ev.targetDate}
                 </span>
               </div>
-              <p className="mt-1 text-sm font-semibold text-white">{ev.title}</p>
-              <p className="mt-1 text-xs text-gray-300 leading-relaxed">{ev.detail}</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{ev.title}</p>
+              <p className="mt-1 text-xs text-slate-700 dark:text-gray-300 leading-relaxed">{ev.detail}</p>
             </li>
           ))}
         </ol>

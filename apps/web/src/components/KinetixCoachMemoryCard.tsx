@@ -1,4 +1,4 @@
-import type { CoachMemoryResult } from '../lib/coachMemory/types'
+﻿import type { CoachMemoryResult } from '../lib/coachMemory/types'
 
 interface KinetixCoachMemoryCardProps {
   loading: boolean
@@ -20,7 +20,7 @@ export function KinetixCoachMemoryCard({
   if (loading) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
-        <p className="text-sm text-gray-400">Loading coaching memory…</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">Loading coaching memory…</p>
       </section>
     )
   }
@@ -36,7 +36,7 @@ export function KinetixCoachMemoryCard({
   if (insufficientData || !memory) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
-        <p className="text-sm text-gray-400">No coaching memory yet.</p>
+        <p className="text-sm text-slate-600 dark:text-gray-400">No coaching memory yet.</p>
       </section>
     )
   }
@@ -44,13 +44,13 @@ export function KinetixCoachMemoryCard({
   return (
     <section className="glass rounded-2xl p-5 border border-violet-500/20 space-y-3" aria-label="Kinetix coach memory">
       <header>
-        <h3 className="text-lg font-black text-white">Coach Memory</h3>
+        <h3 className="text-lg font-black text-slate-900 dark:text-white">Coach Memory</h3>
       </header>
       <p className="text-xs text-violet-200">{memory.trendSummary}</p>
-      <div className="text-xs text-gray-300">
+      <div className="text-xs text-slate-700 dark:text-gray-300">
         Latest: {memory.latest ? titleCase(memory.latest.decision) : '—'}
       </div>
-      <ul className="space-y-1 text-xs text-gray-300">
+      <ul className="space-y-1 text-xs text-slate-700 dark:text-gray-300">
         {memory.history.slice(-4).map((item) => (
           <li key={`${item.date}:${item.decision}`} className="flex items-center justify-between">
             <span>{item.date.slice(0, 10)}</span>

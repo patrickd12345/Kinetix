@@ -291,18 +291,29 @@ export async function getWeightHistoryInRange(
 }
 
 /**
- * Get the weight (kg) that was in effect on or before a given date.
- * Used for KPS: each run should use the user's weight at the time of the run, not today's weight.
- * Returns null if no weight history entry exists on or before that date (caller uses current profile weight).
+ * Latest weight on or before `runUnix` (seconds). Exported for unit tests; same rules as {@link getWeightAtDate}.
+ */
+export function weightKgAtOrBeforeRunUnix(entries: readonly WeightEntry[], runUnix: number): number | null {
+  let best: WeightEntry | null = null
+  for (const e of entries) {
+    if (e.dateUnix <= runUnix && e.kg > 0) {
+      if (!best || e.dateUnix > best.dateUnix) best = e
+    }
+  }
+  return best?.kg ?? null
+}
+
+/**
+ * Get the weight (kg) that was in effect on or before a given run instant.
+ * Uses `dateUnix` (seconds) so ordering is correct; string `between` on ISO `date` breaks when
+ * `runDate` is date-only (`YYYY-MM-DD`) because lexicographically `2026-04-11T12:00:00Z` > `2026-04-11`.
  */
 export async function getWeightAtDate(runDate: string): Promise<number | null> {
-  const entries = await db.weightHistory
-    .where('date')
-    .between('1970-01-01', runDate, true, true)
-    .toArray()
-  if (entries.length === 0) return null
-  const latest = entries.reduce((a, b) => (a.date > b.date ? a : b))
-  return latest.kg
+  const runInstant = Date.parse(runDate)
+  if (!Number.isFinite(runInstant)) return null
+  const runUnix = Math.floor(runInstant / 1000)
+  const entries = await db.weightHistory.where('dateUnix').belowOrEqual(runUnix).toArray()
+  return weightKgAtOrBeforeRunUnix(entries, runUnix)
 }
 
 /**

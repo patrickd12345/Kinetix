@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@supabase/node-fetch": "^2.6.13",
-    "@supabase/supabase-js": "^2.45.0"
+    "@supabase/supabase-js": "^2.95.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.35",

@@ -14,7 +14,6 @@ function manualChunk(id: string): string | undefined {
   }
   if (p.includes('/node_modules/react-router')) return 'react-router'
   if (p.includes('/node_modules/react-dom') || p.includes('/node_modules/react/')) return 'react-core'
-  if (p.includes('/node_modules/@supabase/')) return 'supabase'
   if (p.includes('/node_modules/lucide-react')) return 'lucide'
   if (p.includes('/node_modules/openai')) return 'openai-sdk'
   return undefined

@@ -1,21 +1,31 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AdSenseScript from './components/ads/AdSenseScript'
 import Layout from './components/Layout'
 import RunDashboard from './pages/RunDashboard'
 import History from './pages/History'
-import Coaching from './pages/Coaching'
 import Chat from './pages/Chat'
 import Settings from './pages/Settings'
 import WeightHistory from './pages/WeightHistory'
-import Menu from './pages/Menu'
 import HelpCenter from './pages/HelpCenter'
-import OperatorDashboard from './pages/OperatorDashboard'
-import SupportQueue from './pages/SupportQueue'
 import Login from './pages/Login'
 import EntitlementRequired from './pages/EntitlementRequired'
 import BillingSuccess from './pages/BillingSuccess'
 import BillingCancel from './pages/BillingCancel'
 import { useAuth } from './components/providers/useAuth'
+
+const Coaching = lazy(() => import('./pages/Coaching'))
+const Menu = lazy(() => import('./pages/Menu'))
+const OperatorDashboard = lazy(() => import('./pages/OperatorDashboard'))
+const SupportQueue = lazy(() => import('./pages/SupportQueue'))
+
+function LazyRouteFallback() {
+  return (
+    <div className="rounded-xl border border-slate-200/90 bg-white/80 px-4 py-8 text-center text-sm text-[var(--shell-text-secondary)] dark:border-white/10 dark:bg-white/[0.03] dark:text-[var(--shell-text-secondary)]">
+      Loading&hellip;
+    </div>
+  )
+}
 
 function FullscreenStatus({
   title,
@@ -86,19 +96,21 @@ function ProtectedRoutes() {
 
   return (
     <Layout>
-      <Routes>
-        <Route path="/" element={<RunDashboard />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/coaching" element={<Coaching />} />
-        <Route path="/weight-history" element={<WeightHistory />} />
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/help" element={<HelpCenter />} />
-        <Route path="/operator" element={<OperatorDashboard />} />
-        <Route path="/support-queue" element={<SupportQueue />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<LazyRouteFallback />}>
+        <Routes>
+          <Route path="/" element={<RunDashboard />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/coaching" element={<Coaching />} />
+          <Route path="/weight-history" element={<WeightHistory />} />
+          <Route path="/menu" element={<Menu />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/help" element={<HelpCenter />} />
+          <Route path="/operator" element={<OperatorDashboard />} />
+          <Route path="/support-queue" element={<SupportQueue />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </Layout>
   )
 }

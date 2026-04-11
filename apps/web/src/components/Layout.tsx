@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { emitStructuredLog } from '@bookiji-inc/observability'
 import {
   Activity,
   History,
@@ -26,7 +27,20 @@ import WithingsSyncPrompt from './WithingsSyncPrompt'
 import { Dialog } from './a11y/Dialog'
 
 const RAG_SYNC_PAGE_SIZE = 200
+const RAG_SYNC_FAIL_THRESHOLD = 3
+const SK_RAG_FAIL_STREAK = 'kinetix_rag_sync_fail_streak'
+const SK_RAG_BANNER_DISMISSED = 'kinetix_rag_sync_banner_dismissed'
 const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
+
+function readRagFailStreak(): number {
+  if (typeof sessionStorage === 'undefined') return 0
+  return Number(sessionStorage.getItem(SK_RAG_FAIL_STREAK)) || 0
+}
+
+function isRagBannerDismissed(): boolean {
+  if (typeof sessionStorage === 'undefined') return false
+  return sessionStorage.getItem(SK_RAG_BANNER_DISMISSED) === '1'
+}
 
 interface LayoutProps {
   children: ReactNode
@@ -36,6 +50,10 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const { profile, session, signOut } = useAuth()
   const [mobileOverflowOpen, setMobileOverflowOpen] = useState(false)
+  const [ragSyncBannerOpen, setRagSyncBannerOpen] = useState(() => {
+    if (typeof sessionStorage === 'undefined') return false
+    return readRagFailStreak() >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed()
+  })
   const {
     stravaCredentials,
     stravaToken,
@@ -49,12 +67,44 @@ export default function Layout({ children }: LayoutProps) {
     if (!profile || typeof indexedDB === 'undefined') return
     const userProfile = toKinetixUserProfile(profile)
     const run = async () => {
-      getRunsPage(1, RAG_SYNC_PAGE_SIZE)
-        .then(({ items }) => {
-          if (items.length === 0) return
-          syncNewRunsToRAG(items, userProfile).catch(() => {})
-        })
-        .catch(() => {})
+      try {
+        const { items } = await getRunsPage(1, RAG_SYNC_PAGE_SIZE)
+        if (items.length === 0) return true
+        const result = await syncNewRunsToRAG(items, userProfile)
+        if (result.errors === 0) {
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.removeItem(SK_RAG_FAIL_STREAK)
+            sessionStorage.removeItem(SK_RAG_BANNER_DISMISSED)
+          }
+          setRagSyncBannerOpen(false)
+          return true
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          const next = readRagFailStreak() + 1
+          sessionStorage.setItem(SK_RAG_FAIL_STREAK, String(next))
+          emitStructuredLog('warn', 'rag_startup_sync_errors', {
+            indexed: result.indexed,
+            errors: result.errors,
+            skipped: result.skipped,
+            streak: next,
+          })
+          if (next >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed()) {
+            setRagSyncBannerOpen(true)
+          }
+        }
+      } catch (err) {
+        if (typeof sessionStorage !== 'undefined') {
+          const next = readRagFailStreak() + 1
+          sessionStorage.setItem(SK_RAG_FAIL_STREAK, String(next))
+          emitStructuredLog('error', 'rag_startup_sync_threw', {
+            streak: next,
+            message: err instanceof Error ? err.message : String(err),
+          })
+          if (next >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed()) {
+            setRagSyncBannerOpen(true)
+          }
+        }
+      }
       return true
     }
     return scheduleStartupAttempts([0], run)
@@ -186,6 +236,37 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </aside>
           <main id="main-content" className="min-w-0 text-[var(--shell-text-primary)] dark:text-[var(--shell-text-primary)]" tabIndex={-1}>
+            {ragSyncBannerOpen ? (
+              <div
+                role="alert"
+                className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-400/80 bg-amber-50/95 px-4 py-3 text-sm text-amber-950 shadow-sm dark:border-amber-500/50 dark:bg-amber-950/40 dark:text-amber-50 md:flex-row md:items-center md:justify-between"
+              >
+                <p className="min-w-0 leading-snug">
+                  Recent runs could not be fully synced to the coaching index. Answers may be less personalized until the
+                  sync service is available.
+                </p>
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <Link
+                    to="/settings"
+                    className="shell-focus-ring rounded-md border border-amber-700/40 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-200/60 dark:border-amber-300/40 dark:text-amber-50 dark:hover:bg-amber-500/20"
+                  >
+                    Open settings
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof sessionStorage !== 'undefined') {
+                        sessionStorage.setItem(SK_RAG_BANNER_DISMISSED, '1')
+                      }
+                      setRagSyncBannerOpen(false)
+                    }}
+                    className="shell-focus-ring rounded-md px-3 py-1.5 text-xs font-medium text-amber-900/90 underline-offset-2 hover:underline dark:text-amber-100/95"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <WithingsSyncPrompt />
             {children}
             <AdSenseDisplayUnit />

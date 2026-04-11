@@ -1,6 +1,79 @@
-# Kinetix remediation plan (full-system audit)
+# Kinetix Remediation Plan — Full System Audit
+
+Status: RC Stabilization  
+Audit Type: Full System Audit  
+Scope: Web + Native + AI + Integrations  
+Last Updated: April 10, 2026
+
+---
 
 This plan consolidates findings from repository analysis, automated tests run in CI-like conditions, and code review. **Priority:** P0 (critical) → P3 (low). **Effort** is relative engineering scope (S/M/L), not calendar time.
+
+---
+
+## Execution Strategy
+
+Remediation order:
+
+1. Fix all P0 issues
+2. Fix all P1 issues
+3. Run full audit again
+4. Fix regressions
+5. Promote to next release candidate
+
+Rules:
+
+- No P1 fixes before P0 completion
+- Run full test suite after each batch
+- Commit fixes incrementally
+- No large refactors during remediation
+
+---
+
+## Exit Criteria
+
+Release readiness requires:
+
+- No P0 issues remaining
+- No P1 issues remaining
+- No console runtime errors
+- Accessibility tests passing
+- Performance baseline acceptable
+- Security checks passing
+- Data integrity validated
+- Full UI crawl successful
+
+---
+
+## Verification Rules
+
+Each remediation must include:
+
+- Automated test when possible
+- Manual verification steps
+- Regression validation
+- UI verification if UI impacted
+
+---
+
+## Production Safety Rules
+
+- Master access flags must never ship enabled
+- Debug telemetry must be dev-only
+- Audit instrumentation must be removed or gated
+- Test harness must not affect production behavior
+
+---
+
+## Progress Tracking
+
+P0 Fixed: 0 / 2  
+P1 Fixed: 0 / 3  
+P2 Fixed: 0 / 3  
+P3 Fixed: 0 / 2  
+
+Audit Version: 1  
+Release Phase: Stabilization
 
 ---
 
@@ -119,12 +192,36 @@ This plan consolidates findings from repository analysis, automated tests run in
 
 ---
 
-## Audit harness delivered (keep)
+## Audit Harness
 
-| Artifact | Purpose |
-|----------|---------|
-| `apps/web/e2e/kinetix-audit-crawl.spec.ts` | Route sweep, screenshots, axe JSON, console capture |
-| `apps/web/src/lib/debug/masterAccess.ts` | Explicit env-gated bypass for crawls (**default off**) |
-| `docs/audit/*.md` | Reports and this plan |
+Artifacts delivered:
+
+- `apps/web/e2e/kinetix-audit-crawl.spec.ts`  
+  Route sweep, screenshots, axe JSON, console capture
+
+- `apps/web/src/lib/debug/masterAccess.ts`  
+  Explicit env-gated bypass for crawls (default off)
+
+- `docs/audit/*.md`  
+  Reports and remediation plan
+
+Playwright configuration:
+
+- `VITE_MASTER_ACCESS` enabled only during audit runs
+- Must be disabled in production builds
+- CI must validate absence in production environment
 
 **Playwright config** sets `VITE_MASTER_ACCESS=1` only for the webServer test harness — acceptable for CI; do not copy to production `.env`.
+
+---
+
+## Release Gate
+
+Release may proceed only if:
+
+- P0 resolved
+- P1 resolved
+- Full audit rerun completed
+- No regressions detected
+- Performance acceptable
+- Accessibility passing

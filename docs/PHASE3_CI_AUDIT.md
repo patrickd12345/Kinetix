@@ -1,6 +1,6 @@
 # Phase 3 — CI audit
 
-**Last updated:** 2026-04-10  
+**Last updated:** 2026-04-11  
 **Workflow:** [`.github/workflows/web-ci.yml`](../.github/workflows/web-ci.yml)
 
 ## What runs today
@@ -25,12 +25,27 @@ Included paths:
 
 **Not included:** `apps/rag/**`, `ios/**`, `watchos/**`, `supabase/**`, product docs-only changes.
 
+## Native (iOS / watchOS)
+
+- Manual audit runbook: [`docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md`](audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md)
+- Placeholder workflow (no Xcode build): [`.github/workflows/native-ci-placeholder.yml`](../.github/workflows/native-ci-placeholder.yml)
+- Web CI still does not compile native targets; use the runbook before RCs that touch `ios/**` or `watchos/**`.
+
+## Lighthouse CI
+
+- Config: [`lighthouserc.json`](../lighthouserc.json) (placeholder URL; override via CLI in CI).
+- Manual workflow: [`.github/workflows/lighthouse-ci.yml`](../.github/workflows/lighthouse-ci.yml) — run with a deployed/preview `target_url`.
+
+## Vitest coverage
+
+- CI job `vitest-coverage` in [`web-ci.yml`](../.github/workflows/web-ci.yml) runs `pnpm --filter @kinetix/web test:coverage` after the same install path as Vercel parity.
+
 ## Gaps (non-blocking extensions)
 
 | Gap | Risk | Optional extension |
 |-----|------|---------------------|
 | **RAG app** changes do not trigger web CI | Medium if RAG shares types or scripts with root workspace | Add `apps/rag/**` to path filters **or** a separate lightweight workflow (`pnpm --filter @kinetix/rag test` / lint if defined). |
-| **Vitest / Playwright** not in GitHub Actions | Release confidence relies on local/ops runs | Add scheduled or manual jobs: `pnpm --filter @kinetix/web test`, `pnpm test:e2e` with secrets/service containers as needed — **explicitly non-blocking** for Wave 2 closure evidence (Vitest already recorded in [`KINETIX_LOCAL_VERIFICATION_BASELINE.md`](KINETIX_LOCAL_VERIFICATION_BASELINE.md)). |
+| **Vitest / Playwright** not in GitHub Actions | Release confidence relies on local/ops runs | **Vitest coverage** is now in `web-ci.yml`. Playwright remains local/optional unless a dedicated workflow is added with secrets and a stable server harness. |
 | **API-only** TypeScript | Root `type-check` includes workspace per parity script | Keep monitoring `verify-vercel-parity.mjs` when `api/` or shared packages change. |
 
 ## Parity gate behavior

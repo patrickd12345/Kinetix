@@ -17,7 +17,10 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
+      - 'lighthouserc.json'
       - '.github/workflows/web-ci.yml'
+      - '.github/workflows/lighthouse-ci.yml'
+      - '.github/workflows/native-ci-placeholder.yml'
       - 'scripts/verify-vercel-parity.mjs'
   pull_request:
     paths:
@@ -29,7 +32,10 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
+      - 'lighthouserc.json'
       - '.github/workflows/web-ci.yml'
+      - '.github/workflows/lighthouse-ci.yml'
+      - '.github/workflows/native-ci-placeholder.yml'
       - 'scripts/verify-vercel-parity.mjs'
 
 permissions:
@@ -58,3 +64,29 @@ jobs:
 
       - name: "Vercel parity (same as deploy: install + type-check + lint + build)"
         run: node scripts/verify-vercel-parity.mjs
+
+  vitest-coverage:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install (Vercel parity path)
+        run: bash scripts/vercel-install.sh
+
+      - name: Vitest coverage gate
+        run: pnpm --filter @kinetix/web test:coverage

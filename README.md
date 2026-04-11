@@ -12,6 +12,7 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 - Apple-native surfaces remain active in `ios/KinetixPhone` and `watchos/KinetixWatch`.
 - Shared scoring/runtime logic lives in `packages/core`.
 - Contributor rules and deployment truth are tracked in [`REPO_STATUS.md`](REPO_STATUS.md).
+- Native (iOS / watchOS) manual audit runbook: [`docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md`](docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md)
 
 ## Help Center and support (web)
 

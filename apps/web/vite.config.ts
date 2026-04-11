@@ -29,7 +29,27 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', '../../api/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'json-summary'],
+      include: ['src/**/*.{ts,tsx}', '../../api/**/*.{ts,tsx}'],
+      exclude: [
+        '**/*.test.ts',
+        '**/*.test.tsx',
+        '**/e2e/**',
+        '**/dist/**',
+        '**/node_modules/**',
+        '**/vite.config*.ts',
+        '**/support-corpus/**',
+      ],
+      thresholds: {
+        lines: 5,
+        functions: 5,
+        branches: 3,
+        statements: 5,
+      },
+    },
   },
   build: {
     reportCompressedSize: false,

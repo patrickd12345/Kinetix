@@ -15,6 +15,7 @@
     "dev:rag": "pnpm --filter @kinetix/rag start",
     "build": "pnpm --filter @kinetix/core build && pnpm --filter @kinetix/web build",
     "test": "pnpm -r test",
+    "test:coverage": "pnpm --filter @kinetix/web test:coverage",
     "test:e2e": "pnpm --filter @kinetix/web test:e2e",
     "lint": "pnpm -r lint",
     "type-check": "tsc --noEmit && pnpm --filter @kinetix/web type-check",
@@ -22,7 +23,8 @@
     "clean": "pnpm -r clean",
     "check:no-local-ai-core": "node scripts/check-no-local-ai-core.mjs",
     "verify:vercel-parity": "node scripts/verify-vercel-parity.mjs",
-    "smoke:persistent-memory": "tsx scripts/smoke-persistent-memory.ts"
+    "smoke:persistent-memory": "tsx scripts/smoke-persistent-memory.ts",
+    "lh:ci": "lhci autorun"
   },
   "dependencies": {
     "@kinetix/core": "workspace:*",
@@ -38,6 +40,7 @@
     "stripe": "^20.2.0"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.14.0",
     "@types/node": "^20.0.0",
     "concurrently": "^9.1.0",
     "tsx": "^4.7.0",

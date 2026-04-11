@@ -26,6 +26,8 @@ export default defineConfig({
       VITE_SKIP_AUTH: '1',
       /** Enables entitlement bypass + all feature flags for full UI audit (see `src/lib/debug/masterAccess.ts`). */
       VITE_MASTER_ACCESS: '1',
+      // Stable RAG base for E2E KB mocks; Playwright stubs support/kb/query — no real service on this port.
+      VITE_RAG_SERVICE_URL: 'http://127.0.0.1:13001',
     },
   },
 })

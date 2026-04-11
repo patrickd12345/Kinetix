@@ -69,8 +69,8 @@ Each remediation must include:
 
 P0 Fixed: 2 / 2  
 P1 Fixed: 3 / 3  
-P2 Fixed: 0 / 3  
-P3 Fixed: 0 / 2  
+P2 Fixed: 3 / 3  
+P3 Fixed: 2 / 2  
 
 Audit Version: 1  
 Release Phase: Stabilization

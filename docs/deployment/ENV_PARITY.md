@@ -34,6 +34,8 @@ Optional (auth callback pinning): set when magic-link or OAuth must return to th
 
 The Kinetix web client ([`apps/web/src/lib/supabaseClient.ts`](../../apps/web/src/lib/supabaseClient.ts)) reads `VITE_*` first and falls back to `NEXT_PUBLIC_*`. For Vite builds, set the `VITE_*` pair; you can also set `NEXT_PUBLIC_*` to the same values so both names work.
 
+**Session persistence:** The Supabase client uses `persistSession: true` and `autoRefreshToken: true`, so a successful sign-in is kept in the browser (per-origin storage, typically `localStorage`) and refreshed automatically. New magic links are only needed after sign-out, session expiry, or cleared site data. **Origins are isolated:** `http://localhost:5173` and `http://127.0.0.1:4173` are different sites for storage—use one consistent dev URL. Incognito/private windows drop storage when closed.
+
 ## Admlog (`GET /api/admlog`)
 
 Admin one-shot login is implemented in [`api/admlog/index.ts`](../../api/admlog/index.ts) using `@bookiji-inc/platform-auth`. **Production safety:** `isAdmlogEnabled()` is false when `NODE_ENV` or `VERCEL_ENV` is `production`, so the route cannot issue a session on Vercel Production even if secrets were wrong.

@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/providers/useAuth'
 import ThemeSelector from '../components/ThemeSelector'
@@ -11,6 +11,9 @@ export default function Login() {
   const [success, setSuccess] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [oauthSubmitting, setOauthSubmitting] = useState(false)
+  /** Synchronous guard: React state updates are async, so rapid double-submit can fire two OTP requests before `submitting` disables the button. */
+  const magicSubmitLock = useRef(false)
+  const oauthSubmitLock = useRef(false)
 
   const nextPath = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -26,7 +29,8 @@ export default function Login() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (submitting) return
+    if (submitting || magicSubmitLock.current) return
+    magicSubmitLock.current = true
     setSubmitting(true)
     setError(null)
     setSuccess(null)
@@ -36,12 +40,14 @@ export default function Login() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send magic link')
     } finally {
+      magicSubmitLock.current = false
       setSubmitting(false)
     }
   }
 
   const onOAuth = async (provider: 'google' | 'apple' | 'microsoft') => {
-    if (oauthSubmitting) return
+    if (oauthSubmitting || oauthSubmitLock.current) return
+    oauthSubmitLock.current = true
     setOauthSubmitting(true)
     setError(null)
     setSuccess(null)
@@ -49,6 +55,8 @@ export default function Login() {
       await signInWithOAuth(provider, nextPath)
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to continue with ${provider}`)
+    } finally {
+      oauthSubmitLock.current = false
       setOauthSubmitting(false)
     }
   }

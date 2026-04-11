@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, SUPABASE_CONFIG_ERROR } from '../../lib/supabaseClient'
 import {
@@ -9,6 +9,7 @@ import {
 import type { PlatformProfileRecord } from '../../lib/kinetixProfile'
 import { setActivePlatformProfile } from '../../lib/authState'
 import { buildAuthRedirectTarget } from '../../lib/authRedirect'
+import { formatSupabaseAuthError } from '../../lib/supabaseAuthErrors'
 import { AuthContext, type AuthContextValue, type OAuthProviderAvailability } from './useAuth'
 
 type AuthStatus = 'loading' | 'unauthenticated' | 'authenticated' | 'forbidden' | 'error'
@@ -108,6 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<PlatformProfileRecord | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const magicLinkInFlight = useRef(false)
+  const oauthRedirectInFlight = useRef(false)
 
   useEffect(() => {
     if (SKIP_AUTH) {
@@ -191,34 +194,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendMagicLink = useCallback(async (email: string, nextPath?: string) => {
     if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
+    if (magicLinkInFlight.current) {
+      throw new Error('A magic link request is already in progress. Please wait.')
+    }
+    magicLinkInFlight.current = true
     const redirectTarget = buildAuthRedirectTarget({
       windowOrigin: window.location.origin,
       configuredRedirectUrl: AUTH_REDIRECT_URL,
       nextPath,
     })
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectTarget,
-      },
-    })
-    if (otpError) throw otpError
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: redirectTarget,
+        },
+      })
+      if (otpError) throw otpError
+    } catch (err) {
+      throw new Error(formatSupabaseAuthError(err))
+    } finally {
+      magicLinkInFlight.current = false
+    }
   }, [])
 
   const signInWithOAuth = useCallback(
     async (provider: 'google' | 'apple' | 'microsoft', nextPath?: string) => {
       if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
+      if (oauthRedirectInFlight.current) {
+        throw new Error('A sign-in redirect is already in progress. Please wait.')
+      }
+      oauthRedirectInFlight.current = true
       const redirectTarget = buildAuthRedirectTarget({
         windowOrigin: window.location.origin,
         configuredRedirectUrl: AUTH_REDIRECT_URL,
         nextPath,
       })
       const providerKey = provider === 'microsoft' ? 'azure' : provider
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: providerKey,
-        options: { redirectTo: redirectTarget },
-      })
-      if (oauthError) throw oauthError
+      try {
+        const { error: oauthError } = await supabase.auth.signInWithOAuth({
+          provider: providerKey,
+          options: { redirectTo: redirectTarget },
+        })
+        if (oauthError) throw oauthError
+      } catch (err) {
+        throw new Error(formatSupabaseAuthError(err))
+      } finally {
+        oauthRedirectInFlight.current = false
+      }
     },
     []
   )

@@ -15,14 +15,17 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useAICoach } from '../hooks/useAICoach'
 import {
   getPB,
-  isValidKPS,
-  calculateAbsoluteKPS,
   ensurePBInitialized,
   calculateRelativeKPSSync,
   isMeaningfulRunForKPS,
   filterRunsByRelativeKpsBounds,
 } from '../lib/kpsUtils'
 import { resolveProfileForRunWithWeightCache } from '../lib/authState'
+import {
+  buildHistoryKpsTierKey,
+  clearHistoryKpsDerivedCache,
+  computeHistoryKpsDerived,
+} from '../lib/historyKpsDerivedCache'
 import { KPSTrendChart } from '../components/KPSTrendChart'
 import { RunDetails } from '../components/RunDetails'
 import { RunCalendar } from '../components/RunCalendar'
@@ -55,9 +58,10 @@ import {
   type RunHistoryFilters,
   type RunHistoryFilterDraft,
 } from '../lib/historyFilters'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../components/providers/useAuth'
 import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
-import { computeKpsMedalsForRuns, type KpsMedal } from '../lib/kpsMedals'
+import type { KpsMedal } from '../lib/kpsMedals'
 import { WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { HistoryCoachSummaryWithProvider } from '../components/HistoryCoachSummary'
 
@@ -100,13 +104,18 @@ export default function History() {
   const hasCompletedInitialLoadRef = useRef(false)
   const unitSystem = useSettingsStore((s) => s.unitSystem)
   const weightUnit = useSettingsStore((s) => s.weightUnit)
+  const weightSource = useSettingsStore((s) => s.weightSource)
+  const physioMode = useSettingsStore((s) => s.physioMode)
   const lastWithingsWeightKg = useSettingsStore((s) => s.lastWithingsWeightKg)
   const [weightByRunDate, setWeightByRunDate] = useState<Map<string, number>>(() => new Map())
   const { profile } = useAuth()
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
   const userProfile = useStableKinetixUserProfile(profile)
   useEffect(() => {
-    if (!profile) setHasCompletedInitialLoad(false)
+    if (!profile) {
+      setHasCompletedInitialLoad(false)
+      clearHistoryKpsDerivedCache()
+    }
   }, [profile])
 
   useEffect(() => {
@@ -147,7 +156,9 @@ export default function History() {
         let medalSourceRuns: RunRecord[]
 
         if (!fa) {
-          const [page, all] = await Promise.all([getRunsPage(currentPage, pageSize), getAllVisibleRunsOrdered()])
+          const page = await getRunsPage(currentPage, pageSize)
+          if (cancelled) return
+          const all = await getAllVisibleRunsOrdered()
           if (cancelled) return
           items = page.items
           medalSourceRuns = all
@@ -183,29 +194,42 @@ export default function History() {
         setPbRunDate(pbRun?.date ?? null)
 
         const itemIds = new Set(items.map((run) => run.id).filter((id): id is number => id != null))
-        const weightByRunDate = await getWeightsForDates(medalSourceRuns.map((r) => r.date))
+        const weightByRunDateLocal = await getWeightsForDates(medalSourceRuns.map((r) => r.date))
         if (cancelled) return
-        const medalKpsMap = new Map<number, number>()
-        const kpsMap = new Map<number, number>()
-        let invalidKPS = 0
-        for (const run of medalSourceRuns) {
-          const resolvedProfile = resolveProfileForRunWithWeightCache(weightByRunDate, run)
-          const calculatedKPS = calculateAbsoluteKPS(run, resolvedProfile)
-          if (run.id != null && itemIds.has(run.id) && !isValidKPS(calculatedKPS)) invalidKPS += 1
-          if (run.id) {
-            const relative = calculateRelativeKPSSync(run, resolvedProfile, pb ?? null, pbRun ?? null)
-            medalKpsMap.set(run.id, relative)
-            if (itemIds.has(run.id)) {
-              kpsMap.set(run.id, relative)
-            }
-          }
+        const tierKey = buildHistoryKpsTierKey({
+          pb,
+          weightSource,
+          lastWithingsWeightKg,
+          physioMode,
+          profileAge: userProfile.age,
+          profileWeightKg: userProfile.weightKg,
+        })
+        const derived = computeHistoryKpsDerived({
+          tierKey,
+          userId: profile?.id ?? null,
+          medalSourceRuns,
+          itemIds,
+          weightByRunDate: weightByRunDateLocal,
+          pb,
+          pbRun,
+        })
+        if (cancelled) return
+        setInvalidKPSCount(derived.invalidKPS)
+        setRelativeKPSMap(derived.kpsMap)
+        setMedalByRunId(derived.medalByRunId)
+        if (import.meta.env.DEV) {
+          console.debug('[History] runs loaded', {
+            profileId: profile?.id ?? null,
+            totalRuns: total,
+            pageItems: items.length,
+            filterActive: fa,
+          })
         }
-        if (cancelled) return
-        setInvalidKPSCount(invalidKPS)
-        setRelativeKPSMap(kpsMap)
-        setMedalByRunId(computeKpsMedalsForRuns(medalSourceRuns, medalKpsMap))
       } catch (error) {
-        console.error('❌ Error loading runs:', error)
+        console.error('[History] failed to load runs', {
+          profileId: profile?.id ?? null,
+          error,
+        })
       } finally {
         const isLatestGeneration = generation === historyLoadGenerationRef.current
         if (isLatestGeneration) {
@@ -217,7 +241,18 @@ export default function History() {
     return () => {
       cancelled = true
     }
-  }, [userProfile, currentPage, pageSize, appliedFilters, listRefreshKey, unitSystem, lastWithingsWeightKg])
+  }, [
+    userProfile,
+    currentPage,
+    pageSize,
+    appliedFilters,
+    listRefreshKey,
+    unitSystem,
+    lastWithingsWeightKg,
+    weightSource,
+    physioMode,
+    profile?.id,
+  ])
 
   // After Withings startup sync (or manual refresh), re-resolve weight-at-date for the current list.
   useEffect(() => {
@@ -453,6 +488,21 @@ export default function History() {
             <h1 className="text-lg font-bold text-yellow-300">Loading profile...</h1>
             <p className="text-sm text-slate-700 dark:text-gray-300">
               Your platform profile is still loading. If this persists, refresh the page.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!userProfile) {
+    return (
+      <div className="pb-20 lg:pb-4">
+        <div className="max-w-md lg:max-w-2xl mx-auto">
+          <div className="glass rounded-2xl border border-yellow-500/30 p-6 space-y-2">
+            <h1 className="text-lg font-bold text-yellow-300">Preparing run history…</h1>
+            <p className="text-sm text-slate-700 dark:text-gray-300">
+              Resolving runner profile fields for {KPS_SHORT}. If this persists, refresh the page.
             </p>
           </div>
         </div>
@@ -728,31 +778,8 @@ export default function History() {
             </div>
         </div>
 
-        {runs.length === 0 && !loading ? (
-          <div className="glass rounded-2xl p-8 text-center">
-            <Calendar className="mx-auto mb-4 text-slate-500 dark:text-gray-500" size={48} />
-            {filterActive ? (
-              <>
-                <p className="mb-2 text-slate-600 dark:text-gray-400">No activities match your filters.</p>
-                <button
-                  type="button"
-                  onClick={handleClearFilters}
-                  className="text-sm font-semibold text-cyan-400 hover:text-cyan-300"
-                >
-                  Clear filters
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="mb-2 text-slate-600 dark:text-gray-400">No runs recorded yet</p>
-                <p className="text-sm text-slate-500 dark:text-gray-500">Start a run to see it here</p>
-              </>
-            )}
-          </div>
-        ) : (
-          <>
-            {/* Warning for invalid KPS */}
-            {invalidKPSCount > 0 && (
+        <>
+            {invalidKPSCount > 0 && runs.length > 0 && (
               <div className="mb-4 glass border border-yellow-500/30 rounded-xl p-3 flex items-start gap-3">
                 <AlertTriangle className="text-yellow-400 flex-shrink-0 mt-0.5" size={16} />
                 <div className="flex-1">
@@ -802,7 +829,37 @@ export default function History() {
 
               {/* Right Column: Run List */}
               <div className="lg:col-span-2">
-                {/* Virtualized Run List */}
+                {runs.length === 0 && !loading ? (
+                  <div className="glass rounded-2xl p-8 text-center">
+                    <Calendar className="mx-auto mb-4 text-slate-500 dark:text-gray-500" size={48} />
+                    {filterActive ? (
+                      <>
+                        <p className="mb-2 text-slate-600 dark:text-gray-400">No activities match your filters.</p>
+                        <button
+                          type="button"
+                          onClick={handleClearFilters}
+                          className="text-sm font-semibold text-cyan-400 hover:text-cyan-300"
+                        >
+                          Clear filters
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="mb-2 text-slate-600 dark:text-gray-400">No runs in this browser yet</p>
+                        <p className="text-sm text-slate-500 dark:text-gray-500 mb-3">
+                          Runs are stored locally (IndexedDB). Record a run from the Run tab, or import from Strava or Garmin in Settings.
+                        </p>
+                        <Link to="/settings" className="text-sm font-semibold text-cyan-400 hover:text-cyan-300">
+                          Open Settings
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                ) : runs.length === 0 && loading ? (
+                  <div className="glass rounded-2xl p-8 text-center text-slate-600 dark:text-gray-400">
+                    Loading runs…
+                  </div>
+                ) : (
                 <div className="space-y-3 lg:max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500 scrollbar-track-gray-800">
               {runs.map((run) => {
                 const relativeKPS = run.id ? (relativeKPSMap.get(run.id) ?? 0) : 0
@@ -943,10 +1000,10 @@ export default function History() {
                 )
               })}
                 </div>
+                )}
               </div>
             </div>
-          </>
-        )}
+        </>
 
         {/* AI Coach Modal */}
         {(isAnalyzing || aiResult || error) && (

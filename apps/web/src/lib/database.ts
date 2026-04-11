@@ -317,28 +317,47 @@ export async function getWeightAtDate(runDate: string): Promise<number | null> {
 }
 
 /**
+ * Maps each run date key (ISO strings, sorted ascending) to the latest weight row with
+ * `row.date <= runDateKey` among ascending-sorted `weightRowsSorted`.
+ * O(keys + rows). Used by {@link getWeightsForDates}.
+ */
+export function weightKgByRunDateKeysFromEntries(
+  uniqueSortedRunDates: string[],
+  weightRowsSorted: readonly WeightEntry[]
+): Map<string, number> {
+  const result = new Map<string, number>()
+  let j = 0
+  let best: WeightEntry | null = null
+  for (const d of uniqueSortedRunDates) {
+    while (j < weightRowsSorted.length && weightRowsSorted[j].date <= d) {
+      best = weightRowsSorted[j]
+      j += 1
+    }
+    if (best != null && best.kg > 0) {
+      result.set(d, best.kg)
+    }
+  }
+  return result
+}
+
+/**
  * Batch weight lookup for many run dates. One IndexedDB query instead of N.
  * Returns Map<runDate, weightKg>. Use for chart builds with many runs.
+ *
+ * Implementation: sort unique run-date keys, walk weight rows once (two-pointer) so cost is
+ * O(U + E) not O(U * E). The previous nested loop could freeze the main thread on large histories.
  */
 export async function getWeightsForDates(runDates: string[]): Promise<Map<string, number>> {
-  const unique = [...new Set(runDates)]
-  if (unique.length === 0) return new Map()
-  const maxDate = unique.reduce((a, b) => (a > b ? a : b))
+  const uniqueSorted = [...new Set(runDates)].sort((a, b) => a.localeCompare(b))
+  if (uniqueSorted.length === 0) return new Map()
+  const maxDate = uniqueSorted[uniqueSorted.length - 1]
   const entries = await db.weightHistory
     .where('date')
     .between('1970-01-01', maxDate, true, true)
     .toArray()
+  if (entries.length === 0) return new Map()
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date))
-  const result = new Map<string, number>()
-  for (const d of unique) {
-    let best: WeightEntry | null = null
-    for (const e of sorted) {
-      if (e.date <= d) best = e
-      else break
-    }
-    if (best != null && best.kg > 0) result.set(d, best.kg)
-  }
-  return result
+  return weightKgByRunDateKeysFromEntries(uniqueSorted, sorted)
 }
 
 /**

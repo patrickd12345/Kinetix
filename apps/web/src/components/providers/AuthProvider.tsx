@@ -8,7 +8,7 @@ import {
 } from '../../lib/platformAuth'
 import type { PlatformProfileRecord } from '../../lib/kinetixProfile'
 import { setActivePlatformProfile } from '../../lib/authState'
-import { buildAuthRedirectTarget } from '../../lib/authRedirect'
+import { buildAuthRedirectTarget, resolveConfiguredAuthRedirectUrl } from '../../lib/authRedirect'
 import { formatSupabaseAuthError } from '../../lib/supabaseAuthErrors'
 import { AuthContext, type AuthContextValue, type OAuthProviderAvailability } from './useAuth'
 
@@ -71,6 +71,15 @@ const AUTH_REDIRECT_URL =
   import.meta.env.VITE_AUTH_REDIRECT_URL ??
   import.meta.env.NEXT_PUBLIC_AUTH_REDIRECT_URL ??
   null
+
+function authRedirectUrlForCurrentWindow(): string | null | undefined {
+  if (typeof window === 'undefined') return AUTH_REDIRECT_URL
+  return resolveConfiguredAuthRedirectUrl(
+    window.location.origin,
+    AUTH_REDIRECT_URL,
+    import.meta.env.DEV
+  )
+}
 
 const MOCK_BYPASS_PROFILE: PlatformProfileRecord = {
   id: 'bypass-dev',
@@ -200,7 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     magicLinkInFlight.current = true
     const redirectTarget = buildAuthRedirectTarget({
       windowOrigin: window.location.origin,
-      configuredRedirectUrl: AUTH_REDIRECT_URL,
+      configuredRedirectUrl: authRedirectUrlForCurrentWindow(),
       nextPath,
     })
     try {
@@ -227,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       oauthRedirectInFlight.current = true
       const redirectTarget = buildAuthRedirectTarget({
         windowOrigin: window.location.origin,
-        configuredRedirectUrl: AUTH_REDIRECT_URL,
+        configuredRedirectUrl: authRedirectUrlForCurrentWindow(),
         nextPath,
       })
       const providerKey = provider === 'microsoft' ? 'azure' : provider

@@ -21,4 +21,9 @@ describe('History remediation contracts', () => {
     expect(source).toContain("from '../components/HistoryCoachSummary'")
     expect(source).not.toContain("from './Coaching'")
   })
+
+  it('derives list KPS via cached tier + compute helper', () => {
+    expect(source).toContain('computeHistoryKpsDerived')
+    expect(source).toContain('buildHistoryKpsTierKey')
+  })
 })

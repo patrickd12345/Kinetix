@@ -32,6 +32,8 @@ Optional (auth callback pinning): set when magic-link or OAuth must return to th
 
 **Production example:** `VITE_AUTH_REDIRECT_URL=https://kinetix.bookiji.com/login` (or set the origin only, e.g. `https://kinetix.bookiji.com` — the client normalizes bare origins to `/login`).
 
+**Local dev:** If `VITE_AUTH_REDIRECT_URL` or `NEXT_PUBLIC_AUTH_REDIRECT_URL` is copied from Bookiji (for example `https://app.bookiji.com/login`), magic links would open Bookiji instead of `http://localhost:5173`. Either **omit** those variables in `apps/web/.env.local`, or set them to `http://localhost:5173/login`. The client also **ignores a non-localhost pin when `import.meta.env.DEV` is true and the app runs on `localhost` or `127.0.0.1`** ([`apps/web/src/lib/authRedirect.ts`](../../apps/web/src/lib/authRedirect.ts)), so shared Infisical values do not break local magic links.
+
 The Kinetix web client ([`apps/web/src/lib/supabaseClient.ts`](../../apps/web/src/lib/supabaseClient.ts)) reads `VITE_*` first and falls back to `NEXT_PUBLIC_*`. For Vite builds, set the `VITE_*` pair; you can also set `NEXT_PUBLIC_*` to the same values so both names work.
 
 Optional (Withings **expanded** sync — activity/sleep ingestion + scheduled HH:MM slots in Settings): in **production** builds this is off unless enabled. **`pnpm dev`** defaults it **on** so the toggles and Sync now control work without env. To turn it off locally, set `VITE_ENABLE_WITHINGS_EXPANDED_INGESTION=false` in `apps/web/.env.local`. To turn it **on** on Vercel, set `VITE_ENABLE_WITHINGS_EXPANDED_INGESTION=true`. See [`apps/web/src/lib/featureFlags.ts`](../../apps/web/src/lib/featureFlags.ts).
@@ -50,7 +52,7 @@ Admin one-shot login is implemented in [`api/admlog/index.ts`](../../api/admlog/
 **How to use admlog (non-production only):**
 
 - Open `GET /api/admlog` in the **browser** (same tab you use for the app). The handler returns a short HTML page that writes the Supabase session into **browser `localStorage`** (what the Vite app uses) and then navigates to the app. Cookie-only sessions do not work with `@supabase/supabase-js` in the SPA, so this HTML bridge is required.
-- Optional path: `GET /api/admlog?next=/` or `?next=/operator`. Invalid values fall back to `/operator`.
+- Optional path: `GET /api/admlog?next=/` or `?next=/operator` or `?next=/history` (use `/history` when validating Run History with the `admlog@bookiji.test` session). Invalid values fall back to `/operator`.
 - On success, the handler upserts an active **`kinetix`** row in `platform.entitlements` for `admlog@bookiji.test` (via `ensureEntitlementProductKeys` in `@bookiji-inc/platform-auth`) so the app passes entitlement gating without a separate seed step.
 - **Local dev (`pnpm dev` / port 5173):** Vite registers `/api/admlog` in [`apps/web/vite-plugin-oauth.ts`](../../apps/web/vite-plugin-oauth.ts) so the route is not swallowed by the SPA. Restart the dev server after changing env.
 - **Required server env in `apps/web/.env.local` (not `VITE_*` — never commit):**

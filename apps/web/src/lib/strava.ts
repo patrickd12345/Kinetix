@@ -278,7 +278,14 @@ export async function syncStravaRuns(
     const msg = err instanceof Error ? err.message : 'Strava sync failed'
     console.error('[Strava] sync on startup:', msg, err)
     const isRateLimit = typeof msg === 'string' && /rate limit/i.test(msg)
-    const isAuthError = !isRateLimit && typeof msg === 'string' && (msg.includes('401') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('token'))
+    const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
+    const isAuthError =
+      !isRateLimit &&
+      typeof msg === 'string' &&
+      (msg.includes('401') ||
+        lower.includes('unauthorized') ||
+        lower.includes('authorization error') ||
+        lower.includes('token'))
     if (isAuthError && typeof window !== 'undefined') {
       const { setStravaCredentials, setStravaToken, setStravaSyncError } = useSettingsStore.getState()
       setStravaCredentials(null)

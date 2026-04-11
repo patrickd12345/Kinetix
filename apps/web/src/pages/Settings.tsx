@@ -609,99 +609,129 @@ export default function Settings() {
           </div>
           
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">Strava Sync</div>
-                <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-2">
-                  Connect your Strava account to import your running history.
-                </p>
-                {!stravaCredentials && !stravaToken?.trim() ? (
-                  <button
-                    onClick={initiateOAuth}
-                    className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-full transition mb-2"
-                  >
-                    Connect with Strava
-                  </button>
-                ) : (
-                  <p className="text-[11px] text-green-400 mb-2">✓ Connected to Strava</p>
-                )}
-              </div>
-              <button
-                onClick={async () => {
-                  setImportMessage(null)
-                  try {
-                    setImporting(true)
-                    const token = await getValidStravaToken()
-                    if (!token) {
-                      setImportMessage('Connect Strava first or refresh your token.')
-                      return
-                    }
-                    const activities = await fetchStravaActivities(token)
-                    
-                    if (activities.length === 0) {
-                      setImportMessage('No running activities found in your Strava history.')
-                      return
-                    }
-
-                    // Check for duplicates by comparing date and distance
-                    const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
-                      (r) => (r.deleted ?? 0) === RUN_VISIBLE
-                    )
-                    const existingKeys = new Set(
-                      existingRuns.map(run => `${run.date}-${Math.round(run.distance)}`)
-                    )
-
-                    const records = (
-                      await Promise.all(
-                        activities.map(async (activity) => {
-                          const profileForDate = await getProfileForRunDate(activity.start_date)
-                          return convertStravaToRunRecord(activity, profileForDate, targetKPS)
-                        })
-                      )
-                    )
-                      .filter((record): record is RunRecord => record !== null)
-                      .filter((record) => {
-                        const key = `${record.date}-${Math.round(record.distance)}`
-                        return !existingKeys.has(key)
-                      })
-
-                    if (records.length === 0) {
-                      setImportMessage('All activities are already imported.')
-                      return
-                    }
-
-                    const added: RunRecord[] = []
-                    for (const r of records) {
-                      const id = await db.runs.add(r)
-                      added.push({ ...r, id: id as number } as RunRecord)
-                    }
-                    await indexRunsAfterSave(added)
-                    setImportMessage(`Imported ${added.length} new run${added.length > 1 ? 's' : ''} from Strava.`)
-                    if (typeof window !== 'undefined') {
-                      window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
-                    }
-                    const outliers = await findOutlierRuns(added)
-                    if (outliers.length > 0) setOutlierRuns(outliers)
-                  } catch (error) {
-                    console.error('Strava import error', error)
-                    const errorMsg = error instanceof Error ? error.message : 'Failed to import from Strava. Check token.'
-                    setImportMessage(`Error: ${errorMsg}`)
-                    const isAuthErr = String(errorMsg).includes('401') || String(errorMsg).toLowerCase().includes('unauthorized')
-                    if (isAuthErr) {
-                      setStravaCredentials(null)
-                      setStravaToken('')
-                      setStravaSyncError('Token expired. Disconnect and reconnect Strava.')
-                    }
-                  } finally {
-                    setImporting(false)
-                  }
-                }}
-                className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition"
-                disabled={importing || (!stravaCredentials && !stravaToken?.trim())}
-              >
-                {importing ? 'Importing…' : 'Import from Strava'}
-              </button>
+            <div>
+              <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">Strava Sync</div>
+              <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-2">
+                Connect your Strava account, then import runs. Reconnect if the token expired or Strava shows an authorization error.
+              </p>
             </div>
+
+            {stravaCredentials || stravaToken?.trim() ? (
+              <>
+                <p className="text-[11px] text-green-400">✓ Connected to Strava</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setImportMessage(null)
+                      try {
+                        setImporting(true)
+                        const token = await getValidStravaToken()
+                        if (!token) {
+                          setImportMessage('Connect Strava first or refresh your token.')
+                          return
+                        }
+                        const activities = await fetchStravaActivities(token)
+
+                        if (activities.length === 0) {
+                          setImportMessage('No running activities found in your Strava history.')
+                          return
+                        }
+
+                        const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
+                          (r) => (r.deleted ?? 0) === RUN_VISIBLE
+                        )
+                        const existingKeys = new Set(
+                          existingRuns.map((run) => `${run.date}-${Math.round(run.distance)}`)
+                        )
+
+                        const records = (
+                          await Promise.all(
+                            activities.map(async (activity) => {
+                              const profileForDate = await getProfileForRunDate(activity.start_date)
+                              return convertStravaToRunRecord(activity, profileForDate, targetKPS)
+                            })
+                          )
+                        )
+                          .filter((record): record is RunRecord => record !== null)
+                          .filter((record) => {
+                            const key = `${record.date}-${Math.round(record.distance)}`
+                            return !existingKeys.has(key)
+                          })
+
+                        if (records.length === 0) {
+                          setImportMessage('All activities are already imported.')
+                          return
+                        }
+
+                        const added: RunRecord[] = []
+                        for (const r of records) {
+                          const id = await db.runs.add(r)
+                          added.push({ ...r, id: id as number } as RunRecord)
+                        }
+                        await indexRunsAfterSave(added)
+                        setImportMessage(`Imported ${added.length} new run${added.length > 1 ? 's' : ''} from Strava.`)
+                        if (typeof window !== 'undefined') {
+                          window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
+                        }
+                        const outliers = await findOutlierRuns(added)
+                        if (outliers.length > 0) setOutlierRuns(outliers)
+                      } catch (error) {
+                        console.error('Strava import error', error)
+                        const errorMsg = error instanceof Error ? error.message : 'Failed to import from Strava. Check token.'
+                        setImportMessage(`Error: ${errorMsg}`)
+                        const lower = String(errorMsg).toLowerCase()
+                        const isAuthErr =
+                          String(errorMsg).includes('401') ||
+                          lower.includes('unauthorized') ||
+                          lower.includes('authorization error')
+                        if (isAuthErr) {
+                          setStravaCredentials(null)
+                          setStravaToken('')
+                          setStravaSyncError('Token expired. Disconnect and reconnect Strava.')
+                        }
+                      } finally {
+                        setImporting(false)
+                      }
+                    }}
+                    className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition w-full sm:w-auto"
+                    disabled={importing}
+                  >
+                    {importing ? 'Importing…' : 'Import from Strava'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => initiateOAuth()}
+                    className="border border-orange-500 text-orange-400 hover:bg-orange-500/10 text-xs font-bold px-4 py-2 rounded-full transition w-full sm:w-auto"
+                  >
+                    Reconnect Strava
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <button
+                  type="button"
+                  onClick={() => initiateOAuth()}
+                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-full transition w-full sm:w-auto"
+                >
+                  Connect with Strava
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  className="bg-cyan-500/40 text-white/80 text-xs font-bold px-4 py-2 rounded-full cursor-not-allowed w-full sm:w-auto"
+                  aria-disabled="true"
+                >
+                  Import from Strava
+                </button>
+              </div>
+            )}
+            {!stravaCredentials && !stravaToken?.trim() ? (
+              <p className="text-[11px] text-slate-500 dark:text-gray-500">
+                Use <span className="font-medium text-slate-600 dark:text-gray-400">Connect with Strava</span> first; Import stays disabled until you are connected.
+              </p>
+            ) : null}
             <input
               type="password"
               value={stravaToken}
@@ -726,7 +756,9 @@ export default function Settings() {
               <div className="text-xs text-amber-400">
                 Startup sync: {stravaSyncError}
                 {stravaSyncError.includes('expired') || stravaSyncError.includes('reconnect') ? (
-                  <span className="block mt-1">Click Disconnect above, then Connect with Strava to fix.</span>
+                  <span className="block mt-1">
+                    Use <span className="font-medium">Reconnect Strava</span> above, or Disconnect and Connect with Strava again.
+                  </span>
                 ) : null}
               </div>
             )}

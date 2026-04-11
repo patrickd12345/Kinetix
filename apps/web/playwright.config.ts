@@ -24,6 +24,8 @@ export default defineConfig({
     env: {
       ...process.env,
       VITE_SKIP_AUTH: '1',
+      /** Enables entitlement bypass + all feature flags for full UI audit (see `src/lib/debug/masterAccess.ts`). */
+      VITE_MASTER_ACCESS: '1',
     },
   },
 })

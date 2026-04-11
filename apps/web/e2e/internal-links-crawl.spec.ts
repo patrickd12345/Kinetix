@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 const ROUTES_TO_CRAWL = [
   '/',
   '/history',
+  '/coaching',
   '/weight-history',
   '/menu',
   '/chat',

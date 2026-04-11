@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { sharedViteConfig } from './vite.config.shared'
 
@@ -28,6 +28,10 @@ function manualChunk(id: string): string | undefined {
 export default defineConfig({
   ...sharedViteConfig(),
   plugins: [react()],
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+  },
   build: {
     reportCompressedSize: false,
     chunkSizeWarningLimit: 700,

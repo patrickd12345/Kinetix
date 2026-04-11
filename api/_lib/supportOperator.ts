@@ -2,6 +2,10 @@ import type { VercelRequest } from '@vercel/node'
 import { resolveKinetixRuntimeEnv } from './env/runtime.js'
 import { getSupabaseUserFromJwt } from './supabaseUserFromJwt.js'
 
+if (process.env.NODE_ENV === 'production' && process.env.KINETIX_MASTER_ACCESS) {
+  throw new Error('KINETIX_MASTER_ACCESS forbidden in production')
+}
+
 const MASTER_ACCESS =
   process.env.KINETIX_MASTER_ACCESS === '1' || process.env.KINETIX_MASTER_ACCESS === 'true'
 

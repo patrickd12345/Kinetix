@@ -6,6 +6,7 @@
   "description": "AI-Powered Running Coach with Kinetix Performance Score (KPS)",
   "workspaces": ["packages/core", "monorepo-packages/*", "apps/*"],
   "scripts": {
+    "prebuild": "tsx scripts/check-master-access.ts",
     "prepare": "node scripts/build-bookiji-packages.mjs",
     "dev": "concurrently -n rag,web -c cyan,yellow \"pnpm --filter @kinetix/rag start\" \"pnpm --filter @kinetix/web dev\"",
     "dev:infisical": "node scripts/dev-with-infisical.mjs",

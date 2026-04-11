@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "corepack enable && corepack prepare pnpm@10.30.3 --activate && pnpm --filter @kinetix/core build && pnpm --filter @kinetix/web build",
+  "buildCommand": "corepack enable && corepack prepare pnpm@10.30.3 --activate && tsx scripts/check-master-access.ts && pnpm --filter @kinetix/core build && pnpm --filter @kinetix/web build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "bash scripts/vercel-install.sh",
   "framework": "vite",

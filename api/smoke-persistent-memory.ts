@@ -28,7 +28,6 @@ async function main() {
     throw new Error('unexpected boundary payload')
   }
   await rm(base, { recursive: true, force: true })
-  console.log('kinetix persistent memory smoke OK')
 }
 
 main().catch((e) => {

@@ -1,35 +1,38 @@
-# Performance report — web bundle
+# Kinetix Performance Report
 
-## Build output (evidence)
+Audit date: 2026-04-11
 
-Command: `pnpm --filter @kinetix/web build` (production Vite build).
+## Build Evidence
 
-Approximate **minified JS** sizes from `apps/web/dist/assets/`:
+`pnpm --filter @kinetix/web build` passed. Vite output included:
+- `assets/index-*.js`: 845.75 kB, warning above 700 kB.
+- `assets/recharts-vendor-*.js`: 361.81 kB.
+- `assets/SupportQueue-*.js`: 183.03 kB.
+- `assets/react-core-*.js`: 142.35 kB.
+- Warning: `Coaching.tsx` is dynamically imported by `App.tsx` but statically imported by `History.tsx`, so it cannot move into its own chunk.
 
-| Chunk | Size (approx) |
-|-------|----------------|
-| `index-*.js` (main app) | ~879 KB |
-| `recharts-vendor-*.js` | ~362 KB |
-| `react-core-*.js` | ~142 KB |
-| `lucide-*.js` | ~21 KB |
-| `react-router-*.js` | ~21 KB |
-| `supabase-*.js` | 0 KB (empty chunk — see finding) |
-
-Vite warned: **main chunk > 700 KB** after minification.
+`pnpm lh:ci` is blocked because `lighthouserc.json` points at `https://example.invalid/lighthouse-placeholder`; Chrome navigates to `chrome-error://chromewebdata/`.
 
 ## Findings
 
-1. **Large main bundle:** The primary `index-*.js` chunk is close to **900 KB** minified. Risk: slow TTI on mobile networks.
-2. **Recharts vendor split:** Large chart library isolated — good; still heavy.
-3. **Empty `supabase` chunk:** Rollup emitted an empty chunk named `supabase` (`build` log). Likely a manualChunks split artifact — worth cleaning to avoid confusion and redundant requests.
-4. **Lighthouse:** Not executed in this environment (no stable `lighthouse` CLI run against a public HTTPS origin). Recommend running Lighthouse on **staging/production** URLs.
+| ID | Severity | Evidence | Finding | Estimated Gain |
+|---|---|---|---|---|
+| PERF-01 | P1 | Vite main chunk 845.75 kB. | Initial JS payload is too large for mobile/slow network. | 20-40% lower initial JS if heavy pages/charts move out of main chunk. |
+| PERF-02 | P1 | Vite warning: `Coaching.tsx` lazy import defeated by static import in `History.tsx`. | Route-level lazy loading is not working as intended. | Lower initial parse/eval and cleaner route chunks. |
+| PERF-03 | P2 | `lighthouserc.json` placeholder URL. | Performance CI is nonfunctional. | Restores repeatable Lighthouse budget enforcement. |
+| PERF-04 | P2 | `apps/web/src/lib/strava.ts` waits 60 seconds on HTTP 429. | Client sync can hang background flows and tests. | Immediate UX recovery; prevents minute-long stalls. |
+| PERF-05 | P2 | `History.tsx`, `Menu.tsx`, and coaching hooks use full `toArray()`/all-run reads for filters/charts/context. | Heavy users may hit IndexedDB and render bottlenecks. | Better heavy-history responsiveness with indexed pagination/caching. |
+| PERF-06 | P2 | Coverage low for `RunDashboard`, `Settings`, `WeightHistory`. | Performance regressions on complex screens may escape tests. | Earlier detection, not direct runtime gain. |
+| PERF-07 | P3 | AdSense display polls with interval until script global exists. | Minor timer overhead; acceptable but should remain bounded. | Small cleanup. |
 
-## Recommendations
+## Hot Spots
 
-- **Code-split** heavy routes (Coaching, Menu/charts, Operator) via `React.lazy` + `Suspense`.
-- **Review** `manualChunks` in `apps/web/vite.config.ts` for the empty supabase chunk.
-- Run **Lighthouse** (performance + accessibility) on deployed preview.
+- Initial bundle: dashboard, shared engines, chart dependencies, and non-lazy imports.
+- Charts: Recharts vendor chunk is large; route-level deferral is important.
+- IndexedDB: full history reads for filters and charts should be bounded or cached for heavy accounts.
+- Startup effects: Layout runs RAG sync and Strava sync attempts after auth/profile; useful, but should stay capped and abortable.
 
-## Runtime profiling
+## Blocked Measurements
 
-- React Profiler / memory snapshots were **not** captured in this audit session.
+Lighthouse score cannot be trusted until `lighthouserc.json` uses a real local preview URL or deployed URL.
+

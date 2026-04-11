@@ -87,7 +87,7 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
       <div className="grid grid-cols-2 gap-2 text-sm">
         <label className="flex flex-col gap-1">
           <span className="text-xs text-gray-400">Distance</span>
-          <select className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" value={distance} onChange={(e) => setDistance(e.target.value as GoalDistance)}>
+          <select aria-label="Goal distance" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" value={distance} onChange={(e) => setDistance(e.target.value as GoalDistance)}>
             <option value="5K">5K</option>
             <option value="10K">10K</option>
             <option value="Half">Half</option>
@@ -96,7 +96,7 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-gray-400">Priority</span>
-          <select className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" value={priority} onChange={(e) => setPriority(e.target.value as GoalPriority)}>
+          <select aria-label="Goal priority" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" value={priority} onChange={(e) => setPriority(e.target.value as GoalPriority)}>
             <option value="finish">Finish</option>
             <option value="improve">Improve</option>
             <option value="PB">PB</option>
@@ -105,15 +105,15 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
         </label>
         <label className="col-span-2 flex flex-col gap-1">
           <span className="text-xs text-gray-400">Event date</span>
-          <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" />
+          <input aria-label="Goal event date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" />
         </label>
         <label className="col-span-2 flex flex-col gap-1">
           <span className="text-xs text-gray-400">Target time (optional, mm:ss or hh:mm:ss)</span>
-          <input type="text" value={targetTime} onChange={(e) => setTargetTime(e.target.value)} placeholder="1:45:00" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" />
+          <input aria-label="Goal target time" type="text" value={targetTime} onChange={(e) => setTargetTime(e.target.value)} placeholder="1:45:00" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5" />
         </label>
       </div>
 
-      <button type="button" onClick={saveGoal} disabled={!eventDate || (targetTime.trim().length > 0 && parsedTarget == null)} className="w-full rounded-lg bg-emerald-500/20 border border-emerald-500/40 px-3 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-60">
+      <button type="button" aria-label="Save race goal" onClick={saveGoal} disabled={!eventDate || (targetTime.trim().length > 0 && parsedTarget == null)} className="w-full rounded-lg bg-emerald-500/20 border border-emerald-500/40 px-3 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-60">
         Save Goal
       </button>
       {targetTime.trim().length > 0 && parsedTarget == null ? (

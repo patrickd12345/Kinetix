@@ -1,98 +1,95 @@
-# Kinetix system map (repository evidence)
+# Kinetix System Map
 
-Generated from a full crawl of this workspace (`/workspace`). The product’s canonical **web** surface is `apps/web` (Vite + React). Native apps live under `ios/` and `watchos/`. Shared scoring logic is in `packages/core` (`@kinetix/core`). Serverless HTTP handlers for production live under `api/` (Vercel functions).
+Audit date: 2026-04-11  
+Scope: `apps/web/src`, `apps/rag`, `api`, `packages/core/src`, active `monorepo-packages/*/src`.
 
-## Web app (`apps/web`)
+## Architecture Diagram
 
-| Area | Location | Notes |
-|------|-----------|--------|
-| Entry | `src/main.tsx` | React mount |
-| Routing | `src/App.tsx` | `BrowserRouter`, public routes (`/login`, `/billing/*`), protected shell under `/*` |
-| Layout / nav | `src/components/Layout.tsx` | Sidebar (md+), mobile bottom nav + “More” dialog |
-| Auth | `src/components/providers/AuthProvider.tsx`, `src/lib/platformAuth.ts`, `src/lib/supabaseClient.ts` | Supabase session + `platform.profiles` + `platform.entitlements` |
-| Global state | `src/store/*.ts` (Zustand), Dexie/IndexedDB via `src/lib/database.ts` patterns |
-| Feature flags | `src/lib/featureFlags.ts` | `VITE_ENABLE_*` env toggles |
-| Audit master access | `src/lib/debug/masterAccess.ts` | `VITE_MASTER_ACCESS` — **off by default**; enables entitlement bypass + all flags for crawls |
+```text
+Browser
+  -> apps/web Vite React SPA
+     -> main.tsx: AppErrorBoundary, AuthProvider, theme hydration
+     -> App.tsx: BrowserRouter, public routes, ProtectedRoutes
+     -> Layout.tsx: shell nav, startup RAG sync, startup Strava sync,
+        Withings prompt, AdSense
+     -> pages/components/hooks
+  -> client state/storage
+     -> Zustand: settingsStore, runStore, themeStore
+     -> Dexie KinetixDB: runs, pb, weightHistory, provider sync, healthMetrics
+     -> localStorage/sessionStorage: settings, theme, coach memory, OAuth state,
+        RAG failure banner state
+  -> API/RAG
+     -> api/* Vercel handlers
+     -> apps/rag Express service, Chroma, embeddings, support KB
+  -> external systems
+     -> Supabase, Stripe, Withings, Strava, Slack, Resend, AI gateway/Ollama
+```
 
-### Declared routes (`src/App.tsx`)
+## Entry Points And Routes
 
-**Public**
+Verified entry points:
+- `apps/web/src/main.tsx`: React root, error boundary, auth provider, theme hydration.
+- `apps/web/src/App.tsx`: router, protected route gate, lazy route boundaries.
+- `apps/rag/index.js`: RAG service process entry.
+- `apps/rag/ragHttpApp.js`: Express app factory.
+- `api/*/index.ts` and `api/escalationNotify.ts`: Vercel function handlers.
 
-- `/login`
-- `/billing/success`, `/billing/cancel`
+Routes from `apps/web/src/App.tsx`:
 
-**Protected (inside `Layout`)**
+| Route | Component | Protection | Notes |
+|---|---|---|---|
+| `/` | `RunDashboard` | Protected | Dashboard/run session. |
+| `/history` | `History` | Protected | Run history, filters, delete, AI analysis. |
+| `/coaching` | lazy `Coaching` | Protected | Coaching cards and planning. |
+| `/weight-history` | `WeightHistory` | Protected | Weight pagination/chart source. |
+| `/menu` | lazy `Menu` | Protected | Charts tab view. |
+| `/chat` | `Chat` | Protected | AI coach chat. |
+| `/settings` | `Settings` | Protected | Integrations/import/settings. |
+| `/help` | `HelpCenter` | Protected | Support search/escalation. |
+| `/operator` | lazy `OperatorDashboard` | Protected | Ops summary. |
+| `/support-queue` | lazy `SupportQueue` | Protected | Ops ticket/KB workflow. |
+| `/login` | `Login` | Public | Magic link/OAuth. |
+| `/billing/success` | `BillingSuccess` | Public | Billing return route. |
+| `/billing/cancel` | `BillingCancel` | Public | Billing return route. |
 
-- `/` — Run dashboard
-- `/history`
-- `/coaching`
-- `/weight-history`
-- `/menu` (charts)
-- `/chat`
-- `/settings`
-- `/help` (Help Center)
-- `/operator` (operator dashboard)
-- `/support-queue`
-- `*` → redirect `/`
+Local Playwright audit crawl tested all routes above.
 
-### Client → server calls (relative URLs)
+## Module Breakdown
 
-| Client | Path | Purpose |
-|--------|------|---------|
-| `useChat.ts`, `Chat.tsx` | `POST /api/ai-chat` | Coach chat |
-| `useAICoach.ts` | `POST /api/ai-coach` | Coaching API |
-| `kinetixBilling.ts` | `POST /api/billing/create-checkout-session` | Stripe Checkout |
-| `strava.ts`, `useStravaAuth.ts` | `/api/strava-refresh`, `/api/strava-oauth` | Strava token + OAuth |
-| `withings.ts`, integrations | `/api/withings-refresh`, `/api/withings-oauth` | Withings |
-| `supportQueueClient.ts` | `/api/support-queue/*` | Operator queue (Bearer JWT) |
+| Area | Modules | Classification |
+|---|---|---|
+| App shell/auth | `App.tsx`, `main.tsx`, `components/Layout.tsx`, `components/providers/*`, `AppErrorBoundary.tsx` | Routing, auth/entitlement gate, layout shell, startup effects. |
+| Pages | `pages/*.tsx`, `pages/run-dashboard/*` | User-facing UI screens and route-specific workflows. |
+| Components | `components/Kinetix*`, charts, `RunCalendar`, `RunDetails`, `ThemeSelector`, `a11y/Dialog` | Cards, chart UI, modal/focus primitives. |
+| State | `store/settingsStore.ts`, `store/runStore.ts`, `store/themeStore.ts` | Persistent settings, live run state, theme state. |
+| Client data | `lib/database.ts`, `lib/kpsUtils.ts`, `lib/authState.ts` | Dexie schema, PB/KPS invariants, profile/weight lookup. |
+| Integrations | `lib/strava.ts`, `lib/withings.ts`, `lib/integrations/withings/*`, API Withings/Strava handlers | OAuth, sync, normalization, import. |
+| AI/client | `hooks/useChat.ts`, `hooks/useAICoach.ts`, `lib/ragClient.ts`, `lib/supportRagClient.ts`, coaching hooks/engines | Chat, coach, RAG context, deterministic coaching engines. |
+| API/server | `api/*`, `api/_lib/*` | CORS, auth, AI handlers, support queue, billing, notifications, env. |
+| RAG service | `apps/rag/*` | Express endpoints, Chroma vector DB, embeddings, support KB/tickets. |
+| Core package | `packages/core/src/*` | KPS, chat math, location, physio primitives. |
+| Shared packages | `monorepo-packages/*/src` | AI runtime/core, observability, platform auth, persistent memory, Stripe runtime, error contract. |
 
-**Local Vite:** `vite.config.shared.ts` proxies `/api/strava` to Strava’s API only; other `/api/*` routes are **not** implemented by the default Vite server (Playwright tests accept `404` for AI routes when not deployed).
+No explored source module in the requested scope remained unclassified.
 
-### Vercel / production (`vercel.json`)
+## Dependency Map
 
-- SPA fallback: `/(?!api/).*` → `index.html`
-- Functions: `api/**/*.ts`
-- Rewrites for Withings and Strava paths as documented in `vercel.json`
+Main runtime dependencies:
+- React 18, React Router 6, Vite, Tailwind, Recharts, React Markdown, Dexie, Zustand.
+- Supabase JS/SSR for auth/data.
+- OpenAI/Gateway/Ollama wrappers in shared AI packages and RAG service.
+- Stripe runtime package and Stripe SDK.
+- Express/Chroma/Ollama for local RAG.
+- Playwright, Vitest, axe-core, Lighthouse CI for verification.
 
-## API layer (`api/`)
+## Risk Areas
 
-| Handler | File | Role |
-|---------|------|------|
-| AI chat | `api/ai-chat/index.ts` | LLM gateway / fallback |
-| AI coach | `api/ai-coach/index.ts` | Structured coach responses |
-| Billing | `api/billing/create-checkout-session/index.ts` | Stripe Checkout session |
-| Strava OAuth | `api/strava-oauth/index.ts` | OAuth callback |
-| Strava refresh | `api/strava-refresh/index.ts` | Token refresh |
-| Strava proxy | `api/strava-proxy/index.ts` | Proxied Strava REST |
-| Withings | `api/withings/index.ts` | OAuth + refresh (rewritten from `-oauth` / `-refresh`) |
-| Support queue | `api/support-queue/[[...segments]].ts` | Tickets, KB drafts, SLA — **`requireSupportOperator`** |
-| Adm log | `api/admlog/index.ts` | Operational logging |
-| Escalation notify | `api/escalationNotify.ts` | Escalation notifications |
-
-Shared logic: `api/_lib/` (CORS, Supabase JWT, support queue store, AI guardrails, Stripe, etc.).
-
-**Operator gate:** `api/_lib/supportOperator.ts` — allowlist via `KINETIX_SUPPORT_OPERATOR_USER_IDS`; optional **`KINETIX_MASTER_ACCESS`** for audit (bypass token matching Vite skip-auth session — see remediation doc).
-
-## RAG service (`apps/rag`)
-
-Optional HTTP service for embeddings/retrieval (see `apps/rag/README.md`). Web client sync references `ragClient` / env URLs.
-
-## Packages
-
-| Package | Path | Role |
-|---------|------|------|
-| `@kinetix/core` | `packages/core` | KPS, shared math, contracts |
-| `@bookiji-inc/*` | `monorepo-packages/*` | AI runtime, errors, observability, platform-auth, stripe-runtime |
-
-## Native
-
-| Platform | Path | Stack |
-|----------|------|--------|
-| watchOS | `watchos/KinetixWatch` | SwiftUI, SwiftData, Watch Connectivity |
-| iOS | `ios/KinetixPhone` | SwiftUI, SwiftData, Gemini, voice |
-
-**Note:** This audit’s automated UI crawl targeted **web** only. Native apps were not executed in this environment (no Xcode run).
-
-## `products/Kinetix`
-
-Contains `README.md` pointing to scope-closure docs; not a separate app tree.
+| ID | Severity | Evidence | Risk |
+|---|---|---|---|
+| SYS-01 | P1 | `apps/web/src/pages/History.tsx` uses `db.runs.delete(id)` while `lib/database.ts` defines logical delete via `hideRun`. | Hard delete can bypass PB cleanup and contradict documented deleted-run semantics. |
+| SYS-02 | P2 | Build output warns `Coaching.tsx` is dynamically imported by `App.tsx` and statically imported by `History.tsx`. | Lazy route split is defeated. |
+| SYS-03 | P2 | Build output: `assets/index-*.js` 845.75 kB and `recharts-vendor` 361.81 kB. | Initial JS payload is high for mobile and slow networks. |
+| SYS-04 | P2 | `lighthouserc.json` targets `https://example.invalid/lighthouse-placeholder`. | Lighthouse CI cannot validate real app performance/accessibility. |
+| SYS-05 | P2 | `apps/web/src/lib/strava.ts` sleeps 60 seconds on HTTP 429. | UI/background sync can hang and delay user feedback. |
+| SYS-06 | P2 | `settingsStore.ts` persists integration credentials in browser storage. | Token exposure impact is high if XSS occurs. |
+| SYS-07 | P3 | Vitest logs expected thrown React errors and Dexie missing-API errors on passing tests. | Passing suites are noisy. |

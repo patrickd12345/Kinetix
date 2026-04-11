@@ -2,11 +2,14 @@
   "ci": {
     "collect": {
       "numberOfRuns": 1,
+      "startServerCommand": "pnpm --filter @kinetix/web exec vite preview --host 127.0.0.1 --port 4173",
+      "startServerReadyPattern": "Local:",
+      "startServerReadyTimeout": 120000,
       "settings": {
         "preset": "desktop",
         "skipAudits": ["uses-http2"]
       },
-      "url": ["https://example.invalid/lighthouse-placeholder"]
+      "url": ["http://localhost:4173/"]
     },
     "assert": {
       "assertions": {

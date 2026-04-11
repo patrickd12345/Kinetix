@@ -105,12 +105,10 @@ export async function fetchStravaActivities(
       return res
     }
 
-    let response = await doFetch()
+    const response = await doFetch()
 
-    // Retry once after 60s when rate limited (Strava: 200/15min, 2000/day)
     if (response.status === 429) {
-      await new Promise((r) => setTimeout(r, 60_000))
-      response = await doFetch()
+      throw new Error('Strava API error: Rate limit reached. Sync will retry on next app load.')
     }
 
     if (!response.ok) {

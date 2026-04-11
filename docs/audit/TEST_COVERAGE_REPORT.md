@@ -1,39 +1,66 @@
-# Test coverage report
+# Kinetix Test Coverage Report
 
-## Commands run (evidence)
+Audit date: 2026-04-11
 
-| Layer | Command | Result |
-|-------|---------|--------|
-| Unit + integration (Vitest) | `pnpm exec vitest run` in `apps/web` | **81 files, 353 tests passed** |
-| E2E (Playwright) | `pnpm exec playwright test` in `apps/web` (after `pnpm exec playwright install chromium`) | **38 tests passed** |
-| Lint | `pnpm lint` (root) | **pass** |
-| Type-check | Included in CI patterns; `apps/web` has `pnpm type-check` | Not re-run separately after final edits; recommend CI gate |
+## Commands Executed
 
-## Inventory
+| Command | Result |
+|---|---|
+| `pnpm --filter @kinetix/web type-check` | Pass. |
+| `pnpm --filter @kinetix/core test` | Pass, 1 file, 5 tests. |
+| `pnpm type-check` | Pass. |
+| `pnpm --filter @kinetix/web build` | Pass, with chunk/lazy import warnings. |
+| `pnpm --filter @kinetix/web exec vitest run src/lib` | Pass, 45 files, 224 tests. |
+| `pnpm --filter @kinetix/web exec vitest run src/components` | Pass, 5 files, 18 tests. |
+| `pnpm --filter @kinetix/web exec vitest run src/pages` | Pass, 3 files, 9 tests. |
+| `pnpm --filter @kinetix/web exec vitest run src/integration` | Pass, 9 files, 28 tests. |
+| `pnpm --filter @kinetix/web exec vitest run src/test` | Pass, 4 files, 17 tests. |
+| `pnpm --filter @kinetix/web exec vitest run src/hooks src/context src/store` | Pass, 7 files, 21 tests. |
+| `pnpm exec vitest run ../../api` from `apps/web` | Pass, 9 files, 39 tests. |
+| `pnpm --filter @kinetix/rag test` | Pass, 41 node tests. |
+| `pnpm --filter @bookiji-inc/ai-core test` | Pass, 2 tests. |
+| `pnpm --filter @bookiji-inc/ai-runtime test` | Pass, 9 tests. |
+| `pnpm --filter @bookiji-inc/error-contract test` | Pass, 9 tests. |
+| `pnpm --filter @bookiji-inc/observability test` | Pass, 3 tests. |
+| `pnpm --filter @bookiji-inc/persistent-memory-runtime test` | Pass, 2 tests. |
+| `pnpm --filter @bookiji-inc/platform-auth test` | Pass, 6 tests. |
+| `pnpm --filter @bookiji-inc/stripe-runtime test` | Pass, 6 tests. |
+| `pnpm --filter @kinetix/web test:e2e` | Pass, 43 Playwright tests. |
+| `pnpm --filter @kinetix/web test:coverage` | Pass, 82 files, 356 tests; overall statements 42.56%, branches 69.25%, funcs 51.77%, lines 42.56%. |
+| Prior `pnpm --filter @kinetix/web test:vitest:serial` | Timed out after about 124 seconds with no useful test summary. |
+| `pnpm lh:ci` | Fail/blocker: config points at `https://example.invalid/lighthouse-placeholder`. |
 
-### Web (`apps/web`)
+## Test Inventory
 
-- **Vitest:** Broad coverage under `src/**/*.test.ts(x)`, `src/integration/*.integration.test.tsx`, `src/test/*.test.ts`, plus `api/_lib/**/*.test.ts` pulled into web’s Vitest config.
-- **Playwright:** `e2e/*.spec.ts` — shell, charts, help center a11y, internal links, operator/support queue smoke, AI chat smoke, **audit crawl** (`kinetix-audit-crawl.spec.ts`).
+Static inventory found 112 test/spec files across web, API, RAG, core, and shared packages:
+- Web Vitest/API-in-web config: 82 executed by coverage.
+- Playwright E2E: 10 spec files, 43 executed tests.
+- API tests: 9 files executed through `apps/web` Vitest config.
+- RAG node tests: 7 service test files, 41 node subtests.
+- Core package: 1 test file.
+- Shared package tests: 8 test files across AI, auth, observability, memory, error, and Stripe runtimes.
 
-### Core (`packages/core`)
+## Coverage Gaps
 
-- **Vitest:** `src/chatMath/chatMath.test.ts` (included in root `pnpm test`).
+| ID | Severity | Evidence | Gap |
+|---|---|---|---|
+| TEST-01 | P1 | Coverage report: `Settings.tsx` 0.13% statements, 0 funcs. | The highest-risk integration/import screen has almost no unit/component coverage. |
+| TEST-02 | P1 | Coverage report: `RunDashboard.tsx` 0.33%, `run-dashboard/RunDashboardPanels.tsx` 2.46%, `RunDashboardModals.tsx` 12.97%. | Core run workflow depends mostly on E2E smoke. |
+| TEST-03 | P1 | Coverage report: `store/runStore.ts` 17.68%, 0 funcs. | Live run start/pause/resume/stop/save logic is weakly tested. |
+| TEST-04 | P2 | Coverage report: `WeightHistory.tsx` 2.32%. | Weight pagination and empty/error states lack component coverage. |
+| TEST-05 | P2 | Coverage report: overall 42.56% statements. | Broad coverage exists for engines but not route-level UI/state. |
+| TEST-06 | P2 | First serial web Vitest run timed out at 124 seconds; split and coverage runs pass. | The serial helper is unreliable or too slow for default audit use. |
+| TEST-07 | P3 | Passing tests emit React uncaught error stacks and Dexie missing-API stacks. | Noise reduces signal in CI logs. |
 
-### API (`api/`)
+## Flaky/Slow Tests
 
-- Tests co-located under `api/_lib/**/*.test.ts` executed via `apps/web` Vitest.
+- `withingsOAuthServer.test.ts`: retry-path tests take about 8 seconds, with one 503 retry test about 7 seconds.
+- `help-center-support.integration.test.tsx`: about 2-3 seconds in full/coverage runs.
+- Serial web Vitest helper timed out once; split runs and coverage completed.
 
-## Gaps and risks
+## Missing Or Weak Areas
 
-| Gap | Risk | Suggestion |
-|-----|------|------------|
-| No Istanbul/c8 coverage gate in this run | Unknown line coverage % | Add `vitest --coverage` with threshold in CI |
-| E2E does not cover every user gesture on Run dashboard | Regression risk on GPS/modals | Add focused Playwright flows for start/stop/pause if product priority |
-| Native apps | Zero automated UI in this audit | Xcode UI tests or snapshot tests on Watch/iPhone |
-| API handlers | Many paths rely on integration tests + manual deploy | Contract tests hitting staging `/api/*` |
-
-## New tests added in this audit
-
-- `apps/web/e2e/kinetix-audit-crawl.spec.ts` — route sweep, axe JSON, screenshots, console capture, primary nav crawl.
-- `internal-links-crawl.spec.ts` updated to include `/coaching`.
+- No dedicated component/unit tests for Settings import flows, Garmin ZIP errors, Strava auth refresh UI, manual Withings expanded sync UI, or outlier cleanup dialog beyond targeted integration pieces.
+- No deterministic runStore tests for duration math, geolocation update behavior, PB update side effects, RAG indexing after save, or save failure display.
+- E2E covers every route but primarily validates load/axe/smoke behavior, not every empty/error/heavy state.
+- Lighthouse CI exists but is not wired to a real app URL.

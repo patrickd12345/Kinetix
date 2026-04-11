@@ -90,6 +90,27 @@ describe('Supabase auth and entitlement gating', () => {
     })
   })
 
+  it('includes next path in magic link redirect when login opened with ?next=', async () => {
+    window.history.pushState({}, '', '/login?next=/chat')
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    )
+
+    await userEvent.type(screen.getByLabelText('Email'), 'runner@example.com')
+    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
+
+    await waitFor(() => {
+      expect(mockState.supabase.auth.signInWithOtp).toHaveBeenCalledWith({
+        email: 'runner@example.com',
+        options: expect.objectContaining({
+          emailRedirectTo: expect.stringMatching(/[?&]next=%2Fchat(?:&|$)/),
+        }),
+      })
+    })
+  })
+
   it('allows protected route access with active kinetix entitlement', async () => {
     mockState.state.session = { user: { id: 'profile-1', email: 'runner@example.com' } }
     mockState.state.profile = { id: 'profile-1', display_name: 'Runner One' }

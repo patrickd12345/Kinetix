@@ -202,10 +202,14 @@ export async function handleAiCoachRequest(
   const client = getLLMClient(process.env, { userId })
   const result = await client.executeChat(
     [
-      { role: 'system', content: 'You are a concise running coach.' },
+      {
+        role: 'system',
+        content:
+          'You are a concise running coach. Return only strict JSON matching {"title": string, "insight": string}. Do not include markdown, code fences, or fields outside that schema.',
+      },
       { role: 'user', content: prompt },
     ],
-    { temperature: 0.7, maxTokens: 400 }
+    { temperature: 0.35, maxTokens: 400 }
   )
 
   return { ...result, text: sanitizeCoachAssistantText(result.text?.trim() || '') }

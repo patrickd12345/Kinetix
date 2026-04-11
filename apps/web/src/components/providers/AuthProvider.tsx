@@ -8,6 +8,7 @@ import {
 } from '../../lib/platformAuth'
 import type { PlatformProfileRecord } from '../../lib/kinetixProfile'
 import { setActivePlatformProfile } from '../../lib/authState'
+import { buildAuthRedirectTarget } from '../../lib/authRedirect'
 import { AuthContext, type AuthContextValue, type OAuthProviderAvailability } from './useAuth'
 
 type AuthStatus = 'loading' | 'unauthenticated' | 'authenticated' | 'forbidden' | 'error'
@@ -65,6 +66,10 @@ const OAUTH_PROVIDERS: OAuthProviderAvailability = {
     import.meta.env.VITE_AUTH_MICROSOFT_ENABLED === '1' ||
     import.meta.env.VITE_AUTH_MICROSOFT_ENABLED === 'true',
 }
+const AUTH_REDIRECT_URL =
+  import.meta.env.VITE_AUTH_REDIRECT_URL ??
+  import.meta.env.NEXT_PUBLIC_AUTH_REDIRECT_URL ??
+  null
 
 const MOCK_BYPASS_PROFILE: PlatformProfileRecord = {
   id: 'bypass-dev',
@@ -186,14 +191,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendMagicLink = useCallback(async (email: string, nextPath?: string) => {
     if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
-    const redirectTarget = new URL('/login', window.location.origin)
-    if (nextPath) {
-      redirectTarget.searchParams.set('next', nextPath)
-    }
+    const redirectTarget = buildAuthRedirectTarget({
+      windowOrigin: window.location.origin,
+      configuredRedirectUrl: AUTH_REDIRECT_URL,
+      nextPath,
+    })
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: redirectTarget.toString(),
+        emailRedirectTo: redirectTarget,
       },
     })
     if (otpError) throw otpError
@@ -202,14 +208,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithOAuth = useCallback(
     async (provider: 'google' | 'apple' | 'microsoft', nextPath?: string) => {
       if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
-      const redirectTarget = new URL('/login', window.location.origin)
-      if (nextPath) {
-        redirectTarget.searchParams.set('next', nextPath)
-      }
+      const redirectTarget = buildAuthRedirectTarget({
+        windowOrigin: window.location.origin,
+        configuredRedirectUrl: AUTH_REDIRECT_URL,
+        nextPath,
+      })
       const providerKey = provider === 'microsoft' ? 'azure' : provider
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: providerKey,
-        options: { redirectTo: redirectTarget.toString() },
+        options: { redirectTo: redirectTarget },
       })
       if (oauthError) throw oauthError
     },

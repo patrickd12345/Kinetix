@@ -7,6 +7,7 @@ import {
   getRunsInDateRange,
   getWeightsForDates,
   getAllVisibleRunsOrdered,
+  hideRun,
   RUN_VISIBLE,
 } from '../lib/database'
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
@@ -58,7 +59,7 @@ import { useAuth } from '../components/providers/useAuth'
 import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
 import { computeKpsMedalsForRuns, type KpsMedal } from '../lib/kpsMedals'
 import { WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
-import { HistoryCoachSummaryWithProvider } from './Coaching'
+import { HistoryCoachSummaryWithProvider } from '../components/HistoryCoachSummary'
 
 const DEFAULT_PAGE_SIZE = 20
 const CHART_LIMIT = 200
@@ -337,7 +338,7 @@ export default function History() {
   const deleteRun = async (id: number) => {
     if (confirm('Are you sure you want to delete this run?')) {
       try {
-        await db.runs.delete(id)
+        await hideRun(id)
         setExpandedRuns((prev) => {
           const next = new Set(prev)
           next.delete(id)
@@ -874,18 +875,22 @@ export default function History() {
                         <div className="text-xs text-gray-500 uppercase">{KPS_SHORT}</div>
                         <div className="flex gap-2 mt-2 justify-end">
                           <button
+                            type="button"
                             onClick={() => handleAnalyzeRun(run)}
                             className="text-cyan-400 hover:text-cyan-300 transition-colors"
                             disabled={isAnalyzing}
+                            aria-label={`Analyze ${runDisplayTitle(run)} with AI coach`}
                             title="Analyze with AI Coach"
                           >
-                            <Sparkles size={14} />
+                            <Sparkles size={14} aria-hidden />
                           </button>
                           <button
+                            type="button"
                             onClick={() => run.id && deleteRun(run.id)}
                             className="text-red-400 hover:text-red-300 transition-colors"
+                            aria-label={`Delete ${runDisplayTitle(run)}`}
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={14} aria-hidden />
                           </button>
                         </div>
                       </div>

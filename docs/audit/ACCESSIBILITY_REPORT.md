@@ -1,20 +1,35 @@
-# Accessibility report — web
+# Kinetix Accessibility Report
 
-## Automated
+Audit date: 2026-04-11
 
-- **axe-core (Playwright):** `e2e/kinetix-audit-crawl.spec.ts` runs `@axe-core/playwright` on each major route; violations summarized in attached `axe-*.json` (per test run output).
-- **Existing suite:** `e2e/help-center-a11y.spec.ts`, `e2e/shell-dashboard.spec.ts` (axe in light/dark), `src/integration/layout-shell-a11y.integration.test.tsx`, `src/test/shell-accessibility-audit.test.ts`.
+## Automated Results
 
-## Results (this environment)
+- `pnpm --filter @kinetix/web test:e2e`: 43 passed, including route audit crawl with axe and shell axe checks in light/dark themes.
+- `help-center-a11y.spec.ts`: passed keyboard-reachable controls and axe checks.
+- `shell-dashboard.spec.ts`: passed skip-link focus, mobile overflow navigation, and shell axe light/dark.
+- `src/test/shell-accessibility-audit.test.ts`: passed semantic token contrast checks and shell/help `outline-none` guard.
+- `layout-shell-a11y.integration.test.tsx`: passed layout accessibility integration checks.
 
-- Playwright E2E **38/38 passed**, including axe-based specs. The audit crawl records **violation counts and rule ids** per route in attachments (not pasted here — see CI artifacts or local `pnpm exec playwright test` output folder).
+## Findings
 
-## Manual / heuristic gaps
+| ID | Severity | Evidence | Finding |
+|---|---|---|---|
+| A11Y-01 | P1 | `apps/web/src/pages/History.tsx` icon buttons for Sparkles/Trash2 have no visible text and no `aria-label`. | Screen reader users cannot identify Analyze/Delete run actions reliably. |
+| A11Y-02 | P2 | `apps/web/src/pages/Chat.tsx` uses `focus:outline-none`; replacement is border color only. | Focus visibility is weaker than the shared `shell-focus-ring`. |
+| A11Y-03 | P2 | `apps/web/src/components/KinetixGoalProgressCard.tsx` select/input controls have no explicit labels. | Form controls rely on visual proximity rather than accessible labels. |
+| A11Y-04 | P3 | `apps/web/src/index.css` intentionally sets `.shell-focus-ring { outline: none; }` and replaces it in `:focus-visible`; tests cover audited shell/help controls. | Pattern is acceptable only where replacement class is consistently used. |
+| A11Y-05 | P3 | Passing test logs contain expected React error stacks. | Does not affect users, but CI accessibility signal is noisy. |
 
-- **Screen reader** validation (VoiceOver, NVDA) was **not** performed in this headless environment.
-- **Color contrast** beyond axe rules: product should spot-check glassmorphism overlays and dark theme charts.
+## Positive Controls
 
-## Recommendations
+- Skip link exists in `Layout.tsx` and `Login.tsx`.
+- Dialog primitive uses portal, `role="dialog"`, `aria-modal`, focus trap, Escape handling, focus restore, and `inert`/`aria-hidden` isolation.
+- Mobile navigation overflow is reachable through a named button and dialog.
+- Chat message list has `aria-live="polite"`.
+- Help search controls have labels and passed keyboard checks.
+- Chart points expose keyboard instructions and accessible chart labels.
 
-- Keep **critical** axe violations at zero in CI (optional strict mode: fail on serious/critical).
-- Add periodic manual keyboard walkthrough of **Support queue** tables and **Run dashboard** modals (complex widgets).
+## Manual Heuristics
+
+No axe violations were observed in the local Playwright audit crawl. Remaining issues are code-level heuristics and coverage gaps, mostly icon-only controls and inconsistent focus classes outside the shell.
+

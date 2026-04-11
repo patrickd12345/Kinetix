@@ -1,11 +1,18 @@
 /**
- * Fail CI / prebuild if master-access env vars leak into the build environment.
+ * Fail CI / prebuild if bypass env vars leak into the build environment.
  * Intended for root prebuild, Vercel buildCommand prefix, and @kinetix/web prebuild.
  */
-const FORBIDDEN = ['VITE_MASTER_ACCESS', 'KINETIX_MASTER_ACCESS'] as const
+const FORBIDDEN = [
+  'VITE_MASTER_ACCESS',
+  'KINETIX_MASTER_ACCESS',
+  'VITE_SKIP_AUTH',
+  'ADMLOG_ENABLED',
+  'BOOKIJI_TEST_MODE',
+] as const
 
 for (const key of FORBIDDEN) {
-  if (process.env[key]) {
+  const value = process.env[key]?.trim().toLowerCase()
+  if (value && !['0', 'false', 'no', 'off'].includes(value)) {
     console.error(
       `[check-master-access] Refusing to build: ${key} must not be set in this environment.`,
     )

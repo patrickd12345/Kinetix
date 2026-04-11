@@ -9,6 +9,7 @@
 
 ## Deployment Truth
 - Web login follows the Bookiji Inc identity standard: magic link primary, optional OAuth buttons only when `VITE_AUTH_*_ENABLED` is set; no end-user password sign-in on the login screen.
+- Optional `VITE_AUTH_REDIRECT_URL` (or `NEXT_PUBLIC_AUTH_REDIRECT_URL`) pins magic-link/OAuth return URLs to the Kinetix origin (e.g. `https://kinetix.bookiji.com/login`) when login is initiated from another Bookiji host; see [`docs/deployment/ENV_PARITY.md`](docs/deployment/ENV_PARITY.md).
 - Current deployed app for kinetix.bookiji.com: `apps/web/`.
 - Evidence:
   - Root `vercel.json` builds `@kinetix/web` and publishes `apps/web/dist`.

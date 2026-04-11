@@ -200,20 +200,6 @@ export function CoachingStack() {
   )
 }
 
-function HistoryCoachSummaryInner() {
-  const { loading: coachLoading, error: coachError, coach } = useKinetixCoach()
-  return <KinetixCoachCard loading={coachLoading} error={coachError} coach={coach} />
-}
-
-/** Optional coaching summary for History: one `KinetixCoachCard` with a single shared context build. */
-export function HistoryCoachSummaryWithProvider() {
-  return (
-    <KinetixCoachingContextProvider>
-      <HistoryCoachSummaryInner />
-    </KinetixCoachingContextProvider>
-  )
-}
-
 function CoachingPageInner() {
   return (
     <div className="pb-20 lg:pb-4">

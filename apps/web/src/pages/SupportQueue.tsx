@@ -24,6 +24,7 @@ import {
 } from '../lib/supportTicketDerived'
 import { featureFlags } from '../lib/featureFlags'
 import { computeSLAStatus } from '../lib/helpcenter/sla'
+import { sanitizeMarkdownLinkHref } from '../lib/sanitizeMarkdownLinkHref'
 
 const TICKET_STATUSES = ['open', 'triaged', 'in_progress', 'resolved', 'closed'] as const
 const KB_TOPIC_OPTIONS = ['account', 'billing', 'sync', 'import', 'kps', 'charts', 'privacy', 'general'] as const
@@ -125,16 +126,22 @@ function KbMarkdownPreview({ title, excerpt, bodyMarkdown }: { title: string; ex
                 {children}
               </code>
             ),
-            a: ({ href, children }) => (
-              <a
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="text-cyan-800 underline decoration-cyan-600/50 underline-offset-2 hover:text-cyan-950 dark:text-cyan-200 dark:decoration-cyan-500/50 dark:hover:text-cyan-100"
-              >
-                {children}
-              </a>
-            ),
+            a: ({ href, children }) => {
+              const safeHref = sanitizeMarkdownLinkHref(href)
+              if (!safeHref) {
+                return <span className="text-slate-800 dark:text-slate-200">{children}</span>
+              }
+              return (
+                <a
+                  href={safeHref}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-cyan-800 underline decoration-cyan-600/50 underline-offset-2 hover:text-cyan-950 dark:text-cyan-200 dark:decoration-cyan-500/50 dark:hover:text-cyan-100"
+                >
+                  {children}
+                </a>
+              )
+            },
           }}
         >
           {bodyMarkdown}

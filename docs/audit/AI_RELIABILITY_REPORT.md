@@ -1,26 +1,44 @@
-# AI reliability report
+# Kinetix AI Reliability Report
 
-## Surfaces
+Audit date: 2026-04-11
 
-| Surface | Client | Server | Tests |
-|---------|--------|--------|-------|
-| Coach chat | `src/hooks/useChat.ts` → `POST /api/ai-chat` | `api/ai-chat/index.ts` | `e2e/ai-chat-smoke.spec.ts`, `src/test/ai-route-errors.test.ts` |
-| AI coach | `src/hooks/useAICoach.ts` → `POST /api/ai-coach` | `api/ai-coach/index.ts` | API unit tests under `api/_lib/ai/*.test.ts` |
-| Guardrails | — | `api/_lib/ai/requestHandlers.ts`, `coachResponseGuardrails.ts`, `sanitizeCoachText.ts`, `chatMathGate.ts` | Multiple Vitest files |
+## AI Surfaces
 
-## Runtime behavior (repo evidence)
+- Chat UI: `apps/web/src/hooks/useChat.ts`, `apps/web/src/pages/Chat.tsx`.
+- Run analysis modal/history: `apps/web/src/hooks/useAICoach.ts`.
+- Server handlers: `api/ai-chat/index.ts`, `api/ai-coach/index.ts`, `api/_lib/ai/requestHandlers.ts`.
+- Deterministic safety: `chatMathGate.ts`, `coachResponseGuardrails.ts`, `sanitizeCoachText.ts`, `packages/core/src/chatMath/*`, `packages/core/src/chatGuardrails/*`.
+- RAG: `apps/rag/ragHttpApp.js`, `apps/rag/services/*`, `apps/web/src/lib/ragClient.ts`.
 
-- **Environment-driven backends:** `api/_lib/env/runtime.ts` resolves `aiMode` / `aiProvider` (gateway vs Ollama vs fallback) from env.
-- **Local dev gap:** Default Vite **does not** serve `api/*`; Playwright accepts **404** for `/api/ai-chat` when not deployed, or **502** with structured `ai_execution_failed` when handler runs but LLM fails (`ai-chat-smoke.spec.ts`).
-- **Math / hallucination control:** `chatMathGate.test.ts`, `sanitizeCoachText.test.ts`, `coachResponseGuardrails.test.ts` exercise guardrails.
+## Test Evidence
 
-## Gaps
+- API AI guardrail tests passed: chat math gate, response guardrails, sanitize coach text, request handlers.
+- AI route error contract tests passed.
+- AI runtime fallback tests passed.
+- Playwright AI chat smoke passed.
+- RAG service tests passed for support KB/tickets/status; RAG run Chroma behavior is partly mocked/static.
 
-- **No load testing** of AI endpoints.
-- **RAG quality** (help center / run sync) not end-to-end validated against a live Ollama in CI.
-- **Prompt injection / jailbreak** — not systematically red-teamed in automated tests.
+## Findings
 
-## Recommendations
+| ID | Severity | Evidence | Finding |
+|---|---|---|---|
+| AI-01 | P1 | `useAICoach.ts` asks `/api/ai-coach` for JSON text and falls back to substring if parsing fails. | Coach modal can show unstructured model prose without schema validation or deterministic fallback fields. |
+| AI-02 | P2 | `/api/ai-coach` uses generic prompt and temperature 0.7, unlike chat guardrails. | Run analysis has weaker hallucination prevention than chat. |
+| AI-03 | P2 | `api/_lib/ai/llmClient.ts` and RAG AI client use 60s timeouts; Help support AI uses 90s. | Timeout behavior exists but may exceed acceptable interactive latency. |
+| AI-04 | P2 | RAG `/coach-context` returns 200 fallback when Chroma unavailable. | Safe from crash, but UI must clearly disclose lower personalization; Layout only shows banner after repeated startup sync failures. |
+| AI-05 | P2 | `useChat.ts` includes strong prompt and guardrail payload; tests cover guardrail application. | Chat safety is comparatively strong; residual risk is model output not fully structured. |
+| AI-06 | P3 | BYOK headers are rejected on AI endpoints and tested. | Good control; document current no-BYOK behavior in API docs if public. |
 
-- Staging smoke: assert `/api/ai-chat` returns 200 with minimal prompt when secrets present.
-- Expand **structured error** assertions for timeout paths if not already covered.
+## Deterministic Safety Summary
+
+Strong:
+- Verified math gate can fail closed.
+- Coach response guardrails reject/replace unsafe numeric claims.
+- Sanitization removes internal placeholder/debug language.
+- RAG fallback contract forbids invented numbers.
+
+Weak:
+- `/api/ai-coach` does not use the same guardrail contract.
+- Run analysis JSON is not schema-validated.
+- Long AI timeouts can make failure modes feel stuck.
+

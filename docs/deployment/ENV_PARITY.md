@@ -23,6 +23,15 @@ Optional (identity UI): set to `true` or `1` to show the matching OAuth button o
 | `VITE_AUTH_APPLE_ENABLED` | Show Continue with Apple |
 | `VITE_AUTH_MICROSOFT_ENABLED` | Show Continue with Microsoft (Supabase provider `azure`) |
 
+Optional (auth callback pinning): set when magic-link or OAuth must return to the **Kinetix** host even if the user started login from another Bookiji origin (for example `app.bookiji.com`). The web app builds `emailRedirectTo` / `redirectTo` from this value in [`apps/web/src/lib/authRedirect.ts`](../../apps/web/src/lib/authRedirect.ts). If unset, the callback uses `/login` on the **current** browser origin.
+
+| Variable | Notes |
+|----------|--------|
+| `VITE_AUTH_REDIRECT_URL` | Absolute URL for the login callback, e.g. `https://kinetix.bookiji.com/login` |
+| `NEXT_PUBLIC_AUTH_REDIRECT_URL` | Same as above; accepted as a fallback name |
+
+**Production example:** `VITE_AUTH_REDIRECT_URL=https://kinetix.bookiji.com/login` (or set the origin only, e.g. `https://kinetix.bookiji.com` — the client normalizes bare origins to `/login`).
+
 The Kinetix web client ([`apps/web/src/lib/supabaseClient.ts`](../../apps/web/src/lib/supabaseClient.ts)) reads `VITE_*` first and falls back to `NEXT_PUBLIC_*`. For Vite builds, set the `VITE_*` pair; you can also set `NEXT_PUBLIC_*` to the same values so both names work.
 
 ## Admlog (`GET /api/admlog`)

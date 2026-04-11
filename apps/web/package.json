@@ -7,7 +7,7 @@
         "prebuild": "tsx ../../scripts/check-master-access.ts",
         "dev": "vite --config vite.config.dev.ts",
         "build:bookiji-packages": "node ../../scripts/build-bookiji-packages.mjs",
-        "build": "pnpm run build:bookiji-packages && pnpm --filter @kinetix/core build && tsc -p tsconfig.build.json && vite build",
+        "build": "pnpm run build:bookiji-packages && pnpm --filter @kinetix/core build && tsc -p tsconfig.build.json && vite build && node ../../scripts/check-web-bundle-budget.mjs",
         "preview": "vite preview",
         "lint": "eslint src --ext .ts,.tsx",
         "type-check": "tsc -p tsconfig.build.json --noEmit",

@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { useRunStore } from '../store/runStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { formatPace, timeToAchieveKPS, distanceToAchieveKPS } from '@kinetix/core'
+import { formatDistance, formatPace, timeToAchieveKPS, distanceToAchieveKPS } from '@kinetix/core'
 import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
 import { ensurePBInitialized, getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS } from '../lib/kpsUtils'
@@ -12,6 +13,16 @@ import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfil
 import { RunDashboardHeader, RunGaugePanel, RunStatsPanel, RunControlsPanel, RunDesktopSummary } from './run-dashboard/RunDashboardPanels'
 import { AICoachModal, BeatTargetModal } from './run-dashboard/RunDashboardModals'
 import type { BeatTargetOption } from './run-dashboard/types'
+import { computeIntelligence } from '../lib/intelligence/intelligenceEngine'
+import { KPS_SHORT } from '../lib/branding'
+import { DirectionalTodayCard } from '../components/directional/DirectionalTodayCard'
+import {
+  type DirectionalHomeSummary,
+  computeDirectionalStreakDays,
+  getDirectionalCoachMessage,
+  getDirectionalSuggestedTraining,
+  titleCase,
+} from './run-dashboard/directionalHomeSummary'
 
 export default function RunDashboard() {
   const {
@@ -35,6 +46,16 @@ export default function RunDashboard() {
   const { profile } = useAuth()
   const userProfile = useStableKinetixUserProfile(profile)
   const [relativeKPS, setRelativeKPS] = useState(0)
+  const [homeSummary, setHomeSummary] = useState<DirectionalHomeSummary>({
+    loading: true,
+    lastRun: null,
+    runCount7d: 0,
+    distance7d: 0,
+    streakDays: 0,
+    latestKps: null,
+    intelligence: null,
+    error: null,
+  })
   useLocationTracking()
 
   useEffect(() => {
@@ -56,6 +77,62 @@ export default function RunDashboard() {
       .then(setRelativeKPS)
       .catch(() => setRelativeKPS(0))
   }, [distance, duration, averagePace, targetKPS, userProfile])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void (async () => {
+      if (!userProfile) {
+        setHomeSummary((prev) => ({ ...prev, loading: false, error: null }))
+        return
+      }
+
+      setHomeSummary((prev) => ({ ...prev, loading: true, error: null }))
+      try {
+        await ensurePBInitialized(userProfile)
+        const { items } = await getRunsPage(1, 30)
+        const now = Date.now()
+        const sevenDaysAgo = now - 7 * 86_400_000
+        const meaningful = items.filter(isMeaningfulRunForKPS)
+        const samples = []
+        for (const run of [...meaningful].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())) {
+          const profileForRun = await getProfileForRun(run)
+          const kps = await getRelativeKPS(run, profileForRun)
+          if (Number.isFinite(kps) && kps > 0) samples.push({ date: run.date, kps })
+        }
+        const lastRun = items[0] ?? null
+        const runs7d = items.filter((run) => new Date(run.date).getTime() >= sevenDaysAgo)
+        const nextSummary: DirectionalHomeSummary = {
+          loading: false,
+          lastRun,
+          runCount7d: runs7d.length,
+          distance7d: runs7d.reduce((sum, run) => sum + run.distance, 0),
+          streakDays: computeDirectionalStreakDays(items),
+          latestKps: samples.length > 0 ? samples[samples.length - 1].kps : null,
+          intelligence: samples.length > 0 ? computeIntelligence(samples) : null,
+          error: null,
+        }
+        if (!cancelled) setHomeSummary(nextSummary)
+      } catch (err) {
+        if (!cancelled) {
+          setHomeSummary({
+            loading: false,
+            lastRun: null,
+            runCount7d: 0,
+            distance7d: 0,
+            streakDays: 0,
+            latestKps: null,
+            intelligence: null,
+            error: err instanceof Error ? err.message : 'Unable to load today summary',
+          })
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [userProfile])
 
   const displayKPS = useMemo(() => relativeKPS, [relativeKPS])
 
@@ -277,12 +354,76 @@ export default function RunDashboard() {
     setBeatRecentsError(null)
   }
 
+  const readinessText = homeSummary.intelligence
+    ? `${homeSummary.intelligence.readiness.score}/100 (${titleCase(homeSummary.intelligence.readiness.status)})`
+    : homeSummary.loading
+      ? 'Loading'
+      : 'Needs baseline'
+  const fatigueText = homeSummary.intelligence
+    ? titleCase(homeSummary.intelligence.fatigue.level)
+    : homeSummary.loading
+      ? 'Loading'
+      : 'Unknown'
+  const lastRunText = homeSummary.lastRun
+    ? `${formatDistance(homeSummary.lastRun.distance, unitSystem)} ${unitSystem === 'metric' ? 'km' : 'mi'} on ${new Date(homeSummary.lastRun.date).toLocaleDateString('en-US')}`
+    : 'No runs yet'
+  const trendText = homeSummary.intelligence
+    ? `${homeSummary.intelligence.trend >= 0 ? '+' : ''}${homeSummary.intelligence.trend.toFixed(1)}%`
+    : 'No trend yet'
+  const heroKpsValue = displayKPS > 0
+    ? Math.floor(displayKPS).toString()
+    : homeSummary.latestKps != null
+      ? Math.round(homeSummary.latestKps).toString()
+      : KPS_SHORT
+  const heroKpsLabel = displayKPS > 0
+    ? `Live ${KPS_SHORT}`
+    : homeSummary.latestKps != null
+      ? `Current ${KPS_SHORT}`
+      : 'Baseline pending'
+  const suggested = getDirectionalSuggestedTraining(homeSummary)
+  const coachMessage = getDirectionalCoachMessage(homeSummary)
+  const todayTitle = homeSummary.intelligence?.readiness.status === 'high'
+    ? 'Your KPS signals readiness'
+    : homeSummary.intelligence?.fatigue.level === 'high'
+      ? 'Protect your KPS today'
+      : homeSummary.lastRun
+        ? 'Build your KPS with control'
+        : 'Set your KPS baseline'
+
   return (
     <div className="pb-20 lg:pb-6">
       <div className="max-w-md lg:max-w-6xl mx-auto">
         <RunDashboardHeader targetKPS={targetKPS} isRunning={isRunning} hasGPSFix={hasGPSFix} />
 
-        <div className="glass rounded-2xl p-6 mb-4">
+        <DirectionalTodayCard
+          kps={{ value: heroKpsValue, label: heroKpsLabel }}
+          readiness={readinessText}
+          fatigue={fatigueText}
+          lastRun={lastRunText}
+          suggestedTraining={suggested}
+          onStartRun={handleStartRun}
+          title={todayTitle}
+          error={homeSummary.error}
+          isRunning={isRunning}
+          disabled={isActionLocked}
+        />
+
+        <section className="glass rounded-2xl p-6 mb-4" aria-labelledby="progress-heading">
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500 dark:text-gray-400">KPS Progress</p>
+              <h2 id="progress-heading" className="mt-1 text-xl font-black text-slate-900 dark:text-white">
+                {trendText} this week
+              </h2>
+            </div>
+            <div className="text-right text-sm text-slate-600 dark:text-gray-300">
+              <div>{homeSummary.runCount7d} runs in 7 days</div>
+              <div>{homeSummary.streakDays}-day consistency</div>
+            </div>
+          </div>
+          <div className="mb-5 rounded-lg border border-white/10 bg-black/5 p-3 text-sm text-slate-700 dark:bg-black/20 dark:text-gray-300">
+            Weekly progress: {formatDistance(homeSummary.distance7d, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}
+          </div>
           <div className="lg:grid lg:grid-cols-[340px,1fr] lg:gap-8 lg:items-start">
             <RunGaugePanel displayKPS={displayKPS} progress={progress} isRunning={isRunning} timeToBeat={timeToBeat} />
 
@@ -313,7 +454,35 @@ export default function RunDashboard() {
               />
             </div>
           </div>
-        </div>
+        </section>
+
+        <section className="glass rounded-2xl p-5 mb-4 border border-emerald-500/20" aria-labelledby="coaching-heading">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-300">Coaching</p>
+          <h2 id="coaching-heading" className="mt-1 text-xl font-black text-slate-900 dark:text-white">
+            Recommendation
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-700 dark:text-gray-300">{coachMessage}</p>
+        </section>
+
+        <nav className="glass rounded-2xl p-5 mb-4" aria-labelledby="quick-actions-heading">
+          <h2 id="quick-actions-heading" className="text-lg font-black text-slate-900 dark:text-white">Quick Actions</h2>
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              { to: '/history', label: 'History' },
+              { to: '/coaching', label: 'Coaching' },
+              { to: '/chat', label: 'Chat' },
+              { to: '/menu', label: 'Charts' },
+            ].map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="shell-focus-ring rounded-lg border border-slate-300/80 px-4 py-3 text-center text-sm font-bold text-slate-800 transition-colors hover:bg-slate-100 dark:border-white/15 dark:text-gray-100 dark:hover:bg-white/10"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
 
         <RunDesktopSummary displayKPS={displayKPS} targetKPS={targetKPS} physioMode={physioMode} />
 

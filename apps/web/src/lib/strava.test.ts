@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, vi } from 'vitest'
 import type { StravaActivity } from './strava'
-import { convertStravaToRunRecord, syncStravaRuns } from './strava'
+import { convertStravaToRunRecord, fetchStravaActivities, syncStravaRuns } from './strava'
 import type { UserProfile } from '@kinetix/core'
 
 const mockUserProfile: UserProfile = {
@@ -110,9 +110,11 @@ describe('syncStravaRuns', () => {
       }
       return originalFetch(input)
     }) as typeof fetch
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const result = await syncStravaRuns('fake-token', 135)
 
+    errorSpy.mockRestore()
     globalThis.fetch = originalFetch
     expect(fetchCallCount).toBeGreaterThanOrEqual(1)
     expect(Array.isArray(result.added)).toBe(true)
@@ -123,5 +125,28 @@ describe('syncStravaRuns', () => {
     if (result.error) {
       expect(result.added).toEqual([])
     }
+  })
+})
+
+describe('fetchStravaActivities', () => {
+  it('returns rate-limit errors immediately without retry sleep', async () => {
+    const originalFetch = globalThis.fetch
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout')
+    const response = {
+      status: 429,
+      ok: false,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve({ message: 'rate limit' }),
+      text: () => Promise.resolve('rate limit'),
+    } as Response
+    globalThis.fetch = vi.fn(() => Promise.resolve(response)) as typeof fetch
+
+    await expect(fetchStravaActivities('fake-token')).rejects.toThrow(/Rate limit reached/)
+
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    expect(setTimeoutSpy).not.toHaveBeenCalledWith(expect.any(Function), 60_000)
+
+    setTimeoutSpy.mockRestore()
+    globalThis.fetch = originalFetch
   })
 })

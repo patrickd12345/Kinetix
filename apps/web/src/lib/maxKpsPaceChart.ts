@@ -208,15 +208,18 @@ async function buildMaxKPSPaceDurationPointsAsync(
 
   const bestByBucket = new Map<number, { run: RunRecord; relativeKPS: number }>()
 
-  for (const run of runs) {
-    if (!isValidPerformanceRunRaw(run)) continue
+  const validRuns = runs.filter(isValidPerformanceRunRaw)
+  const profileResults = await Promise.allSettled(validRuns.map(getProfileForRun))
 
-    let profile: UserProfile
-    try {
-      profile = await getProfileForRun(run)
-    } catch {
+  for (let i = 0; i < validRuns.length; i++) {
+    const run = validRuns[i]
+    const profileResult = profileResults[i]
+
+    if (profileResult.status === 'rejected') {
       continue
     }
+
+    const profile = profileResult.value
     const relativeKPS = calculateRelativeKPSSync(run, profile, pb, pbRun)
     if (!isValidKPS(relativeKPS)) continue
 

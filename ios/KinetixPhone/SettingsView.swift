@@ -12,6 +12,7 @@ struct SettingsView: View {
     @AppStorage("weightUnit") private var weightUnit: String = "lbs"
     @AppStorage("weightSource") private var weightSource: String = "profile"
     @AppStorage("lastWithingsWeightKg") private var lastWithingsWeightKg: Double = 0
+    @AppStorage("livePaceRollingWindowSeconds") private var livePaceRollingWindowSeconds: Double = LivePaceCalculator.defaultRollingWindowSeconds
     
     @State private var weightText: String = ""
     @State private var birthDate: Date = Date()
@@ -68,6 +69,7 @@ struct SettingsView: View {
                 cloudStorageSection
                 stravaSection
                 aiSettingsSection
+                liveTrackingSection
                 batteryProfileSection
                 findMyNPISection
                 aiSummarySection
@@ -699,6 +701,22 @@ struct SettingsView: View {
             Text("Watch Battery Profiles")
         } footer: {
             Text("Custom battery profiles let you fine-tune GPS sampling, sensor intervals, and features to optimize battery life for your specific needs. Profiles sync automatically to your Watch.")
+        }
+    }
+
+    private var liveTrackingSection: some View {
+        Section {
+            Stepper(
+                value: $livePaceRollingWindowSeconds,
+                in: 1...15,
+                step: 1
+            ) {
+                Text("Live Pace Window: \(Int(livePaceRollingWindowSeconds))s")
+            }
+        } header: {
+            Text("Live Tracking")
+        } footer: {
+            Text("Controls the rolling window used for live pace display during active runs. Average pace is still used for saved run summaries and history.")
         }
     }
     

@@ -6,7 +6,8 @@ set -e
 clone_url() {
   if [ -n "${BOOKIJI_INC_CLONE_TOKEN:-}" ]; then
     echo "https://${BOOKIJI_INC_CLONE_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
-  elif [ -n "${GITHUB_TOKEN:-}" ] && [ "${GITHUB_TOKEN}" != "***" ]; then
+  elif [ -n "${GITHUB_TOKEN:-}" ] && [ "${GITHUB_TOKEN}" != "***" ] && [ "${CI:-}" != "true" ]; then
+    # In GitHub Actions (CI=true), GITHUB_TOKEN belongs to Kinetix and lacks access to Bookiji-inc if it's private.
     echo "https://${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
   else
     echo "https://github.com/patrickd12345/Bookiji-inc.git"

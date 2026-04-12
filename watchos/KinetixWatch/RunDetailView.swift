@@ -5,6 +5,8 @@ import MapKit
 struct RunDetailView: View {
     let run: Run
     let unitSystem: String
+    @State private var aiSummaryText: String?
+    private let watchCoachingService = KinetixWatchCoachingService()
     
     var body: some View {
         ScrollView {
@@ -57,7 +59,7 @@ struct RunDetailView: View {
                             .foregroundColor(.white)
                     }
                     
-                    Text(generateCoachAnalysis())
+                    Text(aiSummaryText ?? generateCoachAnalysis())
                         .font(.caption)
                         .foregroundColor(.white)
                         .padding(10)
@@ -116,6 +118,23 @@ struct RunDetailView: View {
             .padding()
         }
         .navigationTitle("Run Details")
+        .onAppear {
+            Task { await generatePostRunSummary() }
+        }
+    }
+
+    private func generatePostRunSummary() async {
+        let trendDirection = run.avgNPI >= 130 ? "stable" : "declining"
+        let result = await watchCoachingService.generatePostRunSummary(
+            PostRunSummaryInput(
+                distance: run.distance,
+                pace: run.avgPace,
+                heartRateAvg: run.avgHeartRate,
+                kps: run.avgNPI,
+                trendDirection: trendDirection
+            )
+        )
+        aiSummaryText = result.usedFallback ? nil : result.text
     }
     
     // MARK: - Analysis Logic

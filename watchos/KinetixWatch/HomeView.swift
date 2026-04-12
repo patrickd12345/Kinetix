@@ -6,6 +6,9 @@ struct HomeView: View {
     @Binding var navigationPath: [String]
     @State private var recovery: RunRecoveryData?
     @State private var readinessLoading = true
+    @State private var preRunSuggestionText: String?
+    @State private var recoveryAlertText: String?
+    private let watchCoachingService = KinetixWatchCoachingService()
     @AppStorage("weightUnit") private var weightUnit = "lbs"
     private let kgToLbs = 2.20462
     
@@ -24,7 +27,9 @@ struct HomeView: View {
                 RaceReadinessCard(
                     loading: readinessLoading,
                     error: locationManager.raceReadinessError,
-                    readiness: locationManager.raceReadinessSnapshot
+                    readiness: locationManager.raceReadinessSnapshot,
+                    preRunSuggestion: preRunSuggestionText,
+                    recoveryAlert: recoveryAlertText
                 )
 
                 if locationManager.latestSyncedWeightKg > 0 {
@@ -69,8 +74,39 @@ struct HomeView: View {
             locationManager.requestRaceReadinessSync()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 readinessLoading = false
+                Task {
+                    await refreshAppleIntelligenceCopy()
+                }
             }
         }
+    }
+
+    private func refreshAppleIntelligenceCopy() async {
+        guard let readiness = locationManager.raceReadinessSnapshot else {
+            preRunSuggestionText = nil
+            recoveryAlertText = nil
+            return
+        }
+
+        let fatigueLevel = readiness.status == "low" ? "high" : (readiness.status == "moderate" ? "moderate" : "low")
+        let recommendation = readiness.recommendedWorkout ?? "easy_run"
+
+        let preRun = await watchCoachingService.generatePreRunSuggestion(
+            PreRunSuggestionInput(
+                readinessScore: readiness.score,
+                fatigueLevel: fatigueLevel,
+                recommendationType: recommendation
+            )
+        )
+        preRunSuggestionText = preRun.text
+
+        let recovery = await watchCoachingService.generateRecoveryAlert(
+            RecoveryAlertInput(
+                fatigueLevel: fatigueLevel,
+                readinessScore: readiness.score
+            )
+        )
+        recoveryAlertText = recovery.text
     }
 
     private func formatWeight(_ kg: Double) -> String {
@@ -83,6 +119,8 @@ private struct RaceReadinessCard: View {
     let loading: Bool
     let error: String?
     let readiness: RaceReadinessSnapshot?
+    let preRunSuggestion: String?
+    let recoveryAlert: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -113,6 +151,16 @@ private struct RaceReadinessCard: View {
                     Text("Suggested: \(recommendation)")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(.orange)
+                }
+                if let preRunSuggestion, !preRunSuggestion.isEmpty {
+                    Text(preRunSuggestion)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.cyan)
+                }
+                if let recoveryAlert, !recoveryAlert.isEmpty {
+                    Text(recoveryAlert)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.yellow)
                 }
             } else {
                 Text("Not enough recent data")

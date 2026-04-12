@@ -25,7 +25,7 @@
 - Native Apple changes go in: `ios/KinetixPhone/` and `watchos/KinetixWatch/` (+ related watch host targets).
 
 ## Git archival
-- Tag **`archive/pre-origin-reset-2026-04-12`** points at the former local `main` tip from before a hard reset to `origin/main` (April 2026). Use it only to inspect or cherry-pick individual commits; **do not merge that history wholesale** — current `main` is the larger, canonical tree. Branch `main-pre-sync-2026-04-12` (if still present) matches that tag.
+- Tag **`archive/pre-origin-reset-2026-04-12`** points at the former local `main` tip from before a hard reset to `origin/main` (April 2026). Use it only to inspect or cherry-pick individual commits; **do not merge that history wholesale** — current `main` is the larger, canonical tree.
 
 ## Legacy / Migration Notes
 - `web/`: No active top-level `web/` app is present in this repo snapshot; treat this path as non-canonical.

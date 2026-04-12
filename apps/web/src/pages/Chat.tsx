@@ -105,7 +105,7 @@ export default function Chat() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Message the coach…"
-            className="shell-focus-ring flex-1 bg-gray-900/60 border border-gray-700 rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:border-cyan-500/50"
+            className="shell-focus-ring flex-1 bg-gray-900/60 border border-gray-700 rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:border-cyan-500/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50"
             disabled={isLoading}
             autoComplete="off"
           />

@@ -949,8 +949,8 @@ export default function History() {
                             onClick={() => handleAnalyzeRun(run)}
                             className="text-cyan-400 hover:text-cyan-300 transition-colors"
                             disabled={isAnalyzing}
-                            aria-label={`Analyze ${runDisplayTitle(run)} with AI coach`}
-                            title="Analyze with AI Coach"
+
+                            title="Analyze with AI Coach" aria-label={`Analyze ${runDisplayTitle(run)} with AI Coach`}
                           >
                             <Sparkles size={14} aria-hidden />
                           </button>

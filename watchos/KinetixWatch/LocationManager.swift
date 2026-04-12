@@ -226,6 +226,7 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
     
     // Progress Gauge
     @Published var runProgress: Double = 0.0
+    @Published var cumulativeKPS: Double = 0.0
     private var rolling5SecPace: Double = 0.0
     private var rollingPaceBuffer: [(Date, Double)] = []
     
@@ -240,6 +241,7 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
     private var rollingDistances: [(Date, Double)] = []
     @Published var currentPaceSeconds: Double = 0.0
     private var heartRateSamples: [Double] = []
+    private var lastEffortSampleAt: Date?
     
     var isFormMonitorActivity: Bool {
         currentPreset?.type == .formMonitor || activeActivityTemplate?.goal == .formMonitor
@@ -703,11 +705,13 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         currentPaceSeconds = 0
         formSessionId = isFormMonitorActivity ? UUID() : nil
         runProgress = 0.0
+        cumulativeKPS = 0.0
         rollingPaceBuffer.removeAll()
         lastLocation = nil
         timeToBeat = nil
         recommendedPace = 0
         heartRate = 0
+        lastEffortSampleAt = nil
         
         // Clear errors
         gpsError = nil
@@ -994,6 +998,15 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
                 // Only update liveNPI if calculation is valid
                 if RunMetricsCalculator.isValidNPI(calculatedNPI) {
                     liveNPI = calculatedNPI
+                    let now = Date()
+                    if let lastSample = lastEffortSampleAt {
+                        let deltaSeconds = max(0, now.timeIntervalSince(lastSample))
+                        if deltaSeconds > 0 {
+                            // Cumulative effort should start near zero and only increase with elapsed work.
+                            cumulativeKPS += (liveNPI * deltaSeconds) / 3600.0
+                        }
+                    }
+                    lastEffortSampleAt = now
                     
                     let targetDistance = 5000.0
                     if let projection = RunMetricsCalculator.projectRaceTime(

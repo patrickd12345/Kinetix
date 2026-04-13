@@ -86,6 +86,12 @@ For login to work when running the app locally (`pnpm dev:web` or similar):
    - disable email/password sign-in and password reset/recovery flows
    - enable Google/Apple/Microsoft only when the provider credentials are configured
 
+### Parked auth issue (local testing note)
+
+- Current local blocker: repeated magic-link OTP requests can hit Supabase throttle (`Too many sign-in attempts... wait a minute`).
+- Supabase-managed SMTP currently blocks changing `rate_limit_email_sent` through Management API unless custom SMTP is configured.
+- Continue local testing through `GET /api/admlog?next=/...` (no auth bypass flag required).
+
 ## Identity standard in Kinetix web
 
 Kinetix web follows the Bookiji identity standard:

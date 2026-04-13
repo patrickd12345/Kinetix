@@ -41,3 +41,6 @@ supabase/.temp/platform_data_dump_after_seed.sql
 # Local dev boot captures (do not commit)
 .boot-err.txt
 .boot-out.txt
+
+# Playwright MCP / local tooling
+.playwright-mcp/

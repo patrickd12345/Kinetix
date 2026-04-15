@@ -92,6 +92,8 @@
 
 ## KPS (Kinetix Performance Score) - Non-Negotiable Invariants
 
+Absolute KPS in `@kinetix/core` is a **distance-, age-, and weight-adjusted personal performance score** (Riegel normalization, then age/weight heuristics); user-facing numbers remain PB-relative per `KPS_CONTRACT.md`.
+
 **1. KPS is ALWAYS age-weight graded.** This is the essence of KPS and is non-negotiable for all future development.
 
 - Every KPS display, comparison, chart, or ranking MUST use `calculateAbsoluteKPS(run, profile)` with a profile that includes age and weight.

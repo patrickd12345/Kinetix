@@ -1,6 +1,6 @@
-import { db, RunRecord, PBRecord, RUN_VISIBLE } from './database'
+import { db, RunRecord, PBRecord, RUN_VISIBLE, getWeightsForDates } from './database'
 import { UserProfile, calculateKPS } from '@kinetix/core'
-import { getProfileForRun } from './authState'
+import { getProfileForRun, resolveProfileForRunWithWeightCache } from './authState'
 
 /**
  * KPS UTILITIES - ARCHITECTURAL INVARIANTS
@@ -118,9 +118,13 @@ export async function findOutlierRuns(runs: RunRecord[]): Promise<RunRecord[]> {
   if (!isValidKPS(pbAbsoluteKPS)) return []
   const threshold = pbAbsoluteKPS * OUTLIER_KPS_RATIO
   const result: RunRecord[] = []
+
+  const runDates = runs.filter((r) => !!r.id).map((r) => r.date)
+  const weightByDate = await getWeightsForDates(runDates)
+
   for (const r of runs) {
     if (!r.id) continue
-    const profileForRun = await getProfileForRun(r)
+    const profileForRun = resolveProfileForRunWithWeightCache(weightByDate, r)
     const kps = calculateAbsoluteKPS(r, profileForRun)
     if (isValidKPS(kps) && kps > threshold) result.push(r)
   }

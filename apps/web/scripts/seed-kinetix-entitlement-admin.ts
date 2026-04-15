@@ -2,8 +2,8 @@
 /**
  * Seed or upsert an active Kinetix entitlement through Supabase HTTP APIs.
  *
- * Preferred auth: SUPABASE_SECRET_KEY=sb_secret_...
- * Legacy fallback: SUPABASE_SERVICE_ROLE_KEY (only if legacy keys are enabled)
+ * Preferred auth: set SUPABASE_SECRET_KEY in your .env.local file.
+ * Legacy fallback: set SUPABASE_SERVICE_ROLE_KEY (only if legacy keys are enabled).
  *
  * Usage examples (run from apps/web):
  *  pnpm exec tsx scripts/seed-kinetix-entitlement-admin.ts --user-id <uuid>

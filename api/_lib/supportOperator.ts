@@ -34,7 +34,7 @@ export async function requireSupportOperator(req: VercelRequest): Promise<Suppor
   const token = parseBearerToken(req)
   if (!token) return null
 
-  if (MASTER_ACCESS && token === VITE_SKIP_AUTH_BYPASS_TOKEN) {
+  if (process.env.NODE_ENV !== 'production' && MASTER_ACCESS && token === VITE_SKIP_AUTH_BYPASS_TOKEN) {
     return { id: 'bypass-dev', email: 'dev@local' }
   }
 
@@ -44,7 +44,7 @@ export async function requireSupportOperator(req: VercelRequest): Promise<Suppor
   if (!user?.id) return null
 
   const allowlist = getOperatorAllowlist()
-  if (!allowlist.includes(user.id) && !MASTER_ACCESS) return null
+  if (!allowlist.includes(user.id) && !(process.env.NODE_ENV !== 'production' && MASTER_ACCESS)) return null
 
   return user
 }

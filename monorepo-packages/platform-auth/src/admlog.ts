@@ -68,24 +68,24 @@ export interface AdmlogTokens {
   refresh_token: string
 }
 
+/** Spine `platform.entitlements.product_key` check constraint (see platform_spine migrations). */
+const ADMLOG_ENTITLEMENT_PRODUCT_KEYS = new Set(['bookiji', 'kinetix', 'chess'])
+/** Stable key for admlog-granted rows; distinct from Stripe-driven keys. */
+const ADMLOG_ENTITLEMENT_KEY = 'admlog_dev'
+
 /**
  * Ensures the platform admin dev user exists, signs in with anon client, returns session tokens.
  * Caller (app) is responsible for setting cookies and redirecting.
- *
- * **API keys (hosted Supabase):** pass the **secret** key (`sb_secret_...`, env `SUPABASE_SECRET_KEY`)
- * as `serviceKey`. Legacy JWT `service_role` only works while JWT legacy API keys are enabled; when
- * they are disabled, Auth Admin APIs return errors such as "Legacy API keys are disabled".
- * Use **publishable** (`sb_publishable_...`) or legacy **anon** JWT for `anonKey`.
  */
 export async function performAdmlogSignIn(config: {
   supabaseUrl: string
   serviceKey: string
   anonKey: string
   /**
-   * When set (e.g. `['kinetix']` for Kinetix), upserts `platform.entitlements` for the admlog user
-   * so gated apps pass `hasActiveEntitlementForUser` after sign-in.
+   * Optional `platform.entitlements.product_key` values to upsert for the admlog user so SPA
+   * entitlement gating passes without a separate DB seed (e.g. `['kinetix']`).
    */
-  ensureEntitlementProductKeys?: readonly string[]
+  ensureEntitlementProductKeys?: string[]
 }): Promise<AdmlogTokens> {
   const { supabaseUrl, serviceKey, anonKey, ensureEntitlementProductKeys } = config
   const password =
@@ -102,16 +102,6 @@ export async function performAdmlogSignIn(config: {
   const { data: listData } = await admin.auth.admin.listUsers()
   const existingUser = listData?.users?.find((u: User) => u.email === ADMLOG_EMAIL)
 
-  const platformProfiles = (
-    admin as unknown as {
-      schema: (s: string) => {
-        from: (t: string) => {
-          update: (v: object) => { eq: (c: string, v: string) => PromiseLike<unknown> }
-        }
-      }
-    }
-  ).schema('platform').from('profiles')
-
   let admlogUserId: string
 
   if (existingUser) {
@@ -121,6 +111,7 @@ export async function performAdmlogSignIn(config: {
     } catch {
       // continue
     }
+    const platformProfiles = (admin as unknown as { schema: (s: string) => { from: (t: string) => { update: (v: object) => { eq: (c: string, v: string) => PromiseLike<unknown> } } } }).schema('platform').from('profiles')
     await platformProfiles.update({ role: 'admin', updated_at: new Date().toISOString() }).eq('id', existingUser.id)
   } else {
     const { data: newUser, error: createError } = await admin.auth.admin.createUser({
@@ -139,49 +130,48 @@ export async function performAdmlogSignIn(config: {
     }
     admlogUserId = newUser.user.id
     try {
+      const platformProfiles = (admin as unknown as { schema: (s: string) => { from: (t: string) => { update: (v: object) => { eq: (c: string, v: string) => PromiseLike<unknown> } } } }).schema('platform').from('profiles')
       await platformProfiles.update({ role: 'admin', updated_at: new Date().toISOString() }).eq('id', newUser.user.id)
     } catch (e) {
       console.warn('[ADMLOG] Could not set platform.profiles.role for admlog user', e)
     }
   }
 
-  const productKeys = ensureEntitlementProductKeys?.filter((k) => k.trim().length > 0) ?? []
-  if (productKeys.length > 0) {
-    const entitlements = (
-      admin as unknown as {
-        schema: (s: string) => {
-          from: (t: string) => {
-            upsert: (
-              rows: Record<string, unknown> | Record<string, unknown>[],
-              opts?: { onConflict?: string }
-            ) => PromiseLike<{ error: { message: string } | null }>
+  if (ensureEntitlementProductKeys?.length) {
+    for (const raw of ensureEntitlementProductKeys) {
+      const productKey = raw.trim()
+      if (!ADMLOG_ENTITLEMENT_PRODUCT_KEYS.has(productKey)) {
+        console.warn('[ADMLOG] Ignoring invalid product_key for entitlement upsert:', raw)
+        continue
+      }
+      const platformEntitlements = (
+        admin as unknown as {
+          schema: (s: string) => {
+            from: (t: string) => {
+              upsert: (
+                row: Record<string, unknown>,
+                opts?: { onConflict?: string }
+              ) => PromiseLike<{ error: { message: string } | null }>
+            }
           }
         }
-      }
-    )
-      .schema('platform')
-      .from('entitlements')
-    const now = new Date().toISOString()
-    for (const productKey of productKeys) {
-      try {
-        const { error: entError } = await entitlements.upsert(
-          {
-            user_id: admlogUserId,
-            product_key: productKey,
-            entitlement_key: 'default',
-            active: true,
-            source: 'admlog-dev',
-            metadata: { seeded_by: 'performAdmlogSignIn', timestamp: now },
-            starts_at: now,
-            ends_at: null,
-          },
-          { onConflict: 'user_id,product_key,entitlement_key' }
-        )
-        if (entError) {
-          console.warn(`[ADMLOG] entitlement upsert for ${productKey}: ${entError.message}`)
-        }
-      } catch (e) {
-        console.warn(`[ADMLOG] Could not upsert entitlement for ${productKey}`, e)
+      )
+        .schema('platform')
+        .from('entitlements')
+      const { error: entError } = await platformEntitlements.upsert(
+        {
+          user_id: admlogUserId,
+          product_key: productKey,
+          entitlement_key: ADMLOG_ENTITLEMENT_KEY,
+          active: true,
+          source: 'admlog',
+          metadata: {},
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,product_key,entitlement_key' }
+      )
+      if (entError) {
+        console.warn('[ADMLOG] Could not upsert platform.entitlements for admlog user', productKey, entError)
       }
     }
   }

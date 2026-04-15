@@ -5,9 +5,9 @@ set -e
 # (PAT with repo read) when the monorepo is private; otherwise unauthenticated public clone.
 clone_url() {
   if [ -n "${BOOKIJI_INC_CLONE_TOKEN:-}" ]; then
-    echo "https://${BOOKIJI_INC_CLONE_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
+    echo "https://x-access-token:${BOOKIJI_INC_CLONE_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
   elif [ -n "${GITHUB_TOKEN:-}" ]; then
-    echo "https://${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
+    echo "https://x-access-token:${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
   else
     echo "https://github.com/patrickd12345/Bookiji-inc.git"
   fi
@@ -17,7 +17,10 @@ rm -rf .bookiji-tmp
 rm -rf .bookiji-packages
 # Shallow clone of main tree only. Do not use --recurse-submodules: umbrella submodules (ai-core,
 # products/*) are huge and not needed; Kinetix copies Bookiji-inc repo-root packages/* into monorepo-packages/ for @bookiji-inc/*.
-git clone --depth 1 "$(clone_url)" .bookiji-tmp
+if ! git clone --depth 1 "$(clone_url)" .bookiji-tmp; then
+  echo "Warning: Auth clone failed. Falling back to unauthenticated public clone."
+  git clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp
+fi
 mv .bookiji-tmp/packages .bookiji-packages
 rm -rf .bookiji-tmp
 

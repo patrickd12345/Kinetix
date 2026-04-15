@@ -5,9 +5,9 @@ set -e
 # (PAT with repo read) when the monorepo is private; otherwise unauthenticated public clone.
 clone_url() {
   if [ -n "${BOOKIJI_INC_CLONE_TOKEN:-}" ]; then
-    echo "https://${BOOKIJI_INC_CLONE_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
+    echo "https://x-access-token:${BOOKIJI_INC_CLONE_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
   elif [ -n "${GITHUB_TOKEN:-}" ]; then
-    echo "https://${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
+    echo "https://x-access-token:${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
   else
     echo "https://github.com/patrickd12345/Bookiji-inc.git"
   fi

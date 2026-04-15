@@ -7,7 +7,7 @@ import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
 import { ensurePBInitialized, getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS, calculateRelativeKPSSync } from '../lib/kpsUtils'
 import { getRunsPage, getWeightsForDates } from '../lib/database'
-import { getProfileForRun, resolveProfileForRunWithWeightCache } from '../lib/authState'
+import { resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
 import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
 import { RunDashboardHeader, RunGaugePanel, RunStatsPanel, RunControlsPanel, RunDesktopSummary } from './run-dashboard/RunDashboardPanels'
@@ -419,19 +419,22 @@ export default function RunDashboard() {
         />
 
         <section className="glass rounded-2xl p-6 mb-4" aria-labelledby="progress-heading">
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-            <div>
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+            <div className="min-w-0 max-w-full sm:pr-2">
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500 dark:text-gray-400">KPS Progress</p>
-              <h2 id="progress-heading" className="mt-1 text-xl font-black text-slate-900 dark:text-white">
+              <h2
+                id="progress-heading"
+                className="mt-1 text-xl font-black leading-snug text-slate-900 dark:text-white [text-wrap:balance]"
+              >
                 {trendText} this week
               </h2>
             </div>
-            <div className="text-right text-sm text-slate-600 dark:text-gray-300">
+            <div className="shrink-0 text-sm text-slate-600 dark:text-gray-300 sm:text-right">
               <div>{homeSummary.runCount7d} runs in 7 days</div>
               <div>{homeSummary.streakDays}-day consistency</div>
             </div>
           </div>
-          <div className="mb-5 rounded-lg border border-white/10 bg-black/5 p-3 text-sm text-slate-700 dark:bg-black/20 dark:text-gray-300">
+          <div className="isolate mb-5 rounded-lg border border-white/10 bg-black/5 p-3 text-sm leading-normal text-slate-700 dark:bg-black/20 dark:text-gray-300">
             Weekly progress: {formatDistance(homeSummary.distance7d, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}
           </div>
           <div className="lg:grid lg:grid-cols-[340px,1fr] lg:gap-8 lg:items-start">

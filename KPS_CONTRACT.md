@@ -2,6 +2,25 @@
 
 This document defines KPS behavior that must not drift.
 
+## Canonical semantic (absolute score)
+
+**KPS is a distance-, age-, and weight-adjusted personal performance score.**
+
+Computation order for **absolute** KPS (see `calculateKPS` in `packages/core/src/kps/calculator.ts`):
+
+1. **Distance normalization (Riegel)**: map the run to an equivalent time at the reference distance (default 10 km).
+2. **Normalized pace basis**: equivalent seconds per km at that reference distance.
+3. **Age factor**: heuristic post-peak linear adjustment (not a named physiology law).
+4. **Weight factor**: heuristic linear adjustment vs reference mass (70 kg); heavier increases effective pace (does not inflate score vs reference weight).
+5. **Final score**: pace inverted to speed and scaled for display.
+
+**Display KPS** in the product is still **PB-relative** (see Core Invariants below): the absolute score above is the input to the ratio vs the PB run.
+
+### Heuristics (tunable, not Riegel-class laws)
+
+- Age and weight models are simplified fairness adjustments. They may be retuned; Riegel distance normalization is the fixed structural choice.
+- Native iOS/watch **NPI** helpers may differ from this web/core pipeline until explicitly aligned (see `RunMetricsCalculator`).
+
 ## Core Invariants
 
 1. KPS is always age-weight graded.

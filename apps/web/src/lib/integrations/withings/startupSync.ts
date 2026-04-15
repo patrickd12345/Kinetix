@@ -74,7 +74,7 @@ export async function runWithingsStartupReload(
       actions.setLastSuccessfulWithingsSyncAt(nowIso)
 
       const dueAtEnd = evaluateWithingsSyncPolicy({
-        now: new Date(),
+        now,
         manual: false,
         featureEnabled,
         expandedSyncEnabled: state.withingsExpandedSyncEnabled,

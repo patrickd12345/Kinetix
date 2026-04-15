@@ -46,6 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ github.token }}
+      BOOKIJI_INC_CLONE_TOKEN: ${{ secrets.BOOKIJI_INC_CLONE_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -69,6 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ github.token }}
+      BOOKIJI_INC_CLONE_TOKEN: ${{ secrets.BOOKIJI_INC_CLONE_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

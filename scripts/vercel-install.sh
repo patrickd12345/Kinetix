@@ -6,8 +6,15 @@ set -e
 clone_url() {
   if [ -n "${BOOKIJI_INC_CLONE_TOKEN:-}" ]; then
     echo "https://${BOOKIJI_INC_CLONE_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
-  elif [ -n "${GITHUB_TOKEN:-}" ]; then
+  elif [ -n "${GITHUB_TOKEN:-}" ] && [ "${GITHUB_ACTIONS:-}" != "true" ]; then
+    # Vercel's default GITHUB_TOKEN or Actions github.token (which lacks cross-repo scopes unless PAT is used)
     echo "https://${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
+  elif [ -n "${GITHUB_TOKEN:-}" ] && [ "${GITHUB_ACTIONS:-}" == "true" ]; then
+    # In GitHub Actions, the default GITHUB_TOKEN has an x-access-token format but does not have
+    # read access to other repositories. This will fail if Bookiji-inc is private unless
+    # BOOKIJI_INC_CLONE_TOKEN is used.
+    # We append the token in a way that doesn't cause credential-helper loops on Actions.
+    echo "https://x-access-token:${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
   else
     echo "https://github.com/patrickd12345/Bookiji-inc.git"
   fi
@@ -17,7 +24,11 @@ rm -rf .bookiji-tmp
 rm -rf .bookiji-packages
 # Shallow clone of main tree only. Do not use --recurse-submodules: umbrella submodules (ai-core,
 # products/*) are huge and not needed; Kinetix copies Bookiji-inc repo-root packages/* into monorepo-packages/ for @bookiji-inc/*.
-git clone --depth 1 "$(clone_url)" .bookiji-tmp
+
+URL=$(clone_url)
+# If the repo is private and we don't have a token, clone will prompt for auth or fail in CI.
+# We explicitly disable terminal prompts so it fails immediately.
+env GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$URL" .bookiji-tmp
 mv .bookiji-tmp/packages .bookiji-packages
 rm -rf .bookiji-tmp
 

@@ -5,9 +5,9 @@ import { useSettingsStore } from '../store/settingsStore'
 import { formatDistance, formatPace, timeToAchieveKPS, distanceToAchieveKPS } from '@kinetix/core'
 import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
-import { ensurePBInitialized, getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS } from '../lib/kpsUtils'
-import { getRunsPage } from '../lib/database'
-import { getProfileForRun } from '../lib/authState'
+import { ensurePBInitialized, getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS, calculateRelativeKPSSync } from '../lib/kpsUtils'
+import { getRunsPage, getWeightsForDates } from '../lib/database'
+import { getProfileForRun, resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
 import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
 import { RunDashboardHeader, RunGaugePanel, RunStatsPanel, RunControlsPanel, RunDesktopSummary } from './run-dashboard/RunDashboardPanels'
@@ -94,10 +94,18 @@ export default function RunDashboard() {
         const now = Date.now()
         const sevenDaysAgo = now - 7 * 86_400_000
         const meaningful = items.filter(isMeaningfulRunForKPS)
+
+        // Bulk load weights, PB, and PB run once to avoid N+1 queries in the loop.
+        const [weightMap, pb, pbRun] = await Promise.all([
+          getWeightsForDates(meaningful.map((r) => r.date)),
+          getPB(),
+          getPBRun(),
+        ])
+
         const samples = []
         for (const run of [...meaningful].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())) {
-          const profileForRun = await getProfileForRun(run)
-          const kps = await getRelativeKPS(run, profileForRun)
+          const profileForRun = resolveProfileForRunWithWeightCache(weightMap, run)
+          const kps = calculateRelativeKPSSync(run, profileForRun, pb, pbRun)
           if (Number.isFinite(kps) && kps > 0) samples.push({ date: run.date, kps })
         }
         const lastRun = items[0] ?? null
@@ -209,9 +217,11 @@ export default function RunDashboard() {
       setBeatRecentsError(`No meaningful runs in the last ${beatRecentsCount}. Complete at least one run first.`)
       return
     }
+
+    const weightMap = await getWeightsForDates(meaningful.map((r) => r.date))
     let bestKPS = 0
     for (const run of meaningful) {
-      const profileForRun = await getProfileForRun(run)
+      const profileForRun = resolveProfileForRunWithWeightCache(weightMap, run)
       const kps = calculateAbsoluteKPS(run, profileForRun)
       if (isValidKPS(kps) && kps > bestKPS) bestKPS = kps
     }

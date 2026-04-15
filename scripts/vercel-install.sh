@@ -17,7 +17,10 @@ rm -rf .bookiji-tmp
 rm -rf .bookiji-packages
 # Shallow clone of main tree only. Do not use --recurse-submodules: umbrella submodules (ai-core,
 # products/*) are huge and not needed; Kinetix copies Bookiji-inc repo-root packages/* into monorepo-packages/ for @bookiji-inc/*.
-git clone --depth 1 "$(clone_url)" .bookiji-tmp
+if ! git clone --depth 1 "$(clone_url)" .bookiji-tmp; then
+  echo "Warning: Auth clone failed. Falling back to unauthenticated public clone."
+  git clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp
+fi
 mv .bookiji-tmp/packages .bookiji-packages
 rm -rf .bookiji-tmp
 

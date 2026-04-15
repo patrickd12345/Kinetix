@@ -7,6 +7,9 @@ clone_url() {
   if [ -n "${BOOKIJI_INC_CLONE_TOKEN:-}" ]; then
     echo "https://x-access-token:${BOOKIJI_INC_CLONE_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
   elif [ -n "${GITHUB_TOKEN:-}" ]; then
+    # x-access-token form matches GitHub HTTPS conventions (Vercel, Actions github.token, PATs).
+    # Default GITHUB_TOKEN in Actions often lacks cross-repo read on a private Bookiji-inc; use
+    # BOOKIJI_INC_CLONE_TOKEN when the umbrella repo is private.
     echo "https://x-access-token:${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
   else
     echo "https://github.com/patrickd12345/Bookiji-inc.git"
@@ -17,9 +20,9 @@ rm -rf .bookiji-tmp
 rm -rf .bookiji-packages
 # Shallow clone of main tree only. Do not use --recurse-submodules: umbrella submodules (ai-core,
 # products/*) are huge and not needed; Kinetix copies Bookiji-inc repo-root packages/* into monorepo-packages/ for @bookiji-inc/*.
-if ! git clone --depth 1 "$(clone_url)" .bookiji-tmp; then
+if ! env GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$(clone_url)" .bookiji-tmp; then
   echo "Warning: Auth clone failed. Falling back to unauthenticated public clone."
-  git clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp
+  env GIT_TERMINAL_PROMPT=0 git clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp
 fi
 mv .bookiji-tmp/packages .bookiji-packages
 rm -rf .bookiji-tmp

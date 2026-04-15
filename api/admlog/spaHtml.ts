@@ -43,7 +43,7 @@ export function buildAdmlogSpaSessionHtml(options: {
       try {
         localStorage.setItem(key, JSON.stringify(session));
       } catch (e) {
-        document.body.innerHTML = '<p>Could not write session to storage. Check third-party cookie / storage settings.</p>';
+        document.body.textContent = 'Could not write session to storage. Check third-party cookie / storage settings.';
         console.error(e);
         return;
       }

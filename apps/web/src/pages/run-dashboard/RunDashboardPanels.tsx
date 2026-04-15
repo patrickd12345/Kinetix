@@ -10,6 +10,8 @@ interface RunDashboardHeaderProps {
 
 interface RunGaugePanelProps {
   displayKPS: number
+  displayText: string
+  displayLabel: string
   progress: number
   isRunning: boolean
   timeToBeat: string | null
@@ -43,6 +45,7 @@ interface RunControlsPanelProps {
 
 interface RunDesktopSummaryProps {
   displayKPS: number
+  displayText: string
   targetKPS: number
   physioMode: boolean
 }
@@ -75,14 +78,14 @@ export function RunDashboardHeader({ targetKPS, isRunning, hasGPSFix }: RunDashb
   )
 }
 
-export function RunGaugePanel({ displayKPS, progress, isRunning, timeToBeat }: RunGaugePanelProps) {
+export function RunGaugePanel({ displayKPS: _displayKPS, displayText, displayLabel, progress, isRunning, timeToBeat }: RunGaugePanelProps) {
   return (
     <div>
       <div className="relative flex items-center justify-center mb-4">
         <svg
           className="w-48 h-48 transform -rotate-90"
           role="img"
-          aria-label={`${KPS_SHORT} gauge: ${Math.floor(displayKPS)}. Progress toward target: ${Math.round(Math.min(Math.max(progress, 0), 1) * 100)} percent.`}
+          aria-label={`${displayLabel}: ${displayText}. Progress toward target: ${Math.round(Math.min(Math.max(progress, 0), 1) * 100)} percent.`}
         >
           <defs>
             <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -109,10 +112,10 @@ export function RunGaugePanel({ displayKPS, progress, isRunning, timeToBeat }: R
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
             <span className="text-6xl font-black tracking-tight text-slate-900 dark:text-white">
-              {Math.floor(displayKPS)}
+              {displayText}
             </span>
             <div className="mt-2 text-xs font-bold uppercase tracking-[0.3em] text-slate-600 dark:text-gray-400">
-              {KPS_SHORT}
+              {displayLabel}
             </div>
           </div>
         </div>
@@ -308,13 +311,13 @@ export function RunControlsPanel({
   )
 }
 
-export function RunDesktopSummary({ displayKPS, targetKPS, physioMode }: RunDesktopSummaryProps) {
+export function RunDesktopSummary({ displayKPS, displayText, targetKPS, physioMode }: RunDesktopSummaryProps) {
   return (
     <div className="glass mb-4 hidden rounded-2xl border border-slate-200/90 p-4 dark:border-white/10 lg:block">
       <div className="grid grid-cols-3 gap-4 text-sm">
         <div>
           <div className="text-xs uppercase tracking-wide text-slate-600 dark:text-gray-400 mb-1">Current KPS</div>
-          <div className="font-black text-slate-900 dark:text-white">{Math.floor(displayKPS)}</div>
+          <div className="font-black text-slate-900 dark:text-white">{displayText === '--' ? displayText : Math.floor(displayKPS)}</div>
         </div>
         <div>
           <div className="text-xs uppercase tracking-wide text-slate-600 dark:text-gray-400 mb-1">Target KPS</div>

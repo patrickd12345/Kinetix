@@ -7,7 +7,7 @@ import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
 import { ensurePBInitialized, getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS, calculateRelativeKPSSync } from '../lib/kpsUtils'
 import { getRunsPage, getWeightsForDates } from '../lib/database'
-import { getProfileForRun, resolveProfileForRunWithWeightCache } from '../lib/authState'
+import { resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
 import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
 import { RunDashboardHeader, RunGaugePanel, RunStatsPanel, RunControlsPanel, RunDesktopSummary } from './run-dashboard/RunDashboardPanels'
@@ -15,6 +15,12 @@ import { AICoachModal, BeatTargetModal } from './run-dashboard/RunDashboardModal
 import type { BeatTargetOption } from './run-dashboard/types'
 import { computeIntelligence } from '../lib/intelligence/intelligenceEngine'
 import { KPS_SHORT } from '../lib/branding'
+import {
+  appendLiveKpsSample,
+  getLiveKpsDisplayState,
+  getSmoothedLiveKps,
+  type LiveKpsDisplayState,
+} from '../lib/liveKpsDisplay'
 import { DirectionalTodayCard } from '../components/directional/DirectionalTodayCard'
 import {
   type DirectionalHomeSummary,
@@ -46,6 +52,12 @@ export default function RunDashboard() {
   const { profile } = useAuth()
   const userProfile = useStableKinetixUserProfile(profile)
   const [relativeKPS, setRelativeKPS] = useState(0)
+  const [liveKpsDisplay, setLiveKpsDisplay] = useState<LiveKpsDisplayState>({
+    text: '0',
+    label: `Live ${KPS_SHORT}`,
+    numericValue: 0,
+    isCalibrating: false,
+  })
   const [homeSummary, setHomeSummary] = useState<DirectionalHomeSummary>({
     loading: true,
     lastRun: null,
@@ -77,6 +89,38 @@ export default function RunDashboard() {
       .then(setRelativeKPS)
       .catch(() => setRelativeKPS(0))
   }, [distance, duration, averagePace, targetKPS, userProfile])
+
+  const liveKpsSamplesRef = useRef<Array<{ atMs: number; value: number }>>([])
+
+  useEffect(() => {
+    if (!isRunning) {
+      liveKpsSamplesRef.current = []
+      setLiveKpsDisplay({
+        text: '0',
+        label: `Live ${KPS_SHORT}`,
+        numericValue: 0,
+        isCalibrating: false,
+      })
+      return
+    }
+
+    liveKpsSamplesRef.current = appendLiveKpsSample(liveKpsSamplesRef.current, {
+      atMs: Math.round(duration * 1000),
+      value: relativeKPS,
+    })
+
+    const smoothedRelativeKps = getSmoothedLiveKps(liveKpsSamplesRef.current)
+    const nextDisplay = getLiveKpsDisplayState({
+      isRunning,
+      durationSeconds: duration,
+      smoothedRelativeKps,
+    })
+
+    setLiveKpsDisplay({
+      ...nextDisplay,
+      label: nextDisplay.isCalibrating ? nextDisplay.label : `Live ${KPS_SHORT}`,
+    })
+  }, [duration, isRunning, relativeKPS])
 
   useEffect(() => {
     let cancelled = false
@@ -142,7 +186,10 @@ export default function RunDashboard() {
     }
   }, [userProfile])
 
-  const displayKPS = useMemo(() => relativeKPS, [relativeKPS])
+  const displayKPS = useMemo(
+    () => (isRunning ? liveKpsDisplay.numericValue ?? 0 : relativeKPS),
+    [isRunning, liveKpsDisplay.numericValue, relativeKPS]
+  )
 
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
   const [showAICoach, setShowAICoach] = useState(false)
@@ -380,16 +427,20 @@ export default function RunDashboard() {
   const trendText = homeSummary.intelligence
     ? `${homeSummary.intelligence.trend >= 0 ? '+' : ''}${homeSummary.intelligence.trend.toFixed(1)}%`
     : 'No trend yet'
-  const heroKpsValue = displayKPS > 0
-    ? Math.floor(displayKPS).toString()
-    : homeSummary.latestKps != null
-      ? Math.round(homeSummary.latestKps).toString()
-      : KPS_SHORT
-  const heroKpsLabel = displayKPS > 0
-    ? `Live ${KPS_SHORT}`
-    : homeSummary.latestKps != null
-      ? `Current ${KPS_SHORT}`
-      : 'Baseline pending'
+  const heroKpsValue = isRunning
+    ? liveKpsDisplay.text
+    : displayKPS > 0
+      ? Math.floor(displayKPS).toString()
+      : homeSummary.latestKps != null
+        ? Math.round(homeSummary.latestKps).toString()
+        : KPS_SHORT
+  const heroKpsLabel = isRunning
+    ? liveKpsDisplay.label
+    : displayKPS > 0
+      ? `Live ${KPS_SHORT}`
+      : homeSummary.latestKps != null
+        ? `Current ${KPS_SHORT}`
+        : 'Baseline pending'
   const suggested = getDirectionalSuggestedTraining(homeSummary)
   const coachMessage = getDirectionalCoachMessage(homeSummary)
   const todayTitle = homeSummary.intelligence?.readiness.status === 'high'
@@ -435,7 +486,14 @@ export default function RunDashboard() {
             Weekly progress: {formatDistance(homeSummary.distance7d, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}
           </div>
           <div className="lg:grid lg:grid-cols-[340px,1fr] lg:gap-8 lg:items-start">
-            <RunGaugePanel displayKPS={displayKPS} progress={progress} isRunning={isRunning} timeToBeat={timeToBeat} />
+            <RunGaugePanel
+              displayKPS={displayKPS}
+              displayText={liveKpsDisplay.text}
+              displayLabel={liveKpsDisplay.label}
+              progress={progress}
+              isRunning={isRunning}
+              timeToBeat={timeToBeat}
+            />
 
             <div>
               <RunStatsPanel
@@ -494,7 +552,12 @@ export default function RunDashboard() {
           </div>
         </nav>
 
-        <RunDesktopSummary displayKPS={displayKPS} targetKPS={targetKPS} physioMode={physioMode} />
+        <RunDesktopSummary
+          displayKPS={displayKPS}
+          displayText={liveKpsDisplay.text}
+          targetKPS={targetKPS}
+          physioMode={physioMode}
+        />
 
         <BeatTargetModal
           isOpen={showBeatPBModal}

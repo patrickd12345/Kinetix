@@ -12,7 +12,7 @@ describe('History remediation contracts', () => {
   })
 
   it('keeps history action icon buttons accessible', () => {
-    expect(source).toContain('aria-label={`Analyze ${runDisplayTitle(run)} with AI coach`}')
+    expect(source).toContain('aria-label={`Analyze ${runDisplayTitle(run)} with AI Coach`}')
     expect(source).toContain('aria-label={`Delete ${runDisplayTitle(run)}`}')
     expect(source).toContain('type="button"')
   })

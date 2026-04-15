@@ -30,10 +30,16 @@
 - ✅ **Real-time Metrics**: Pace, distance, time, heart rate
 - ✅ **GPS Status**: Real-time GPS status indicator (ready/searching/poor/denied)
 - ✅ **Time to Beat**: Dynamic projection of time needed to hit target
-- ✅ **Control Buttons**: Start, pause, resume, stop
+- ✅ **Control Buttons**: Start, pause, resume, stop, reset (idle and live; confirms before discarding progress)
 - ✅ **Save Dialog**: Confirm before saving runs
 
+### Coaching View (`/coaching`)
+- ✅ **Dedicated coaching surface**: Full deterministic coaching stack (coach decision, explanation, race readiness, alerts, weekly report, timeline, goal probability, goal progress, race simulation, periodization, load control, training plan, adaptive calendar, intelligence, coach memory) — same cards and hooks as before, moved off History for clarity
+- ✅ **Coaching timeline**: Deterministic 7–28 day forward outlook (max three events) from prediction, readiness, simulation, training plan, and coach memory — no AI
+- ✅ **Goal probability**: Deterministic 0–100 estimate with confidence and trend direction from prediction, readiness, simulation, timeline, goal progress, and coach memory — no AI
+
 ### History View
+- ✅ **Optional compact coach summary**: Single coaching decision card on History (full coaching lives on `/coaching`)
 - ✅ **Run History List**: Paginated list of saved runs (newest first)
 - ✅ **Run Cards**: Date, activity name (from notes / import title), distance, duration, pace, weight, KPS; gold / silver / bronze medals for the top three rounded relative KPS tiers across visible history, with `KPS 100` always gold when present (ties share the same medal)
 - ✅ **Filters**: Optional filters by name text, pace range (per km or per mi), duration, distance, relative KPS (min/max), source; preset to hide unrealistically fast paces (e.g. car); when filters are on, matching runs are loaded from the full history client-side and shown in a single scrollable list (no per-page slice); with a KPS range filter, the personal-best reference run is pinned to the top
@@ -61,6 +67,16 @@
 - ✅ **Run Analysis**: AI-powered insights and recommendations
 - ✅ **Configurable**: Environment variables for Ollama URL and model
 
+### Help Center & Support
+- ✅ **Help Center route**: Main nav entry to `/help`
+- ✅ **Curated support retrieval**: `/help` queries `kinetix_support_kb` via `supportRagClient`
+- ✅ **Deterministic fallback**: Fixed troubleshooting guidance appears when retrieval is weak, empty, or unavailable
+- ✅ **Explicit-confirmation escalation**: No direct ticket button; escalation is only proposed after unresolved support conditions and creates a ticket only after confirmation
+- ✅ **Authoritative ticket persistence**: `POST /support/ticket/create` stores the ticket first, then records Slack/email delivery state without rollback on notification failure
+- ✅ **Operator queue**: `/support-queue` supports operator-only ticket review, status changes, internal notes, notification retry, and deep-linked ticket selection from notification URLs
+- ✅ **KB approval bin**: Resolved tickets can move into a curated approval draft flow before manual ingest into `kinetix_support_kb`
+- ✅ **Vercel Hobby API layout**: Production deploy uses **12** serverless route files under root `api/` (excluding `api/_lib`), including merged Withings handler + rewrites and a single tickets catch-all; see `vercel.json` and [`apps/web/HELP_CENTER_ARCHITECTURE.md`](apps/web/HELP_CENTER_ARCHITECTURE.md).
+
 ### Data Persistence
 - ✅ **localStorage**: Run data and settings stored locally
 - ✅ **Run Storage**: All runs saved and retrievable
@@ -68,7 +84,7 @@
 - ✅ **Optional song metadata**: Runs may include `songTitle`, `songArtist`, `songBpm` (IndexedDB); Supabase `kinetix.activities` mirrors these columns (`song_bpm` checked **40–240** when set); all optional; coach/RAG may relate BPM to cadence for efficiency hints
 
 ### UI/UX
-- ✅ **Modern Design**: Dark theme with glassmorphism effects
+- ✅ **Modern Design**: Dark/light appearance with glassmorphism; header theme control (system / light / dark), persisted
 - ✅ **Responsive Layout**: Works on desktop and mobile
 - ✅ **Web Shell Navigation**: Desktop-first header/sidebar with mobile bottom navigation
 - ✅ **Smooth Animations**: Transitions and progress indicators
@@ -116,9 +132,9 @@
 
 ---
 
-**Last Updated**: 2026-03-05
+**Last Updated**: 2026-04-08
 **Platform**: Modern Browsers (Chrome, Firefox, Safari, Edge)
-**Status**: In Development
+**Status**: Active production web app
 
 
 

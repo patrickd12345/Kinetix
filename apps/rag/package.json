@@ -10,9 +10,11 @@
     "dev": "node index.js",
     "index": "node scripts/index-runs.js",
     "index-all": "node scripts/index-all-from-json.js",
+    "kb:stage": "node scripts/kb-stage-from-approval-bin.mjs --dry-run",
     "test": "node --test services/*.test.js"
   },
   "dependencies": {
+    "@bookiji-inc/ai-runtime": "workspace:*",
     "@supabase/supabase-js": "^2.57.4",
     "chromadb": "^1.8.1",
     "cors": "^2.8.5",

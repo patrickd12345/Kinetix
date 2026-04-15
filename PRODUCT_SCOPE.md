@@ -3,17 +3,19 @@
 Product: Kinetix  
 Type: mixed platform
 
+**Wave 2 web verification:** CLOSED (2026-04-10 recorded evidence). Remaining **Partial** platform rows track **Phase 3 — Platform Hardening** in [`docs/KINETIX_SCOPE_CLOSURE.md`](docs/KINETIX_SCOPE_CLOSURE.md) (not blocking release).
+
 ## Platform Standards Applicability
 
 | Capability | Status | Notes |
 |------------|--------|------|
 | AI Runtime | Applicable | AI is an active web, API, and mobile surface. |
-| Stripe Runtime | N/A | No confirmed Stripe runtime or billing webhook surface is part of the current product architecture. |
-| CI Baseline | Partial | CI exists, but baseline coverage does not consistently cover all active surfaces. |
+| Stripe Runtime | Applicable | Checkout on Kinetix (`POST /api/billing/create-checkout-session`); canonical webhook on Bookiji (`POST /api/payments/webhook`) updates `platform.entitlements`. See [`docs/deployment/STRIPE_KINETIX_ENTITLEMENTS.md`](docs/deployment/STRIPE_KINETIX_ENTITLEMENTS.md). |
+| CI Baseline | Partial | Wave 2 closure (2026-04-10): local `pnpm --filter @kinetix/web test` green (**346** tests), plus `pnpm lint` and `pnpm type-check`. CI workflow should keep running the same gates; native and RAG surfaces still need explicit job coverage where applicable. |
 | Env Contract | Partial | Canonical env work exists, but runtime resolution is still mixed across surfaces. |
 | Observability | Partial | Observability helpers exist, but usage is not consistent across API and app paths. |
 | Feature Flags | Partial | Flag-related runtime and schema surfaces exist, but governance and adoption are incomplete. |
-| Error Contract | Partial | Canonical error handling exists on some API paths, but not across the whole product. |
+| Error Contract | Partial | Wave 2: expanded API/app tests include error-route coverage (e.g. `apps/web/src/test/ai-route-errors.test.ts`); full uniform adoption across every `api/*` handler remains open. |
 
 ## Architecture Intent
 
@@ -21,8 +23,8 @@ Mixed web, API, and mobile product with AI surfaces in scope and uneven platform
 
 ## Out of Scope
 
-- Stripe recommendations unless a real billing runtime is introduced
-- Billing scaffolding where no billing surface exists
+- A second Stripe webhook endpoint on Kinetix (org rule: single canonical webhook on Bookiji)
+- Billing UX or pricing experiments not backed by an ADR or product decision
 
 ## Audit Instructions
 

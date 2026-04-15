@@ -66,7 +66,7 @@ Store secrets in Infisical per [`INFISICAL_LOCAL_DEV.md`](./INFISICAL_LOCAL_DEV.
 
 ## Local testing (Stripe test mode)
 
-Prereqs: Bookiji dev server on port **3000**, Kinetix API available via **`vercel dev`** in the Kinetix repo (serves `/api/*` and the web app), test keys in env.
+Prereqs: Bookiji dev server on port **3000**, Kinetix available via **`vercel dev`** in the Kinetix repo (serves `/api/*` and the web app), test keys in env.
 
 1. **Terminal A — Bookiji:** from `products/bookiji`, run the Next dev server (e.g. `pnpm dev`).
 2. **Terminal B — Stripe CLI:** forward webhooks to Bookiji:
@@ -77,15 +77,16 @@ Prereqs: Bookiji dev server on port **3000**, Kinetix API available via **`verce
 
    Copy the **webhook signing secret** the CLI prints and set `STRIPE_WEBHOOK_SECRET` for Bookiji (or use `.env.local`).
 
-3. **Terminal C — Kinetix:** from `products/Kinetix`, run `vercel dev` (or deploy a preview). Set `BILLING_ENABLED=true`, `STRIPE_SECRET_KEY` (test key), `KINETIX_STRIPE_PRICE_ID` (test **Price**), and Supabase vars consistent with [`ENV_PARITY.md`](./ENV_PARITY.md).
+3. **Terminal C — Kinetix:** from `products/Kinetix`, run `vercel dev --listen 3001` (avoids clashing with Bookiji on `:3000`). Set `BILLING_ENABLED=true`, `STRIPE_SECRET_KEY` (test key), `KINETIX_STRIPE_PRICE_ID` (test **Price**), and Supabase vars consistent with [`ENV_PARITY.md`](./ENV_PARITY.md).
 
 4. Call checkout from the Kinetix origin (or tool):
 
    ```bash
-   curl -sS -X POST "http://localhost:3000/api/billing/create-checkout-session" ^
-     -H "Authorization: Bearer YOUR_SUPABASE_ACCESS_TOKEN" ^
-     -H "Content-Type: application/json" ^
-     -d "{\"successUrl\":\"http://localhost:5173/billing/success\",\"cancelUrl\":\"http://localhost:5173/billing/cancel\"}"
+   KINETIX_ORIGIN="http://localhost:3001"
+   curl -sS -X POST "${KINETIX_ORIGIN}/api/billing/create-checkout-session" \
+     -H "Authorization: Bearer YOUR_SUPABASE_ACCESS_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"successUrl\":\"${KINETIX_ORIGIN}/billing/success\",\"cancelUrl\":\"${KINETIX_ORIGIN}/billing/cancel\"}"
    ```
 
    Use the returned `url` in a browser, complete test card **4242 4242 4242 4242**. Confirm `checkout.session.completed` in the `stripe listen` output and a row in `platform.entitlements` for `product_key = kinetix`.

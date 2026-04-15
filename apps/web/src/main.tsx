@@ -4,6 +4,9 @@ import App from './App'
 import './index.css'
 import { AuthProvider } from './components/providers/AuthProvider'
 import AppErrorBoundary from './components/AppErrorBoundary'
+import { hydrateThemeClassFromStorage } from './store/themeStore'
+
+hydrateThemeClassFromStorage()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

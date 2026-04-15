@@ -48,7 +48,7 @@ function runPnpm(args) {
   run('npx', ['-y', 'pnpm@10.30.3', ...args], true)
 }
 
-console.log('[verify-vercel-parity] check-no-local-ai-core')
+console.log('[verify-vercel-parity] check-workspace-package-layout')
 run('node', [join(scriptDir, 'check-no-local-ai-core.mjs')])
 
 const bash = bashPath()
@@ -68,11 +68,16 @@ console.log('[verify-vercel-parity] pnpm run build')
 runPnpm(['run', 'build'])
 
 console.log('[verify-vercel-parity] products/bookiji — Vercel-like install + build')
-const bookiji = spawnSync(process.execPath, [join(repoRoot, 'scripts', 'verify-bookiji-vercel-build.mjs')], {
-  cwd: repoRoot,
-  stdio: 'inherit',
-  env: process.env,
-})
-exitCode(bookiji.status)
+const verifyBookijiScript = join(repoRoot, 'scripts', 'verify-bookiji-vercel-build.mjs')
+if (existsSync(verifyBookijiScript)) {
+  const bookiji = spawnSync(process.execPath, [verifyBookijiScript], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    env: process.env,
+  })
+  exitCode(bookiji.status)
+} else {
+  console.log('[verify-vercel-parity] Skipped: ' + verifyBookijiScript + ' not found.')
+}
 
 console.log('[verify-vercel-parity] OK')

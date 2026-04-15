@@ -56,7 +56,7 @@ export function RunDetails({
         <div className="glass rounded-lg p-3">
           <div className="flex items-center gap-1 mb-1">
             <Zap size={12} className="text-purple-400" />
-            <span className="text-xs text-gray-400 uppercase">Relative {KPS_SHORT}</span>
+            <span className="text-xs text-slate-600 dark:text-gray-400 uppercase">Relative {KPS_SHORT}</span>
           </div>
           <div className="text-xl font-black text-purple-400">
             {Math.round(relativeKPS)}
@@ -67,7 +67,7 @@ export function RunDetails({
           <div className="glass rounded-lg p-3">
             <div className="flex items-center gap-1 mb-1">
               <Scale size={12} className="text-cyan-400" />
-              <span className="text-xs text-gray-400 uppercase">Weight used</span>
+              <span className="text-xs text-slate-600 dark:text-gray-400 uppercase">Weight used</span>
             </div>
             <div className="text-xl font-black text-cyan-400">
               {weightUnit === 'lbs'
@@ -82,7 +82,7 @@ export function RunDetails({
           <div className="glass rounded-lg p-3">
             <div className="flex items-center gap-1 mb-1">
               <Heart size={12} className="text-red-400" />
-              <span className="text-xs text-gray-400 uppercase">Avg HR</span>
+              <span className="text-xs text-slate-600 dark:text-gray-400 uppercase">Avg HR</span>
             </div>
             <div className={`text-xl font-black ${hrZone?.color || 'text-white'}`}>
               {Math.round(run.heartRate!)}
@@ -108,7 +108,7 @@ export function RunDetails({
       {/* Splits Table */}
       {hasSplits && (
         <div>
-          <h4 className="text-xs font-bold text-gray-400 uppercase mb-2 flex items-center gap-1">
+          <h4 className="text-xs font-bold text-slate-600 dark:text-gray-400 uppercase mb-2 flex items-center gap-1">
             <TrendingUp size={12} />
             Splits
           </h4>
@@ -117,20 +117,20 @@ export function RunDetails({
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-700">
-                    <th className="text-left p-2 text-gray-400 font-semibold">#</th>
-                    <th className="text-right p-2 text-gray-400 font-semibold">Distance</th>
-                    <th className="text-right p-2 text-gray-400 font-semibold">Time</th>
-                    <th className="text-right p-2 text-gray-400 font-semibold">Pace</th>
+                    <th className="text-left p-2 text-slate-600 dark:text-gray-400 font-semibold">#</th>
+                    <th className="text-right p-2 text-slate-600 dark:text-gray-400 font-semibold">Distance</th>
+                    <th className="text-right p-2 text-slate-600 dark:text-gray-400 font-semibold">Time</th>
+                    <th className="text-right p-2 text-slate-600 dark:text-gray-400 font-semibold">Pace</th>
                   </tr>
                 </thead>
                 <tbody>
                   {run.splits.map((split, index) => (
                     <tr key={index} className="border-b border-gray-800/50 hover:bg-gray-900/30">
-                      <td className="p-2 text-gray-300">{index + 1}</td>
-                      <td className="p-2 text-right text-gray-300">
+                      <td className="p-2 text-slate-700 dark:text-gray-300">{index + 1}</td>
+                      <td className="p-2 text-right text-slate-700 dark:text-gray-300">
                         {formatDistance(split.distance, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}
                       </td>
-                      <td className="p-2 text-right text-gray-300">{formatTime(split.time)}</td>
+                      <td className="p-2 text-right text-slate-700 dark:text-gray-300">{formatTime(split.time)}</td>
                       <td className="p-2 text-right text-cyan-400 font-mono">
                         {formatPace(split.pace, unitSystem)}
                       </td>
@@ -146,15 +146,15 @@ export function RunDetails({
       {/* Location Info */}
       {hasLocations && (
         <div>
-          <h4 className="text-xs font-bold text-gray-400 uppercase mb-2 flex items-center gap-1">
+          <h4 className="text-xs font-bold text-slate-600 dark:text-gray-400 uppercase mb-2 flex items-center gap-1">
             <MapPin size={12} />
             Route Data
           </h4>
           <div className="glass rounded-lg p-3">
-            <p className="text-xs text-gray-300">
+            <p className="text-xs text-slate-700 dark:text-gray-300">
               {run.locations.length} GPS points recorded
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
               Map is not displayed in the web app (lat/lon only; no elevation in this view).
             </p>
           </div>
@@ -164,9 +164,9 @@ export function RunDetails({
       {/* Notes */}
       {run.notes && (
         <div>
-          <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Notes</h4>
+          <h4 className="text-xs font-bold text-slate-600 dark:text-gray-400 uppercase mb-2">Notes</h4>
           <div className="glass rounded-lg p-3">
-            <p className="text-xs text-gray-300 italic">{run.notes}</p>
+            <p className="text-xs text-slate-700 dark:text-gray-300 italic">{run.notes}</p>
           </div>
         </div>
       )}

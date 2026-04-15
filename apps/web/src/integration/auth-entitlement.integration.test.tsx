@@ -19,13 +19,11 @@ const mockState = vi.hoisted(() => {
         state.onAuthChange = callback
         return { data: { subscription: { unsubscribe: vi.fn() } } }
       }),
-      signInWithPassword: vi.fn(async ({ email }: { email: string; password: string }) => {
-        state.session = { user: { id: 'profile-1', email } }
-        return { data: { session: state.session }, error: null }
+      signInWithOtp: vi.fn(async () => {
+        return { data: { session: null }, error: null }
       }),
-      signUp: vi.fn(async ({ email }: { email: string; password: string }) => {
-        state.session = { user: { id: 'profile-1', email } }
-        return { data: { session: state.session }, error: null }
+      signInWithOAuth: vi.fn(async () => {
+        return { data: { provider: 'google', url: 'https://example.com' }, error: null }
       }),
       signOut: vi.fn(async () => {
         state.session = null
@@ -71,7 +69,7 @@ describe('Supabase auth and entitlement gating', () => {
     vi.clearAllMocks()
   })
 
-  it('logs in through Supabase auth', async () => {
+  it('sends a magic link through Supabase auth', async () => {
     window.history.pushState({}, '', '/login')
     render(
       <AuthProvider>
@@ -80,13 +78,35 @@ describe('Supabase auth and entitlement gating', () => {
     )
 
     await userEvent.type(screen.getByLabelText('Email'), 'runner@example.com')
-    await userEvent.type(screen.getByLabelText('Password'), 'secret-password')
-    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
 
     await waitFor(() => {
-      expect(mockState.supabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      expect(mockState.supabase.auth.signInWithOtp).toHaveBeenCalledWith({
         email: 'runner@example.com',
-        password: 'secret-password',
+        options: expect.objectContaining({
+          emailRedirectTo: expect.stringContaining('/login'),
+        }),
+      })
+    })
+  })
+
+  it('includes next path in magic link redirect when login opened with ?next=', async () => {
+    window.history.pushState({}, '', '/login?next=/chat')
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    )
+
+    await userEvent.type(screen.getByLabelText('Email'), 'runner@example.com')
+    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
+
+    await waitFor(() => {
+      expect(mockState.supabase.auth.signInWithOtp).toHaveBeenCalledWith({
+        email: 'runner@example.com',
+        options: expect.objectContaining({
+          emailRedirectTo: expect.stringMatching(/[?&]next=%2Fchat(?:&|$)/),
+        }),
       })
     })
   })

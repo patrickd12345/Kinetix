@@ -7,10 +7,15 @@ import { AuthContext, type AuthContextValue } from '../components/providers/useA
 import { setActivePlatformProfile } from '../lib/authState'
 import { DETERMINISTIC_FALLBACK_DISCLAIMER } from '../lib/helpCenterFallback'
 import { querySupportKB } from '../lib/supportRagClient'
+import { postHelpCenterSupportAnswer } from '../lib/helpCenterSupportAi'
 
 vi.mock('../lib/supportRagClient', () => ({
   querySupportKB: vi.fn(),
   createSupportTicket: vi.fn(),
+}))
+
+vi.mock('../lib/helpCenterSupportAi', () => ({
+  postHelpCenterSupportAnswer: vi.fn(),
 }))
 
 import { createSupportTicket } from '../lib/supportRagClient'
@@ -18,11 +23,12 @@ import { createSupportTicket } from '../lib/supportRagClient'
 function renderHelp() {
   const value: AuthContextValue = {
     status: 'authenticated',
-    session: { user: { id: 'u1' } } as AuthContextValue['session'],
+    session: { user: { id: 'u1' }, access_token: 'test-access-token' } as AuthContextValue['session'],
     profile: { id: 'u1', age: 35, weight_kg: 70 },
     error: null,
-    signInWithPassword: vi.fn(),
-    signUp: vi.fn(),
+    sendMagicLink: vi.fn(),
+    signInWithOAuth: vi.fn(),
+    oauthProviders: { google: false, apple: false, microsoft: false },
     signOut: vi.fn(),
     refresh: vi.fn(),
   }
@@ -37,8 +43,15 @@ function renderHelp() {
           <Route path="/help" element={<HelpCenter />} />
         </Routes>
       </MemoryRouter>
-    </AuthContext.Provider>
+    </AuthContext.Provider>,
   )
+}
+
+async function clickStravaAndSettle(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+  await waitFor(() => {
+    expect(screen.getByTestId('help-mark-unresolved')).toBeInTheDocument()
+  })
 }
 
 describe('Help Center support KB UI', () => {
@@ -46,6 +59,11 @@ describe('Help Center support KB UI', () => {
     setActivePlatformProfile({ id: 'u1', age: 35, weight_kg: 70 })
     vi.mocked(querySupportKB).mockReset()
     vi.mocked(createSupportTicket).mockReset()
+    vi.mocked(postHelpCenterSupportAnswer).mockReset()
+    vi.mocked(postHelpCenterSupportAnswer).mockResolvedValue({
+      ok: true,
+      text: 'Mock grounded support answer from KB excerpts.',
+    })
     vi.stubEnv('VITE_SUPPORT_EMAIL', 'support@kinetix.test')
   })
 
@@ -56,30 +74,33 @@ describe('Help Center support KB UI', () => {
 
   it('renders support search section', async () => {
     renderHelp()
-    expect(await screen.findByRole('heading', { name: 'Search support articles' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Support search (AI + KB)' })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Support search question' })).toBeInTheDocument()
   })
 
-  it('shows unavailable message and AI escalation proposal (no mailto)', async () => {
+  it('does not propose escalation on first unresolved search; proposes after second', async () => {
     const user = userEvent.setup()
     vi.mocked(querySupportKB).mockResolvedValue({ ok: false, reason: 'unavailable' })
 
     renderHelp()
-    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+    await clickStravaAndSettle(user)
 
     await waitFor(() => {
       expect(screen.getByText(/Curated support search is unavailable/)).toBeInTheDocument()
       expect(screen.getByTestId('deterministic-fallback')).toBeInTheDocument()
       expect(screen.getByText(DETERMINISTIC_FALLBACK_DISCLAIMER)).toBeInTheDocument()
     })
-    expect(screen.queryByTestId('help-escalation-mailto')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('help-escalation-proposal')).not.toBeInTheDocument()
+
+    await clickStravaAndSettle(user)
+
     await waitFor(() => {
       expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
     })
     expect(screen.getByText(/Would you like me to escalate this to the team/i)).toBeInTheDocument()
   })
 
-  it('shows retrieved article titles when query succeeds', async () => {
+  it('shows AI answer and retrieved article titles when query succeeds', async () => {
     const user = userEvent.setup()
     vi.mocked(querySupportKB).mockResolvedValue({
       ok: true,
@@ -101,9 +122,11 @@ describe('Help Center support KB UI', () => {
     })
 
     renderHelp()
-    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+    await clickStravaAndSettle(user)
 
     await waitFor(() => {
+      expect(screen.getByTestId('help-support-ai-answer')).toBeInTheDocument()
+      expect(screen.getByText(/Mock grounded support answer/)).toBeInTheDocument()
       expect(screen.getByText('Strava OAuth')).toBeInTheDocument()
       expect(screen.getByText(/Long body text/)).toBeInTheDocument()
     })
@@ -111,7 +134,7 @@ describe('Help Center support KB UI', () => {
     expect(screen.queryByTestId('help-escalation-proposal')).not.toBeInTheDocument()
   })
 
-  it('shows deterministic fallback when retrieval returns no results', async () => {
+  it('shows deterministic fallback when retrieval returns no results; escalation after second search', async () => {
     const user = userEvent.setup()
     vi.mocked(querySupportKB).mockResolvedValue({
       ok: true,
@@ -125,12 +148,53 @@ describe('Help Center support KB UI', () => {
     })
 
     renderHelp()
-    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+    await clickStravaAndSettle(user)
 
     await waitFor(() => {
       expect(screen.getByTestId('deterministic-fallback')).toBeInTheDocument()
       expect(screen.getByText(/Connections \(Strava/)).toBeInTheDocument()
     })
+    expect(screen.queryByTestId('help-escalation-proposal')).not.toBeInTheDocument()
+
+    await clickStravaAndSettle(user)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
+    })
+  })
+
+  it('proposes escalation after two Still not resolved clicks on one search', async () => {
+    const user = userEvent.setup()
+    vi.mocked(querySupportKB).mockResolvedValue({
+      ok: true,
+      data: {
+        collection: 'kinetix_support_kb',
+        query: 'How do I connect or sync Strava?',
+        topK: 5,
+        filters: { topic: null },
+        results: [
+          {
+            chunkId: 'art:v1:0',
+            distance: 0.1,
+            similarity: 0.9,
+            document: 'Long body text for the article.',
+            metadata: { title: 'Strava OAuth', topic: 'sync' },
+          },
+        ],
+      },
+    })
+
+    renderHelp()
+    await clickStravaAndSettle(user)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('help-support-ai-answer')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('help-escalation-proposal')).not.toBeInTheDocument()
+
+    await user.click(screen.getByTestId('help-mark-unresolved'))
+    await user.click(screen.getByTestId('help-mark-unresolved'))
+
     await waitFor(() => {
       expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
     })
@@ -141,7 +205,8 @@ describe('Help Center support KB UI', () => {
     vi.mocked(querySupportKB).mockResolvedValue({ ok: false, reason: 'unavailable' })
 
     renderHelp()
-    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+    await clickStravaAndSettle(user)
+    await clickStravaAndSettle(user)
 
     await waitFor(() => {
       expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
@@ -154,7 +219,8 @@ describe('Help Center support KB UI', () => {
     vi.mocked(querySupportKB).mockResolvedValue({ ok: false, reason: 'unavailable' })
 
     renderHelp()
-    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+    await clickStravaAndSettle(user)
+    await clickStravaAndSettle(user)
 
     await waitFor(() => {
       expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
@@ -166,7 +232,7 @@ describe('Help Center support KB UI', () => {
     })
     expect(createSupportTicket).not.toHaveBeenCalled()
 
-    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+    await clickStravaAndSettle(user)
 
     await waitFor(() => {
       expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
@@ -179,7 +245,8 @@ describe('Help Center support KB UI', () => {
 
     renderHelp()
     for (let i = 0; i < 2; i += 1) {
-      await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+      await clickStravaAndSettle(user)
+      await clickStravaAndSettle(user)
       await waitFor(() => {
         expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
       })
@@ -189,7 +256,8 @@ describe('Help Center support KB UI', () => {
       })
     }
 
-    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+    await clickStravaAndSettle(user)
+    await clickStravaAndSettle(user)
     await waitFor(() => {
       expect(screen.getByTestId('help-escalation-capped')).toBeInTheDocument()
       expect(screen.queryByTestId('help-escalation-proposal')).not.toBeInTheDocument()
@@ -206,7 +274,8 @@ describe('Help Center support KB UI', () => {
     })
 
     renderHelp()
-    await user.click(screen.getByRole('button', { name: 'Strava connection' }))
+    await clickStravaAndSettle(user)
+    await clickStravaAndSettle(user)
 
     await waitFor(() => {
       expect(screen.getByTestId('help-escalation-proposal')).toBeInTheDocument()
@@ -217,5 +286,17 @@ describe('Help Center support KB UI', () => {
       expect(createSupportTicket).toHaveBeenCalled()
       expect(screen.getByTestId('help-escalation-success')).toHaveTextContent('ticket-uuid-1')
     })
+    expect(createSupportTicket).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          route: '/help',
+          retrieval_state: 'service_unavailable',
+          user_query: 'How do I connect or sync Strava?',
+          help_support_ai_ok: true,
+          help_still_not_resolved_clicks: 0,
+          help_unresolved_completed_search_count: 2,
+        }),
+      }),
+    )
   })
 })

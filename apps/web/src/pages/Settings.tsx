@@ -6,6 +6,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
 import { useWithingsAuth } from '../hooks/useWithingsAuth'
 import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
+import { syncWithingsData } from '../lib/integrations/withings/sync'
+import { evaluateWithingsSyncPolicy, isValidLocalTimeHHMM, normalizeSyncTimes } from '../lib/integrations/withings/syncPolicy'
+import { runManualSyncOnce, shouldMarkScheduledSlotFulfilled } from '../lib/integrations/withings/manualSync'
 import { importGarminFromZipFile, importGarminFromFitFile, isGarminFitFile } from '../lib/garminImport'
 import { convertGarminToRunRecord } from '../lib/garmin'
 import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
@@ -15,6 +18,8 @@ import { findOutlierRuns, calculateAbsoluteKPS } from '../lib/kpsUtils'
 import { hideRun, bulkPutWeightEntries, getWeightHistoryCount, backfillRunWeights, type WeightEntry } from '../lib/database'
 import { getProfileForRunDate } from '../lib/authState'
 import { formatDistance, formatTime } from '@kinetix/core'
+import { Dialog } from '../components/a11y/Dialog'
+import { featureFlags } from '../lib/featureFlags'
 
 export default function Settings() {
   const {
@@ -42,6 +47,14 @@ export default function Settings() {
     setLastWithingsWeightKg,
     weightUnit,
     setWeightUnit,
+    withingsExpandedSyncEnabled,
+    setWithingsExpandedSyncEnabled,
+    withingsSyncTimes,
+    setWithingsSyncTimes,
+    lastSuccessfulWithingsSyncAt,
+    setLastSuccessfulWithingsSyncAt,
+    lastSuccessfulWithingsScheduledSlotKey,
+    setLastSuccessfulWithingsScheduledSlotKey,
   } = useSettingsStore()
   const { profile, session } = useAuth()
   const [importing, setImporting] = useState(false)
@@ -53,10 +66,14 @@ export default function Settings() {
   const { initiateOAuth, handleOAuthCallback } = useStravaAuth()
   const { initiateOAuth: initiateWithingsOAuth, handleOAuthCallback: handleWithingsCallback, disconnect: disconnectWithings } = useWithingsAuth()
   const [withingsRefreshing, setWithingsRefreshing] = useState(false)
+  const [withingsExpandedSyncStatus, setWithingsExpandedSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'failure'>('idle')
+  const [withingsExpandedSyncMessage, setWithingsExpandedSyncMessage] = useState<string | null>(null)
+  const [withingsSyncTimeErrors, setWithingsSyncTimeErrors] = useState<[string | null, string | null]>([null, null])
   const [weightHistoryCount, setWeightHistoryCount] = useState<number | null>(null)
   const [weightImporting, setWeightImporting] = useState(false)
   const [weightBackfilling, setWeightBackfilling] = useState(false)
   const weightHistoryFileRef = useRef<HTMLInputElement>(null)
+  const withingsManualSyncGate = useRef({ inFlight: false })
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -77,23 +94,8 @@ export default function Settings() {
 
     if (state === 'withings') {
       handleWithingsCallback(code)
-        .then(async () => {
-          setImportMessage('Withings connected. Fetching latest weight…')
-          const creds = useSettingsStore.getState().withingsCredentials
-          if (creds) {
-            const { latestKg, historyEntriesSynced } = await syncWithingsWeightsAtStartup(creds, (c) =>
-              useSettingsStore.getState().setWithingsCredentials(c)
-            )
-            if (latestKg != null) useSettingsStore.getState().setLastWithingsWeightKg(latestKg)
-            window.dispatchEvent(new CustomEvent(WITHINGS_WEIGHTS_SYNCED_EVENT))
-            setImportMessage(
-              latestKg != null
-                ? `Withings connected. Weight: ${latestKg.toFixed(1)} kg (${historyEntriesSynced} row(s) in history).`
-                : 'Withings connected. No weight data yet.'
-            )
-          } else {
-            setImportMessage('Withings connected.')
-          }
+        .then(() => {
+          setImportMessage('Withings connected.')
         })
         .catch((err) => {
           setImportMessage(`Error connecting to Withings: ${err.message}`)
@@ -148,6 +150,94 @@ export default function Settings() {
   }
 
   const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : ''
+  const expandedFeatureEnabled = featureFlags.ENABLE_WITHINGS_EXPANDED_INGESTION
+
+  const scheduledDecision = evaluateWithingsSyncPolicy({
+    now: new Date(),
+    manual: false,
+    featureEnabled: expandedFeatureEnabled,
+    expandedSyncEnabled: withingsExpandedSyncEnabled,
+    hasConnection: !!withingsCredentials,
+    syncTimes: normalizeSyncTimes(withingsSyncTimes),
+    lastSuccessfulScheduledSlotKey: lastSuccessfulWithingsScheduledSlotKey,
+  })
+
+  const handleWithingsSyncTimeChange = (index: 0 | 1, value: string) => {
+    const next: [string, string] = [...withingsSyncTimes] as [string, string]
+    next[index] = value
+    const errors: [string | null, string | null] = [null, null]
+    if (!isValidLocalTimeHHMM(next[0])) errors[0] = 'Use HH:MM'
+    if (!isValidLocalTimeHHMM(next[1])) errors[1] = 'Use HH:MM'
+    setWithingsSyncTimeErrors(errors)
+    if (!errors[0] && !errors[1]) setWithingsSyncTimes(normalizeSyncTimes(next))
+  }
+
+  const handleManualExpandedWithingsSync = async () => {
+    setWithingsExpandedSyncMessage(null)
+    const decision = evaluateWithingsSyncPolicy({
+      now: new Date(),
+      manual: true,
+      featureEnabled: expandedFeatureEnabled,
+      expandedSyncEnabled: withingsExpandedSyncEnabled,
+      hasConnection: !!withingsCredentials,
+      syncTimes: normalizeSyncTimes(withingsSyncTimes),
+      lastSuccessfulScheduledSlotKey: lastSuccessfulWithingsScheduledSlotKey,
+    })
+    if (!decision.shouldSync || !withingsCredentials) {
+      setWithingsExpandedSyncStatus('failure')
+      setWithingsExpandedSyncMessage(`Expanded sync blocked: ${decision.reason}`)
+      return
+    }
+
+    setWithingsExpandedSyncStatus('syncing')
+    const dueAtStart = evaluateWithingsSyncPolicy({
+      now: new Date(),
+      manual: false,
+      featureEnabled: expandedFeatureEnabled,
+      expandedSyncEnabled: withingsExpandedSyncEnabled,
+      hasConnection: !!withingsCredentials,
+      syncTimes: normalizeSyncTimes(withingsSyncTimes),
+      lastSuccessfulScheduledSlotKey: lastSuccessfulWithingsScheduledSlotKey,
+    })
+
+    try {
+      const wrapped = await runManualSyncOnce(withingsManualSyncGate.current, async () => {
+        const result = await syncWithingsData(withingsCredentials)
+        const nowIso = new Date().toISOString()
+        setLastSuccessfulWithingsSyncAt(nowIso)
+        const dueNow = evaluateWithingsSyncPolicy({
+          now: new Date(),
+          manual: false,
+          featureEnabled: expandedFeatureEnabled,
+          expandedSyncEnabled: withingsExpandedSyncEnabled,
+          hasConnection: !!withingsCredentials,
+          syncTimes: normalizeSyncTimes(withingsSyncTimes),
+          lastSuccessfulScheduledSlotKey: lastSuccessfulWithingsScheduledSlotKey,
+        })
+        if (
+          shouldMarkScheduledSlotFulfilled({
+            syncSucceeded: true,
+            dueReasonAtSyncStart: dueAtStart.reason,
+            dueSlotKeyAtSyncStart: dueAtStart.scheduledSlotKey,
+            dueSlotKeyAtSyncEnd: dueNow.scheduledSlotKey,
+          })
+        ) {
+          setLastSuccessfulWithingsScheduledSlotKey(dueNow.scheduledSlotKey ?? null)
+        }
+        return result
+      })
+      if (!wrapped.started) {
+        setWithingsExpandedSyncStatus('idle')
+        return
+      }
+      const result = wrapped.result
+      setWithingsExpandedSyncStatus('success')
+      setWithingsExpandedSyncMessage(`Expanded sync complete (${result?.metricsWritten ?? 0} canonical metric row(s)).`)
+    } catch (error) {
+      setWithingsExpandedSyncStatus('failure')
+      setWithingsExpandedSyncMessage(error instanceof Error ? error.message : 'Expanded sync failed')
+    }
+  }
 
   if (!profile) {
     return (
@@ -155,7 +245,7 @@ export default function Settings() {
         <div className="max-w-md lg:max-w-2xl mx-auto">
           <div className="glass rounded-2xl border border-yellow-500/30 p-6 space-y-2">
             <h1 className="text-lg font-bold text-yellow-300">Loading profile...</h1>
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-slate-700 dark:text-gray-300">
               Your platform profile is still loading. If this persists, refresh the page.
             </p>
           </div>
@@ -168,16 +258,22 @@ export default function Settings() {
 
   return (
     <div className="pb-20 lg:pb-4">
-      {outlierRuns != null && outlierRuns.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-labelledby="outlier-title" aria-modal="true">
+      {outlierRuns != null && outlierRuns.length > 0 ? (
+        <Dialog
+          open
+          onClose={() => setOutlierRuns(null)}
+          ariaLabelledBy="outlier-title"
+          ariaDescribedBy="outlier-desc"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
           <div className="glass rounded-2xl border border-amber-500/40 p-6 max-w-md w-full shadow-xl">
             <h2 id="outlier-title" className="text-lg font-bold text-amber-300 mb-2">Possible outliers</h2>
-            <p className="text-sm text-gray-300 mb-4">
+            <p id="outlier-desc" className="text-sm text-slate-700 dark:text-gray-300 mb-4">
               These runs have KPS &gt; 125% of your current PB and may be bad data (e.g. GPS glitch). Hide them so they don&apos;t affect your stats?
             </p>
             <ul className="space-y-2 mb-4 max-h-48 overflow-y-auto">
               {outlierRuns.map((run) => (
-                <li key={run.id} className="text-xs text-gray-300 flex justify-between gap-2">
+                <li key={run.id} className="text-xs text-slate-700 dark:text-gray-300 flex justify-between gap-2">
                   <span>{run.date ? new Date(run.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
                   <span>{formatDistance(run.distance, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}</span>
                   <span>{formatTime(run.duration)}</span>
@@ -189,7 +285,7 @@ export default function Settings() {
               <button
                 type="button"
                 onClick={() => setOutlierRuns(null)}
-                className="px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800"
+                className="px-4 py-2 rounded-lg border border-gray-600 text-slate-700 dark:text-gray-300 hover:bg-gray-800"
               >
                 Keep
               </button>
@@ -208,15 +304,15 @@ export default function Settings() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </Dialog>
+      ) : null}
       <div className="max-w-md lg:max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Settings</h1>
         <div className="glass rounded-2xl p-6 space-y-6">
           <div className="rounded-xl border border-white/10 bg-gray-900/30 p-3">
-            <div className="text-xs text-gray-400 uppercase mb-1">Platform identity</div>
+            <div className="text-xs text-slate-600 dark:text-gray-400 uppercase mb-1">Platform identity</div>
             <div className="text-sm text-white font-medium">{profileLabel}</div>
-            <div className="text-xs text-gray-500 mt-1">Profile ID: {profile.id}</div>
+            <div className="text-xs text-slate-500 dark:text-gray-500 mt-1">Profile ID: {profile.id}</div>
           </div>
           
           <div>
@@ -231,7 +327,7 @@ export default function Settings() {
 
           <div>
             <label className="block text-sm font-medium mb-2">Beat PB target %</label>
-            <p className="text-[11px] text-gray-500 mb-1">Used for &quot;Beat PB&quot; run suggestions on the Run view (e.g. 2 = beat PB by 2%).</p>
+            <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-1">Used for &quot;Beat PB&quot; run suggestions on the Run view (e.g. 2 = beat PB by 2%).</p>
             <input
               type="number"
               min={0.5}
@@ -245,7 +341,7 @@ export default function Settings() {
 
           <div>
             <label className="block text-sm font-medium mb-2">Beat recents: last N runs</label>
-            <p className="text-[11px] text-gray-500 mb-1">Used for &quot;Beat recents&quot; on the Run view (best of last N runs, then beat by the % above).</p>
+            <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-1">Used for &quot;Beat recents&quot; on the Run view (best of last N runs, then beat by the % above).</p>
             <input
               type="number"
               min={2}
@@ -282,9 +378,9 @@ export default function Settings() {
               </label>
             </div>
             <div className="rounded-xl border border-white/10 bg-gray-900/30 p-3 space-y-2">
-              <div className="text-xs text-gray-400 uppercase">Withings (smart scale)</div>
-              <p className="text-[11px] text-gray-500">
-                Use your latest Withings scale weight for KPS. Connect and we fetch the most recent measurement.
+              <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">Withings (smart scale)</div>
+              <p className="text-[11px] text-slate-500 dark:text-gray-500">
+                Use your latest Withings scale weight for KPS. Weight refresh and expanded ingestion run only when explicitly triggered.
               </p>
               {!withingsCredentials ? (
                 <button
@@ -312,7 +408,10 @@ export default function Settings() {
                             withingsCredentials,
                             setWithingsCredentials
                           )
-                          if (latestKg != null) setLastWithingsWeightKg(latestKg)
+                          if (latestKg != null) {
+                            setLastWithingsWeightKg(latestKg)
+                            setWeightSource('withings')
+                          }
                           window.dispatchEvent(new CustomEvent(WITHINGS_WEIGHTS_SYNCED_EVENT))
                           setImportMessage(
                             latestKg != null
@@ -337,6 +436,76 @@ export default function Settings() {
                       Disconnect
                     </button>
                   </div>
+                  <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-slate-700 dark:text-gray-300">Expanded Withings sync</label>
+                      <button
+                        type="button"
+                        disabled={!expandedFeatureEnabled}
+                        onClick={() => setWithingsExpandedSyncEnabled(!withingsExpandedSyncEnabled)}
+                        aria-label="Toggle expanded Withings sync"
+                        aria-pressed={withingsExpandedSyncEnabled}
+                        className={`w-11 h-6 rounded-full transition ${withingsExpandedSyncEnabled ? 'bg-cyan-500' : 'bg-gray-700'} disabled:opacity-50`}
+                      >
+                        <div className={`w-5 h-5 bg-white rounded-full transition-all ${withingsExpandedSyncEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-gray-500">
+                      Local schedule (HH:MM): sync is due once per slot. Default slots are 08:00 and 20:00.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-slate-600 dark:text-gray-400">Morning</label>
+                        <input
+                          type="time"
+                          value={withingsSyncTimes[0]}
+                          disabled={!expandedFeatureEnabled}
+                          onChange={(e) => handleWithingsSyncTimeChange(0, e.target.value)}
+                          className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-2 py-1 text-xs disabled:opacity-50"
+                        />
+                        {withingsSyncTimeErrors[0] && <p className="text-[11px] text-red-400">{withingsSyncTimeErrors[0]}</p>}
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-slate-600 dark:text-gray-400">Evening</label>
+                        <input
+                          type="time"
+                          value={withingsSyncTimes[1]}
+                          disabled={!expandedFeatureEnabled}
+                          onChange={(e) => handleWithingsSyncTimeChange(1, e.target.value)}
+                          className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-2 py-1 text-xs disabled:opacity-50"
+                        />
+                        {withingsSyncTimeErrors[1] && <p className="text-[11px] text-red-400">{withingsSyncTimeErrors[1]}</p>}
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-slate-600 dark:text-gray-400">
+                      Status: {withingsExpandedSyncStatus}
+                      {scheduledDecision.reason === 'scheduled_due' && scheduledDecision.scheduledTime
+                        ? ` • Scheduled due now (${scheduledDecision.scheduledTime})`
+                        : null}
+                      {scheduledDecision.reason === 'not_due' && scheduledDecision.nextEligibleAt
+                        ? ` • Next eligible ${new Date(scheduledDecision.nextEligibleAt).toLocaleString()}`
+                        : null}
+                    </div>
+                    {lastSuccessfulWithingsSyncAt && (
+                      <p className="text-[11px] text-green-400">Last expanded sync: {new Date(lastSuccessfulWithingsSyncAt).toLocaleString()}</p>
+                    )}
+                    {withingsExpandedSyncMessage && (
+                      <p className={`text-[11px] ${withingsExpandedSyncStatus === 'failure' ? 'text-red-400' : 'text-slate-700 dark:text-gray-300'}`}>
+                        {withingsExpandedSyncMessage}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={withingsExpandedSyncStatus === 'syncing'}
+                      onClick={handleManualExpandedWithingsSync}
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition disabled:opacity-50"
+                    >
+                      {withingsExpandedSyncStatus === 'syncing' ? 'Syncing…' : 'Sync now'}
+                    </button>
+                    {!expandedFeatureEnabled && (
+                      <p className="text-[11px] text-amber-400">Feature flag disabled: expanded ingestion controls are read-only.</p>
+                    )}
+                  </div>
                   <div className="mt-2 pt-2 border-t border-white/10">
                     <input
                       ref={weightHistoryFileRef}
@@ -354,7 +523,7 @@ export default function Settings() {
                       {weightImporting ? 'Importing…' : 'Import weight history (JSON)'}
                     </button>
                     {weightHistoryCount != null && (
-                      <p className="text-[11px] text-gray-400 mt-1">Weight history: {weightHistoryCount} entries</p>
+                      <p className="text-[11px] text-slate-600 dark:text-gray-400 mt-1">Weight history: {weightHistoryCount} entries</p>
                     )}
                     <button
                       type="button"
@@ -419,12 +588,13 @@ export default function Settings() {
                 <span className="text-sm">lbs</span>
               </label>
             </div>
-            <p className="text-[11px] text-gray-500 mt-1">Used in Weight History and run details.</p>
+            <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-1">Used in Weight History and run details.</p>
           </div>
           
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium">Physio-Pacer Mode</label>
             <button
+              type="button"
               onClick={() => setPhysioMode(!physioMode)}
               aria-label="Toggle Physio-Pacer Mode"
               aria-pressed={physioMode}
@@ -439,99 +609,129 @@ export default function Settings() {
           </div>
           
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="text-xs text-gray-400 uppercase">Strava Sync</div>
-                <p className="text-[11px] text-gray-500 mb-2">
-                  Connect your Strava account to import your running history.
-                </p>
-                {!stravaCredentials && !stravaToken?.trim() ? (
-                  <button
-                    onClick={initiateOAuth}
-                    className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-full transition mb-2"
-                  >
-                    Connect with Strava
-                  </button>
-                ) : (
-                  <p className="text-[11px] text-green-400 mb-2">✓ Connected to Strava</p>
-                )}
-              </div>
-              <button
-                onClick={async () => {
-                  setImportMessage(null)
-                  try {
-                    setImporting(true)
-                    const token = await getValidStravaToken()
-                    if (!token) {
-                      setImportMessage('Connect Strava first or refresh your token.')
-                      return
-                    }
-                    const activities = await fetchStravaActivities(token)
-                    
-                    if (activities.length === 0) {
-                      setImportMessage('No running activities found in your Strava history.')
-                      return
-                    }
-
-                    // Check for duplicates by comparing date and distance
-                    const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
-                      (r) => (r.deleted ?? 0) === RUN_VISIBLE
-                    )
-                    const existingKeys = new Set(
-                      existingRuns.map(run => `${run.date}-${Math.round(run.distance)}`)
-                    )
-
-                    const records = (
-                      await Promise.all(
-                        activities.map(async (activity) => {
-                          const profileForDate = await getProfileForRunDate(activity.start_date)
-                          return convertStravaToRunRecord(activity, profileForDate, targetKPS)
-                        })
-                      )
-                    )
-                      .filter((record): record is RunRecord => record !== null)
-                      .filter((record) => {
-                        const key = `${record.date}-${Math.round(record.distance)}`
-                        return !existingKeys.has(key)
-                      })
-
-                    if (records.length === 0) {
-                      setImportMessage('All activities are already imported.')
-                      return
-                    }
-
-                    const added: RunRecord[] = []
-                    for (const r of records) {
-                      const id = await db.runs.add(r)
-                      added.push({ ...r, id: id as number } as RunRecord)
-                    }
-                    await indexRunsAfterSave(added)
-                    setImportMessage(`Imported ${added.length} new run${added.length > 1 ? 's' : ''} from Strava.`)
-                    if (typeof window !== 'undefined') {
-                      window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
-                    }
-                    const outliers = await findOutlierRuns(added)
-                    if (outliers.length > 0) setOutlierRuns(outliers)
-                  } catch (error) {
-                    console.error('Strava import error', error)
-                    const errorMsg = error instanceof Error ? error.message : 'Failed to import from Strava. Check token.'
-                    setImportMessage(`Error: ${errorMsg}`)
-                    const isAuthErr = String(errorMsg).includes('401') || String(errorMsg).toLowerCase().includes('unauthorized')
-                    if (isAuthErr) {
-                      setStravaCredentials(null)
-                      setStravaToken('')
-                      setStravaSyncError('Token expired. Disconnect and reconnect Strava.')
-                    }
-                  } finally {
-                    setImporting(false)
-                  }
-                }}
-                className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition"
-                disabled={importing || (!stravaCredentials && !stravaToken?.trim())}
-              >
-                {importing ? 'Importing…' : 'Import from Strava'}
-              </button>
+            <div>
+              <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">Strava Sync</div>
+              <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-2">
+                Connect your Strava account, then import runs. Reconnect if the token expired or Strava shows an authorization error.
+              </p>
             </div>
+
+            {stravaCredentials || stravaToken?.trim() ? (
+              <>
+                <p className="text-[11px] text-green-400">✓ Connected to Strava</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setImportMessage(null)
+                      try {
+                        setImporting(true)
+                        const token = await getValidStravaToken()
+                        if (!token) {
+                          setImportMessage('Connect Strava first or refresh your token.')
+                          return
+                        }
+                        const activities = await fetchStravaActivities(token)
+
+                        if (activities.length === 0) {
+                          setImportMessage('No running activities found in your Strava history.')
+                          return
+                        }
+
+                        const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
+                          (r) => (r.deleted ?? 0) === RUN_VISIBLE
+                        )
+                        const existingKeys = new Set(
+                          existingRuns.map((run) => `${run.date}-${Math.round(run.distance)}`)
+                        )
+
+                        const records = (
+                          await Promise.all(
+                            activities.map(async (activity) => {
+                              const profileForDate = await getProfileForRunDate(activity.start_date)
+                              return convertStravaToRunRecord(activity, profileForDate, targetKPS)
+                            })
+                          )
+                        )
+                          .filter((record): record is RunRecord => record !== null)
+                          .filter((record) => {
+                            const key = `${record.date}-${Math.round(record.distance)}`
+                            return !existingKeys.has(key)
+                          })
+
+                        if (records.length === 0) {
+                          setImportMessage('All activities are already imported.')
+                          return
+                        }
+
+                        const added: RunRecord[] = []
+                        for (const r of records) {
+                          const id = await db.runs.add(r)
+                          added.push({ ...r, id: id as number } as RunRecord)
+                        }
+                        await indexRunsAfterSave(added)
+                        setImportMessage(`Imported ${added.length} new run${added.length > 1 ? 's' : ''} from Strava.`)
+                        if (typeof window !== 'undefined') {
+                          window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
+                        }
+                        const outliers = await findOutlierRuns(added)
+                        if (outliers.length > 0) setOutlierRuns(outliers)
+                      } catch (error) {
+                        console.error('Strava import error', error)
+                        const errorMsg = error instanceof Error ? error.message : 'Failed to import from Strava. Check token.'
+                        setImportMessage(`Error: ${errorMsg}`)
+                        const lower = String(errorMsg).toLowerCase()
+                        const isAuthErr =
+                          String(errorMsg).includes('401') ||
+                          lower.includes('unauthorized') ||
+                          lower.includes('authorization error')
+                        if (isAuthErr) {
+                          setStravaCredentials(null)
+                          setStravaToken('')
+                          setStravaSyncError('Token expired. Disconnect and reconnect Strava.')
+                        }
+                      } finally {
+                        setImporting(false)
+                      }
+                    }}
+                    className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold px-4 py-2 rounded-full transition w-full sm:w-auto"
+                    disabled={importing}
+                  >
+                    {importing ? 'Importing…' : 'Import from Strava'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => initiateOAuth()}
+                    className="border border-orange-500 text-orange-400 hover:bg-orange-500/10 text-xs font-bold px-4 py-2 rounded-full transition w-full sm:w-auto"
+                  >
+                    Reconnect Strava
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <button
+                  type="button"
+                  onClick={() => initiateOAuth()}
+                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-full transition w-full sm:w-auto"
+                >
+                  Connect with Strava
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  className="bg-cyan-500/40 text-white/80 text-xs font-bold px-4 py-2 rounded-full cursor-not-allowed w-full sm:w-auto"
+                  aria-disabled="true"
+                >
+                  Import from Strava
+                </button>
+              </div>
+            )}
+            {!stravaCredentials && !stravaToken?.trim() ? (
+              <p className="text-[11px] text-slate-500 dark:text-gray-500">
+                Use <span className="font-medium text-slate-600 dark:text-gray-400">Connect with Strava</span> first; Import stays disabled until you are connected.
+              </p>
+            ) : null}
             <input
               type="password"
               value={stravaToken}
@@ -556,24 +756,26 @@ export default function Settings() {
               <div className="text-xs text-amber-400">
                 Startup sync: {stravaSyncError}
                 {stravaSyncError.includes('expired') || stravaSyncError.includes('reconnect') ? (
-                  <span className="block mt-1">Click Disconnect above, then Connect with Strava to fix.</span>
+                  <span className="block mt-1">
+                    Use <span className="font-medium">Reconnect Strava</span> above, or Disconnect and Connect with Strava again.
+                  </span>
                 ) : null}
               </div>
             )}
             {importMessage && (
-              <div className={`text-xs ${importMessage.startsWith('Error:') ? 'text-red-400' : 'text-gray-300'}`}>
+              <div className={`text-xs ${importMessage.startsWith('Error:') ? 'text-red-400' : 'text-slate-700 dark:text-gray-300'}`}>
                 {importMessage}
               </div>
             )}
           </div>
 
           <div className="space-y-3">
-            <div className="text-xs text-gray-400 uppercase">Garmin export</div>
-            <p className="text-[11px] text-gray-500 mb-2">
-              Upload a <strong className="text-gray-400">full Garmin account export</strong> ZIP (
-              <code className="text-gray-400">DI_CONNECT/DI-Connect-Fitness/*_summarizedActivities.json</code>
-              ), a ZIP that contains <code className="text-gray-400">.fit</code> files, or a single running activity{' '}
-              <code className="text-gray-400">.fit</code> file. Re-import is idempotent.
+            <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">Garmin export</div>
+            <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-2">
+              Upload a <strong className="text-slate-600 dark:text-gray-400">full Garmin account export</strong> ZIP (
+              <code className="text-slate-600 dark:text-gray-400">DI_CONNECT/DI-Connect-Fitness/*_summarizedActivities.json</code>
+              ), a ZIP that contains <code className="text-slate-600 dark:text-gray-400">.fit</code> files, or a single running activity{' '}
+              <code className="text-slate-600 dark:text-gray-400">.fit</code> file. Re-import is idempotent.
             </p>
             <input
               ref={garminZipInputRef}
@@ -651,8 +853,8 @@ export default function Settings() {
           </div>
 
           <div className="space-y-3">
-            <div className="text-xs text-gray-400 uppercase">RAG (coach context)</div>
-            <p className="text-[11px] text-gray-500 mb-2">
+            <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">RAG (coach context)</div>
+            <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-2">
               New runs are synced to RAG automatically on app start. Use “Reindex all” only to repair or after clearing RAG.
             </p>
             <button
@@ -684,7 +886,7 @@ export default function Settings() {
               {reindexing ? 'Reindexing…' : 'Reindex all runs in RAG'}
             </button>
             {reindexMessage && (
-              <div className="text-xs text-gray-300">{reindexMessage}</div>
+              <div className="text-xs text-slate-700 dark:text-gray-300">{reindexMessage}</div>
             )}
           </div>
         </div>

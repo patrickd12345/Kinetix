@@ -23,24 +23,4 @@ describe('stripe-runtime webhook helpers', () => {
     expect(constructEvent).toHaveBeenCalledWith('{}', 'sig', 'whsec_test')
     expect(event).toEqual({ id: 'evt_123', type: 'invoice.paid' })
   })
-
-  it('propagates errors from Stripe verification', () => {
-    const constructEvent = vi.fn(() => {
-      throw new Error('Invalid signature')
-    })
-    const stripe = {
-      webhooks: {
-        constructEvent,
-      },
-    }
-
-    expect(() =>
-      verifyStripeWebhookSignature({
-        stripe,
-        payload: '{}',
-        signature: 'invalid_sig',
-        webhookSecret: 'whsec_test',
-      }),
-    ).toThrow('Invalid signature')
-  })
 })

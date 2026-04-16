@@ -1,0 +1,11 @@
+{
+  "name": "@bookiji-inc/platform-action-contract",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "dependencies": {},
+  "devDependencies": {
+    "vitest": "^0.34.6"
+  },
+  "type": "module"
+}

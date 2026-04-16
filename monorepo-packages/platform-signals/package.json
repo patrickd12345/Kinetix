@@ -1,7 +1,7 @@
 {
-  "name": "@bookiji-inc/platform-auth",
+  "name": "@bookiji-inc/platform-signals",
   "version": "0.1.0",
-  "private": false,
+  "private": true,
   "type": "module",
   "exports": {
     ".": {
@@ -17,15 +17,7 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "prepublishOnly": "pnpm run build"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
-  "dependencies": {
-    "@supabase/node-fetch": "^2.6.13",
-    "@supabase/supabase-js": "^2.45.0"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^20.19.35",

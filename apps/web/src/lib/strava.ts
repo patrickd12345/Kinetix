@@ -262,11 +262,8 @@ export async function syncStravaRuns(
     }
     if (typeof console !== 'undefined') console.log('[Strava] Adding', records.length, 'new run(s)')
 
-    const added: RunRecord[] = []
-    for (const r of records) {
-      const id = await db.runs.add(r)
-      added.push({ ...r, id: id as number } as RunRecord)
-    }
+    const ids = await db.runs.bulkAdd(records, { allKeys: true })
+    const added = records.map((r, i) => ({ ...r, id: ids[i] as number }))
 
     await indexRunsAfterSave(added)
 

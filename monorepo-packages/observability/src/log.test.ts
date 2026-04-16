@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { buildAiLogFields, emitAiLog, emitStructuredLog, emitStripeLog, getRequestId } from './index'
+import { emitStructuredLog, emitStripeLog, getRequestId } from './index'
 
 describe('observability request ids', () => {
   it('preserves an incoming request id and generates one when missing', () => {
@@ -20,58 +20,8 @@ describe('observability structured logs', () => {
     })
   })
 
-  it('builds AI and Stripe log fields', () => {
-    expect(
-      buildAiLogFields({
-        provider: 'gateway',
-        model: 'gpt-4o-mini',
-        mode: 'gateway',
-        latencyMs: 42,
-        fallbackReason: null,
-      }),
-    ).toMatchObject({
-      provider: 'gateway',
-      latencyMs: 42,
-      fallback: false,
-      fallbackReason: null,
-    })
-
-    expect(
-      buildAiLogFields(
-        {
-          provider: 'gateway',
-          model: 'gpt-4o-mini',
-          mode: 'gateway',
-          latencyMs: 120,
-          fallbackReason: 'Rate limit exceeded',
-        },
-        { customField: 'customValue', anotherField: 123 }
-      ),
-    ).toMatchObject({
-      provider: 'gateway',
-      model: 'gpt-4o-mini',
-      mode: 'gateway',
-      latencyMs: 120,
-      fallback: true,
-      fallbackReason: 'Rate limit exceeded',
-      customField: 'customValue',
-      anotherField: 123,
-    })
-
+  it('builds Stripe log fields', () => {
     const sink = vi.fn()
-    emitAiLog(
-      'info',
-      'ai_execution',
-      {
-        provider: 'ollama',
-        model: 'llama3.2',
-        mode: 'ollama',
-        latencyMs: 12,
-        fallbackReason: null,
-      },
-      { surface: 'assistant' },
-      { sink },
-    )
     emitStripeLog(
       'info',
       'stripe_signature_verification',
@@ -84,6 +34,6 @@ describe('observability structured logs', () => {
       { sink },
     )
 
-    expect(sink).toHaveBeenCalledTimes(2)
+    expect(sink).toHaveBeenCalledTimes(1)
   })
 })

@@ -36,6 +36,28 @@ describe('observability structured logs', () => {
       fallbackReason: null,
     })
 
+    expect(
+      buildAiLogFields(
+        {
+          provider: 'gateway',
+          model: 'gpt-4o-mini',
+          mode: 'gateway',
+          latencyMs: 120,
+          fallbackReason: 'Rate limit exceeded',
+        },
+        { customField: 'customValue', anotherField: 123 }
+      ),
+    ).toMatchObject({
+      provider: 'gateway',
+      model: 'gpt-4o-mini',
+      mode: 'gateway',
+      latencyMs: 120,
+      fallback: true,
+      fallbackReason: 'Rate limit exceeded',
+      customField: 'customValue',
+      anotherField: 123,
+    })
+
     const sink = vi.fn()
     emitAiLog(
       'info',

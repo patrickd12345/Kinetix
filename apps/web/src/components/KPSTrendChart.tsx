@@ -140,7 +140,7 @@ export function KPSTrendChart({
   if (chartData.length === 0) {
     return (
       <div className="glass rounded-2xl p-8 text-center">
-        <p className="text-slate-600 dark:text-gray-400">No data to display</p>
+        <p className="text-gray-400">No data to display</p>
       </div>
     )
   }
@@ -162,16 +162,16 @@ export function KPSTrendChart({
       const data = payload[0].payload
       return (
         <div className="glass border border-cyan-500/30 rounded-lg p-3 shadow-xl">
-          <p className="text-xs text-slate-600 dark:text-gray-400 mb-1">{data.dateFormatted}</p>
+          <p className="text-xs text-gray-400 mb-1">{data.dateFormatted}</p>
           <p className="text-lg font-black text-cyan-400 mb-1">
             {KPS_SHORT}: {Math.round(data.kps)}
             {data.isPB && <span className="ml-2 text-green-400">PB</span>}
           </p>
-          <p className="text-xs text-slate-700 dark:text-gray-300">
+          <p className="text-xs text-gray-300">
             {formatDistance(data.distance, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'} • {formatTime(data.duration)}
           </p>
           {data.weightKg != null && data.weightKg > 0 && (
-            <p className="text-xs text-slate-600 dark:text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               Weight used: {weightUnit === 'lbs' ? (data.weightKg * KG_TO_LBS).toFixed(1) : data.weightKg.toFixed(1)} {weightUnit}
             </p>
           )}
@@ -185,22 +185,22 @@ export function KPSTrendChart({
     <div className="glass rounded-2xl p-6 border border-cyan-500/20">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="mb-1 text-lg font-black text-slate-900 dark:text-white">{KINETIX_PERFORMANCE_SCORE} Trend</h3>
-          <p className="text-xs text-slate-600 dark:text-gray-400">Your performance over time</p>
+          <h3 className="text-lg font-black text-white mb-1">{KINETIX_PERFORMANCE_SCORE} Trend</h3>
+          <p className="text-xs text-gray-400">Your performance over time</p>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
-            <span className="text-slate-600 dark:text-gray-400">{KPS_SHORT}</span>
+            <span className="text-gray-400">{KPS_SHORT}</span>
           </div>
           {pbVisibleInRange && (
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-green-400"></div>
-              <span className="text-slate-600 dark:text-gray-400">PB</span>
+              <span className="text-gray-400">PB</span>
             </div>
           )}
           {referenceRunDateKey && referenceRunDateFormatted && onScrollToReferenceRun && (
-            <span className="text-slate-600 dark:text-gray-400">
+            <span className="text-gray-400">
               Reference:{' '}
               <button
                 type="button"
@@ -211,7 +211,7 @@ export function KPSTrendChart({
               </button>
             </span>
           )}
-          <span className="text-slate-500 dark:text-gray-500">{onWheelZoomOut ? 'Scroll to zoom history' : 'Scroll to zoom'}</span>
+          <span className="text-gray-500">{onWheelZoomOut ? 'Scroll to zoom history' : 'Scroll to zoom'}</span>
         </div>
       </div>
 

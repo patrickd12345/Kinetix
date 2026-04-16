@@ -71,56 +71,20 @@ function getEnv(): NodeJS.ProcessEnv {
 
 /**
  * Canonical provider switch. Single source of truth.
- * KINETIX_LLM_PROVIDER / AI_PROVIDER = ollama | gateway when set.
- * If unset: Vercel deployments -> gateway; else ollama for local dev.
- * On Vercel, AI_PROVIDER=ollama is ignored (no localhost Ollama); gateway is used instead.
- *
- * IMPORTANT: Do not return resolveKinetixRuntimeEnv().aiProvider blindly — runtime.shared.mjs
- * defaults aiProvider to ollama when env vars are empty, which made the VERCEL branch unreachable
- * and caused production to call localhost Ollama (fetch failed).
+ * KINETIX_LLM_PROVIDER=ollama|gateway. If unset: VERCEL=1 -> gateway, else ollama.
  */
-function isVercelRuntime(env: NodeJS.ProcessEnv): boolean {
-  if (env.VERCEL === '1') {
-    return true
-  }
-  if (
-    env.VERCEL_ENV === 'production' ||
-    env.VERCEL_ENV === 'preview' ||
-    env.VERCEL_ENV === 'development'
-  ) {
-    return true
-  }
-  if (typeof env.VERCEL_REGION === 'string' && env.VERCEL_REGION.trim().length > 0) {
-    return true
-  }
-  return false
-}
-
-export function resolveProvider(envIn?: NodeJS.ProcessEnv): LLMProvider {
-  const env = envIn ?? getEnv()
-  const explicit = (env.KINETIX_LLM_PROVIDER || env.AI_PROVIDER || '').trim().toLowerCase()
-  if (explicit === 'gateway') {
-    return 'gateway'
-  }
-  if (explicit === 'ollama') {
-    if (isVercelRuntime(env)) {
-      return 'gateway'
-    }
-    return 'ollama'
-  }
-  const onVercel = isVercelRuntime(env)
-  if (onVercel) {
-    return 'gateway'
-  }
+export function resolveProvider(env: NodeJS.ProcessEnv = getEnv()): LLMProvider {
   const runtime = resolveKinetixRuntimeEnv(env)
-  if (runtime.aiMode === 'gateway') {
+  if (runtime.aiProvider === 'gateway' || runtime.aiProvider === 'ollama') {
+    return runtime.aiProvider
+  }
+  if (env.VERCEL === '1' || runtime.aiMode === 'gateway') {
     return 'gateway'
   }
   return 'ollama'
 }
 
-export function resolveModel(envIn: NodeJS.ProcessEnv | undefined, provider: LLMProvider): string {
-  const env = envIn ?? getEnv()
+export function resolveModel(env: NodeJS.ProcessEnv, provider: LLMProvider): string {
   const runtime = resolveKinetixRuntimeEnv(env)
   if (provider === 'gateway') {
     return runtime.openAiModel
@@ -211,10 +175,9 @@ function isProviderError(error: unknown): error is Error & { status?: number } {
  * Logs provider and model for smoke verification.
  */
 export function getLLMClient(
-  envIn?: NodeJS.ProcessEnv,
+  env: NodeJS.ProcessEnv = getEnv(),
   opts?: { userId?: string },
 ): LLMClient {
-  const env = envIn ?? getEnv()
   const provider = resolveProvider(env)
   const model = resolveModel(env, provider)
   const product = 'kinetix'
@@ -224,9 +187,13 @@ export function getLLMClient(
     const effectiveModel = options.model ?? model
     const memoryHandle = await startSession('kinetix', resolvePersistentMemoryTenant(env))
     const prior = memoryHandle.memory.lastCommitted ?? emptySessionBoundaryPayload()
-    const focus = prior.current_focus ?? []
-    const actions = prior.next_actions ?? []
-    const memorySummary = [prior.sessionSummary, ...focus, ...actions.slice(0, 3)].filter(Boolean).join(' | ')
+    const memorySummary = [
+      prior.sessionSummary,
+      ...prior.current_focus,
+      ...prior.next_actions.slice(0, 3),
+    ]
+      .filter(Boolean)
+      .join(' | ')
     const messagesWithMemory = injectMemoryContext(messages, memorySummary)
     try {
       const result = await executeSharedChat({
@@ -244,12 +211,12 @@ export function getLLMClient(
         text: result.text,
         provider,
         model: effectiveModel,
-        mode: result.mode as CanonicalMode,
+        mode: result.mode as any,
         latencyMs: result.latencyMs,
         fallbackReason: result.fallbackReason,
       }
       logAiEvent('kinetix_ai_chat_completed', response, { surface: 'llmClient' })
-      const boundary = buildKinetixBoundaryFromChat(messages, result.text)
+      const boundary = buildKinetixBoundaryFromChat(messages, result.text, 'llmClient')
       try {
         await commitSessionBoundary(memoryHandle, boundary)
       } catch {
@@ -269,7 +236,7 @@ export function getLLMClient(
           ...result,
           provider,
           model: effectiveModel,
-          mode: 'ollama' as CanonicalMode,
+          mode: 'ollama',
           latencyMs: Date.now() - startedAt,
           fallbackReason: 'ollama_chat_failed_generate_fallback',
         }
@@ -277,7 +244,7 @@ export function getLLMClient(
           surface: 'llmClient',
           fallbackPath: 'generate',
         })
-        const boundaryFb = buildKinetixBoundaryFromChat(messages, result.text)
+        const boundaryFb = buildKinetixBoundaryFromChat(messages, result.text, 'llmClient:generate_fallback')
         try {
           await commitSessionBoundary(memoryHandle, boundaryFb)
         } catch {
@@ -318,7 +285,7 @@ export function getLLMClient(
       embedding: result.embedding,
       provider,
       model: effectiveModel,
-      mode: result.mode as CanonicalMode,
+      mode: result.mode,
       latencyMs: result.latencyMs,
       fallbackReason: result.fallbackReason,
     }

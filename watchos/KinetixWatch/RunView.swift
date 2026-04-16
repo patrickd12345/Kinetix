@@ -220,10 +220,10 @@ struct RunView: View {
                             .animation(.linear, value: locationManager.runProgress)
                         
                         VStack(spacing: 0) {
-                            Text("\(Int(locationManager.cumulativeKPS))")
+                            Text("\(Int(locationManager.liveNPI))")
                                 .font(.system(size: 40, weight: .black, design: .rounded))
                                 .italic()
-                                .foregroundColor(.white)
+                                .foregroundColor(locationManager.liveNPI >= targetNPI ? .green : .white)
                             
                             Text("KPS")
                                 .font(.system(size: 10, weight: .bold))

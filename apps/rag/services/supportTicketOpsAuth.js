@@ -8,8 +8,6 @@
  * @param {string | undefined} expectedSecret from runtime (trimmed)
  * @returns {{ ok: true } | { ok: false, code: 'unconfigured' | 'unauthorized' }}
  */
-import crypto from 'node:crypto';
-
 export function verifySupportOpsSecret(headers, expectedSecret) {
   if (!expectedSecret || !String(expectedSecret).trim()) {
     return { ok: false, code: 'unconfigured' };
@@ -23,15 +21,8 @@ export function verifySupportOpsSecret(headers, expectedSecret) {
     fromBearer = auth.slice(7).trim();
   }
   const got = fromHeader || fromBearer;
-  if (!got) {
+  if (!got || got !== exp) {
     return { ok: false, code: 'unauthorized' };
   }
-
-  const expHash = crypto.createHash('sha256').update(exp).digest();
-  const gotHash = crypto.createHash('sha256').update(got).digest();
-  if (!crypto.timingSafeEqual(expHash, gotHash)) {
-    return { ok: false, code: 'unauthorized' };
-  }
-
   return { ok: true };
 }

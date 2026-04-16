@@ -112,7 +112,6 @@ export interface KinetixSupportTicketPayload {
   attemptedSolutions: string
   environment: 'web'
   severity: 'unknown' | 'low' | 'medium' | 'high'
-  metadata?: Record<string, unknown>
 }
 
 export type CreateSupportTicketResult =

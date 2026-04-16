@@ -27,10 +27,6 @@ class KinetixTester: ObservableObject {
             
             // 3. Test Form Coach Logic
             await testFormCoach()
-            progress = 0.9
-
-            // 4. Test Race Readiness Logic
-            await testRaceReadiness()
             progress = 1.0
             
             log("✅ ALL TESTS COMPLETED")
@@ -144,58 +140,6 @@ class KinetixTester: ObservableObject {
              assert(rec.type == .good, "Good form recognised")
         } else {
              assert(true, "No complaint for good form")
-        }
-    }
-
-    private func testRaceReadiness() async {
-        log("🧪 Testing Race Readiness...")
-
-        let baseInputs = RaceReadinessInputsPayload(
-            fatigueLevel: "low",
-            loadRiskLevel: "low",
-            predictionDirection: "stable",
-            periodizationPhase: "build",
-            daysRemaining: 30,
-            recommendedWorkout: nil,
-            lastComputedAt: nil
-        )
-
-        do {
-            let baseline = try RaceReadinessEngine.compute(from: baseInputs)
-            assert(baseline.score == 75, "Baseline score parity with web engine")
-            assert(baseline.status == "high", "Watch status mapping high for baseline score")
-
-            let highFatigue = try RaceReadinessEngine.compute(
-                from: RaceReadinessInputsPayload(
-                    fatigueLevel: "high",
-                    loadRiskLevel: "low",
-                    predictionDirection: "stable",
-                    periodizationPhase: "build",
-                    daysRemaining: 30,
-                    recommendedWorkout: nil,
-                    lastComputedAt: nil
-                )
-            )
-            assert(highFatigue.score < baseline.score, "High fatigue lowers readiness")
-        } catch {
-            assert(false, "Race readiness computation unexpectedly failed")
-        }
-
-        do {
-            _ = try RaceReadinessEngine.compute(
-                from: RaceReadinessInputsPayload(
-                    fatigueLevel: nil,
-                    loadRiskLevel: nil,
-                    predictionDirection: nil,
-                    periodizationPhase: nil,
-                    daysRemaining: nil,
-                    recommendedWorkout: nil,
-                    lastComputedAt: nil
-                )
-            )
-            assert(false, "Missing phase should fail deterministically")
-        } catch {
-            assert(true, "Missing phase returns deterministic insufficient data state")
         }
     }
 }

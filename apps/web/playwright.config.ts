@@ -1,33 +1,42 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const baseURL = process.env.BASE_URL ?? 'http://127.0.0.1:4173'
+const useExternalServer = Boolean(process.env.BASE_URL)
+
 export default defineConfig({
   testDir: './e2e',
+  timeout: 30_000,
+  expect: {
+    timeout: 8_000,
+  },
   fullyParallel: true,
-  forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 2 : 0,
-  reporter: 'list',
-  timeout: 60_000,
+  reporter: [['list']],
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL,
     trace: 'on-first-retry',
-    actionTimeout: 30_000,
-    navigationTimeout: 60_000,
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  webServer: {
-    /** Default `vite.config.ts` has no `vite-plugin-oauth`. Build `@kinetix/core` so `ragClient` resolves. */
-    command: 'pnpm --filter @kinetix/core build && pnpm exec vite --host 127.0.0.1 --port 5173',
-    url: 'http://127.0.0.1:5173',
-    // Reusing a manually started Vite dev server can drop `VITE_SKIP_AUTH` from webServer.env and stall auth in tests.
-    reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
-    timeout: 120_000,
-    env: {
-      ...process.env,
-      VITE_SKIP_AUTH: '1',
-      /** Enables entitlement bypass + all feature flags for full UI audit (see `src/lib/debug/masterAccess.ts`). */
-      VITE_MASTER_ACCESS: '1',
-      // Stable RAG base for E2E KB mocks; Playwright stubs support/kb/query — no real service on this port.
-      VITE_RAG_SERVICE_URL: 'http://127.0.0.1:13001',
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
     },
-  },
+    {
+      name: 'mobile-chromium',
+      use: { ...devices['Pixel 5'] },
+    },
+  ],
+  ...(useExternalServer
+    ? {}
+    : {
+        webServer: {
+          command: 'pnpm dev --host 127.0.0.1 --port 4173',
+          cwd: process.cwd(),
+          url: 'http://127.0.0.1:4173',
+          reuseExistingServer: !process.env.CI,
+          env: {
+            ...process.env,
+            VITE_SKIP_AUTH: '1',
+          },
+        },
+      }),
 })

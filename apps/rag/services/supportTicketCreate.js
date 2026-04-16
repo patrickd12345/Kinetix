@@ -9,8 +9,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { randomBytes } from 'node:crypto';
 import { resolveKinetixRuntimeEnvFromObject } from '../../../api/_lib/env/runtime.shared.mjs';
-import { computeSlaDueDatesFromCreatedAt } from '../../../api/_lib/supportSla.mjs';
-import { dispatchSupportNotifications } from './supportNotifications.js';
 
 const SEVERITY_ALLOWED = new Set(['unknown', 'low', 'medium', 'high', 'critical']);
 
@@ -52,19 +50,6 @@ function normalizeSeverity(sev) {
   if (typeof sev !== 'string' || !sev.trim()) return 'unknown';
   const s = sev.trim().toLowerCase();
   return SEVERITY_ALLOWED.has(s) ? s : 'unknown';
-}
-
-/**
- * @param {unknown} value
- * @returns {Record<string, unknown>}
- */
-function normalizeMetadata(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return Object.fromEntries(
-    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined),
-  );
 }
 
 /**
@@ -129,7 +114,6 @@ export function validateSupportTicketBody(raw) {
       typeof raw.conversationExcerpt === 'string' ? raw.conversationExcerpt : JSON.stringify(raw.conversationExcerpt ?? ''),
     attemptedSolutions:
       typeof raw.attemptedSolutions === 'string' ? raw.attemptedSolutions : JSON.stringify(raw.attemptedSolutions ?? ''),
-    metadata: normalizeMetadata(raw.metadata),
   };
   return { ok: true, value };
 }
@@ -141,10 +125,6 @@ export function validateSupportTicketBody(raw) {
  */
 export function buildSupportTicketRow(validatedValue, ticketId, receivedAt) {
   const severity = normalizeSeverity(validatedValue.severity);
-  const metadata = validatedValue.metadata && typeof validatedValue.metadata === 'object'
-    ? validatedValue.metadata
-    : {};
-  const sla = computeSlaDueDatesFromCreatedAt(receivedAt);
   return {
     ticket_id: ticketId,
     product_key: 'kinetix',
@@ -160,19 +140,7 @@ export function buildSupportTicketRow(validatedValue, ticketId, receivedAt) {
     metadata: {
       client_timestamp: validatedValue.timestamp,
       source: 'kinetix_rag_api',
-      ...metadata,
     },
-    internal_notes: '',
-    kb_approval_status: 'none',
-    notification_slack_status: 'pending',
-    notification_email_status: 'pending',
-    notification_last_attempt_at: null,
-    notification_error_summary: '',
-    assigned_to: null,
-    assigned_at: null,
-    first_response_due_at: sla.firstResponseDueAt,
-    resolution_due_at: sla.resolutionDueAt,
-    last_operator_action_at: null,
   };
 }
 
@@ -204,23 +172,6 @@ export async function appendSupportTicketRecord(body, options = {}) {
     const code = typeof error.code === 'string' ? error.code : 'unknown';
     console.warn('[Kinetix Support] Supabase insert failed', code);
     return { ok: false, error: 'storage_unavailable' };
-  }
-
-  const env = resolveKinetixRuntimeEnvFromObject();
-  const notificationResult = await dispatchSupportNotifications(env, row);
-  const { error: updateError } = await supabase
-    .schema('kinetix')
-    .from('support_tickets')
-    .update({
-      notification_slack_status: notificationResult.slackStatus,
-      notification_email_status: notificationResult.emailStatus,
-      notification_last_attempt_at: notificationResult.attemptedAt,
-      notification_error_summary: notificationResult.errorSummary,
-    })
-    .eq('ticket_id', ticketId);
-
-  if (updateError) {
-    console.warn('[Kinetix Support] Notification status update failed');
   }
 
   console.info('[Kinetix Support] Ticket created', ticketId);

@@ -22,13 +22,9 @@ test('validateSupportTicketBody accepts minimal valid payload', () => {
     userId: 'user-1',
     conversationExcerpt: 'q: sync',
     attemptedSolutions: 'tried settings',
-    metadata: { route: '/help', inferred_topic: 'sync' },
   });
   assert.equal(v.ok, true);
-  if (v.ok) {
-    assert.equal(v.value.product, 'kinetix');
-    assert.deepEqual(v.value.metadata, { route: '/help', inferred_topic: 'sync' });
-  }
+  if (v.ok) assert.equal(v.value.product, 'kinetix');
 });
 
 test('validateSupportTicketBody rejects wrong product', () => {
@@ -89,17 +85,10 @@ test('appendSupportTicketRecord returns storage_unavailable when supabase overri
 });
 
 test('appendSupportTicketRecord succeeds when Supabase insert returns no error', async () => {
-  let insertedRow = null;
   const mockSupabase = {
     schema: () => ({
       from: () => ({
-        insert: async (row) => {
-          insertedRow = row;
-          return { error: null };
-        },
-        update: () => ({
-          eq: async () => ({ error: null }),
-        }),
+        insert: async () => ({ error: null }),
       }),
     }),
   };
@@ -112,7 +101,6 @@ test('appendSupportTicketRecord succeeds when Supabase insert returns no error',
     userId: 'u1',
     conversationExcerpt: 'ex',
     attemptedSolutions: 'at',
-    metadata: { route: '/help', retrieval_state: 'service_unavailable' },
   };
   const out = await appendSupportTicketRecord(body, { supabase: mockSupabase });
   assert.equal(out.ok, true);
@@ -120,8 +108,6 @@ test('appendSupportTicketRecord succeeds when Supabase insert returns no error',
     assert.match(out.ticketId, /^kinetix-\d{8}-[0-9a-f]{6}$/);
     assert.ok(typeof out.receivedAt === 'string');
   }
-  assert.equal(insertedRow.metadata.route, '/help');
-  assert.equal(insertedRow.metadata.retrieval_state, 'service_unavailable');
 });
 
 test('appendSupportTicketRecord returns storage_unavailable on Supabase error', async () => {
@@ -144,28 +130,4 @@ test('appendSupportTicketRecord returns storage_unavailable on Supabase error', 
   const out = await appendSupportTicketRecord(body, { supabase: mockSupabase });
   assert.equal(out.ok, false);
   assert.equal(out.error, 'storage_unavailable');
-});
-
-test('appendSupportTicketRecord keeps success when notification status update fails', async () => {
-  const mockSupabase = {
-    schema: () => ({
-      from: () => ({
-        insert: async () => ({ error: null }),
-        update: () => ({
-          eq: async () => ({ error: { message: 'update failed' } }),
-        }),
-      }),
-    }),
-  };
-  const body = {
-    product: 'kinetix',
-    timestamp: new Date().toISOString(),
-    issueSummary: 'ticket survives notification failure',
-    environment: 'web',
-    userId: null,
-    conversationExcerpt: 'x',
-    attemptedSolutions: 'y',
-  };
-  const out = await appendSupportTicketRecord(body, { supabase: mockSupabase });
-  assert.equal(out.ok, true);
 });

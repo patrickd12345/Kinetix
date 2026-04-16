@@ -1,7 +1,7 @@
+import { useEffect } from 'react'
 import { formatDistance, formatPace, formatTime } from '@kinetix/core'
 import { X } from 'lucide-react'
 import type { AIResult } from '../../hooks/useAICoach'
-import { Dialog } from '../../components/a11y/Dialog'
 import type { BeatTargetOption } from './types'
 
 interface BeatTargetModalProps {
@@ -47,45 +47,49 @@ export function BeatTargetModal({
   unitSystem,
   onClose,
 }: BeatTargetModalProps) {
+  useEffect(() => {
+    if (!isOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, onClose])
+
+  if (!isOpen) return null
   const styles = ACCENT_STYLES[accent]
 
   return (
-    <Dialog
-      open={isOpen}
-      onClose={onClose}
-      ariaLabelledBy="beat-target-modal-title"
-      ariaDescribedBy="beat-target-modal-desc"
+    <div
+      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
     >
       <div className={`glass border ${styles.border} rounded-2xl p-6 w-full max-w-md shadow-2xl`}>
         <div className="flex justify-between items-center mb-3">
-          <h3 id="beat-target-modal-title" className={`text-lg font-black ${styles.title}`}>
-            {title}
-          </h3>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-slate-600 transition-colors hover:text-slate-900 dark:text-gray-400 dark:hover:text-white">
+          <h3 className={`text-lg font-black ${styles.title}`}>{title}</h3>
+          <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
-        <p id="beat-target-modal-desc" className="text-sm text-slate-700 dark:text-gray-300 mb-4">
-          {description}
-        </p>
+        <p className="text-sm text-gray-300 mb-4">{description}</p>
         {error ? (
-          <p className={`text-sm ${styles.error} mb-4`} role="alert">
-            {error}
-          </p>
+          <p className={`text-sm ${styles.error} mb-4`}>{error}</p>
         ) : options ? (
           <ul className="space-y-2 mb-4">
             {options.map((opt) => {
               const paceSecPerKm = opt.distanceKm > 0 ? opt.timeSeconds / opt.distanceKm : 0
               return (
-                <li key={opt.label} className="flex justify-between items-center gap-2 border-b border-slate-200/80 py-2 text-sm last:border-0 dark:border-gray-700/50">
-                  <span className="text-slate-700 dark:text-gray-300">{opt.label}</span>
+                <li key={opt.label} className="flex justify-between items-center text-sm py-2 border-b border-gray-700/50 last:border-0 gap-2">
+                  <span className="text-gray-300">{opt.label}</span>
                   <span className="text-right">
                     <span className={`font-mono font-bold ${styles.value}`}>
                       {opt.type === 'time'
                         ? `${formatDistance(opt.distanceKm * 1000, unitSystem)} ${unitSystem === 'metric' ? 'km' : 'mi'} in ${opt.label}`
                         : `${formatDistance(opt.distanceKm * 1000, unitSystem)} ${unitSystem === 'metric' ? 'km' : 'mi'} in ${formatTime(opt.timeSeconds)}`}
                     </span>
-                    <span className="ml-2 text-slate-600 dark:text-gray-400 font-mono text-xs">
+                    <span className="ml-2 text-gray-400 font-mono text-xs">
                       {paceSecPerKm > 0 ? formatPace(paceSecPerKm, unitSystem) + (unitSystem === 'metric' ? '/km' : '/mi') : '—'}
                     </span>
                   </span>
@@ -94,51 +98,55 @@ export function BeatTargetModal({
             })}
           </ul>
         ) : (
-          <p className="text-sm text-slate-600 dark:text-gray-400">Loading…</p>
+          <p className="text-sm text-gray-400">Loading…</p>
         )}
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-xl border border-slate-300/80 bg-slate-100 py-2.5 text-sm font-bold text-slate-900 transition-all hover:bg-slate-200 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white dark:hover:bg-gray-800"
+          className="w-full py-2.5 bg-gray-900/50 hover:bg-gray-800 rounded-xl text-white text-sm font-bold border border-gray-700/50 transition-all"
         >
           Close
         </button>
       </div>
-    </Dialog>
+    </div>
   )
 }
 
 export function AICoachModal({ isAnalyzing, aiResult, error, onClose }: AICoachModalProps) {
   const isOpen = Boolean(isAnalyzing || aiResult || error)
 
+  useEffect(() => {
+    if (!isOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isAnalyzing) onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, isAnalyzing, onClose])
+
+  if (!isOpen) return null
+
   return (
-    <Dialog
-      open={isOpen}
-      onClose={onClose}
-      ariaLabelledBy="ai-coach-modal-title"
-      closeOnEscape={!isAnalyzing}
-      ariaBusy={isAnalyzing}
+    <div
+      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="AI coach analysis"
     >
       <div className="glass border border-cyan-500/30 rounded-2xl p-6 w-full max-w-md shadow-2xl">
         {isAnalyzing ? (
-          <div className="text-center" aria-live="polite">
-            <div id="ai-coach-modal-title" className="animate-pulse text-cyan-400 font-mono text-sm mb-2">
-              ANALYZING...
-            </div>
-            <div className="text-xs text-slate-600 dark:text-gray-400">Using AI to analyze your run</div>
+          <div className="text-center">
+            <div className="animate-pulse text-cyan-400 font-mono text-sm mb-2">ANALYZING...</div>
+            <div className="text-xs text-gray-400">Using AI to analyze your run</div>
           </div>
         ) : error ? (
           <div>
-            <h3 id="ai-coach-modal-title" className="text-lg font-black text-red-400 mb-3">
-              Error
-            </h3>
-            <p className="text-sm text-slate-700 dark:text-gray-300 mb-4" role="alert">
-              {error}
-            </p>
+            <h3 className="text-lg font-black text-red-400 mb-3">Error</h3>
+            <p className="text-sm text-gray-300 mb-4">{error}</p>
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-slate-300/80 bg-slate-100 py-2.5 text-sm font-bold text-slate-900 transition-all hover:bg-slate-200 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white dark:hover:bg-gray-800"
+              className="w-full py-2.5 bg-gray-900/50 hover:bg-gray-800 rounded-xl text-white text-sm font-bold border border-gray-700/50 transition-all"
             >
               Close
             </button>
@@ -146,25 +154,23 @@ export function AICoachModal({ isAnalyzing, aiResult, error, onClose }: AICoachM
         ) : aiResult ? (
           <div>
             <div className="flex justify-between items-start mb-3">
-              <h3 id="ai-coach-modal-title" className="text-lg font-black text-cyan-400">
-                {aiResult.title}
-              </h3>
-              <button type="button" onClick={onClose} aria-label="Close" className="text-slate-600 transition-colors hover:text-slate-900 dark:text-gray-400 dark:hover:text-white">
+              <h3 className="text-lg font-black text-cyan-400">{aiResult.title}</h3>
+              <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-white transition-colors">
                 <X size={20} />
               </button>
             </div>
             <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent my-3" />
-            <p className="text-sm text-slate-800 dark:text-gray-200 mb-5 leading-relaxed">{aiResult.insight}</p>
+            <p className="text-sm text-gray-200 mb-5 leading-relaxed">{aiResult.insight}</p>
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-slate-300/80 bg-slate-100 py-2.5 text-sm font-bold text-slate-900 transition-all hover:bg-slate-200 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white dark:hover:bg-gray-800"
+              className="w-full py-2.5 bg-gray-900/50 hover:bg-gray-800 rounded-xl text-white text-sm font-bold border border-gray-700/50 transition-all"
             >
               Close
             </button>
           </div>
         ) : null}
       </div>
-    </Dialog>
+    </div>
   )
 }

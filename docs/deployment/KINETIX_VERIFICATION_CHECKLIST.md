@@ -7,20 +7,6 @@ Run this after DNS, Supabase redirect URLs, and Kinetix env parity are in place.
 1. On **production** `kinetix.bookiji.com`, open `GET /api/admlog` (or use curl). **Confirm:** HTTP **403** and a response that does **not** instruct you to enable `ADMLOG_ENABLED` for production.
 2. From the repo (with Infisical CLI): `node scripts/verify-infisical.mjs --env=prod` **Confirm:** exits **0** and does not flag `ADMLOG_ENABLED` in prod (see [ENV_PARITY.md](./ENV_PARITY.md#admlog-get-apiadmlog)).
 
-## Shell and Help Center visual accessibility (light/dark, zoom, focus)
-
-Use the authenticated web shell (Run Dashboard, sidebar, Help Center). Repeat each row in **light** and **dark** theme (theme control in the header).
-
-| Check | 100% | 125% | 150% |
-| --- | --- | --- | --- |
-| Body text and section cards readable (no white-on-light or faint gray-only body copy) | | | |
-| Active sidebar route clearly distinct from inactive items | | | |
-| Focus ring visible on keyboard Tab (skip link, sidebar links, theme buttons, Help inputs/buttons) | | | |
-| Disabled Search (empty query) and disabled quick-prompts while loading remain legible and obviously disabled | | | |
-| Readonly or loading states (e.g. support search status) distinguishable from editable fields | | | |
-
-**Notes:** Browser zoom only (avoid OS scaling for this pass). If any control is invisible or focus is lost, file a regression before release.
-
 ## SSO and entitlement (happy path)
 
 1. Log into Bookiji at `https://bookiji.com` (or your production URL).
@@ -41,11 +27,7 @@ This confirms that:
 ## Optional: login from kinetix subdomain
 
 1. Log out from Bookiji/Kinetix.
-2. Open `https://kinetix.bookiji.com` and sign in with email magic link (or configured OAuth provider).
+2. Open `https://kinetix.bookiji.com` and sign in (email/password or configured provider).
 3. **Confirm:** Redirect back to kinetix.bookiji.com and app loads with profile and entitlement.
 
 If this fails, check Supabase Auth redirect URLs include `https://kinetix.bookiji.com` and `https://kinetix.bookiji.com/**`.
-
-## Supabase Auth (shared Bookiji project)
-
-In **Authentication** → **Providers**: email magic link / OTP on; email+password and password recovery off. Enable Google, Apple, or Azure (Microsoft) only when credentials exist. In **URL Configuration**, allow the Kinetix origin and `/**` patterns (see [ENV_PARITY.md](./ENV_PARITY.md)).

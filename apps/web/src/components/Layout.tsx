@@ -1,48 +1,18 @@
-import { ReactNode, useEffect, useRef, useState } from 'react'
+import { ReactNode, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { emitStructuredLog } from '@bookiji-inc/observability'
-import {
-  Activity,
-  History,
-  MessageCircle,
-  Settings,
-  Scale,
-  BarChart3,
-  HelpCircle,
-  ShieldCheck,
-  LayoutDashboard,
-  Brain,
-  MoreHorizontal,
-} from 'lucide-react'
+import { Activity, History, MessageCircle, Settings, Scale, BarChart3, HelpCircle } from 'lucide-react'
 import { useAuth } from './providers/useAuth'
 import { useSettingsStore } from '../store/settingsStore'
 import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
 import { getRunsPage } from '../lib/database'
 import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
+import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
-import { runWithingsStartupReload } from '../lib/integrations/withings/startupSync'
-import ThemeSelector from './ThemeSelector'
-import AdSenseDisplayUnit from './ads/AdSenseDisplayUnit'
-import WithingsSyncPrompt from './WithingsSyncPrompt'
-import { Dialog } from './a11y/Dialog'
 
 const RAG_SYNC_PAGE_SIZE = 200
-const RAG_SYNC_FAIL_THRESHOLD = 3
-const SK_RAG_FAIL_STREAK = 'kinetix_rag_sync_fail_streak'
-const SK_RAG_BANNER_DISMISSED = 'kinetix_rag_sync_banner_dismissed'
 const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
-const WITHINGS_STARTUP_RETRY_DELAYS_MS = [0, 1500, 4000] as const
-
-function readRagFailStreak(): number {
-  if (typeof sessionStorage === 'undefined') return 0
-  return Number(sessionStorage.getItem(SK_RAG_FAIL_STREAK)) || 0
-}
-
-function isRagBannerDismissed(): boolean {
-  if (typeof sessionStorage === 'undefined') return false
-  return sessionStorage.getItem(SK_RAG_BANNER_DISMISSED) === '1'
-}
+const WITHINGS_STARTUP_RETRY_DELAYS_MS = [0, 1500, 4000, 8000, 12000] as const
 
 interface LayoutProps {
   children: ReactNode
@@ -51,11 +21,6 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const { profile, session, signOut } = useAuth()
-  const [mobileOverflowOpen, setMobileOverflowOpen] = useState(false)
-  const [ragSyncBannerOpen, setRagSyncBannerOpen] = useState(() => {
-    if (typeof sessionStorage === 'undefined') return false
-    return readRagFailStreak() >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed()
-  })
   const {
     stravaCredentials,
     stravaToken,
@@ -63,18 +28,8 @@ export default function Layout({ children }: LayoutProps) {
     setStravaSyncError,
     settingsRehydrated,
     withingsCredentials,
-    withingsExpandedSyncEnabled,
-    withingsSyncTimes,
-    lastSuccessfulWithingsScheduledSlotKey,
-    lastSuccessfulWithingsStartupSyncDate,
     setWithingsCredentials,
     setLastWithingsWeightKg,
-    setLastSuccessfulWithingsSyncAt,
-    setLastSuccessfulWithingsScheduledSlotKey,
-    setLastSuccessfulWithingsStartupSyncDate,
-    withingsStartupSyncError,
-    setWithingsStartupSyncInFlight,
-    setWithingsStartupSyncError,
   } = useSettingsStore()
   const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : session?.user.email ?? 'User'
 
@@ -82,44 +37,12 @@ export default function Layout({ children }: LayoutProps) {
     if (!profile || typeof indexedDB === 'undefined') return
     const userProfile = toKinetixUserProfile(profile)
     const run = async () => {
-      try {
-        const { items } = await getRunsPage(1, RAG_SYNC_PAGE_SIZE)
-        if (items.length === 0) return true
-        const result = await syncNewRunsToRAG(items, userProfile)
-        if (result.errors === 0) {
-          if (typeof sessionStorage !== 'undefined') {
-            sessionStorage.removeItem(SK_RAG_FAIL_STREAK)
-            sessionStorage.removeItem(SK_RAG_BANNER_DISMISSED)
-          }
-          setRagSyncBannerOpen(false)
-          return true
-        }
-        if (typeof sessionStorage !== 'undefined') {
-          const next = readRagFailStreak() + 1
-          sessionStorage.setItem(SK_RAG_FAIL_STREAK, String(next))
-          emitStructuredLog('warn', 'rag_startup_sync_errors', {
-            indexed: result.indexed,
-            errors: result.errors,
-            skipped: result.skipped,
-            streak: next,
-          })
-          if (next >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed()) {
-            setRagSyncBannerOpen(true)
-          }
-        }
-      } catch (err) {
-        if (typeof sessionStorage !== 'undefined') {
-          const next = readRagFailStreak() + 1
-          sessionStorage.setItem(SK_RAG_FAIL_STREAK, String(next))
-          emitStructuredLog('error', 'rag_startup_sync_threw', {
-            streak: next,
-            message: err instanceof Error ? err.message : String(err),
-          })
-          if (next >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed()) {
-            setRagSyncBannerOpen(true)
-          }
-        }
-      }
+      getRunsPage(1, RAG_SYNC_PAGE_SIZE)
+        .then(({ items }) => {
+          if (items.length === 0) return
+          syncNewRunsToRAG(items, userProfile).catch(() => {})
+        })
+        .catch(() => {})
       return true
     }
     return scheduleStartupAttempts([0], run)
@@ -163,123 +86,96 @@ export default function Layout({ children }: LayoutProps) {
     return scheduleStartupAttempts([...STRAVA_STARTUP_RETRY_DELAYS_MS], runSync)
   }, [profile, stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated])
 
-  const withingsStartupSyncDoneRef = useRef(false)
+  // Background Withings sync on startup: token refresh, recent history → IndexedDB, latest weight → settings.
+  const withingsWeightSyncDoneRef = useRef(false)
+  const withingsCredsKeyRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!profile || !settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') return
-    withingsStartupSyncDoneRef.current = false
+    const key = withingsCredentials?.refreshToken ?? ''
+    if (key !== withingsCredsKeyRef.current) {
+      withingsCredsKeyRef.current = key || null
+      withingsWeightSyncDoneRef.current = false
+    }
+  }, [withingsCredentials?.refreshToken])
 
-    const runStartupReload = async () => {
-      if (withingsStartupSyncDoneRef.current) return true
-      const currentState = useSettingsStore.getState()
-      if (currentState.withingsStartupSyncInFlight) return true
-
-      setWithingsStartupSyncError(null)
-      setWithingsStartupSyncInFlight(true)
-      try {
-        const result = await runWithingsStartupReload(
-          {
-            withingsCredentials: currentState.withingsCredentials,
-            withingsExpandedSyncEnabled: currentState.withingsExpandedSyncEnabled,
-            withingsSyncTimes: currentState.withingsSyncTimes,
-            lastSuccessfulWithingsScheduledSlotKey: currentState.lastSuccessfulWithingsScheduledSlotKey,
-            lastSuccessfulWithingsStartupSyncDate: currentState.lastSuccessfulWithingsStartupSyncDate,
-          },
-          {
-            setWithingsCredentials,
-            setLastWithingsWeightKg,
-            setLastSuccessfulWithingsSyncAt,
-            setLastSuccessfulWithingsScheduledSlotKey,
-            setLastSuccessfulWithingsStartupSyncDate,
-          }
-        )
-        withingsStartupSyncDoneRef.current = true
-        if (result.started) {
-          emitStructuredLog('info', 'withings_startup_sync_complete', {
-            expandedSyncRan: result.expandedSyncRan,
-            historyEntriesSynced: result.historyEntriesSynced,
-            latestKgUpdated: result.latestKg != null,
-          })
-        }
-        return true
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Withings startup sync failed'
-        setWithingsStartupSyncError(message)
-        emitStructuredLog('warn', 'withings_startup_sync_failed', { message })
-        return false
-      } finally {
-        setWithingsStartupSyncInFlight(false)
-      }
+  useEffect(() => {
+    if (!settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') {
+      return
+    }
+    if (withingsWeightSyncDoneRef.current) {
+      return
     }
 
-    return scheduleStartupAttempts([...WITHINGS_STARTUP_RETRY_DELAYS_MS], runStartupReload)
-  }, [
-    profile,
-    settingsRehydrated,
-    withingsCredentials,
-    withingsExpandedSyncEnabled,
-    withingsSyncTimes,
-    lastSuccessfulWithingsScheduledSlotKey,
-    lastSuccessfulWithingsStartupSyncDate,
-    setWithingsCredentials,
-    setLastWithingsWeightKg,
-    setLastSuccessfulWithingsSyncAt,
-    setLastSuccessfulWithingsScheduledSlotKey,
-    setLastSuccessfulWithingsStartupSyncDate,
-    setWithingsStartupSyncInFlight,
-    setWithingsStartupSyncError,
-  ])
+    const run = async () => {
+      if (withingsWeightSyncDoneRef.current) return true
+      try {
+        const { latestKg, historyEntriesSynced } = await syncWithingsWeightsAtStartup(
+          withingsCredentials,
+          (c) => setWithingsCredentials(c)
+        )
+        if (latestKg != null) setLastWithingsWeightKg(latestKg)
+        if (historyEntriesSynced > 0) {
+          console.log('[Withings] Synced', historyEntriesSynced, 'weight row(s) into history')
+        } else if (latestKg != null) {
+          console.log('[Withings] Latest weight updated:', latestKg.toFixed(1), 'kg')
+        }
+        window.dispatchEvent(new CustomEvent(WITHINGS_WEIGHTS_SYNCED_EVENT))
+        withingsWeightSyncDoneRef.current = true
+        return true
+      } catch (e) {
+        console.warn('[Withings] Startup sync failed:', e instanceof Error ? e.message : e)
+        return false
+      }
+    }
+    return scheduleStartupAttempts([...WITHINGS_STARTUP_RETRY_DELAYS_MS], run)
+  }, [settingsRehydrated, withingsCredentials, setWithingsCredentials, setLastWithingsWeightKg])
 
   const navItems = [
     { path: '/', icon: Activity, label: 'Run' },
     { path: '/history', icon: History, label: 'History' },
-    { path: '/coaching', icon: Brain, label: 'Coaching' },
     { path: '/weight-history', icon: Scale, label: 'Weight' },
     { path: '/menu', icon: BarChart3, label: 'Charts' },
     { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/help', icon: HelpCircle, label: 'Help' },
-    { path: '/operator', icon: LayoutDashboard, label: 'Operator' },
-    { path: '/support-queue', icon: ShieldCheck, label: 'Queue' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ]
-  const mobilePrimaryNavItems = navItems.filter((item) =>
-    ['/', '/history', '/coaching', '/chat', '/help'].includes(item.path),
-  )
-  const mobileOverflowNavItems = navItems.filter((item) => !mobilePrimaryNavItems.some((navItem) => navItem.path === item.path))
-  const mobileOverflowActive = mobileOverflowNavItems.some((item) => location.pathname === item.path)
-
-  useEffect(() => {
-    setMobileOverflowOpen(false)
-  }, [location.pathname])
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 text-[var(--shell-text-primary)] dark:from-slate-950 dark:to-black dark:text-[var(--shell-text-primary)]">
-      <a
-        href="#main-content"
-        className="shell-focus-ring absolute left-4 top-3 z-[60] -translate-y-[140%] rounded-md bg-cyan-700 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-transform focus:translate-y-0"
-      >
-        Skip to main content
-      </a>
-      <header className="sticky top-0 z-40 border-b border-slate-200/90 bg-white/85 backdrop-blur dark:border-white/10 dark:bg-slate-950/90">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 to-black text-white">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur">
         <div className="mx-auto max-w-7xl px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <Link
-                to="/"
-                className="shell-focus-ring block rounded-md"
-              >
-                <h1 className="text-xl font-black tracking-wide text-[var(--shell-text-primary)] dark:text-[var(--shell-text-primary)]">KINETIX</h1>
-                <p className="text-xs text-[var(--shell-text-tertiary)] dark:text-[var(--shell-text-tertiary)]">Web dashboard</p>
-              </Link>
+              <h1 className="text-xl font-black tracking-wide">KINETIX</h1>
+              <p className="text-xs text-slate-400">Web dashboard</p>
             </div>
-            <div className="flex shrink-0 items-center gap-3">
-              <ThemeSelector />
-              <span className="hidden max-w-[180px] truncate text-xs text-[var(--shell-text-secondary)] sm:block dark:text-[var(--shell-text-secondary)]">
+            <div className="hidden md:flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = location.pathname === item.path
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all ${
+                      isActive
+                        ? 'bg-cyan-500/20 text-cyan-300'
+                        : 'text-slate-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:block max-w-[180px] truncate text-xs text-slate-400">
                 {profileLabel}
               </span>
               <button
                 type="button"
                 onClick={() => void signOut()}
-                className="shell-focus-ring rounded-md border border-cyan-700/35 px-3 py-1.5 text-xs font-medium text-cyan-950 hover:bg-cyan-500/12 dark:border-cyan-400/35 dark:text-cyan-100 dark:hover:bg-cyan-500/14"
+                className="rounded-md border border-cyan-500/30 px-3 py-1.5 text-xs font-medium text-cyan-300 hover:bg-cyan-500/10"
               >
                 Sign out
               </button>
@@ -289,10 +185,10 @@ export default function Layout({ children }: LayoutProps) {
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-6">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-[220px,1fr]">
-          <aside className="hidden md:block">
-            <div className="rounded-xl border border-slate-200/90 bg-white/80 p-2 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none">
-              <nav className="space-y-1" aria-label="Primary navigation">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
+          <aside className="hidden lg:block">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2">
+              <nav className="space-y-1">
                 {navItems.map((item) => {
                   const Icon = item.icon
                   const isActive = location.pathname === item.path
@@ -300,12 +196,10 @@ export default function Layout({ children }: LayoutProps) {
                     <Link
                       key={item.path}
                       to={item.path}
-                      aria-current={isActive ? 'page' : undefined}
-                      data-testid={isActive ? 'shell-nav-active' : undefined}
-                      className={`shell-focus-ring flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all ${
                         isActive
-                          ? 'shell-nav-active shadow-sm'
-                          : 'shell-nav-inactive dark:hover:bg-white/10'
+                          ? 'bg-cyan-500/20 text-cyan-300'
+                          : 'text-slate-300 hover:bg-white/10'
                       }`}
                     >
                       <Icon size={16} />
@@ -316,71 +210,21 @@ export default function Layout({ children }: LayoutProps) {
               </nav>
             </div>
           </aside>
-          <main id="main-content" className="min-w-0 text-[var(--shell-text-primary)] dark:text-[var(--shell-text-primary)]" tabIndex={-1}>
-            {ragSyncBannerOpen ? (
-              <div
-                role="alert"
-                className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-400/80 bg-amber-50/95 px-4 py-3 text-sm text-amber-950 shadow-sm dark:border-amber-500/50 dark:bg-amber-950/40 dark:text-amber-50 md:flex-row md:items-center md:justify-between"
-              >
-                <p className="min-w-0 leading-snug">
-                  Recent runs could not be fully synced to the coaching index. Answers may be less personalized until the
-                  sync service is available.
-                </p>
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <Link
-                    to="/settings"
-                    className="shell-focus-ring rounded-md border border-amber-700/40 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-200/60 dark:border-amber-300/40 dark:text-amber-50 dark:hover:bg-amber-500/20"
-                  >
-                    Open settings
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof sessionStorage !== 'undefined') {
-                        sessionStorage.setItem(SK_RAG_BANNER_DISMISSED, '1')
-                      }
-                      setRagSyncBannerOpen(false)
-                    }}
-                    className="shell-focus-ring rounded-md px-3 py-1.5 text-xs font-medium text-amber-900/90 underline-offset-2 hover:underline dark:text-amber-100/95"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            ) : null}
-            <WithingsSyncPrompt />
-            {withingsStartupSyncError ? (
-              <div
-                role="status"
-                className="mb-4 rounded-xl border border-amber-400/80 bg-amber-50/95 px-4 py-3 text-sm text-amber-950 shadow-sm dark:border-amber-500/50 dark:bg-amber-950/40 dark:text-amber-50"
-              >
-                Withings background reload did not complete: {withingsStartupSyncError}
-              </div>
-            ) : null}
-            {children}
-            <AdSenseDisplayUnit />
-          </main>
+          <main className="min-w-0">{children}</main>
         </div>
       </div>
 
-      <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-slate-950/95 md:hidden"
-        aria-label="Mobile navigation"
-      >
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/95 backdrop-blur md:hidden">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-around px-2">
-          {mobilePrimaryNavItems.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname === item.path
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                aria-current={isActive ? 'page' : undefined}
-                data-testid={isActive ? 'shell-nav-active-mobile' : undefined}
-                className={`shell-focus-ring flex min-w-0 flex-col items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium ${
-                  isActive
-                    ? 'shell-nav-active'
-                    : 'shell-nav-inactive'
+                className={`flex flex-col items-center gap-1 rounded px-2 py-1 text-[10px] ${
+                  isActive ? 'text-cyan-300' : 'text-slate-400'
                 }`}
               >
                 <Icon size={16} />
@@ -388,68 +232,8 @@ export default function Layout({ children }: LayoutProps) {
               </Link>
             )
           })}
-          <button
-            type="button"
-            aria-expanded={mobileOverflowOpen}
-            aria-haspopup="dialog"
-            aria-label="More navigation options"
-            data-testid={mobileOverflowActive ? 'shell-nav-active-mobile' : 'shell-nav-more-trigger'}
-            onClick={() => setMobileOverflowOpen(true)}
-            className={`shell-focus-ring flex min-w-0 flex-col items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium ${
-              mobileOverflowActive
-                ? 'shell-nav-active'
-                : 'shell-nav-inactive'
-            }`}
-          >
-            <MoreHorizontal size={16} />
-            <span>More</span>
-          </button>
         </div>
       </nav>
-      <Dialog
-        open={mobileOverflowOpen}
-        onClose={() => setMobileOverflowOpen(false)}
-        ariaLabel="More navigation options"
-        className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-4 backdrop-blur-sm md:hidden"
-      >
-        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-slate-950">
-          <div className="mb-3 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--shell-text-primary)]">More</h2>
-              <p className="text-xs text-[var(--shell-text-tertiary)]">Additional app routes</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setMobileOverflowOpen(false)}
-              className="shell-focus-ring rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-[var(--shell-text-secondary)] dark:border-white/15 dark:text-[var(--shell-text-secondary)]"
-            >
-              Close
-            </button>
-          </div>
-          <nav aria-label="More navigation" className="space-y-2">
-            {mobileOverflowNavItems.map((item) => {
-              const Icon = item.icon
-              const isActive = location.pathname === item.path
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  aria-current={isActive ? 'page' : undefined}
-                  data-testid={isActive ? 'shell-nav-active-mobile-overflow' : undefined}
-                  className={`shell-focus-ring flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-medium ${
-                    isActive
-                      ? 'shell-nav-active'
-                      : 'shell-nav-inactive border-slate-200 dark:border-white/10'
-                  }`}
-                >
-                  <Icon size={16} />
-                  <span>{item.label}</span>
-                </Link>
-              )
-            })}
-          </nav>
-        </div>
-      </Dialog>
     </div>
   )
 }

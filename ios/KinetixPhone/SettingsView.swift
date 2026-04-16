@@ -12,7 +12,6 @@ struct SettingsView: View {
     @AppStorage("weightUnit") private var weightUnit: String = "lbs"
     @AppStorage("weightSource") private var weightSource: String = "profile"
     @AppStorage("lastWithingsWeightKg") private var lastWithingsWeightKg: Double = 0
-    @AppStorage("livePaceRollingWindowSeconds") private var livePaceRollingWindowSeconds: Double = LivePaceCalculator.defaultRollingWindowSeconds
     
     @State private var weightText: String = ""
     @State private var birthDate: Date = Date()
@@ -60,7 +59,6 @@ struct SettingsView: View {
     
     private let sexOptions = ["unspecified", "female", "male", "nonbinary"]
     private let kgToLbs = 2.20462
-    private let appleIntelligenceService: KinetixAppleIntelligenceService = DefaultKinetixAppleIntelligenceService()
     
     var body: some View {
         NavigationStack {
@@ -70,7 +68,6 @@ struct SettingsView: View {
                 cloudStorageSection
                 stravaSection
                 aiSettingsSection
-                liveTrackingSection
                 batteryProfileSection
                 findMyNPISection
                 aiSummarySection
@@ -704,22 +701,6 @@ struct SettingsView: View {
             Text("Custom battery profiles let you fine-tune GPS sampling, sensor intervals, and features to optimize battery life for your specific needs. Profiles sync automatically to your Watch.")
         }
     }
-
-    private var liveTrackingSection: some View {
-        Section {
-            Stepper(
-                value: $livePaceRollingWindowSeconds,
-                in: 1...15,
-                step: 1
-            ) {
-                Text("Live Pace Window: \(Int(livePaceRollingWindowSeconds))s")
-            }
-        } header: {
-            Text("Live Tracking")
-        } footer: {
-            Text("Controls the rolling window used for live pace display during active runs. Average pace is still used for saved run summaries and history.")
-        }
-    }
     
     private var profileSection: some View {
         Section {
@@ -788,7 +769,7 @@ struct SettingsView: View {
     private var aiSummarySection: some View {
         Section(header: Text("AI Training Summary")) {
             Button("Generate Summary (last 6 weeks)") {
-                Task { await generateAISummary() }
+                generateAISummary()
             }
             if let summaryError {
                 Text(summaryError)
@@ -1164,7 +1145,7 @@ struct SettingsView: View {
         )
     }
     
-    private func generateAISummary() async {
+    private func generateAISummary() {
         guard !recentRuns.isEmpty else {
             summaryError = "Not enough workouts to summarize."
             return
@@ -1176,24 +1157,13 @@ struct SettingsView: View {
         let stabilityScore = recentRuns.compactMap { $0.formScore }.averageOrNil() ?? 0
         let cadence = recentRuns.compactMap { $0.avgCadence }.averageOrNil() ?? 0
         
-        let trendDirection = avgNPI >= bestNPI * 0.95 ? "stable" : "improving"
-        let result = await appleIntelligenceService.generatePostRunSummary(
-            PostRunSummaryInput(
-                distance: totalDistance * 1000,
-                pace: recentRuns.compactMap(\.avgPace).averageOrNil() ?? 0,
-                heartRateAvg: recentRuns.compactMap(\.avgHeartRate).averageOrNil(),
-                kps: avgNPI,
-                trendDirection: trendDirection
-            )
-        )
-
-        let deterministicSummary = """
+        let summary = """
         Past \(recentRuns.count) workouts: \(String(format: "%.1f", totalDistance)) km total.
         Avg KPS \(Int(avgNPI)), best \(Int(bestNPI)).
         Stability \(Int(stabilityScore)) / cadence \(Int(cadence)) spm.
         Focus on smoother ground contact and even strides. Recovery days every 3rd run.
         """
-        aiSummary = result.usedFallback ? deterministicSummary : result.text
+        aiSummary = summary
     }
     
     private func updateCloudSyncStatus() {

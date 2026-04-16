@@ -18,20 +18,14 @@ test.describe('AI chat smoke', () => {
       expect(body.text?.trim().length ?? 0).toBeGreaterThan(0)
       return
     }
-    if (res.status() === 404) {
-      // Local Playwright `vite` dev server does not mount Vercel `api/*` routes; production validates the handler.
-      expect(raw).not.toMatch(/FUNCTION_INVOCATION_FAILED/)
-      return
-    }
     expect(res.status(), raw).toBe(502)
     const errBody = JSON.parse(raw) as { code?: string }
     expect(errBody.code).toBe('ai_execution_failed')
   })
 
   test('chat page can send Hello when session exists', async ({ page }) => {
-    test.setTimeout(150_000)
     await page.goto('/chat', { waitUntil: 'domcontentloaded' })
-    const loginGate = page.getByRole('button', { name: 'Send magic link' })
+    const loginGate = page.getByText('Sign in or create an account to continue.')
     if (await loginGate.isVisible().catch(() => false)) {
       test.skip(true, 'Chat UI needs a signed-in session; the API case above validates /api/ai-chat after deploy.')
       return

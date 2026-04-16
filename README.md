@@ -4,22 +4,6 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 
 **This repository** also ships a **Vite + React** web app (`apps/web`), shared **`@kinetix/core`** logic (`packages/core`), and an optional **RAG** HTTP service (`apps/rag`) used for run analysis and help-center retrieval. Native apps live under `watchos/` and `ios/`; deployment and platform integration are documented under [`docs/deployment/`](docs/deployment/README.md).
 
-## Repository status
-
-- This repo has one active production web app: `apps/web` (package `@kinetix/web`).
-- `kinetix.bookiji.com` deploy wiring builds and serves `apps/web/dist` (see `vercel.json`).
-- Legacy web code is kept as migration/reference under `archive/web-legacy`.
-- Apple-native surfaces remain active in `ios/KinetixPhone` and `watchos/KinetixWatch`.
-- Shared scoring/runtime logic lives in `packages/core`.
-- Contributor rules and deployment truth are tracked in [`REPO_STATUS.md`](REPO_STATUS.md).
-- Native (iOS / watchOS) manual audit runbook: [`docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md`](docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md)
-
-## Help Center and support (web)
-
-- End-user Help Center and behavior contract: [`apps/web/HELP_CENTER.md`](apps/web/HELP_CENTER.md), [`apps/web/HELP_CENTER_ARCHITECTURE.md`](apps/web/HELP_CENTER_ARCHITECTURE.md)
-- Operator runbook: [`docs/HELP_CENTER_OPERATIONS.md`](docs/HELP_CENTER_OPERATIONS.md)
-- Product roadmap and status: [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md)
-
 ## 🚀 Core Features
 
 ### 🧠 Intelligent Coaching System
@@ -317,12 +301,9 @@ For detailed feature lists and comparisons across platforms:
 
 ### Architecture, scope, and contracts
 
-- **[Project plan](docs/PROJECT_PLAN.md)** - Full plan (vision, roadmap, risks, Bookiji integration); root [`PROJECT_PLAN.md`](PROJECT_PLAN.md) redirects here
 - **[Architecture overview](ARCHITECTURE.md)** - How Watch, iPhone, and web fit together (canonical web path: `apps/web/`)
 - **[Web apps: canonical vs legacy](docs/WEB_APPS.md)** - `apps/web` vs `archive/web-legacy/` and RAG wiring
 - **[RAG service](apps/rag/README.md)** - HTTP API, collections, and local run instructions
-- **[Help Center contract](apps/web/HELP_CENTER.md)** - Shipped `/help` and `/support-queue` support flow
-- **[Help Center operations](docs/HELP_CENTER_OPERATIONS.md)** - Operator queue, notification retry, and KB approval runbook
 - **[Product scope](PRODUCT_SCOPE.md)** - What is in scope for audits and platform work
 - **[KPS contract](KPS_CONTRACT.md)** - Non-negotiable KPS behavior (also linked under KPS above)
 - **[Deployment and platform index](docs/deployment/README.md)** - SSO, Infisical, Stripe entitlements, verification checklists

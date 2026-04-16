@@ -1,9 +1,8 @@
 #!/usr/bin/env tsx
 /**
- * Full entitlement validation flow using an existing magic-link session token:
- * get user -> profile -> entitlements.
+ * Full auth + entitlements flow (same as app): sign in -> profile -> entitlements.
  * Run from apps/web: pnpm exec tsx scripts/test-entitlements-e2e.ts
- * Requires .env.local: VITE_SUPABASE_* and E2E_ACCESS_TOKEN.
+ * Requires .env.local: VITE_SUPABASE_*, and E2E_EMAIL + E2E_PASSWORD to sign in.
  */
 
 import { readFileSync, existsSync } from 'fs'
@@ -36,42 +35,35 @@ const key =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 const email = process.env.E2E_EMAIL
-const accessToken = process.env.E2E_ACCESS_TOKEN
+const password = process.env.E2E_PASSWORD
 
 async function main() {
   if (!url || !key) {
     console.error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY in .env.local')
     process.exit(1)
   }
-  if (!accessToken) {
-    console.error('Set E2E_ACCESS_TOKEN in .env.local to run the full flow.')
+  if (!email || !password) {
+    console.error('Set E2E_EMAIL and E2E_PASSWORD in .env.local to run the full flow.')
     process.exit(1)
   }
 
-  const supabase = createClient(url, key, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
+  const supabase = createClient(url, key)
+
+  console.log('1) Signing in...')
+  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   })
-
-  console.log('1) Resolving user from access token...')
-  const { data: userData, error: userError } = await supabase.auth.getUser(accessToken)
-  if (userError) {
-    console.error('Token validation failed:', userError.message)
+  if (signInError) {
+    console.error('Sign in failed:', signInError.message)
     process.exit(1)
   }
-  const userId = userData.user?.id
+  const userId = signInData.user?.id
   if (!userId) {
-    console.error('No user id found in E2E_ACCESS_TOKEN')
+    console.error('No user id after sign in')
     process.exit(1)
   }
   console.log('   User id:', userId)
-  if (email) {
-    console.log('   Expected email:', email)
-    console.log('   Token email:', userData.user?.email ?? '(none)')
-  }
 
   console.log('2) Fetching platform profile...')
   const profile = await fetchPlatformProfile(supabase, userId)

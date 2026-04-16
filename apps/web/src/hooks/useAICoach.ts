@@ -6,27 +6,6 @@ export interface AIResult {
   insight: string
 }
 
-export const AI_COACH_FALLBACK_RESULT: AIResult = {
-  title: 'Analysis unavailable',
-  insight: 'The coach response could not be validated. Review this run manually and try again later.',
-}
-
-export function parseAICoachResult(value: unknown): AIResult | null {
-  if (typeof value !== 'string') return null
-  try {
-    const parsed = JSON.parse(value) as unknown
-    if (!parsed || typeof parsed !== 'object') return null
-    const candidate = parsed as Partial<AIResult>
-    if (typeof candidate.title !== 'string' || typeof candidate.insight !== 'string') return null
-    const title = candidate.title.trim()
-    const insight = candidate.insight.trim()
-    if (!title || !insight) return null
-    return { title, insight }
-  } catch {
-    return null
-  }
-}
-
 export function useAICoach() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [aiResult, setAiResult] = useState<AIResult | null>(null)
@@ -74,8 +53,17 @@ Provide a JSON response with:
       const data = await response.json()
       const text = data.text
 
-      if (typeof text === 'string' && text.trim()) {
-        setAiResult(parseAICoachResult(text) ?? AI_COACH_FALLBACK_RESULT)
+      if (text) {
+        try {
+          const result = JSON.parse(text)
+          setAiResult(result)
+        } catch (parseError) {
+          // Fallback if JSON parsing fails
+          setAiResult({
+            title: 'Analysis Complete',
+            insight: text.substring(0, 200),
+          })
+        }
       } else {
         throw new Error('No response from AI')
       }

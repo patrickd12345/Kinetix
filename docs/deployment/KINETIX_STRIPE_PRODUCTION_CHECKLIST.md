@@ -25,8 +25,8 @@ Keep Kinetix and Bookiji on the **same Stripe account** (test vs live). Webhooks
 ## End-to-end test (test mode)
 1) Start Bookiji locally (`pnpm dev`, port 3000) with Stripe test keys and `BILLING_ENABLED=true`.
 2) Start Stripe CLI forwarding: `stripe listen --forward-to localhost:3000/api/payments/webhook` and set the printed `STRIPE_WEBHOOK_SECRET` for Bookiji.
-3) Run Kinetix locally (`vercel dev --listen 3001`) with matching Supabase creds, `STRIPE_SECRET_KEY`, `KINETIX_STRIPE_PRICE_ID`, `BILLING_ENABLED=true`.
-4) Create checkout: `curl -X POST http://localhost:3001/api/billing/create-checkout-session -H "Authorization: Bearer <supabase access token>" -H "Content-Type: application/json" -d '{"successUrl":"http://localhost:3001/billing/success","cancelUrl":"http://localhost:3001/billing/cancel"}'`.
+3) Run Kinetix locally (`vercel dev`) with matching Supabase creds, `STRIPE_SECRET_KEY`, `KINETIX_STRIPE_PRICE_ID`, `BILLING_ENABLED=true`.
+4) Create checkout: `curl -X POST http://localhost:3000/api/billing/create-checkout-session -H "Authorization: Bearer <supabase access token>" -H "Content-Type: application/json" -d '{"successUrl":"http://localhost:5173/billing/success","cancelUrl":"http://localhost:5173/billing/cancel"}'`.
 5) Complete hosted checkout with `4242 4242 4242 4242`.
 6) Expect:
    - Stripe CLI shows `checkout.session.completed` and subscription events.

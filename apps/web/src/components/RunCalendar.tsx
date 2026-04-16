@@ -78,15 +78,7 @@ export function RunCalendar({ runs, onDateSelect }: RunCalendarProps) {
   // Custom tile content to highlight dates with runs
   const tileContent = ({ date, view }: { date: Date; view: string }) => {
     if (view === 'month' && hasRun(date)) {
-      return (
-        <>
-          <span className="sr-only">Has run</span>
-          <div
-            className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full bg-cyan-400"
-            aria-hidden
-          />
-        </>
-      )
+      return <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full bg-cyan-400" />
     }
     return null
   }
@@ -99,31 +91,25 @@ export function RunCalendar({ runs, onDateSelect }: RunCalendarProps) {
     return ''
   }
 
-  const calendarPanelId = 'run-calendar-panel'
-
   return (
     <div className="mb-4">
       <button
-        type="button"
-        id="run-calendar-toggle"
-        aria-expanded={isOpen}
-        aria-controls={calendarPanelId}
         onClick={() => setIsOpen(!isOpen)}
         className="w-full glass rounded-xl p-3 flex items-center justify-between hover:border-cyan-500/30 transition-all"
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-slate-900 dark:text-white">Jump to Date</span>
+          <span className="text-sm font-semibold text-white">Jump to Date</span>
           {selectedDate && (
-            <span className="text-xs text-slate-600 dark:text-gray-400">
+            <span className="text-xs text-gray-400">
               {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
           )}
         </div>
-        {isOpen ? <ChevronUp size={16} className="text-slate-600 dark:text-gray-400" /> : <ChevronDown size={16} className="text-slate-600 dark:text-gray-400" />}
+        {isOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
       </button>
 
       {isOpen && (
-        <div id={calendarPanelId} className="mt-2 glass rounded-xl p-4 border border-cyan-500/20" role="region" aria-label="Choose a date">
+        <div className="mt-2 glass rounded-xl p-4 border border-cyan-500/20">
           <Calendar
             onChange={handleDateChange}
             value={selectedDate || undefined}

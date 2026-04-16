@@ -1,211 +1,164 @@
-# Kinetix Help Center — shipped architecture contract
+# Kinetix Help Center — support architecture (design)
 
-**Scope:** Kinetix web Help Center and operator support flow.  
-**Status:** shipped for v1. This file is the frozen behavior contract that rollout must preserve.
+**Scope:** Kinetix web Help Center path (`/help`, future support-aware flows). **Status:** design — not fully implemented. Aligns with Bookiji Inc Help Center Standard (umbrella `docs/BOOKIJI_INC_SHARED_STANDARDS.md`).
 
-Related docs:
-- [HELP_CENTER.md](./HELP_CENTER.md)
-- [../../docs/HELP_CENTER_OPERATIONS.md](../../docs/HELP_CENTER_OPERATIONS.md)
-- [../rag/README.md](../rag/README.md)
+**Existing stack (facts today):**
 
----
+- Run/coach RAG uses `apps/rag` with Chroma collection **`kinetix_runs`** (`apps/rag/services/vectorDB.js`). Embeddings index **runs** for similarity and coach context — not support articles.
+- Coach chat (`useChat`) builds context from **run RAG** + calls **`/api/ai-chat`** (Kinetix API). There is **no** support KB retrieval yet.
 
-## Contract summary
-
-The Kinetix Help Center has four live contracts:
-
-1. `/help` contract
-2. `/support-queue` contract
-3. KB approval contract
-4. Notification contract
-
-Any rollout, migration, or env change must preserve those semantics.
+This document defines how **curated support** layers on without mixing into run data.
 
 ---
 
-## `/help` contract
+## A. Support artifact model
 
-`/help` is a self-service-first support surface.
+A **curated support artifact** is the unit of knowledge approved for retrieval (and eventual embedding). It is **not** a raw ticket, log dump, or user message.
 
-### Required behavior
+### Required fields (logical schema)
 
-1. Coach chat remains the dedicated AI path for run-specific questions (run-coach RAG).
-2. Curated support retrieval uses `kinetix_support_kb`, not `kinetix_runs`.
-3. Support search on `/help` is **AI-first**: after each query, the client retrieves KB excerpts, then calls `POST /api/ai-chat` with a fixed support system prompt and serialized excerpts. The **primary** user-facing reply is the model output; curated hits are shown as **Sources** below.
-4. If the LLM call fails, the UI still shows KB excerpts (when present) and deterministic fallback when retrieval is weak, empty, or unavailable.
-5. **Hybrid escalation gate:** escalation is proposed only when **either** (a) the user has clicked **Still not resolved** twice in the session, **or** (b) **two** completed support searches each ended **unresolved** (retrieval unresolved per `isUnresolvedRetrievalOutcome`, or AI failed/empty answer). Session counters reset on full page reload only (not on each new query text).
-6. No ticket is created until the user explicitly confirms the escalation prompt.
-7. After two escalation prompts have been **counted** (first ever prompt plus one per subsequent prompt following **No, keep troubleshooting**), further eligible searches show a capped state instead of another prompt. Extra unresolved searches without dismissing the dialog do not advance the cap by themselves.
-8. If ticket creation fails and `VITE_SUPPORT_EMAIL` is configured, the client may fall back to `mailto`.
-9. Ticket and mailto payloads include support-AI outcome summary, optional answer hash, and the two session counters for triage.
+| Field | Purpose |
+| ----- | ------- |
+| `artifact_id` | Stable string UUID or slug (`support-entitlements-strava-oauth`, etc.). |
+| `title` | Short human title for UI and chunk headers. |
+| `body_markdown` | Canonical content (Markdown). This is what gets chunked. |
+| `version` | Monotonic int or semver for invalidation when content changes. |
+| `locale` | e.g. `en` (default for v1). |
+| `product` | Always `kinetix` for this product-local KB. |
+| `surface` | `web` for web-specific copy; `all` when applies to every client. |
+| `classification` | See tagging below — at least one **topic** and one **intent**. |
+| `review_status` | `draft` \| `approved` \| `deprecated`. Only **`approved`** may be embedded for production retrieval. |
+| `source_type` | `editorial` \| `ticket_resolution` \| `faq` (provenance for reinjection). |
+| `created_at` / `updated_at` | ISO timestamps. |
+| `reviewed_by` / `reviewed_at` | Optional; required for `source_type=ticket_resolution` before promotion to `approved`. |
 
-### Forbidden behavior
+### Chunking expectations
 
-- No direct self-serve "open ticket" button on `/help`.
-- No support knowledge mixed into run embeddings.
-- No escalation proposal on the first unresolved attempt alone (must satisfy the hybrid gate).
-- No ticket creation before explicit user confirmation.
+- **Input:** `body_markdown` normalized to plain text or normalized Markdown per pipeline choice.
+- **Target size:** ~400–900 tokens per chunk (tune with embedding model context); **overlap** ~50–100 tokens between adjacent chunks so list/table steps are not split blindly.
+- **Chunk metadata (per chunk):** `artifact_id`, `version`, `chunk_index`, `title` (denormalized for citation), `classification` (same as artifact), `product`, `surface`.
+- **Idempotency:** chunk document ids = `{artifact_id}:v{version}:{chunk_index}` so re-ingestion replaces prior vectors for that version.
 
-### Live implementation
+### Tagging / classification
 
-- Web page: `apps/web/src/pages/HelpCenter.tsx`
-- Retrieval client: `apps/web/src/lib/supportRagClient.ts`
-- Support AI client: `apps/web/src/lib/helpCenterSupportAi.ts` (same `/api/ai-chat` contract as Vercel `api/ai-chat` and local `vite-plugin-oauth`)
-- Deterministic fallback: `apps/web/src/lib/helpCenterFallback.ts`
-- Escalation payload shaping: `apps/web/src/lib/helpCenterEscalation.ts`
+Minimum viable taxonomy for retrieval filtering and analytics:
 
----
+- **topic:** `account` \| `billing` \| `sync` \| `import` \| `kps` \| `charts` \| `privacy` \| `general`
+- **intent:** `howto` \| `troubleshoot` \| `policy` \| `limitation`
+- **optional facets:** `integration:strava` \| `integration:withings` \| `integration:garmin` when the article is integration-specific.
 
-## `/support-queue` contract
-
-`/support-queue` is the operator-only queue for persisted support tickets.
-
-### Required behavior
-
-1. Queue APIs require an authenticated user whose id is allowlisted by `KINETIX_SUPPORT_OPERATOR_USER_IDS`.
-2. The queue shows persisted ticket state from `kinetix.support_tickets`; it is not an in-memory inbox.
-3. Notification status fields remain visible even when delivery failed.
-4. Deep links to `/support-queue?ticketId=<id>` must open the referenced ticket when it exists.
-5. Operators can update `status` and `internal_notes`.
-6. Operators can retry notifications without recreating the ticket.
-7. Operators can move a ticket to the KB approval bin only after the ticket is `resolved`.
-
-### Allowed ticket statuses
-
-- `open`
-- `triaged`
-- `in_progress`
-- `resolved`
-- `closed`
-
-### Live implementation
-
-- Page: `apps/web/src/pages/SupportQueue.tsx`
-- Client: `apps/web/src/lib/supportQueueClient.ts`
-- Operator auth: `api/_lib/supportOperator.ts`
-- Queue store: `api/_lib/supportQueueStore.ts`
-- Queue routes (Vercel): single handler [`api/support-queue/tickets/[[...segments]].ts`](../../api/support-queue/tickets/[[...segments]].ts) — dispatches the same public paths as before: `GET /api/support-queue/tickets`, `GET|PATCH /api/support-queue/tickets/:ticketId`, `POST /api/support-queue/tickets/:ticketId/move-to-kb-bin`, `POST /api/support-queue/tickets/:ticketId/retry-notifications`.
+Queries from Help/support flows should pass **topic + optional integration** into retrieval filters when known (e.g. user on Settings > Strava → bias `sync` + `integration:strava`).
 
 ---
 
-## KB approval contract
+## B. RAG strategy
 
-Resolved tickets are operational records, not ingestable knowledge.
+### Dedicated collection / store
 
-### Required behavior
+- **Yes — separate from runs.** Use a **distinct Chroma collection**, e.g. **`kinetix_support_kb`** (name is illustrative; implement alongside `kinetix_runs` in `apps/rag` or equivalent service module).
+- **Never** add support chunks into `kinetix_runs`. That collection’s metadata and distance semantics are run-specific; mixing pollutes similarity search and coach context.
 
-1. A KB draft starts from a resolved ticket.
-2. The draft must be edited before ingest; no raw ticket thread is auto-ingested.
-3. Draft fields are validated before persistence, not left to database constraint failures.
-4. Topic, intent, and review status stay inside the approved taxonomy.
-5. `Approve and ingest` posts an approved artifact into `kinetix_support_kb`.
-6. A successful ingest updates both the draft record and the source ticket KB state.
+**Implemented (`apps/rag`):** Chroma collection **`kinetix_support_kb`** (`services/supportVectorDB.js`). Ingest/query HTTP routes: **`POST /support/kb/ingest`**, **`POST /support/kb/query`**, **`GET /support/kb/stats`**, **`POST /support/ticket/create`** (structured ticket payload; persists to Supabase **`kinetix.support_tickets`** via service role). **Ops-only:** **`PATCH /support/ticket/:ticketId/status`** updates **`status`** (and optional **`metadata`** merge) with **`KINETIX_SUPPORT_OPS_SECRET`** — not exposed to the Help Center UI; see `apps/rag/README.md`. Run endpoints and **`kinetix_runs`** are unchanged. Artifact validation: `services/supportArtifact.js` (approved-only ingest, explicit fields — no ticket dump path).
 
-### Allowed draft taxonomy
+### Separation from run-analysis data
 
-- Topic: `account`, `billing`, `sync`, `import`, `kps`, `charts`, `privacy`, `general`
-- Intent: `howto`, `troubleshoot`, `policy`, `limitation`
-- Review status: `draft`, `approved`, `ingested`, `rejected`
+| Concern | Run RAG (`kinetix_runs`) | Support RAG (`kinetix_support_kb`) |
+| ------- | ------------------------ | ----------------------------------- |
+| Content | Run metrics, dates, KPS-related text | Curated articles, FAQs, approved resolutions |
+| Callers | `/similar`, `/analyze`, coach context | Help Center Q&A, support assistant (future) |
+| User scoping | Effectively per-runner via app context | **Global KB** (same articles for all users); optional future per-tenant only if product requires |
 
-### Forbidden behavior
+### Retrieval — practical high level
 
-- No automatic ingest of a newly created ticket.
-- No user-specific, secret, or private-log content in the curated KB.
-- No approval-bin move from a ticket that is not yet `resolved`.
+1. **Query:** user question (and optional structured hints: `topic`, `integration` from current UI).
+2. **Embed** query with the **same embedding model** as support chunks (keep parity with `apps/rag` / `EmbeddingService` conventions).
+3. **Query Chroma** on `kinetix_support_kb` with `where` filters on `review_status == approved`, `product == kinetix`, and optional classification filters.
+4. **Top-k** (e.g. k=5–8), **score threshold** T — if best score < T, treat as **low confidence** (see deterministic fallback).
+5. **Prompt:** inject retrieved chunk text with **citations** (`title`, `artifact_id`, `chunk_index`) into a support-specific system prompt; **forbid** inventing facts outside retrieved chunks for factual claims.
 
-### Live implementation
-
-- Approval table: `kinetix.support_kb_approval_bin`
-- Page: `apps/web/src/pages/SupportQueue.tsx`
-- Store: `api/_lib/supportQueueStore.ts`
-- Routes: `api/support-queue/kb-approval/*` (one optional catch-all serverless handler: `[[...segments]].ts`, to stay within Vercel Hobby’s 12-function cap)
-- Ingest endpoint: `POST /support/kb/ingest`
+Coach chat may remain **run-grounded** until product decision merges flows; Help-specific assistant is a **separate entry** or mode when implemented.
 
 ---
 
-## Notification contract
+## C. Deterministic fallback
 
-Ticket persistence is authoritative. Notifications are best-effort fan-out after the write succeeds.
+Fallback must be **rule-based** and **does not** claim AI inference when disabled.
 
-### Required behavior
+| Condition | Behavior |
+| --------- | -------- |
+| **AI unavailable** (API error, model down, timeout) | Show static **Help Center** sections (already on `/help`); link to **Troubleshooting** (Settings); optional **retry** for chat. No LLM call. |
+| **AI disallowed by tier / entitlement** | Same as above; optionally show short **“Upgrade / check access”** copy if product adds a paid AI tier — gated by existing entitlement flags from API. |
+| **Low confidence** (no chunk above threshold, or empty retrieval) | Show **curated FAQ excerpts** or **topic links** from a **bundled static map** (JSON or MD in web app) keyed by `topic`; **do not** synthesize from runs. Second line: **AI-proposed escalation** with user confirmation, then ticket or mailto fallback (see D). |
+| **Fallback sources (priority order)** | (1) Static `/help` copy and in-app **topic FAQ** bundle. (2) **Approved** support RAG chunks if retrieval succeeded but LLM failed — can show “Suggested articles” list without generation. (3) **Escalation** (structured ticket API or mailto fallback). |
 
-1. `POST /support/ticket/create` validates the payload and inserts the ticket first.
-2. Slack and email notification delivery happen only after insert succeeds.
-3. Notification failure never rolls back, deletes, or blocks the created ticket.
-4. Per-channel delivery state is written back to the ticket row.
-5. Notification retry works from `/support-queue` against the existing ticket.
-6. Queue links in Slack/email point back to `/support-queue?ticketId=<id>`.
-
-### Channel status values
-
-- `pending`
-- `sent`
-- `failed`
-- `unconfigured`
-
-### Live implementation
-
-- Ticket create: `apps/rag/services/supportTicketCreate.js`
-- RAG fan-out: `apps/rag/services/supportNotifications.js`
-- Queue retry fan-out: `api/_lib/supportNotifications.ts`
-- Ticket columns: `notification_slack_status`, `notification_email_status`, `notification_last_attempt_at`, `notification_error_summary`
+“Low confidence” for an **LLM** path: if the model returns empty or a sentinel, still prefer deterministic content over hallucination.
 
 ---
 
-## Data separation contract
+## D. Ticket escalation path
 
-Run analysis and support knowledge stay separate.
+**Today:** No self-serve “open ticket” control. When triggers in `shouldProposeEscalation` (`helpCenterFallback.ts`) fire, **`HelpCenter.tsx`** shows a confirmation step (“Would you like me to escalate…”). On confirm, the web app calls **`POST /support/ticket/create`** on the RAG service (`apps/rag/index.js`, `services/supportTicketCreate.js`) with a **structured JSON payload** (product, user id, summary, excerpts, attempted solutions, environment, severity). If that request fails and **`VITE_SUPPORT_EMAIL`** is set, **`buildTicketPayloadMailtoHref`** opens a mailto with the same JSON in the body. Legacy plain-text escalation helpers remain in **`helpCenterEscalation.ts`** for diagnostics copy where useful.
 
-| Surface | Collection / store | Purpose |
-| --- | --- | --- |
-| Run coaching | `kinetix_runs` | Run similarity, coach context, run analysis |
-| Help Center support | `kinetix_support_kb` | Curated support retrieval only |
-| Support operations | `kinetix.support_tickets` | Escalation records |
-| KB curation staging | `kinetix.support_kb_approval_bin` | Operator-reviewed drafts before ingest |
+**Target minimum context** (must be preserved so the user does not restart from zero):
 
-Support content must never be inserted into `kinetix_runs`, and raw tickets must never be auto-ingested into `kinetix_support_kb`.
+| Field | Required | Notes |
+| ----- | -------- | ----- |
+| `user_id` (opaque) | Yes | From auth session — never raw PII in client logs. |
+| `product` | Yes | `kinetix` |
+| `surface` | Yes | `web` |
+| `app_version` / build | If available | From env or `import.meta.env` |
+| `last_route` | Yes | e.g. `/help`, `/settings` |
+| `topic` | Recommended | User-selected or inferred (sync, billing, …) |
+| `summary` | Yes | Short user-written description (required before send). |
+| `ai_transcript_summary` | Optional | If user used AI first: last N messages hashed or truncated — **no** secrets; **no** full health data unless user pasted it. |
+| `rag_artifact_ids` | Optional | If RAG suggested articles, list ids for support triage. |
 
----
+**Data that must not** travel without explicit user consent: full run GPS, raw health exports, tokens. **Support bundle** = structured metadata + user narrative only.
 
-## Withings API (Vercel)
-
-OAuth code exchange and token refresh share one serverless handler for Hobby plan function-count limits:
-
-- Handler: [`api/withings/index.ts`](../../api/withings/index.ts) (`POST /api/withings` — branch on `code` vs `refresh_token`).
-- Production [`vercel.json`](../../vercel.json) **rewrites** preserve legacy paths: `/api/withings-oauth` and `/api/withings-refresh` both route to `/api/withings`. Web clients and local dev middleware continue to call the legacy URLs.
-
----
-
-## Rollout prerequisites
-
-Before end-to-end activation:
-
-1. Apply `supabase/migrations/20260408000000_support_queue_notifications_and_kb_bin.sql`.
-2. Apply `supabase/migrations/20260408140000_kinetix_support_queue_operator_sla.sql` (operator assignment + SLA columns + KB draft excerpt).
-3. Configure:
-   - `KINETIX_SUPPORT_OPERATOR_USER_IDS`
-   - `KINETIX_APP_BASE_URL`
-   - `KINETIX_RAG_BASE_URL`
-   - `KINETIX_SUPPORT_SLACK_WEBHOOK_URL`
-   - `KINETIX_SUPPORT_EMAIL_TO`
-   - `KINETIX_SUPPORT_EMAIL_FROM`
-   - `RESEND_API_KEY`
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-4. Ensure curated support content exists in `kinetix_support_kb`.
+Future **ticketing API** should accept the same JSON shape; mailto can embed a compressed query param or short id referencing a **server-stored** draft if implemented later.
 
 ---
 
-## Deferred beyond v1
+## E. Reinjection path
 
-Shipped as incremental hardening (does not change the frozen contracts above):
+**Curate before reinjection:** a resolved ticket becomes a **draft artifact** with `source_type=ticket_resolution`. A human (or governed workflow) **edits** PII, generalizes steps, and sets `review_status=approved`.
 
-- Operator assignment + SLA timestamps + derived triage labels + compact queue summary (`GET /api/support-queue/tickets` includes `summary`)
-- KB draft **excerpt** field + operator markdown preview (GFM rendering) before ingest
-- Optional curated bulk import helper for **non-ticket** artifacts (`apps/rag/scripts/kb-bulk-import.mjs`)
-- Optional approval-bin staging automation for curated corpus review/ingest (`apps/rag/scripts/kb-stage-from-approval-bin.mjs`)
+| Must **never** be blindly reinjected | Why |
+| ------------------------------------ | --- |
+| Raw ticket thread | PII, one-off data, anger, duplicates |
+| Stack traces / internal logs | Noise, security |
+| User-specific metrics (KPS, weight) | Not reusable KB unless anonymized case study |
+| Unverified AI replies | Hallucination risk |
 
-Still deferred / not promised here:
+**Resolved → reusable knowledge:**
 
-- Full BI/reporting beyond compact triage counts
-- Any merge of coach chat and Help Center support modes
+1. Extract **steps that worked** → Markdown article.
+2. Assign **classification** and **title**.
+3. **Review** → `approved`.
+4. **Ingest** via **`POST /support/kb/ingest`** into `kinetix_support_kb` with new `version` / chunk ids.
+5. **Audit log** (future): link `artifact_id` ↔ original ticket id for compliance.
+
+---
+
+## F. Next implementation slices (ordered)
+
+1. ~~**Support KB collection + ingest/query (apps/rag)**~~ — **Done:** `kinetix_support_kb`, **`POST /support/kb/ingest`**, **`POST /support/kb/query`**, **`GET /support/kb/stats`**, validation in `services/supportArtifact.js`. **Corpus:** `apps/web/support-corpus/` (`support-artifacts.json`, `build-corpus.mjs`, `README.md`) — broad repo-grounded articles; regenerate + validate before bulk ingest.
+2. ~~**Web: support context client**~~ — **Done:** `src/lib/supportRagClient.ts` (`querySupportKB` → **`POST /support/kb/query`**), **`HelpCenter.tsx`** “Search support articles” + quick prompts; graceful fallback when RAG unavailable.
+3. ~~**Deterministic fallback bundle (web)**~~ — **Done:** `src/lib/helpCenterFallback.ts` (topic inference, `MIN_USEFUL_SIMILARITY`, `getDeterministicFallbackSections`); Help Center shows **Deterministic fallback** panel when RAG unavailable, query error, empty results, or weak similarity. Not wired to Coach chat yet.
+4. ~~**Escalation payload + ticket create**~~ — **Done (web + rag):** `createSupportTicket` in `supportRagClient.ts` → **`POST /support/ticket/create`**; Supabase **`kinetix.support_tickets`** (see `supabase/migrations/*_kinetix_support_tickets.sql`); mailto fallback via `buildTicketPayloadMailtoHref`.
+
+**Best immediate next slice:** richer FAQ CMS, or push ticket queue to shared Supabase / ticketing product with auth.
+
+---
+
+## References (Kinetix repo)
+
+- `apps/rag/services/vectorDB.js` — `kinetix_runs` collection
+- `apps/rag/services/supportVectorDB.js` — `kinetix_support_kb` collection
+- `apps/rag/README.md` — Chroma / embedding env
+- `apps/web/src/lib/ragClient.ts` — coach/RAG HTTP client; exports **`getRAGBaseUrl`**
+- `apps/web/src/lib/supportRagClient.ts` — support KB query client (`POST /support/kb/query`)
+- `apps/web/src/lib/helpCenterFallback.ts` — deterministic fallback when retrieval is empty, weak, or service unavailable
+- `apps/web/src/lib/helpCenterEscalation.ts` — legacy plain-text escalation + mailto helpers; `buildTicketPayloadMailtoHref` for ticket JSON fallback
+- `apps/web/src/hooks/useChat.ts` — coach chat + `/api/ai-chat`
+- `apps/web/HELP_CENTER.md` — shipped UI slice status

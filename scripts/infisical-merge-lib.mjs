@@ -44,43 +44,6 @@ export function exportSecrets(secretPath, envName) {
   );
 }
 
-function parseDotenvFile(filePath) {
-  if (!existsSync(filePath)) {
-    return {};
-  }
-
-  const content = readFileSync(filePath, "utf8");
-  const lines = content.split(/\r?\n/);
-  const env = {};
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {
-      continue;
-    }
-
-    const eqIndex = line.indexOf("=");
-    if (eqIndex <= 0) {
-      continue;
-    }
-
-    const key = line.slice(0, eqIndex).trim();
-    let value = line.slice(eqIndex + 1).trim();
-
-    if (
-      value.length >= 2 &&
-      ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'")))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    env[key] = value;
-  }
-
-  return env;
-}
-
 /**
  * Bookiji Inc /platform uses SUPABASE_SECRET_KEY; Kinetix runtime resolves
  * SUPABASE_SERVICE_ROLE_KEY | SUPABASE_SERVICE_KEY only. Alias for local dev merge.
@@ -144,12 +107,10 @@ export function validateMergedEnvForLocalDev(env) {
 export function mergeInfisicalForKinetix(envName) {
   const platformSecrets = exportSecrets("/platform", envName);
   const kinetixSecrets = exportSecrets("/kinetix", envName);
-  const localAppEnv = parseDotenvFile(join(process.cwd(), "apps", "web", ".env.local"));
   const mergedEnv = {
     ...process.env,
     ...platformSecrets,
     ...kinetixSecrets,
-    ...localAppEnv,
   };
   applyPlatformServiceKeyAlias(mergedEnv);
   validateMergedEnvForLocalDev(mergedEnv);

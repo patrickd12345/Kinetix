@@ -1,5 +1,4 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { MASTER_ACCESS } from './debug/masterAccess'
 import type { PlatformProfileRecord } from './kinetixProfile'
 
 export const KINETIX_PRODUCT_KEY = 'kinetix' as const
@@ -70,9 +69,6 @@ export async function hasActiveEntitlementForUser(
   /** Auth user id; spine v1 entitlements use user_id (same as platform.profiles.id). Prefer querying user_id first to avoid PostgREST 400s when profile_id column does not exist. */
   userId?: string
 ): Promise<boolean> {
-  if (MASTER_ACCESS && productKey === KINETIX_PRODUCT_KEY) {
-    return true
-  }
   const idForUserColumn = userId ?? profileId
   let result = await queryEntitlements(supabase, 'user_id', idForUserColumn)
 

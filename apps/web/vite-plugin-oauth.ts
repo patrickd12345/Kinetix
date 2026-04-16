@@ -1,14 +1,12 @@
 import type { Plugin } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { loadEnv } from 'vite'
-import { adaptNodeResponseToVercel } from '../../api/_lib/nodeVercelResponse'
 import { handleAiChatRequest, handleAiCoachRequest } from '../../api/_lib/ai/requestHandlers'
 import {
   exchangeStravaCodeForToken,
   refreshStravaAccessToken,
   StravaAuthError,
 } from '../../api/_lib/stravaAuth'
-import { resolveWithingsRedirectUriForTokenExchange } from '../../api/_lib/withingsRedirectUri'
 import { withingsRequestToken } from './src/lib/withingsOAuthServer'
 
 type EnvMap = Record<string, string>
@@ -92,16 +90,7 @@ async function handleWithingsOAuthRequest(req: IncomingMessage, res: ServerRespo
 
   const clientId = getEnvValue(env, 'VITE_WITHINGS_CLIENT_ID', 'WITHINGS_CLIENT_ID')
   const clientSecret = getEnvValue(env, 'WITHINGS_CLIENT_SECRET')
-  const envRedirect = getEnvValue(env, 'VITE_WITHINGS_REDIRECT_URI', 'WITHINGS_REDIRECT_URI')
-  const redirectUri = resolveWithingsRedirectUriForTokenExchange({
-    bodyRedirectUri: redirect_uri,
-    envRedirectUri: envRedirect || undefined,
-    requestOrigin: (req.headers.origin as string | undefined) || 'http://localhost:5173',
-  })
-  if (!redirectUri) {
-    json(res, 400, { error: 'redirect_uri could not be resolved' })
-    return
-  }
+  const redirectUri = (redirect_uri || `${req.headers.origin || 'http://localhost:5173'}/settings`).replace(/\/$/, '')
   if (!clientId || !clientSecret) {
     json(res, 500, {
       error: 'Withings not configured. Set VITE_WITHINGS_CLIENT_ID and WITHINGS_CLIENT_SECRET in .env.local',
@@ -322,33 +311,6 @@ export function vitePluginOAuth(): Plugin {
         ...env,
       }
       
-      server.middlewares.use(async (req, res, next) => {
-        const pathOnly = req.url?.split('?')[0]
-        if (pathOnly !== '/api/admlog') {
-          next()
-          return
-        }
-        if (req.method !== 'GET') {
-          res.statusCode = 405
-          res.end('Method not allowed')
-          return
-        }
-        try {
-          Object.assign(process.env, mergedEnv)
-          const { default: admlogHandler } = await import('../../api/admlog/index.ts')
-          const url = new URL(req.url || '/', 'http://127.0.0.1:5173')
-          const mockReq = {
-            method: req.method,
-            headers: req.headers,
-            query: Object.fromEntries(url.searchParams.entries()),
-            url: req.url,
-          }
-          await admlogHandler(mockReq as never, adaptNodeResponseToVercel(res as ServerResponse))
-        } catch (err) {
-          next(err)
-        }
-      })
-
       server.middlewares.use('/api/strava-oauth', (req, res, next) => {
         handleStravaOAuthRequest(req, res, mergedEnv).catch(next)
       })

@@ -19,9 +19,7 @@ export async function ingestSupportArtifact(raw) {
   }
   const a = validated.artifact;
 
-  const document = a.excerpt
-    ? `${a.title}\n\n${a.excerpt}\n\n${a.body_markdown}`
-    : `${a.title}\n\n${a.body_markdown}`;
+  const document = `${a.title}\n\n${a.body_markdown}`;
   const embedding = await EmbeddingService.embedText(document);
   const versionStr = String(a.version);
   const chunkId = `${a.artifact_id}:v${versionStr}:0`;

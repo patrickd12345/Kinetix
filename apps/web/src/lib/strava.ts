@@ -105,10 +105,12 @@ export async function fetchStravaActivities(
       return res
     }
 
-    const response = await doFetch()
+    let response = await doFetch()
 
+    // Retry once after 60s when rate limited (Strava: 200/15min, 2000/day)
     if (response.status === 429) {
-      throw new Error('Strava API error: Rate limit reached. Sync will retry on next app load.')
+      await new Promise((r) => setTimeout(r, 60_000))
+      response = await doFetch()
     }
 
     if (!response.ok) {
@@ -278,14 +280,7 @@ export async function syncStravaRuns(
     const msg = err instanceof Error ? err.message : 'Strava sync failed'
     console.error('[Strava] sync on startup:', msg, err)
     const isRateLimit = typeof msg === 'string' && /rate limit/i.test(msg)
-    const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
-    const isAuthError =
-      !isRateLimit &&
-      typeof msg === 'string' &&
-      (msg.includes('401') ||
-        lower.includes('unauthorized') ||
-        lower.includes('authorization error') ||
-        lower.includes('token'))
+    const isAuthError = !isRateLimit && typeof msg === 'string' && (msg.includes('401') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('token'))
     if (isAuthError && typeof window !== 'undefined') {
       const { setStravaCredentials, setStravaToken, setStravaSyncError } = useSettingsStore.getState()
       setStravaCredentials(null)

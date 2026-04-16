@@ -244,9 +244,8 @@ export function createRagApp(inject = {}) {
 
   app.post('/coach-context', async (req, res) => {
     try {
-      const { message = '', userProfile, pbRun, unitSystem: rawUnits } = req.body || {};
-      const unitSystem = rawUnits === 'imperial' ? 'imperial' : 'metric';
-      const result = await getCoachContext(message, userProfile || null, pbRun || null, unitSystem);
+      const { message = '', userProfile, pbRun } = req.body;
+      const result = await getCoachContext(message, userProfile || null, pbRun || null);
       res.json(result);
     } catch (error) {
       if (isChromaConnectionError(error)) {
@@ -257,51 +256,6 @@ export function createRagApp(inject = {}) {
       res.status(200).json({
         context:
           'RAG unavailable. Give general advice only. Do not invent NPI or pace from the user\'s runs.',
-        contract: {
-          verifiedFacts: {
-            unitSystem,
-            dataAvailability: {
-              hasRetrievedRuns: false,
-              hasPbTargets: false,
-            },
-            retrievedRunCount: 0,
-            retrievedRuns: [],
-            pbPaceToBeat: null,
-          },
-          userStatedFacts: {},
-          allowedOutputModes: [
-            'explanation',
-            'comparison',
-            'coaching_summary',
-            'motivation',
-            'insufficient_data',
-            'verified_math',
-          ],
-          forbiddenOperations: [
-            'invent_numbers',
-            'introduce_new_numeric_value',
-            'derive_new_numeric_target',
-            'modify_verified_values',
-            'infer_missing_inputs',
-            'medical_diagnosis',
-            'unsupported_prediction',
-            'future_performance_prediction',
-            'physiological_claim',
-            'injury_prediction',
-            'training_effect_prediction',
-            'performance_ranking_claim',
-            'trend_claim',
-            'improvement_claim',
-            'regression_claim',
-          ],
-          provenance: [
-            {
-              kind: 'verified_fact',
-              source: 'coach-context:fallback',
-              path: 'verifiedFacts.dataAvailability',
-            },
-          ],
-        },
       });
     }
   });

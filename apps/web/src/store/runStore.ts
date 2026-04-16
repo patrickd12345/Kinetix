@@ -60,30 +60,6 @@ const initialState = {
   locations: [],
 }
 
-export async function persistStoppedRun(runRecord: RunRecord, userProfile: ReturnType<typeof getActiveKinetixUserProfile>) {
-  const runId = await db.runs.add(runRecord)
-  const numericRunId = typeof runId === 'number' ? runId : Number(runId)
-  if (!numericRunId || isNaN(numericRunId)) {
-    throw new Error('Run saved without a numeric IndexedDB id')
-  }
-
-  const savedRunRecord: RunRecord = { ...runRecord, id: numericRunId }
-  const isNewPB = await checkAndUpdatePB(savedRunRecord, userProfile)
-  if (isNewPB) {
-    console.log('New Personal Best! This run is now your PB (KPS = 100)')
-  }
-
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
-  }
-
-  indexRunsAfterSave([savedRunRecord]).catch((error) => {
-    console.warn('[Kinetix] RAG indexing failed after local run save:', error)
-  })
-
-  return savedRunRecord
-}
-
 export const useRunStore = create<RunState>((set, get) => ({
   ...initialState,
   
@@ -128,7 +104,25 @@ export const useRunStore = create<RunState>((set, get) => ({
         weightKg: userProfile.weightKg,
       }
 
-      persistStoppedRun(runRecord, userProfile).catch((error) => {
+      db.runs.add(runRecord).then(async (runId) => {
+        const numericRunId = typeof runId === 'number' ? runId : Number(runId)
+        if (!numericRunId || isNaN(numericRunId)) {
+          return
+        }
+
+        const savedRunRecord: RunRecord = { ...runRecord, id: numericRunId }
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
+        }
+
+        checkAndUpdatePB(savedRunRecord, userProfile).then((isNewPB) => {
+          if (isNewPB) {
+            console.log('New Personal Best! This run is now your PB (KPS = 100)')
+          }
+        })
+        indexRunsAfterSave([savedRunRecord]).catch(() => {})
+      }).catch((error) => {
         console.error('Error saving run:', error)
       })
     }

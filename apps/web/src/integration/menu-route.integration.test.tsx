@@ -11,19 +11,15 @@ function renderMenuAtMenuPath() {
     session: { user: { id: 'u1' } } as AuthContextValue['session'],
     profile: { id: 'u1', age: 35, weight_kg: 70 },
     error: null,
-    sendMagicLink: vi.fn(),
-    signInWithOAuth: vi.fn(),
-    oauthProviders: { google: false, apple: false, microsoft: false },
+    signInWithPassword: vi.fn(),
+    signUp: vi.fn(),
     signOut: vi.fn(),
     refresh: vi.fn(),
   }
 
   return render(
     <AuthContext.Provider value={value}>
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-        initialEntries={['/menu']}
-      >
+      <MemoryRouter initialEntries={['/menu']}>
         <Routes>
           <Route path="/menu" element={<Menu />} />
         </Routes>

@@ -4,14 +4,13 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
 import {
   isAdmlogEnabled,
   getAdmlogBlockReason,
   isAdmlogProductionEnvironment,
   performAdmlogSignIn,
 } from '../_lib/platformAuth.js'
-import { buildAdmlogSpaSessionHtml, sendAdmlogHtmlResponse } from './spaHtml.js'
 import { sendApiError } from '../_lib/apiError.js'
 import { buildKinetixApiError, getApiRequestId } from '../_lib/ai/error-contract.js'
 import { getObservedRequestId, logApiEvent } from '../_lib/observability.js'
@@ -23,37 +22,6 @@ function getSupabaseConfig() {
   const anonKey = runtime.supabaseAnonKey
   const serviceKey = runtime.supabaseServiceRoleKey
   return { url, anonKey, serviceKey }
-}
-
-function describeMissingSupabaseConfig(parts: {
-  supabaseUrl: string
-  anonKey: string
-  serviceKey: string
-}): string {
-  const missing: string[] = []
-  if (!parts.supabaseUrl) {
-    missing.push('project URL (set SUPABASE_URL or VITE_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL)')
-  }
-  if (!parts.anonKey) {
-    missing.push(
-      'anon/publishable key (set SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)',
-    )
-  }
-  if (!parts.serviceKey) {
-    missing.push(
-      'elevated server key for Auth Admin (prefer SUPABASE_SECRET_KEY = next-gen sb_secret_...; legacy SUPABASE_SERVICE_ROLE_KEY only if JWT legacy keys are enabled — never expose to the client)',
-    )
-  }
-  return missing.length > 0 ? `Admlog configuration incomplete: missing ${missing.join('; ')}.` : ''
-}
-
-function getRedirectPath(raw: unknown): string {
-  if (typeof raw !== 'string') return '/operator'
-  const candidate = raw.trim()
-  if (!candidate.startsWith('/')) return '/operator'
-  // Prevent protocol-relative redirects and keep this endpoint same-origin only.
-  if (candidate.startsWith('//')) return '/operator'
-  return candidate
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -95,48 +63,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { url: supabaseUrl, anonKey, serviceKey } = getSupabaseConfig()
     if (!supabaseUrl || !serviceKey || !anonKey) {
-      const details = describeMissingSupabaseConfig({ supabaseUrl, anonKey, serviceKey })
-      return sendApiError(res, 500, details || 'Configuration missing', { source: req.headers })
+      return sendApiError(res, 500, 'Configuration missing', { source: req.headers })
     }
 
     const { access_token, refresh_token } = await performAdmlogSignIn({
       supabaseUrl,
       serviceKey,
       anonKey,
-      ensureEntitlementProductKeys: ['kinetix'],
     })
 
     logApiEvent('info', 'kinetix_admlog_token_issued', { ip: clientIp })
 
-    const memoryClient = createClient(supabaseUrl, anonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        storage: {
-          getItem: () => null,
-          setItem: () => {},
-          removeItem: () => {},
+    const cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[] = []
+    const cookieHeader = (req.headers.cookie as string) ?? ''
+    const getAll = () =>
+      cookieHeader
+        ? cookieHeader.split('; ').map((s) => {
+            const [name, ...v] = s.split('=')
+            return { name: name ?? '', value: decodeURIComponent((v ?? []).join('=')) }
+          })
+        : []
+    const supabase = createServerClient(supabaseUrl, anonKey, {
+      cookies: {
+        getAll,
+        setAll(cookies: { name: string; value: string; options?: Record<string, unknown> }[]) {
+          cookiesToSet.push(...cookies)
         },
       },
     })
-    const { data: sessionData, error: setSessionError } = await memoryClient.auth.setSession({
+
+    const auth = supabase.auth as unknown as {
+      setSession: (args: { access_token: string; refresh_token: string }) => Promise<{
+        error: { message: string } | null
+      }>
+    }
+    const { error: setError } = await auth.setSession({
       access_token,
       refresh_token,
     })
-    if (setSessionError || !sessionData.session) {
-      return sendApiError(res, 400, setSessionError?.message ?? 'Failed to build browser session', {
-        source: req.headers,
-      })
+    if (setError) {
+      return sendApiError(res, 400, setError.message, { source: req.headers })
     }
 
-    const nextPath = getRedirectPath(req.query.next)
-    const html = buildAdmlogSpaSessionHtml({
-      session: sessionData.session,
-      supabaseUrl,
-      redirectPath: nextPath,
+    const isLocal = /localhost|127\.0\.0\.1/.test(supabaseUrl)
+    cookiesToSet.forEach(({ name, value, options }) => {
+      const opts = (options ?? {}) as { path?: string; maxAge?: number; sameSite?: string; secure?: boolean }
+      let header = `${name}=${encodeURIComponent(value)}; Path=${opts.path ?? '/'}; Max-Age=${opts.maxAge ?? 60 * 60 * 24 * 7}`
+      if (opts.sameSite) header += `; SameSite=${opts.sameSite}`
+      if (!isLocal && opts.secure !== false) header += '; Secure'
+      res.appendHeader('Set-Cookie', header)
     })
-    sendAdmlogHtmlResponse(res, html)
-    return
+
+    const base = (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-host'])
+      ? `${req.headers['x-forwarded-proto']}://${req.headers['x-forwarded-host']}`
+      : `http://localhost:${resolveKinetixRuntimeEnv().port || 5173}`
+    return res.redirect(302, `${base}/admin`)
   } catch (error) {
     logApiEvent('error', 'kinetix_admlog_error', {
       error: error instanceof Error ? error.message : String(error),

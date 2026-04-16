@@ -15,18 +15,13 @@ export type KinetixRuntimeEnv = {
   openAiModel: string;
   ollamaBaseUrl: string;
   ollamaModel: string;
-  /** Ollama embedding model for RAG (`/api/embed`); not the chat LLM. */
-  ollamaEmbedModel: string;
   apiRequireAuth: boolean;
   stravaClientId: string;
   stravaClientSecret: string;
   withingsClientId: string;
   withingsClientSecret: string;
-  /** Optional; must match Withings partner callback URL (e.g. https://kinetix.bookiji.com/settings) */
-  withingsRedirectUri: string;
   supabaseUrl: string;
   supabaseAnonKey: string;
-  /** Next-gen `SUPABASE_SECRET_KEY` (`sb_secret_...`) preferred; legacy JWT service_role last. */
   supabaseServiceRoleKey: string;
   corsAllowedOrigins: string;
   nodeEnv: string;
@@ -45,13 +40,6 @@ export type KinetixRuntimeEnv = {
   kinetixStripePriceId: string;
   /** Ops-only: RAG PATCH /support/ticket/:id/status (see apps/rag README) */
   kinetixSupportOpsSecret: string;
-  kinetixSupportOperatorUserIds: string;
-  kinetixSupportSlackWebhookUrl: string;
-  kinetixSupportEmailTo: string;
-  kinetixSupportEmailFrom: string;
-  resendApiKey: string;
-  kinetixAppBaseUrl: string;
-  kinetixRagBaseUrl: string;
 };
 
 function getDefaultEnv(): EnvSource {

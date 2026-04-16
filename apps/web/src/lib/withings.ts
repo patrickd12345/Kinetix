@@ -294,7 +294,6 @@ export async function syncWithingsWeightsAtStartup(
   /** Avoid a second full API walk when the merged batch already includes the latest weigh-in. */
   const latestKg =
     entries.length > 0 ? entries[0].kg : await fetchLatestWeightFromWithings(valid.accessToken)
-
   return { latestKg, historyEntriesSynced: entries.length }
 }
 

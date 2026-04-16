@@ -89,10 +89,6 @@ describe('helpCenterEscalation', () => {
       route: '/help',
       userIdOpaque: 'user-abc',
       fallbackGuidanceShown: true,
-      helpSupportAiOk: true,
-      helpSupportAiAnswerText: 'test answer',
-      helpStillNotResolvedClicks: 0,
-      helpUnresolvedCompletedSearchCount: 2,
     })
     const body = formatEscalationBodyPlain(payload)
     expect(body).toContain('product: kinetix')
@@ -104,8 +100,6 @@ describe('helpCenterEscalation', () => {
     expect(body).toContain('user_query: strava sync')
     expect(body).toContain('chunk_id=a:v1:0')
     expect(body).toContain('title=Strava doc')
-    expect(body).toContain('help_support_ai_ok: yes')
-    expect(body).toContain('help_unresolved_completed_search_count: 2')
   })
 
   it('buildTicketPayloadMailtoHref encodes JSON body', () => {
@@ -128,10 +122,6 @@ describe('helpCenterEscalation', () => {
         route: '/help',
         userIdOpaque: null,
         fallbackGuidanceShown: true,
-        helpSupportAiOk: false,
-        helpSupportAiAnswerText: null,
-        helpStillNotResolvedClicks: 0,
-        helpUnresolvedCompletedSearchCount: 2,
       })
       const href = buildEscalationMailtoHref('support@test.dev', payload)
       expect(href.startsWith('mailto:support@test.dev?')).toBe(true)

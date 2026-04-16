@@ -16,29 +16,40 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@kinetix/core": [
-        "packages/core/src/index.ts"
-      ],
       "@bookiji-inc/error-contract": [
-        "monorepo-packages/error-contract/src"
+        "monorepo-packages/error-contract/src",
+        "../../packages/error-contract/src",
+        ".bookiji-packages/error-contract/src"
       ],
       "@bookiji-inc/ai-core": [
-        "monorepo-packages/ai-core/src"
+        "../../packages/ai-core/src",
+        "monorepo-packages/ai-core/src",
+        ".bookiji-packages/ai-core/src"
       ],
       "@bookiji-inc/ai-runtime": [
-        "monorepo-packages/ai-runtime/src"
+        "../../packages/ai-runtime/src",
+        "monorepo-packages/ai-runtime/src",
+        ".bookiji-packages/ai-runtime/src"
       ],
       "@bookiji-inc/observability": [
-        "monorepo-packages/observability/src"
+        "monorepo-packages/observability/src",
+        "../../packages/observability/src",
+        ".bookiji-packages/observability/src"
       ],
       "@bookiji-inc/persistent-memory-runtime": [
-        "monorepo-packages/persistent-memory-runtime/src"
+        "monorepo-packages/persistent-memory-runtime/src",
+        "../../packages/persistent-memory-runtime/src",
+        ".bookiji-packages/persistent-memory-runtime/src"
       ],
       "@bookiji-inc/stripe-runtime": [
-        "monorepo-packages/stripe-runtime/src"
+        "monorepo-packages/stripe-runtime/src",
+        "../../packages/stripe-runtime/src",
+        ".bookiji-packages/stripe-runtime/src"
       ],
       "@bookiji-inc/platform-auth": [
-        "monorepo-packages/platform-auth/src"
+        "monorepo-packages/platform-auth/src",
+        "../../packages/platform-auth/src",
+        ".bookiji-packages/platform-auth/src"
       ]
     }
   },

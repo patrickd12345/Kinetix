@@ -63,116 +63,6 @@ struct RunRecoveryData: Codable {
     let targetNPI: Double
 }
 
-struct RaceReadinessInputsPayload: Codable {
-    let fatigueLevel: String?
-    let loadRiskLevel: String?
-    let predictionDirection: String?
-    let periodizationPhase: String?
-    let daysRemaining: Int?
-    let recommendedWorkout: String?
-    let lastComputedAt: Date?
-}
-
-struct RaceReadinessSnapshot: Codable {
-    let score: Int
-    let status: String
-    let message: String
-    let recommendedWorkout: String?
-    let lastComputedAt: Date?
-}
-
-enum RaceReadinessEngine {
-    static func compute(from payload: RaceReadinessInputsPayload) throws -> RaceReadinessSnapshot {
-        guard let phase = payload.periodizationPhase else {
-            throw NSError(domain: "RaceReadiness", code: 1, userInfo: [NSLocalizedDescriptionKey: "Not enough recent data"])
-        }
-        let score = clamp(
-            scoreFatigue(payload.fatigueLevel) +
-                scoreLoadRisk(payload.loadRiskLevel) +
-                scorePredictionTrend(payload.predictionDirection) +
-                scorePhaseAlignment(daysRemaining: payload.daysRemaining, phase: phase) +
-                scoreGoalProximity(daysRemaining: payload.daysRemaining, baseWithoutGoal: baseWithoutGoal(payload: payload, phase: phase)),
-            min: 0,
-            max: 100
-        )
-
-        return RaceReadinessSnapshot(
-            score: score,
-            status: mapWatchStatus(score),
-            message: buildWatchMessage(score),
-            recommendedWorkout: payload.recommendedWorkout,
-            lastComputedAt: payload.lastComputedAt
-        )
-    }
-
-    private static func baseWithoutGoal(payload: RaceReadinessInputsPayload, phase: String) -> Int {
-        scoreFatigue(payload.fatigueLevel) +
-            scoreLoadRisk(payload.loadRiskLevel) +
-            scorePredictionTrend(payload.predictionDirection) +
-            scorePhaseAlignment(daysRemaining: payload.daysRemaining, phase: phase)
-    }
-
-    private static func clamp(_ value: Int, min: Int, max: Int) -> Int {
-        Swift.min(max, Swift.max(min, value))
-    }
-
-    private static func scoreFatigue(_ level: String?) -> Int {
-        if level == "high" { return 4 }
-        if level == "moderate" { return 14 }
-        if level == "low" { return 26 }
-        return 12
-    }
-
-    private static func scoreLoadRisk(_ risk: String?) -> Int {
-        if risk == "high" { return 3 }
-        if risk == "moderate" { return 10 }
-        if risk == "low" { return 18 }
-        return 8
-    }
-
-    private static func scorePredictionTrend(_ direction: String?) -> Int {
-        if direction == "improving" { return 18 }
-        if direction == "stable" { return 11 }
-        if direction == "declining" { return 4 }
-        return 8
-    }
-
-    private static func scorePhaseAlignment(daysRemaining: Int?, phase: String) -> Int {
-        if daysRemaining == nil {
-            if phase == "build" { return 10 }
-            if phase == "base" { return 8 }
-            if phase == "peak" { return 11 }
-            if phase == "taper" { return 9 }
-        }
-
-        if let daysRemaining, daysRemaining <= 21 && (phase == "taper" || phase == "peak") { return 14 }
-        if let daysRemaining, daysRemaining <= 42 && phase == "build" { return 10 }
-        if phase == "base" { return 7 }
-        return 9
-    }
-
-    private static func scoreGoalProximity(daysRemaining: Int?, baseWithoutGoal: Int) -> Int {
-        guard let daysRemaining else { return 7 }
-        if daysRemaining > 56 { return 7 }
-        if daysRemaining > 21 { return 10 }
-        if baseWithoutGoal < 55 { return 2 }
-        if baseWithoutGoal < 70 { return 6 }
-        return 12
-    }
-
-    private static func mapWatchStatus(_ score: Int) -> String {
-        if score >= 70 { return "high" }
-        if score >= 50 { return "moderate" }
-        return "low"
-    }
-
-    private static func buildWatchMessage(_ score: Int) -> String {
-        if score >= 70 { return "Ready for quality work today" }
-        if score >= 50 { return "Solid day to train, keep effort controlled" }
-        return "Prioritize recovery before hard work"
-    }
-}
-
 // MARK: - Refactored LocationManager
 /// Coordinates GPS, HealthKit, run state, and metrics calculation
 class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
@@ -201,8 +91,6 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         guard ts > 0 else { return nil }
         return Date(timeIntervalSince1970: ts)
     }()
-    @Published var raceReadinessSnapshot: RaceReadinessSnapshot?
-    @Published var raceReadinessError: String?
     
     // GPS Status (delegated to GPSManager)
     @Published var gpsStatus: GPSStatus = .unknown
@@ -226,7 +114,6 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
     
     // Progress Gauge
     @Published var runProgress: Double = 0.0
-    @Published var cumulativeKPS: Double = 0.0
     private var rolling5SecPace: Double = 0.0
     private var rollingPaceBuffer: [(Date, Double)] = []
     
@@ -241,7 +128,6 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
     private var rollingDistances: [(Date, Double)] = []
     @Published var currentPaceSeconds: Double = 0.0
     private var heartRateSamples: [Double] = []
-    private var lastEffortSampleAt: Date?
     
     var isFormMonitorActivity: Bool {
         currentPreset?.type == .formMonitor || activeActivityTemplate?.goal == .formMonitor
@@ -354,7 +240,6 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         if let rawWeight = message["withingsWeightKg"] {
             handleIncomingWithingsWeight(rawWeight, syncedAt: message["withingsWeightSyncedAt"])
         }
-        handleIncomingRaceReadiness(message)
     }
     
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
@@ -367,7 +252,6 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         if let rawWeight = applicationContext["withingsWeightKg"] {
             handleIncomingWithingsWeight(rawWeight, syncedAt: applicationContext["withingsWeightSyncedAt"])
         }
-        handleIncomingRaceReadiness(applicationContext)
     }
     
     #if os(iOS)
@@ -431,56 +315,6 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
     func requestLatestWithingsWeightSync() {
         guard let session = session, session.isReachable else { return }
         session.sendMessage(["requestWithingsWeight": true], replyHandler: nil)
-    }
-
-    func requestRaceReadinessSync() {
-        guard let session = session, session.isReachable else { return }
-        session.sendMessage(["requestRaceReadiness": true], replyHandler: nil)
-    }
-
-    private func handleIncomingRaceReadiness(_ payload: [String: Any]) {
-        if let directData = payload["raceReadiness"] as? Data {
-            decodeReadinessSnapshot(data: directData)
-            return
-        }
-        if let inputsData = payload["raceReadinessInputs"] as? Data {
-            decodeAndComputeReadiness(data: inputsData)
-            return
-        }
-    }
-
-    private func decodeReadinessSnapshot(data: Data) {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        do {
-            let snapshot = try decoder.decode(RaceReadinessSnapshot.self, from: data)
-            DispatchQueue.main.async {
-                self.raceReadinessSnapshot = snapshot
-                self.raceReadinessError = nil
-            }
-        } catch {
-            DispatchQueue.main.async {
-                self.raceReadinessError = "Unable to compute race readiness"
-            }
-        }
-    }
-
-    private func decodeAndComputeReadiness(data: Data) {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        do {
-            let inputs = try decoder.decode(RaceReadinessInputsPayload.self, from: data)
-            let snapshot = try RaceReadinessEngine.compute(from: inputs)
-            DispatchQueue.main.async {
-                self.raceReadinessSnapshot = snapshot
-                self.raceReadinessError = nil
-            }
-        } catch {
-            DispatchQueue.main.async {
-                self.raceReadinessSnapshot = nil
-                self.raceReadinessError = error.localizedDescription
-            }
-        }
     }
     
     private func handleIncomingActivities(_ data: Data) {
@@ -705,13 +539,11 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         currentPaceSeconds = 0
         formSessionId = isFormMonitorActivity ? UUID() : nil
         runProgress = 0.0
-        cumulativeKPS = 0.0
         rollingPaceBuffer.removeAll()
         lastLocation = nil
         timeToBeat = nil
         recommendedPace = 0
         heartRate = 0
-        lastEffortSampleAt = nil
         
         // Clear errors
         gpsError = nil
@@ -998,15 +830,6 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
                 // Only update liveNPI if calculation is valid
                 if RunMetricsCalculator.isValidNPI(calculatedNPI) {
                     liveNPI = calculatedNPI
-                    let now = Date()
-                    if let lastSample = lastEffortSampleAt {
-                        let deltaSeconds = max(0, now.timeIntervalSince(lastSample))
-                        if deltaSeconds > 0 {
-                            // Cumulative effort should start near zero and only increase with elapsed work.
-                            cumulativeKPS += (liveNPI * deltaSeconds) / 3600.0
-                        }
-                    }
-                    lastEffortSampleAt = now
                     
                     let targetDistance = 5000.0
                     if let projection = RunMetricsCalculator.projectRaceTime(

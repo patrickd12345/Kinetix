@@ -1,28 +1,8 @@
 #!/usr/bin/env node
-/**
- * Guardrail: `packages/` must only contain `@kinetix/core` (`packages/core`).
- * All `@bookiji-inc/*` implementations live under `monorepo-packages/*` so PNPM cannot resolve stubs.
- */
-import fs from 'fs'
-import path from 'path'
-
-const kinetixRoot = process.cwd()
-const packagesDir = path.join(kinetixRoot, 'packages')
-const allowed = new Set(['core'])
-
-if (!fs.existsSync(packagesDir)) {
-  process.exit(0)
-}
-
-for (const name of fs.readdirSync(packagesDir)) {
-  if (name.startsWith('.')) continue
-  const p = path.join(packagesDir, name)
-  if (!fs.statSync(p).isDirectory()) continue
-  if (!allowed.has(name)) {
-    console.error(
-      `ERROR: packages/${name} must not exist. Only packages/core is allowed under packages/. ` +
-        `Remove stub/shadow copies; @bookiji-inc packages belong in monorepo-packages/.`
-    )
-    process.exit(1)
-  }
+import fs from 'fs';
+import path from 'path';
+const dir = path.join(process.cwd(), 'packages', 'ai-core');
+if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
+  console.error('ERROR: packages/ai-core exists. Kinetix uses local AI modules only: api/_lib/ai/* and apps/rag/services/ai/*.');
+  process.exit(1);
 }

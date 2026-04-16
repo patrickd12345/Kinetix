@@ -500,11 +500,8 @@ export default function Settings() {
                       return
                     }
 
-                    const added: RunRecord[] = []
-                    for (const r of records) {
-                      const id = await db.runs.add(r)
-                      added.push({ ...r, id: id as number } as RunRecord)
-                    }
+                    const ids = await db.runs.bulkAdd(records, { allKeys: true })
+                    const added = records.map((r, i) => ({ ...r, id: ids[i] as number }))
                     await indexRunsAfterSave(added)
                     setImportMessage(`Imported ${added.length} new run${added.length > 1 ? 's' : ''} from Strava.`)
                     if (typeof window !== 'undefined') {
@@ -617,11 +614,8 @@ export default function Settings() {
                     }
                     return
                   }
-                  const added: RunRecord[] = []
-                  for (const r of toAdd) {
-                    const id = await db.runs.add(r)
-                    added.push({ ...r, id: id as number } as RunRecord)
-                  }
+                  const ids = await db.runs.bulkAdd(toAdd, { allKeys: true })
+                  const added = toAdd.map((r, i) => ({ ...r, id: ids[i] as number }))
                   await indexRunsAfterSave(added)
                   if (typeof window !== 'undefined') {
                     window.dispatchEvent(new CustomEvent('kinetix:runSaved'))

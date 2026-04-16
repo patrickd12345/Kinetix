@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "corepack enable && corepack prepare pnpm@10.30.3 --activate && pnpm --filter @kinetix/core build && pnpm --filter @kinetix/web build",
+  "buildCommand": "corepack enable && corepack prepare pnpm@10.30.3 --activate && tsx scripts/check-master-access.ts && pnpm --filter @kinetix/core build && pnpm --filter @kinetix/web build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "bash scripts/vercel-install.sh",
   "framework": "vite",
@@ -10,6 +10,14 @@
     }
   },
   "rewrites": [
+    {
+      "source": "/api/withings-oauth",
+      "destination": "/api/withings"
+    },
+    {
+      "source": "/api/withings-refresh",
+      "destination": "/api/withings"
+    },
     {
       "source": "/api/strava/(.*)",
       "destination": "/api/strava-proxy?path=$1"
@@ -23,11 +31,20 @@
       "destination": "/api/strava-refresh"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/api/admlog",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"
+        }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [
@@ -42,6 +59,18 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests; script-src 'self' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://www.googleapis.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://*.vercel-insights.com; frame-src 'self' https://googleads.g.doubleclick.net https://*.googlesyndication.com https://tpc.googlesyndication.com; worker-src 'self' blob:; manifest-src 'self'"
         }
       ]
     }

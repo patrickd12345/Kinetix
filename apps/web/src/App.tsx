@@ -1,15 +1,31 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import AdSenseScript from './components/ads/AdSenseScript'
 import Layout from './components/Layout'
 import RunDashboard from './pages/RunDashboard'
 import History from './pages/History'
 import Chat from './pages/Chat'
 import Settings from './pages/Settings'
 import WeightHistory from './pages/WeightHistory'
-import Menu from './pages/Menu'
 import HelpCenter from './pages/HelpCenter'
 import Login from './pages/Login'
 import EntitlementRequired from './pages/EntitlementRequired'
+import BillingSuccess from './pages/BillingSuccess'
+import BillingCancel from './pages/BillingCancel'
 import { useAuth } from './components/providers/useAuth'
+
+const Coaching = lazy(() => import('./pages/Coaching'))
+const Menu = lazy(() => import('./pages/Menu'))
+const OperatorDashboard = lazy(() => import('./pages/OperatorDashboard'))
+const SupportQueue = lazy(() => import('./pages/SupportQueue'))
+
+function LazyRouteFallback() {
+  return (
+    <div className="rounded-xl border border-slate-200/90 bg-white/80 px-4 py-8 text-center text-sm text-[var(--shell-text-secondary)] dark:border-white/10 dark:bg-white/[0.03] dark:text-[var(--shell-text-secondary)]">
+      Loading&hellip;
+    </div>
+  )
+}
 
 function FullscreenStatus({
   title,
@@ -22,19 +38,19 @@ function FullscreenStatus({
 }) {
   const toneClasses =
     tone === 'error'
-      ? 'border-red-500/30'
-      : 'border-white/10'
+      ? 'border-red-500/40 dark:border-red-500/30'
+      : 'border-slate-200/90 dark:border-white/10'
 
   const titleClasses =
     tone === 'error'
-      ? 'text-red-400'
-      : 'text-white'
+      ? 'text-red-600 dark:text-red-400'
+      : 'text-slate-900 dark:text-white'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-200 to-slate-100 flex items-center justify-center px-4 dark:from-gray-950 dark:via-black dark:to-gray-950">
       <div className={`w-full max-w-md glass rounded-2xl ${toneClasses} p-6 space-y-2`}>
         <h1 className={`text-xl font-bold ${titleClasses}`}>{title}</h1>
-        <p className="text-sm text-gray-300">{message}</p>
+        <p className="text-sm text-slate-600 dark:text-gray-300">{message}</p>
       </div>
     </div>
   )
@@ -42,6 +58,7 @@ function FullscreenStatus({
 
 function ProtectedRoutes() {
   const { status, error, profile } = useAuth()
+  const location = useLocation()
 
   if (status === 'loading') {
     return <FullscreenStatus title="Loading identity..." message="Checking your account and platform access." />
@@ -58,7 +75,8 @@ function ProtectedRoutes() {
   }
 
   if (status === 'unauthenticated') {
-    return <Navigate to="/login" replace />
+    const next = `${location.pathname}${location.search}${location.hash}`
+    return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />
   }
 
   if (status === 'forbidden') {
@@ -78,16 +96,21 @@ function ProtectedRoutes() {
 
   return (
     <Layout>
-      <Routes>
-        <Route path="/" element={<RunDashboard />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/weight-history" element={<WeightHistory />} />
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/help" element={<HelpCenter />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<LazyRouteFallback />}>
+        <Routes>
+          <Route path="/" element={<RunDashboard />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/coaching" element={<Coaching />} />
+          <Route path="/weight-history" element={<WeightHistory />} />
+          <Route path="/menu" element={<Menu />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/help" element={<HelpCenter />} />
+          <Route path="/operator" element={<OperatorDashboard />} />
+          <Route path="/support-queue" element={<SupportQueue />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </Layout>
   )
 }
@@ -95,8 +118,11 @@ function ProtectedRoutes() {
 function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <AdSenseScript />
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/billing/success" element={<BillingSuccess />} />
+        <Route path="/billing/cancel" element={<BillingCancel />} />
         <Route path="/*" element={<ProtectedRoutes />} />
       </Routes>
     </BrowserRouter>

@@ -61,6 +61,24 @@ export async function getProfileForRun(run: { date: string; weightKg?: number | 
 }
 
 /**
+ * Sync variant of {@link createGetProfileForRunWithWeightCache} for hot loops (no per-run microtasks).
+ */
+export function resolveProfileForRunWithWeightCache(
+  weightByDate: Map<string, number>,
+  run: { date: string; weightKg?: number | null }
+): UserProfile {
+  const current = getActiveKinetixUserProfile()
+  const w = weightByDate.get(run.date)
+  if (w != null && w > 0) {
+    return { ...current, weightKg: w }
+  }
+  if (run.weightKg != null && run.weightKg > 0) {
+    return { ...current, weightKg: run.weightKg }
+  }
+  return current
+}
+
+/**
  * Returns a getProfileForRun that uses a preloaded weight map. Avoids N IndexedDB queries when
  * building charts with many runs. Use with getWeightsForDates().
  */
@@ -68,14 +86,6 @@ export function createGetProfileForRunWithWeightCache(
   weightByDate: Map<string, number>
 ): (run: { date: string; weightKg?: number | null }) => Promise<UserProfile> {
   return async (run: { date: string; weightKg?: number | null }): Promise<UserProfile> => {
-    const current = getActiveKinetixUserProfile()
-    const w = weightByDate.get(run.date)
-    if (w != null && w > 0) {
-      return { ...current, weightKg: w }
-    }
-    if (run.weightKg != null && run.weightKg > 0) {
-      return { ...current, weightKg: run.weightKg }
-    }
-    return current
+    return resolveProfileForRunWithWeightCache(weightByDate, run)
   }
 }

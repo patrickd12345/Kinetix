@@ -45,6 +45,23 @@ export interface SupportEscalationPayload {
   retrievalState: RetrievalHandoffState
   /** KB hits shown in the UI (may be empty or weak matches). */
   surfacedArticles: SurfacedArticleRef[]
+  /** KB-grounded support AI (ai-chat) succeeded for the last query. */
+  helpSupportAiOk: boolean
+  /** Short non-reversible hash of the last AI answer when ok (triage only). */
+  helpSupportAiAnswerHash: string | null
+  /** Session count of explicit "still not resolved" clicks on /help. */
+  helpStillNotResolvedClicks: number
+  /** Session count of completed support searches that ended unresolved (KB weak/error or AI failed/empty). */
+  helpUnresolvedCompletedSearchCount: number
+}
+
+/** Compact hash for ticket/mailto context — not reversible, not cryptographic. */
+export function shortSupportAnswerHash(text: string): string {
+  let h = 5381
+  for (let i = 0; i < text.length; i += 1) {
+    h = Math.imul(h, 33) ^ text.charCodeAt(i)
+  }
+  return (h >>> 0).toString(16).slice(0, 16)
 }
 
 function articleTitle(r: SupportKBResultItem): string {
@@ -79,8 +96,22 @@ export function buildSupportEscalationPayload(input: {
   route: string
   userIdOpaque: string | null
   fallbackGuidanceShown: boolean
+  helpSupportAiOk: boolean
+  helpSupportAiAnswerText: string | null
+  helpStillNotResolvedClicks: number
+  helpUnresolvedCompletedSearchCount: number
 }): SupportEscalationPayload {
-  const { userQuery, supportOutcome, route, userIdOpaque, fallbackGuidanceShown } = input
+  const {
+    userQuery,
+    supportOutcome,
+    route,
+    userIdOpaque,
+    fallbackGuidanceShown,
+    helpSupportAiOk,
+    helpSupportAiAnswerText,
+    helpStillNotResolvedClicks,
+    helpUnresolvedCompletedSearchCount,
+  } = input
   const results = supportOutcome.ok === true ? supportOutcome.data.results : []
   const retrievalState = retrievalStateForPayload(supportOutcome)
   const q = userQuery.trim() || (supportOutcome.ok === true ? supportOutcome.data.query : '')
@@ -88,6 +119,10 @@ export function buildSupportEscalationPayload(input: {
   const appVersion =
     typeof import.meta.env.VITE_APP_VERSION === 'string' && import.meta.env.VITE_APP_VERSION.trim()
       ? import.meta.env.VITE_APP_VERSION.trim()
+      : null
+  const answerHash =
+    helpSupportAiOk && helpSupportAiAnswerText?.trim()
+      ? shortSupportAnswerHash(helpSupportAiAnswerText.trim())
       : null
 
   return {
@@ -102,6 +137,10 @@ export function buildSupportEscalationPayload(input: {
     fallbackGuidanceShown,
     retrievalState,
     surfacedArticles: buildSurfacedArticles(results),
+    helpSupportAiOk,
+    helpSupportAiAnswerHash: answerHash,
+    helpStillNotResolvedClicks,
+    helpUnresolvedCompletedSearchCount,
   }
 }
 
@@ -120,6 +159,10 @@ export function formatEscalationBodyPlain(payload: SupportEscalationPayload): st
     `inferred_topic: ${payload.inferredTopic}`,
     `retrieval_state: ${payload.retrievalState}`,
     `fallback_guidance_shown: ${payload.fallbackGuidanceShown ? 'yes' : 'no'}`,
+    `help_support_ai_ok: ${payload.helpSupportAiOk ? 'yes' : 'no'}`,
+    `help_support_ai_answer_hash: ${payload.helpSupportAiAnswerHash ?? 'n/a'}`,
+    `help_still_not_resolved_clicks: ${payload.helpStillNotResolvedClicks}`,
+    `help_unresolved_completed_search_count: ${payload.helpUnresolvedCompletedSearchCount}`,
     `user_query: ${payload.userQuery}`,
     '',
     'surfaced_kb_refs:',

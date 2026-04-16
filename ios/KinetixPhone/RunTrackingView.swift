@@ -17,9 +17,12 @@ struct RunTrackingView: View {
     
     @State private var totalDistance: Double = 0 // meters
     @State private var lastLocation: CLLocation?
+    @State private var distanceSamples: [DistanceSample] = []
     @State private var heartRateSamples: [(Date, Double)] = []
     
-    @State private var currentPace: Double = 0 // seconds per km
+    @AppStorage("livePaceRollingWindowSeconds") private var livePaceRollingWindowSeconds: Double = LivePaceCalculator.defaultRollingWindowSeconds
+    @State private var livePace: Double = 0 // seconds per km
+    @State private var averagePace: Double = 0 // seconds per km
     @State private var currentNPI: Double = 0
     @State private var timerTick: Int = 0 // Force UI refresh every second
     
@@ -80,7 +83,7 @@ struct RunTrackingView: View {
                             Text("Pace")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(RunMetricsCalculator.formatPace(currentPace))
+                            Text(RunMetricsCalculator.formatPace(livePace))
                                 .font(.title2)
                                 .fontWeight(.semibold)
                                 .monospacedDigit()
@@ -248,6 +251,14 @@ struct RunTrackingView: View {
     // MARK: - Run Control
     
     private func startRun() {
+        totalDistance = 0
+        lastLocation = nil
+        distanceSamples = []
+        heartRateSamples = []
+        livePace = 0
+        averagePace = 0
+        currentNPI = 0
+
         startTime = Date()
         pausedDuration = 0
         isRunning = true
@@ -278,6 +289,7 @@ struct RunTrackingView: View {
     private func pauseRun() {
         isPaused = true
         lastPauseTime = Date()
+        lastLocation = nil
         gpsManager.stopTracking()
         healthKitManager.stopWorkout()
     }
@@ -288,6 +300,7 @@ struct RunTrackingView: View {
         }
         isPaused = false
         lastPauseTime = nil
+        lastLocation = nil
         
         gpsManager.startTracking()
         healthKitManager.startWorkout()
@@ -326,7 +339,22 @@ struct RunTrackingView: View {
             // Filter unrealistic jumps (e.g. > 12m/s)
             if timeDiff > 0 && (dist / timeDiff) < 12.0 {
                 totalDistance += dist
+                distanceSamples.append(
+                    DistanceSample(
+                        timestamp: location.timestamp,
+                        totalDistanceMeters: totalDistance
+                    )
+                )
+                pruneDistanceSamples()
             }
+        } else {
+            distanceSamples.append(
+                DistanceSample(
+                    timestamp: location.timestamp,
+                    totalDistanceMeters: totalDistance
+                )
+            )
+            pruneDistanceSamples()
         }
         lastLocation = location
     }
@@ -337,8 +365,15 @@ struct RunTrackingView: View {
         let duration = elapsedTime
         
         if totalDistance > 0 && duration > 0 {
-            // Calculate pace (seconds per km)
-            currentPace = duration / (totalDistance / 1000.0)
+            // Average pace remains for run summaries/history.
+            averagePace = duration / (totalDistance / 1000.0)
+
+            // Live pace uses a short rolling window.
+            livePace = LivePaceCalculator.rollingPace(
+                from: distanceSamples,
+                windowSeconds: max(1, livePaceRollingWindowSeconds),
+                now: Date()
+            )
             
             // Calculate NPI
             if totalDistance > 100 && duration > 30 {
@@ -376,7 +411,7 @@ struct RunTrackingView: View {
         // Calculate pace - use a default if no distance
         let avgPace: Double
         if distanceToSave > 0 {
-            avgPace = currentPace > 0 ? currentPace : elapsedTime / (distanceToSave / 1000.0)
+            avgPace = averagePace > 0 ? averagePace : elapsedTime / (distanceToSave / 1000.0)
         } else {
             avgPace = 0.0 // No pace if no distance
         }
@@ -424,5 +459,10 @@ struct RunTrackingView: View {
     private func formatTime(_ seconds: TimeInterval) -> String {
         return RunMetricsCalculator.formatTime(seconds)
     }
-}
 
+    private func pruneDistanceSamples() {
+        let keepSeconds = max(30.0, max(1, livePaceRollingWindowSeconds) * 6.0)
+        let cutoff = Date().addingTimeInterval(-keepSeconds)
+        distanceSamples.removeAll { $0.timestamp < cutoff }
+    }
+}

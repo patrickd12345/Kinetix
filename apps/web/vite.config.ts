@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { sharedViteConfig } from './vite.config.shared'
 
@@ -14,7 +14,6 @@ function manualChunk(id: string): string | undefined {
   }
   if (p.includes('/node_modules/react-router')) return 'react-router'
   if (p.includes('/node_modules/react-dom') || p.includes('/node_modules/react/')) return 'react-core'
-  if (p.includes('/node_modules/@supabase/')) return 'supabase'
   if (p.includes('/node_modules/lucide-react')) return 'lucide'
   if (p.includes('/node_modules/openai')) return 'openai-sdk'
   return undefined
@@ -28,6 +27,30 @@ function manualChunk(id: string): string | undefined {
 export default defineConfig({
   ...sharedViteConfig(),
   plugins: [react()],
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', '../../api/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'json-summary'],
+      include: ['src/**/*.{ts,tsx}', '../../api/**/*.{ts,tsx}'],
+      exclude: [
+        '**/*.test.ts',
+        '**/*.test.tsx',
+        '**/e2e/**',
+        '**/dist/**',
+        '**/node_modules/**',
+        '**/vite.config*.ts',
+        '**/support-corpus/**',
+      ],
+      thresholds: {
+        lines: 5,
+        functions: 5,
+        branches: 3,
+        statements: 5,
+      },
+    },
+  },
   build: {
     reportCompressedSize: false,
     chunkSizeWarningLimit: 700,

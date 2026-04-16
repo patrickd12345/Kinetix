@@ -6,7 +6,7 @@
  * - Withings app connected in Kinetix (Settings). Then get your refresh_token:
  *   - Open DevTools > Application > Local Storage > your origin > key "kinetix-settings"
  *   - Copy the value, paste in a JSON formatter, find "withingsCredentials.refreshToken"
- *   - Or run from project root with: WITHINGS_REFRESH_TOKEN="your_refresh_token"
+ *   - Set this value in your .env.local file as WITHINGS_REFRESH_TOKEN.
  *
  * Env (from .env.local or shell):
  * - VITE_WITHINGS_CLIENT_ID (or WITHINGS_CLIENT_ID)

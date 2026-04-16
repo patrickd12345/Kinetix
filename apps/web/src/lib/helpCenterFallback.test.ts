@@ -5,7 +5,7 @@ import {
   getDeterministicFallbackSections,
   getBestSupportSimilarity,
   isUnresolvedRetrievalOutcome,
-  shouldProposeEscalation,
+  shouldProposeHelpEscalation,
   MIN_USEFUL_SIMILARITY,
 } from './helpCenterFallback'
 
@@ -106,45 +106,32 @@ describe('getBestSupportSimilarity', () => {
   })
 })
 
-describe('shouldProposeEscalation', () => {
-  it('proposes when support query failed', () => {
+describe('shouldProposeHelpEscalation', () => {
+  const failedOutcome = { ok: false as const, reason: 'unavailable' as const }
+
+  it('does not propose on first signal alone (failed retrieval, gate not met)', () => {
     expect(
-      shouldProposeEscalation({
-        bestSimilarity: null,
-        attemptCount: 1,
-        supportOutcome: { ok: false, reason: 'unavailable' },
-        userMarkedUnresolved: false,
-      })
+      shouldProposeHelpEscalation({
+        supportOutcome: failedOutcome,
+        stillNotResolvedClicks: 0,
+        unresolvedCompletedSearchCount: 1,
+      }),
+    ).toBe(false)
+  })
+
+  it('proposes when two unresolved completed searches recorded', () => {
+    expect(
+      shouldProposeHelpEscalation({
+        supportOutcome: failedOutcome,
+        stillNotResolvedClicks: 0,
+        unresolvedCompletedSearchCount: 2,
+      }),
     ).toBe(true)
   })
 
-  it('proposes when best similarity is below threshold', () => {
+  it('proposes when still-not-resolved clicked twice even with strong KB outcome', () => {
     expect(
-      shouldProposeEscalation({
-        bestSimilarity: 0.2,
-        attemptCount: 1,
-        supportOutcome: {
-          ok: true,
-          data: {
-            collection: 'kinetix_support_kb',
-            query: 'q',
-            topK: 5,
-            filters: { topic: null },
-            results: [
-              { chunkId: 'a', distance: 1, similarity: 0.2, document: '', metadata: {} },
-            ],
-          },
-        },
-        userMarkedUnresolved: false,
-      })
-    ).toBe(true)
-  })
-
-  it('proposes when user marks unresolved', () => {
-    expect(
-      shouldProposeEscalation({
-        bestSimilarity: 0.9,
-        attemptCount: 1,
+      shouldProposeHelpEscalation({
         supportOutcome: {
           ok: true,
           data: {
@@ -157,31 +144,19 @@ describe('shouldProposeEscalation', () => {
             ],
           },
         },
-        userMarkedUnresolved: true,
-      })
+        stillNotResolvedClicks: 2,
+        unresolvedCompletedSearchCount: 0,
+      }),
     ).toBe(true)
   })
 
-  it('proposes on second weak attempt', () => {
-    const weak = {
-      ok: true as const,
-      data: {
-        collection: 'kinetix_support_kb',
-        query: 'q',
-        topK: 5,
-        filters: { topic: null },
-        results: [
-          { chunkId: 'a', distance: 1, similarity: 0.05, document: '', metadata: {} },
-        ],
-      },
-    }
+  it('does not propose without support outcome', () => {
     expect(
-      shouldProposeEscalation({
-        bestSimilarity: 0.05,
-        attemptCount: 2,
-        supportOutcome: weak,
-        userMarkedUnresolved: false,
-      })
-    ).toBe(true)
+      shouldProposeHelpEscalation({
+        supportOutcome: null,
+        stillNotResolvedClicks: 2,
+        unresolvedCompletedSearchCount: 2,
+      }),
+    ).toBe(false)
   })
 })

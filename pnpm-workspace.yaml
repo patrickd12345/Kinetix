@@ -1,7 +1,4 @@
 packages:
-  - 'packages/*'
-  - 'apps/*'
-  # Umbrella checkout (Bookiji inc repo): linked @bookiji-inc/* live here
-  - '../../packages/*'
-  # Standalone deploy (e.g. Vercel): vercel-install.sh symlinks .bookiji-packages → monorepo-packages
+  - 'packages/core'
   - 'monorepo-packages/*'
+  - 'apps/*'

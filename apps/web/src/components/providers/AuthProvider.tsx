@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, SUPABASE_CONFIG_ERROR } from '../../lib/supabaseClient'
 import {
@@ -8,7 +8,9 @@ import {
 } from '../../lib/platformAuth'
 import type { PlatformProfileRecord } from '../../lib/kinetixProfile'
 import { setActivePlatformProfile } from '../../lib/authState'
-import { AuthContext, type AuthContextValue } from './useAuth'
+import { buildAuthRedirectTarget, resolveConfiguredAuthRedirectUrl } from '../../lib/authRedirect'
+import { formatSupabaseAuthError } from '../../lib/supabaseAuthErrors'
+import { AuthContext, type AuthContextValue, type OAuthProviderAvailability } from './useAuth'
 
 type AuthStatus = 'loading' | 'unauthenticated' | 'authenticated' | 'forbidden' | 'error'
 
@@ -54,6 +56,30 @@ async function resolveAccess(userId: string): Promise<ResolveAccessResult> {
 }
 
 const SKIP_AUTH = import.meta.env.VITE_SKIP_AUTH === '1' || import.meta.env.VITE_SKIP_AUTH === 'true'
+const OAUTH_PROVIDERS: OAuthProviderAvailability = {
+  google:
+    import.meta.env.VITE_AUTH_GOOGLE_ENABLED === '1' ||
+    import.meta.env.VITE_AUTH_GOOGLE_ENABLED === 'true',
+  apple:
+    import.meta.env.VITE_AUTH_APPLE_ENABLED === '1' ||
+    import.meta.env.VITE_AUTH_APPLE_ENABLED === 'true',
+  microsoft:
+    import.meta.env.VITE_AUTH_MICROSOFT_ENABLED === '1' ||
+    import.meta.env.VITE_AUTH_MICROSOFT_ENABLED === 'true',
+}
+const AUTH_REDIRECT_URL =
+  import.meta.env.VITE_AUTH_REDIRECT_URL ??
+  import.meta.env.NEXT_PUBLIC_AUTH_REDIRECT_URL ??
+  null
+
+function authRedirectUrlForCurrentWindow(): string | null | undefined {
+  if (typeof window === 'undefined') return AUTH_REDIRECT_URL
+  return resolveConfiguredAuthRedirectUrl(
+    window.location.origin,
+    AUTH_REDIRECT_URL,
+    import.meta.env.DEV
+  )
+}
 
 const MOCK_BYPASS_PROFILE: PlatformProfileRecord = {
   id: 'bypass-dev',
@@ -65,16 +91,40 @@ const MOCK_BYPASS_PROFILE: PlatformProfileRecord = {
   metadata: null,
 }
 
+/** Lets operator views call `/api/support-queue/*` with Authorization in E2E and local smoke runs. */
+const SKIP_AUTH_SESSION = {
+  access_token: 'vite-skip-auth-bypass',
+  token_type: 'bearer',
+  expires_in: 3600,
+  expires_at: Math.floor(Date.now() / 1000) + 3600,
+  refresh_token: '',
+  user: {
+    id: 'bypass-dev',
+    aud: 'authenticated',
+    role: 'authenticated',
+    email: 'dev@local',
+    phone: '',
+    app_metadata: {},
+    user_metadata: {},
+    identities: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_anonymous: false,
+  },
+} as Session
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<PlatformProfileRecord | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const magicLinkInFlight = useRef(false)
+  const oauthRedirectInFlight = useRef(false)
 
   useEffect(() => {
     if (SKIP_AUTH) {
       setStatus('authenticated')
-      setSession(null)
+      setSession(SKIP_AUTH_SESSION)
       setProfile(MOCK_BYPASS_PROFILE)
       setError(null)
       setActivePlatformProfile(MOCK_BYPASS_PROFILE)
@@ -151,17 +201,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [hydrateFromSession])
 
-  const signInWithPassword = useCallback(async (email: string, password: string) => {
+  const sendMagicLink = useCallback(async (email: string, nextPath?: string) => {
     if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    if (signInError) throw signInError
+    if (magicLinkInFlight.current) {
+      throw new Error('A magic link request is already in progress. Please wait.')
+    }
+    magicLinkInFlight.current = true
+    const redirectTarget = buildAuthRedirectTarget({
+      windowOrigin: window.location.origin,
+      configuredRedirectUrl: authRedirectUrlForCurrentWindow(),
+      nextPath,
+    })
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: redirectTarget,
+        },
+      })
+      if (otpError) throw otpError
+    } catch (err) {
+      throw new Error(formatSupabaseAuthError(err))
+    } finally {
+      magicLinkInFlight.current = false
+    }
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
-    const { error: signUpError } = await supabase.auth.signUp({ email, password })
-    if (signUpError) throw signUpError
-  }, [])
+  const signInWithOAuth = useCallback(
+    async (provider: 'google' | 'apple' | 'microsoft', nextPath?: string) => {
+      if (!supabase) throw new Error(SUPABASE_CONFIG_ERROR)
+      if (oauthRedirectInFlight.current) {
+        throw new Error('A sign-in redirect is already in progress. Please wait.')
+      }
+      oauthRedirectInFlight.current = true
+      const redirectTarget = buildAuthRedirectTarget({
+        windowOrigin: window.location.origin,
+        configuredRedirectUrl: authRedirectUrlForCurrentWindow(),
+        nextPath,
+      })
+      const providerKey = provider === 'microsoft' ? 'azure' : provider
+      try {
+        const { error: oauthError } = await supabase.auth.signInWithOAuth({
+          provider: providerKey,
+          options: { redirectTo: redirectTarget },
+        })
+        if (oauthError) throw oauthError
+      } catch (err) {
+        throw new Error(formatSupabaseAuthError(err))
+      } finally {
+        oauthRedirectInFlight.current = false
+      }
+    },
+    []
+  )
 
   const signOut = useCallback(async () => {
     if (SKIP_AUTH) return
@@ -176,12 +268,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       profile,
       error,
-      signInWithPassword,
-      signUp,
+      sendMagicLink,
+      signInWithOAuth,
+      oauthProviders: OAUTH_PROVIDERS,
       signOut,
       refresh,
     }),
-    [status, session, profile, error, signInWithPassword, signUp, signOut, refresh]
+    [status, session, profile, error, sendMagicLink, signInWithOAuth, signOut, refresh]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

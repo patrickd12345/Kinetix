@@ -1,5 +1,7 @@
 import Dexie, { Table } from 'dexie'
 import { UserProfile } from '@kinetix/core'
+import type { CanonicalHealthMetric } from './integrations/healthMetrics'
+import type { WithingsCapabilityMap, WithingsCursor, WithingsRawEvent, WithingsSyncRun } from './integrations/withings/types'
 
 /** 0 = visible, 1 = logically deleted (hidden from UI and stats) */
 export const RUN_DELETED = 1
@@ -56,10 +58,34 @@ export interface WeightEntry {
   kg: number
 }
 
+export interface ProviderConnectionState {
+  id: string
+  userId: string
+  provider: 'withings'
+  connected: boolean
+  updatedAt: string
+  capabilities: WithingsCapabilityMap
+}
+
+export interface ProviderSyncCheckpoint {
+  id: string
+  userId: string
+  provider: 'withings'
+  cursor: WithingsCursor
+  updatedAt: string
+}
+
+export type StoredHealthMetric = CanonicalHealthMetric & { id: string }
+
 class KinetixDatabase extends Dexie {
   runs!: Table<RunRecord>
   pb!: Table<PBRecord>
   weightHistory!: Table<WeightEntry>
+  providerConnections!: Table<ProviderConnectionState>
+  providerSyncCheckpoints!: Table<ProviderSyncCheckpoint>
+  providerSyncRuns!: Table<WithingsSyncRun>
+  providerRawEvents!: Table<WithingsRawEvent>
+  healthMetrics!: Table<StoredHealthMetric>
 
   constructor() {
     super('KinetixDB')
@@ -105,6 +131,16 @@ class KinetixDatabase extends Dexie {
       return tx.table('runs').toCollection().modify((run: Record<string, unknown>) => {
         if ('kps' in run) delete run.kps
       })
+    })
+    this.version(8).stores({
+      runs: '++id, date, distance, source, external_id, deleted',
+      pb: '++id, runId, achievedAt',
+      weightHistory: 'dateUnix, date',
+      providerConnections: '&id, userId, provider, updatedAt',
+      providerSyncCheckpoints: '&id, userId, provider, updatedAt',
+      providerSyncRuns: '&id, userId, provider, startedAt, status',
+      providerRawEvents: '&id, userId, family, createdAt',
+      healthMetrics: '&id, userId, source, family, observedAt, date, sourceRecordId',
     })
   }
 }
@@ -255,43 +291,73 @@ export async function getWeightHistoryInRange(
 }
 
 /**
- * Get the weight (kg) that was in effect on or before a given date.
- * Used for KPS: each run should use the user's weight at the time of the run, not today's weight.
- * Returns null if no weight history entry exists on or before that date (caller uses current profile weight).
+ * Latest weight on or before `runUnix` (seconds). Exported for unit tests; same rules as {@link getWeightAtDate}.
+ */
+export function weightKgAtOrBeforeRunUnix(entries: readonly WeightEntry[], runUnix: number): number | null {
+  let best: WeightEntry | null = null
+  for (const e of entries) {
+    if (e.dateUnix <= runUnix && e.kg > 0) {
+      if (!best || e.dateUnix > best.dateUnix) best = e
+    }
+  }
+  return best?.kg ?? null
+}
+
+/**
+ * Get the weight (kg) that was in effect on or before a given run instant.
+ * Uses `dateUnix` (seconds) so ordering is correct; string `between` on ISO `date` breaks when
+ * `runDate` is date-only (`YYYY-MM-DD`) because lexicographically `2026-04-11T12:00:00Z` > `2026-04-11`.
  */
 export async function getWeightAtDate(runDate: string): Promise<number | null> {
-  const entries = await db.weightHistory
-    .where('date')
-    .between('1970-01-01', runDate, true, true)
-    .toArray()
-  if (entries.length === 0) return null
-  const latest = entries.reduce((a, b) => (a.date > b.date ? a : b))
-  return latest.kg
+  const runInstant = Date.parse(runDate)
+  if (!Number.isFinite(runInstant)) return null
+  const runUnix = Math.floor(runInstant / 1000)
+  const entries = await db.weightHistory.where('dateUnix').belowOrEqual(runUnix).toArray()
+  return weightKgAtOrBeforeRunUnix(entries, runUnix)
+}
+
+/**
+ * Maps each run date key (ISO strings, sorted ascending) to the latest weight row with
+ * `row.date <= runDateKey` among ascending-sorted `weightRowsSorted`.
+ * O(keys + rows). Used by {@link getWeightsForDates}.
+ */
+export function weightKgByRunDateKeysFromEntries(
+  uniqueSortedRunDates: string[],
+  weightRowsSorted: readonly WeightEntry[]
+): Map<string, number> {
+  const result = new Map<string, number>()
+  let j = 0
+  let best: WeightEntry | null = null
+  for (const d of uniqueSortedRunDates) {
+    while (j < weightRowsSorted.length && weightRowsSorted[j].date <= d) {
+      best = weightRowsSorted[j]
+      j += 1
+    }
+    if (best != null && best.kg > 0) {
+      result.set(d, best.kg)
+    }
+  }
+  return result
 }
 
 /**
  * Batch weight lookup for many run dates. One IndexedDB query instead of N.
  * Returns Map<runDate, weightKg>. Use for chart builds with many runs.
+ *
+ * Implementation: sort unique run-date keys, walk weight rows once (two-pointer) so cost is
+ * O(U + E) not O(U * E). The previous nested loop could freeze the main thread on large histories.
  */
 export async function getWeightsForDates(runDates: string[]): Promise<Map<string, number>> {
-  const unique = [...new Set(runDates)]
-  if (unique.length === 0) return new Map()
-  const maxDate = unique.reduce((a, b) => (a > b ? a : b))
+  const uniqueSorted = [...new Set(runDates)].sort((a, b) => a.localeCompare(b))
+  if (uniqueSorted.length === 0) return new Map()
+  const maxDate = uniqueSorted[uniqueSorted.length - 1]
   const entries = await db.weightHistory
     .where('date')
     .between('1970-01-01', maxDate, true, true)
     .toArray()
+  if (entries.length === 0) return new Map()
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date))
-  const result = new Map<string, number>()
-  for (const d of unique) {
-    let best: WeightEntry | null = null
-    for (const e of sorted) {
-      if (e.date <= d) best = e
-      else break
-    }
-    if (best != null && best.kg > 0) result.set(d, best.kg)
-  }
-  return result
+  return weightKgByRunDateKeysFromEntries(uniqueSorted, sorted)
 }
 
 /**
@@ -317,4 +383,56 @@ export async function backfillRunWeights(): Promise<{ updated: number; skipped: 
     }
   }
   return { updated, skipped }
+}
+
+export async function upsertProviderConnectionState(state: ProviderConnectionState): Promise<void> {
+  await db.providerConnections.put(state)
+}
+
+export async function getProviderConnectionState(userId: string, provider: 'withings'): Promise<ProviderConnectionState | undefined> {
+  return db.providerConnections.get(`${provider}:${userId}`)
+}
+
+export async function setProviderSyncCheckpoint(
+  userId: string,
+  provider: 'withings',
+  cursor: WithingsCursor
+): Promise<void> {
+  await db.providerSyncCheckpoints.put({
+    id: `${provider}:${userId}`,
+    userId,
+    provider,
+    cursor,
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function getProviderSyncCheckpoint(
+  userId: string,
+  provider: 'withings'
+): Promise<WithingsCursor> {
+  const row = await db.providerSyncCheckpoints.get(`${provider}:${userId}`)
+  return row?.cursor ?? {}
+}
+
+export async function appendProviderSyncRun(run: WithingsSyncRun): Promise<void> {
+  await db.providerSyncRuns.add(run)
+}
+
+export async function appendProviderRawEvents(events: WithingsRawEvent[]): Promise<void> {
+  if (events.length === 0) return
+  await db.providerRawEvents.bulkAdd(events)
+}
+
+export async function putCanonicalHealthMetrics(metrics: CanonicalHealthMetric[]): Promise<void> {
+  if (metrics.length === 0) return
+  const rows: StoredHealthMetric[] = metrics.map((metric) => ({
+    ...metric,
+    id: `${metric.source}:${metric.userId}:${metric.family}:${metric.sourceRecordId}`,
+  }))
+  await db.healthMetrics.bulkPut(rows)
+}
+
+export async function getCanonicalHealthMetricsForUser(userId: string): Promise<StoredHealthMetric[]> {
+  return db.healthMetrics.where('userId').equals(userId).toArray()
 }

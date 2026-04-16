@@ -18,10 +18,11 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@kinetix/core": ["../../packages/core/src/index.ts"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/vite-env.d.ts", "e2e/**/*.ts", "playwright.config.ts"],
   "exclude": [
     "src/**/*.test.ts",
     "src/**/*.test.tsx",

@@ -23,6 +23,7 @@ const INTENT_SET = new Set(SUPPORT_KB_INTENTS)
 const SOURCE_SET = new Set(SUPPORT_KB_SOURCE_TYPES)
 
 const MAX_BODY_LEN = 50_000
+const MAX_EXCERPT_LEN = 2000
 
 /**
  * @param {Record<string, unknown>} a
@@ -52,6 +53,14 @@ export function validateSupportArtifactForIngest(a) {
     errors.push('body_markdown is required')
   } else if (body.length > MAX_BODY_LEN) {
     errors.push(`body_markdown exceeds ${MAX_BODY_LEN} characters`)
+  }
+
+  if (a.excerpt !== undefined && a.excerpt !== null) {
+    if (typeof a.excerpt !== 'string') {
+      errors.push('excerpt must be a string when provided')
+    } else if (a.excerpt.length > MAX_EXCERPT_LEN) {
+      errors.push(`excerpt exceeds ${MAX_EXCERPT_LEN} characters`)
+    }
   }
 
   const version = a.version
@@ -96,9 +105,15 @@ export function validateSupportArtifactForIngest(a) {
   const versionNum =
     typeof version === 'number' ? version : Number.parseFloat(String(version).trim())
 
+  const excerpt =
+    typeof a.excerpt === 'string' && a.excerpt.trim()
+      ? String(a.excerpt).trim()
+      : undefined
+
   const normalized = {
     artifact_id: String(artifact_id).trim(),
     title: String(title).trim(),
+    excerpt,
     body_markdown: String(body),
     version: versionNum,
     locale: typeof a.locale === 'string' && a.locale.trim() ? a.locale.trim() : 'en',

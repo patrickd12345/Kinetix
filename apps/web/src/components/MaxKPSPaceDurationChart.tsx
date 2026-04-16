@@ -101,6 +101,13 @@ export default function MaxKPSPaceDurationChart({
     Math.min(PACE_MAX, chartMaxPace + pacePadding),
   ]
 
+  const chartSummary =
+    points.length > 0
+      ? `${points.length} duration buckets. Best ${KPS_SHORT} shown: ${Math.round(
+          Math.max(...points.map((p) => p.kps)),
+        )}. Pace axis ${formatPaceTick(yDomain[0])} to ${formatPaceTick(yDomain[1])} ${paceUnitLabel}.`
+      : ''
+
   const ClickableDot = useCallback(({
     cx,
     cy,
@@ -113,12 +120,26 @@ export default function MaxKPSPaceDurationChart({
     if (cx == null || cy == null || !payload) return null
     const isSelected = selectedPoint?.bucketStartSeconds === payload.bucketStartSeconds
 
+    const activatePoint = () => {
+      setSelectedPoint(payload)
+      setSelectedTooltipPosition({ x: cx, y: cy })
+    }
+
     return (
       <g
+        role="button"
+        tabIndex={0}
+        aria-label={`${payload.durationLabel}, ${KPS_SHORT} ${Math.round(payload.kps)}. Activate for details.`}
         onClick={(event) => {
           event.stopPropagation()
-          setSelectedPoint(payload)
-          setSelectedTooltipPosition({ x: cx, y: cy })
+          activatePoint()
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            event.stopPropagation()
+            activatePoint()
+          }
         }}
         style={{ cursor: 'pointer' }}
       >
@@ -151,20 +172,24 @@ export default function MaxKPSPaceDurationChart({
 
   return (
     <div data-testid="charts-max-kps-pace" className="glass rounded-2xl p-6 border border-violet-500/20">
+      <p id="max-kps-pace-chart-summary" className="sr-only">
+        {chartSummary}
+      </p>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-lg font-black text-white">Your best {KPS_SHORT} by duration bucket</h3>
-          <p className="text-xs text-gray-400">
+          <h3 className="text-lg font-black text-slate-900 dark:text-white">Your best {KPS_SHORT} by duration bucket</h3>
+          <p className="text-xs text-slate-600 dark:text-gray-400">
             Each point is your highest-{KPS_SHORT} run in a 5-minute duration bucket. Tooltip shows when each was attained.
           </p>
         </div>
-        <span className="text-xs text-gray-500">Click a point to open its tooltip</span>
+        <span className="text-xs text-slate-500 dark:text-gray-500">Select a point for details (keyboard: Tab to points, Enter or Space)</span>
       </div>
 
       <div
         ref={containerRef}
         role="application"
         aria-label={`Chart: max ${KPS_SHORT} pace over duration`}
+        aria-describedby="max-kps-pace-chart-summary"
         className="relative w-full"
         style={{ minWidth: 320, width: '100%', height: 340 }}
       >
@@ -241,12 +266,12 @@ export default function MaxKPSPaceDurationChart({
                   }
             }
           >
-            <p className="text-[11px] text-gray-400">{selectedPoint.dateFormatted}</p>
+            <p className="text-[11px] text-slate-600 dark:text-gray-400">{selectedPoint.dateFormatted}</p>
             <p className="text-sm font-bold text-cyan-300">
               {KPS_SHORT}: {Math.round(selectedPoint.kps)}
             </p>
-            <p className="text-[11px] text-gray-200">{selectedPoint.paceLabel}</p>
-            <p className="text-[11px] text-gray-400">
+            <p className="text-[11px] text-slate-800 dark:text-gray-200">{selectedPoint.paceLabel}</p>
+            <p className="text-[11px] text-slate-600 dark:text-gray-400">
               {selectedPoint.durationLabel} • {selectedPoint.distanceDisplay.toFixed(2)}{' '}
               {selectedPoint.distanceUnitLabel}
             </p>
@@ -257,37 +282,37 @@ export default function MaxKPSPaceDurationChart({
       <div className="mt-4 rounded-xl border border-violet-500/20 bg-black/30 p-4">
         {selectedPoint ? (
           <div>
-            <p className="text-xs text-gray-400 mb-1">
+            <p className="text-xs text-slate-600 dark:text-gray-400 mb-1">
               {selectedPoint.dateFormatted} • Duration bucket {selectedPoint.bucketLabel}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-gray-500 uppercase">{KPS_SHORT}</p>
+                <p className="text-xs text-slate-500 dark:text-gray-500 uppercase">{KPS_SHORT}</p>
                 <p className="text-xl font-black text-violet-300">
                   {Math.round(selectedPoint.kps)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase">Pace</p>
+                <p className="text-xs text-slate-500 dark:text-gray-500 uppercase">Pace</p>
                 <p className="text-xl font-black text-cyan-300">{selectedPoint.paceLabel}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase">Duration</p>
-                <p className="text-sm font-semibold text-gray-200">
+                <p className="text-xs text-slate-500 dark:text-gray-500 uppercase">Duration</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-gray-200">
                   {selectedPoint.durationLabel}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase">Distance</p>
-                <p className="text-sm font-semibold text-gray-200">
+                <p className="text-xs text-slate-500 dark:text-gray-500 uppercase">Distance</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-gray-200">
                   {selectedPoint.distanceDisplay.toFixed(2)} {selectedPoint.distanceUnitLabel}
                 </p>
               </div>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-400">
-            Click a chart point to inspect its run details.
+          <p className="text-sm text-slate-600 dark:text-gray-400">
+            Select a chart point to inspect its run details.
           </p>
         )}
       </div>

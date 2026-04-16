@@ -1,4 +1,14 @@
-import { Component, type ErrorInfo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Component,
+  type ErrorInfo,
+  type KeyboardEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { BarChart3, AlertCircle } from 'lucide-react'
 import MaxKPSPaceDurationChart from '../components/MaxKPSPaceDurationChart'
 import Kps100CurveChart from '../components/Kps100CurveChart'
@@ -92,6 +102,25 @@ export default function Menu() {
 
   const LOAD_TIMEOUT_MS = 60_000
   const loadInProgressRef = useRef(false)
+
+  const onChartsTabKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return
+      e.preventDefault()
+      const order = ['pbs', 'curve'] as const
+      const i = order.indexOf(activeTab)
+      let next: 'pbs' | 'curve' = activeTab
+      if (e.key === 'Home') next = 'pbs'
+      else if (e.key === 'End') next = 'curve'
+      else if (e.key === 'ArrowRight') next = order[(i + 1) % order.length]
+      else next = order[(i - 1 + order.length) % order.length]
+      setActiveTab(next)
+      requestAnimationFrame(() => {
+        document.getElementById(next === 'pbs' ? 'charts-tab-pbs' : 'charts-tab-curve')?.focus()
+      })
+    },
+    [activeTab],
+  )
 
   const loadRuns = useCallback(async () => {
     if (typeof indexedDB === 'undefined') {
@@ -195,7 +224,7 @@ export default function Menu() {
             <BarChart3 size={26} className="text-violet-400" />
             Charts
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-slate-600 dark:text-gray-400 mt-1">
             Informative performance charts powered by your run history.
           </p>
         </div>
@@ -208,16 +237,20 @@ export default function Menu() {
               className="flex gap-1 p-1 rounded-xl bg-black/30 border border-violet-500/20 w-fit mb-4"
               role="tablist"
               aria-label="Chart type"
+              onKeyDown={onChartsTabKeyDown}
             >
               <button
                 type="button"
                 role="tab"
+                id="charts-tab-pbs"
                 aria-selected={activeTab === 'pbs'}
+                aria-controls="charts-panel-pbs"
+                tabIndex={activeTab === 'pbs' ? 0 : -1}
                 onClick={() => setActiveTab('pbs')}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   activeTab === 'pbs'
                     ? 'bg-violet-500/30 text-cyan-300'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    : 'text-slate-600 dark:text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 PBs by duration
@@ -225,12 +258,15 @@ export default function Menu() {
               <button
                 type="button"
                 role="tab"
+                id="charts-tab-curve"
                 aria-selected={activeTab === 'curve'}
+                aria-controls="charts-panel-curve"
+                tabIndex={activeTab === 'curve' ? 0 : -1}
                 onClick={() => setActiveTab('curve')}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   activeTab === 'curve'
                     ? 'bg-violet-500/30 text-cyan-300'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    : 'text-slate-600 dark:text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 Pace to hit KPS 100
@@ -238,16 +274,20 @@ export default function Menu() {
             </div>
             <ChartErrorBoundary onRetry={() => void loadRuns()}>
               {activeTab === 'pbs' && (
-                <MaxKPSPaceDurationChart
-                  points={points}
-                  unitSystem={unitSystem ?? 'metric'}
-                />
+                <div id="charts-panel-pbs" role="tabpanel" aria-labelledby="charts-tab-pbs">
+                  <MaxKPSPaceDurationChart
+                    points={points}
+                    unitSystem={unitSystem ?? 'metric'}
+                  />
+                </div>
               )}
               {activeTab === 'curve' && (
-                <Kps100CurveChart
-                  points={curvePoints}
-                  unitSystem={unitSystem ?? 'metric'}
-                />
+                <div id="charts-panel-curve" role="tabpanel" aria-labelledby="charts-tab-curve">
+                  <Kps100CurveChart
+                    points={curvePoints}
+                    unitSystem={unitSystem ?? 'metric'}
+                  />
+                </div>
               )}
             </ChartErrorBoundary>
           </>

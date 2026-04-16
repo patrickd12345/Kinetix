@@ -1,10 +1,12 @@
 # Dependencies
 node_modules/
 .bookiji-packages/
-monorepo-packages
+.bookiji-tmp/
 
 # Build / cache
 dist/
+monorepo-packages/**/dist/
+
 .vite/
 *.tsbuildinfo
 
@@ -24,6 +26,7 @@ npm-debug.log*
 pnpm-debug.log*
 apps/web/test-results/
 apps/web/playwright-report/
+apps/web/coverage/
 
 # Large data files (do not commit)
 garmin.zip
@@ -38,3 +41,6 @@ supabase/.temp/platform_data_dump_after_seed.sql
 # Local dev boot captures (do not commit)
 .boot-err.txt
 .boot-out.txt
+
+# Playwright MCP / local tooling
+.playwright-mcp/

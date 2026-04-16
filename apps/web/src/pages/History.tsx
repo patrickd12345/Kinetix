@@ -7,6 +7,7 @@ import {
   getRunsInDateRange,
   getWeightsForDates,
   getAllVisibleRunsOrdered,
+  hideRun,
   RUN_VISIBLE,
 } from '../lib/database'
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
@@ -14,14 +15,17 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useAICoach } from '../hooks/useAICoach'
 import {
   getPB,
-  isValidKPS,
-  calculateAbsoluteKPS,
   ensurePBInitialized,
   calculateRelativeKPSSync,
   isMeaningfulRunForKPS,
   filterRunsByRelativeKpsBounds,
 } from '../lib/kpsUtils'
-import { getProfileForRun } from '../lib/authState'
+import { resolveProfileForRunWithWeightCache } from '../lib/authState'
+import {
+  buildHistoryKpsTierKey,
+  clearHistoryKpsDerivedCache,
+  computeHistoryKpsDerived,
+} from '../lib/historyKpsDerivedCache'
 import { KPSTrendChart } from '../components/KPSTrendChart'
 import { RunDetails } from '../components/RunDetails'
 import { RunCalendar } from '../components/RunCalendar'
@@ -54,10 +58,12 @@ import {
   type RunHistoryFilters,
   type RunHistoryFilterDraft,
 } from '../lib/historyFilters'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../components/providers/useAuth'
 import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
-import { computeKpsMedalsForRuns, type KpsMedal } from '../lib/kpsMedals'
+import type { KpsMedal } from '../lib/kpsMedals'
 import { WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
+import { HistoryCoachSummaryWithProvider } from '../components/HistoryCoachSummary'
 
 const DEFAULT_PAGE_SIZE = 20
 const CHART_LIMIT = 200
@@ -93,17 +99,28 @@ export default function History() {
   const [chartLoading, setChartLoading] = useState(false)
   const runRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const scrollToDateRef = useRef<string | null>(null)
+  /** Only the latest history load may clear the full-page loading gate (avoids stuck UI when an older async is cancelled). */
+  const historyLoadGenerationRef = useRef(0)
+  const hasCompletedInitialLoadRef = useRef(false)
   const unitSystem = useSettingsStore((s) => s.unitSystem)
   const weightUnit = useSettingsStore((s) => s.weightUnit)
+  const weightSource = useSettingsStore((s) => s.weightSource)
+  const physioMode = useSettingsStore((s) => s.physioMode)
   const lastWithingsWeightKg = useSettingsStore((s) => s.lastWithingsWeightKg)
   const [weightByRunDate, setWeightByRunDate] = useState<Map<string, number>>(() => new Map())
   const { profile } = useAuth()
   const { isAnalyzing, aiResult, error, analyzeRun, clearResult } = useAICoach()
   const userProfile = useStableKinetixUserProfile(profile)
+  useEffect(() => {
+    if (!profile) {
+      setHasCompletedInitialLoad(false)
+      clearHistoryKpsDerivedCache()
+    }
+  }, [profile])
 
   useEffect(() => {
-    if (!profile) setHasCompletedInitialLoad(false)
-  }, [profile])
+    hasCompletedInitialLoadRef.current = hasCompletedInitialLoad
+  }, [hasCompletedInitialLoad])
 
   const [appliedFilters, setAppliedFilters] = useState<RunHistoryFilters>(() => defaultRunHistoryFilters())
   const [filterDraft, setFilterDraft] = useState<RunHistoryFilterDraft>(() => emptyRunHistoryFilterDraft())
@@ -122,6 +139,7 @@ export default function History() {
       setLoading(false)
       return
     }
+    const generation = ++historyLoadGenerationRef.current
     let cancelled = false
     void (async () => {
       setLoading(true)
@@ -176,29 +194,45 @@ export default function History() {
         setPbRunDate(pbRun?.date ?? null)
 
         const itemIds = new Set(items.map((run) => run.id).filter((id): id is number => id != null))
-        const medalKpsMap = new Map<number, number>()
-        const kpsMap = new Map<number, number>()
-        let invalidKPS = 0
-        for (const run of medalSourceRuns) {
-          const profileForRun = await getProfileForRun(run)
-          const calculatedKPS = calculateAbsoluteKPS(run, profileForRun)
-          if (run.id != null && itemIds.has(run.id) && !isValidKPS(calculatedKPS)) invalidKPS += 1
-          if (run.id) {
-            const relative = calculateRelativeKPSSync(run, profileForRun, pb ?? null, pbRun ?? null)
-            medalKpsMap.set(run.id, relative)
-            if (itemIds.has(run.id)) {
-              kpsMap.set(run.id, relative)
-            }
-          }
-        }
+        const weightByRunDateLocal = await getWeightsForDates(medalSourceRuns.map((r) => r.date))
         if (cancelled) return
-        setInvalidKPSCount(invalidKPS)
-        setRelativeKPSMap(kpsMap)
-        setMedalByRunId(computeKpsMedalsForRuns(medalSourceRuns, medalKpsMap))
+        const tierKey = buildHistoryKpsTierKey({
+          pb,
+          weightSource,
+          lastWithingsWeightKg,
+          physioMode,
+          profileAge: userProfile.age,
+          profileWeightKg: userProfile.weightKg,
+        })
+        const derived = computeHistoryKpsDerived({
+          tierKey,
+          userId: profile?.id ?? null,
+          medalSourceRuns,
+          itemIds,
+          weightByRunDate: weightByRunDateLocal,
+          pb,
+          pbRun,
+        })
+        if (cancelled) return
+        setInvalidKPSCount(derived.invalidKPS)
+        setRelativeKPSMap(derived.kpsMap)
+        setMedalByRunId(derived.medalByRunId)
+        if (import.meta.env.DEV) {
+          console.debug('[History] runs loaded', {
+            profileId: profile?.id ?? null,
+            totalRuns: total,
+            pageItems: items.length,
+            filterActive: fa,
+          })
+        }
       } catch (error) {
-        console.error('❌ Error loading runs:', error)
+        console.error('[History] failed to load runs', {
+          profileId: profile?.id ?? null,
+          error,
+        })
       } finally {
-        if (!cancelled) {
+        const isLatestGeneration = generation === historyLoadGenerationRef.current
+        if (isLatestGeneration) {
           setLoading(false)
           setHasCompletedInitialLoad(true)
         }
@@ -207,7 +241,18 @@ export default function History() {
     return () => {
       cancelled = true
     }
-  }, [userProfile, currentPage, pageSize, appliedFilters, listRefreshKey, unitSystem, lastWithingsWeightKg])
+  }, [
+    userProfile,
+    currentPage,
+    pageSize,
+    appliedFilters,
+    listRefreshKey,
+    unitSystem,
+    lastWithingsWeightKg,
+    weightSource,
+    physioMode,
+    profile?.id,
+  ])
 
   // After Withings startup sync (or manual refresh), re-resolve weight-at-date for the current list.
   useEffect(() => {
@@ -250,11 +295,12 @@ export default function History() {
       const pb = await getPB()
       let pbRun = pb ? (await db.runs.get(pb.runId)) ?? null : null
       if (pbRun && (pbRun.deleted ?? 0) !== RUN_VISIBLE) pbRun = null
+      const weightMap = await getWeightsForDates(meaningfulRuns.map((r) => r.date))
       const kpsMap = new Map<number, number>()
       for (const run of meaningfulRuns) {
         if (run.id) {
-          const profileForRun = await getProfileForRun(run)
-          kpsMap.set(run.id, calculateRelativeKPSSync(run, profileForRun, pb ?? null, pbRun ?? null))
+          const resolved = resolveProfileForRunWithWeightCache(weightMap, run)
+          kpsMap.set(run.id, calculateRelativeKPSSync(run, resolved, pb ?? null, pbRun ?? null))
         }
       }
       setChartKPSMap(kpsMap)
@@ -274,7 +320,10 @@ export default function History() {
   useEffect(() => {
     if (!userProfile) return
     const refresh = () => {
-      bumpListRefresh()
+      const willBumpList = hasCompletedInitialLoadRef.current
+      if (willBumpList) {
+        bumpListRefresh()
+      }
       if (chartStartDate && chartEndDate) void loadChartRuns()
     }
     const onVisibilityChange = () => {
@@ -337,7 +386,7 @@ export default function History() {
   const deleteRun = async (id: number) => {
     if (confirm('Are you sure you want to delete this run?')) {
       try {
-        await db.runs.delete(id)
+        await hideRun(id)
         setExpandedRuns((prev) => {
           const next = new Set(prev)
           next.delete(id)
@@ -437,8 +486,23 @@ export default function History() {
         <div className="max-w-md lg:max-w-2xl mx-auto">
           <div className="glass rounded-2xl border border-yellow-500/30 p-6 space-y-2">
             <h1 className="text-lg font-bold text-yellow-300">Loading profile...</h1>
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-slate-700 dark:text-gray-300">
               Your platform profile is still loading. If this persists, refresh the page.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!userProfile) {
+    return (
+      <div className="pb-20 lg:pb-4">
+        <div className="max-w-md lg:max-w-2xl mx-auto">
+          <div className="glass rounded-2xl border border-yellow-500/30 p-6 space-y-2">
+            <h1 className="text-lg font-bold text-yellow-300">Preparing run history…</h1>
+            <p className="text-sm text-slate-700 dark:text-gray-300">
+              Resolving runner profile fields for {KPS_SHORT}. If this persists, refresh the page.
             </p>
           </div>
         </div>
@@ -451,7 +515,7 @@ export default function History() {
       <div className="pb-20">
         <div className="max-w-md mx-auto">
           <div className="glass rounded-2xl p-6 text-center">
-            <p className="text-gray-400">Loading...</p>
+            <p className="text-slate-600 dark:text-gray-400">Loading...</p>
           </div>
         </div>
       </div>
@@ -462,13 +526,13 @@ export default function History() {
     <div className="pb-20 lg:pb-4">
       <div className="max-w-md lg:max-w-7xl mx-auto">
         <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-          <h1 className="text-2xl font-bold">Run History</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Run History</h1>
           <div className="flex items-center gap-4">
             {totalRuns > 0 && (
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-slate-600 dark:text-gray-400">
                 {totalRuns} run{totalRuns !== 1 ? 's' : ''}
                 {totalPages > 1 && (
-                  <span className="ml-2 text-gray-500">
+                  <span className="ml-2 text-slate-500 dark:text-gray-500">
                     · Page {currentPage} of {totalPages}
                   </span>
                 )}
@@ -480,7 +544,7 @@ export default function History() {
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1 || loading}
-                  className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-50 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
                   aria-label="Previous page"
                 >
                   <ChevronLeft size={18} />
@@ -490,17 +554,17 @@ export default function History() {
                   .map((p, i, arr) => (
                     <span key={p}>
                       {i > 0 && arr[i - 1] !== p - 1 && (
-                        <span className="px-1 text-gray-500">…</span>
+                        <span className="px-1 text-slate-500 dark:text-gray-500">…</span>
                       )}
                       <button
                         type="button"
                         onClick={() => setCurrentPage(p)}
                         disabled={loading}
-                        className={`min-w-[2rem] py-1.5 px-2 rounded-lg text-sm font-medium transition-colors ${
+                        className={`min-w-[2rem] rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
                           p === currentPage
-                            ? 'bg-cyan-500/30 text-cyan-400 border border-cyan-500/50'
-                            : 'text-gray-400 hover:text-white hover:bg-white/10 border border-transparent'
-                        } disabled:opacity-50 disabled:pointer-events-none`}
+                            ? 'border border-cyan-600/50 bg-cyan-500/20 text-cyan-800 dark:bg-cyan-500/30 dark:text-cyan-400 dark:border-cyan-500/50'
+                            : 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white'
+                        } disabled:pointer-events-none disabled:opacity-50`}
                         aria-label={`Page ${p}`}
                         aria-current={p === currentPage ? 'page' : undefined}
                       >
@@ -512,7 +576,7 @@ export default function History() {
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages || loading}
-                  className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-50 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
                   aria-label="Next page"
                 >
                   <ChevronRight size={18} />
@@ -522,44 +586,51 @@ export default function History() {
           </div>
         </div>
 
-        <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03]">
+        <div className="mb-4 rounded-xl border border-slate-200/90 bg-white/90 dark:border-white/10 dark:bg-white/[0.03]">
           <button
             type="button"
             onClick={() => setFiltersOpen((o) => !o)}
             className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
             aria-expanded={filtersOpen}
+            aria-controls="history-filters-panel"
+            id="history-filters-toggle"
           >
-            <span className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Filter size={16} className="text-cyan-400" aria-hidden />
+            <span className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+              <Filter size={16} className="text-cyan-600 dark:text-cyan-400" aria-hidden />
               Filter activities
               {filterActive && (
-                <span className="rounded-full bg-cyan-500/20 px-2 py-0.5 text-xs font-normal text-cyan-300">
+                <span className="rounded-full bg-cyan-500/20 px-2 py-0.5 text-xs font-normal text-cyan-800 dark:text-cyan-300">
                   active
                 </span>
               )}
             </span>
-            <span className="text-xs text-gray-500">{filtersOpen ? 'Hide' : 'Show'}</span>
+            <span className="text-xs text-slate-500 dark:text-gray-500">{filtersOpen ? 'Hide' : 'Show'}</span>
           </button>
-          {filtersOpen && (
-            <div className="space-y-3 border-t border-white/10 px-4 pb-4 pt-3">
-              <p className="text-xs text-gray-500">
+          <div
+            id="history-filters-panel"
+            role="region"
+            aria-labelledby="history-filters-toggle"
+            hidden={!filtersOpen}
+            className="space-y-3 border-t border-slate-200/90 px-4 pb-4 pt-3 dark:border-white/10"
+          >
+              <p className="text-xs text-slate-500 dark:text-gray-500">
                 Pace values are in {paceUnitShort} (decimal minutes). Use the preset to hide unrealistically fast activities (e.g. car trips).{' '}
                 {KPS_SHORT} bounds use the same relative score as the list (vs your personal-best reference). With
                 these bounds applied, your reference run ({KPS_SHORT} 100) is listed first.
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="sm:col-span-2 block">
-                  <span className="mb-1 block text-xs text-gray-400">Name contains</span>
+                  <span className="mb-1 block text-xs text-slate-600 dark:text-gray-400">Name contains</span>
                   <input
                     type="search"
                     value={filterDraft.nameContains}
                     onChange={(e) => setFilterDraft((d) => ({ ...d, nameContains: e.target.value }))}
                     placeholder="e.g. Morning, Tempo"
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600"
+                    className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-gray-600"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-gray-400">
+                  <span className="mb-1 block text-xs text-slate-600 dark:text-gray-400">
                     Fastest pace to show ({paceUnitShort})
                   </span>
                   <input
@@ -570,14 +641,14 @@ export default function History() {
                     value={filterDraft.paceFastestMin}
                     onChange={(e) => setFilterDraft((d) => ({ ...d, paceFastestMin: e.target.value }))}
                     placeholder="e.g. 3"
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600"
+                    className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-gray-600"
                   />
-                  <span className="mt-0.5 block text-[11px] text-gray-600">
+                  <span className="mt-0.5 block text-[11px] text-slate-600 dark:text-gray-600">
                     Hides activities faster than this (cars, bad GPS).
                   </span>
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-gray-400">
+                  <span className="mb-1 block text-xs text-slate-600 dark:text-gray-400">
                     Slowest pace to show ({paceUnitShort})
                   </span>
                   <input
@@ -588,11 +659,11 @@ export default function History() {
                     value={filterDraft.paceSlowestMin}
                     onChange={(e) => setFilterDraft((d) => ({ ...d, paceSlowestMin: e.target.value }))}
                     placeholder="e.g. 15"
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600"
+                    className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-gray-600"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-gray-400">Min duration (minutes)</span>
+                  <span className="mb-1 block text-xs text-slate-600 dark:text-gray-400">Min duration (minutes)</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -600,11 +671,11 @@ export default function History() {
                     step={1}
                     value={filterDraft.durationMinMin}
                     onChange={(e) => setFilterDraft((d) => ({ ...d, durationMinMin: e.target.value }))}
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                    className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-gray-400">Max duration (minutes)</span>
+                  <span className="mb-1 block text-xs text-slate-600 dark:text-gray-400">Max duration (minutes)</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -612,11 +683,11 @@ export default function History() {
                     step={1}
                     value={filterDraft.durationMaxMin}
                     onChange={(e) => setFilterDraft((d) => ({ ...d, durationMaxMin: e.target.value }))}
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                    className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-gray-400">Min distance ({distUnitShort})</span>
+                  <span className="mb-1 block text-xs text-slate-600 dark:text-gray-400">Min distance ({distUnitShort})</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -624,11 +695,11 @@ export default function History() {
                     step={0.1}
                     value={filterDraft.distanceMin}
                     onChange={(e) => setFilterDraft((d) => ({ ...d, distanceMin: e.target.value }))}
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                    className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-gray-400">Max distance ({distUnitShort})</span>
+                  <span className="mb-1 block text-xs text-slate-600 dark:text-gray-400">Max distance ({distUnitShort})</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -636,11 +707,11 @@ export default function History() {
                     step={0.1}
                     value={filterDraft.distanceMax}
                     onChange={(e) => setFilterDraft((d) => ({ ...d, distanceMax: e.target.value }))}
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                    className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-gray-400">Min {KPS_SHORT} (relative)</span>
+                  <span className="mb-1 block text-xs text-slate-600 dark:text-gray-400">Min {KPS_SHORT} (relative)</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -649,11 +720,11 @@ export default function History() {
                     value={filterDraft.kpsMin}
                     onChange={(e) => setFilterDraft((d) => ({ ...d, kpsMin: e.target.value }))}
                     placeholder="e.g. 50"
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600"
+                    className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-gray-600"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-gray-400">Max {KPS_SHORT} (relative)</span>
+                  <span className="mb-1 block text-xs text-slate-600 dark:text-gray-400">Max {KPS_SHORT} (relative)</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -662,17 +733,17 @@ export default function History() {
                     value={filterDraft.kpsMax}
                     onChange={(e) => setFilterDraft((d) => ({ ...d, kpsMax: e.target.value }))}
                     placeholder="e.g. 100"
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600"
+                    className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-gray-600"
                   />
                 </label>
                 <label className="sm:col-span-2 block">
-                  <span className="mb-1 block text-xs text-gray-400">Source (exact)</span>
+                  <span className="mb-1 block text-xs text-slate-600 dark:text-gray-400">Source (exact)</span>
                   <input
                     type="text"
                     value={filterDraft.sourceEquals}
                     onChange={(e) => setFilterDraft((d) => ({ ...d, sourceEquals: e.target.value }))}
                     placeholder="e.g. strava, garmin"
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-gray-600"
+                    className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-gray-600"
                   />
                 </label>
               </div>
@@ -687,7 +758,7 @@ export default function History() {
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="rounded-lg border border-white/15 px-4 py-2 text-sm text-gray-300 hover:bg-white/10"
+                  className="rounded-lg border border-white/15 px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-white/10"
                 >
                   Clear all
                 </button>
@@ -705,41 +776,17 @@ export default function History() {
                 </button>
               </div>
             </div>
-          )}
         </div>
 
-        {runs.length === 0 && !loading ? (
-          <div className="glass rounded-2xl p-8 text-center">
-            <Calendar className="mx-auto mb-4 text-gray-500" size={48} />
-            {filterActive ? (
-              <>
-                <p className="mb-2 text-gray-400">No activities match your filters.</p>
-                <button
-                  type="button"
-                  onClick={handleClearFilters}
-                  className="text-sm font-semibold text-cyan-400 hover:text-cyan-300"
-                >
-                  Clear filters
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="mb-2 text-gray-400">No runs recorded yet</p>
-                <p className="text-sm text-gray-500">Start a run to see it here</p>
-              </>
-            )}
-          </div>
-        ) : (
-          <>
-            {/* Warning for invalid KPS */}
-            {invalidKPSCount > 0 && (
+        <>
+            {invalidKPSCount > 0 && runs.length > 0 && (
               <div className="mb-4 glass border border-yellow-500/30 rounded-xl p-3 flex items-start gap-3">
                 <AlertTriangle className="text-yellow-400 flex-shrink-0 mt-0.5" size={16} />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-yellow-400 mb-1">
                     {invalidKPSCount} run{invalidKPSCount > 1 ? 's' : ''} with invalid score values
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-slate-600 dark:text-gray-400">
                     Some runs have missing or invalid performance data. These runs may show score = 0.
                   </p>
                 </div>
@@ -750,11 +797,12 @@ export default function History() {
             <div className="lg:grid lg:grid-cols-3 lg:gap-6">
               {/* Left Column: Chart and Calendar */}
               <div className="lg:col-span-1 space-y-6">
+                <HistoryCoachSummaryWithProvider />
                 {/* KPS Trend Chart (date-range zoom: scroll to zoom in/out over history) */}
                 <div className="relative">
                   {chartLoading && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-gray-900/60">
-                      <span className="text-sm text-gray-400">Loading chart…</span>
+                      <span className="text-sm text-slate-600 dark:text-gray-400">Loading chart…</span>
                     </div>
                   )}
                   <KPSTrendChart
@@ -781,7 +829,37 @@ export default function History() {
 
               {/* Right Column: Run List */}
               <div className="lg:col-span-2">
-                {/* Virtualized Run List */}
+                {runs.length === 0 && !loading ? (
+                  <div className="glass rounded-2xl p-8 text-center">
+                    <Calendar className="mx-auto mb-4 text-slate-500 dark:text-gray-500" size={48} />
+                    {filterActive ? (
+                      <>
+                        <p className="mb-2 text-slate-600 dark:text-gray-400">No activities match your filters.</p>
+                        <button
+                          type="button"
+                          onClick={handleClearFilters}
+                          className="text-sm font-semibold text-cyan-400 hover:text-cyan-300"
+                        >
+                          Clear filters
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="mb-2 text-slate-600 dark:text-gray-400">No runs in this browser yet</p>
+                        <p className="text-sm text-slate-500 dark:text-gray-500 mb-3">
+                          Runs are stored locally (IndexedDB). Record a run from the Run tab, or import from Strava or Garmin in Settings.
+                        </p>
+                        <Link to="/settings" className="text-sm font-semibold text-cyan-400 hover:text-cyan-300">
+                          Open Settings
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                ) : runs.length === 0 && loading ? (
+                  <div className="glass rounded-2xl p-8 text-center text-slate-600 dark:text-gray-400">
+                    Loading runs…
+                  </div>
+                ) : (
                 <div className="space-y-3 lg:max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500 scrollbar-track-gray-800">
               {runs.map((run) => {
                 const relativeKPS = run.id ? (relativeKPSMap.get(run.id) ?? 0) : 0
@@ -804,8 +882,8 @@ export default function History() {
                     <div className="flex justify-between items-start mb-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <Calendar size={14} className="text-gray-400 flex-shrink-0" />
-                          <span className="text-sm font-semibold text-white">
+                          <Calendar size={14} className="text-slate-600 dark:text-gray-400 flex-shrink-0" />
+                          <span className="text-sm font-semibold text-slate-900 dark:text-white">
                             {new Date(run.date).toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric',
@@ -813,10 +891,10 @@ export default function History() {
                             })}
                           </span>
                         </div>
-                        <p className="mb-1.5 truncate text-sm font-medium text-gray-100" title={title}>
+                        <p className="mb-1.5 truncate text-sm font-medium text-slate-800 dark:text-gray-100" title={title}>
                           {title}
                         </p>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-gray-400">
                           <div className="flex items-center gap-1">
                             <MapPin size={12} />
                             {formatDistance(run.distance, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}
@@ -864,21 +942,25 @@ export default function History() {
                               : '–'}
                           </div>
                         </div>
-                        <div className="text-xs text-gray-500 uppercase">{KPS_SHORT}</div>
+                        <div className="text-xs text-slate-500 dark:text-gray-500 uppercase">{KPS_SHORT}</div>
                         <div className="flex gap-2 mt-2 justify-end">
                           <button
+                            type="button"
                             onClick={() => handleAnalyzeRun(run)}
                             className="text-cyan-400 hover:text-cyan-300 transition-colors"
                             disabled={isAnalyzing}
-                            title="Analyze with AI Coach"
+
+                            title="Analyze with AI Coach" aria-label={`Analyze ${runDisplayTitle(run)} with AI Coach`}
                           >
-                            <Sparkles size={14} />
+                            <Sparkles size={14} aria-hidden />
                           </button>
                           <button
+                            type="button"
                             onClick={() => run.id && deleteRun(run.id)}
                             className="text-red-400 hover:text-red-300 transition-colors"
+                            aria-label={`Delete ${runDisplayTitle(run)}`}
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={14} aria-hidden />
                           </button>
                         </div>
                       </div>
@@ -897,7 +979,7 @@ export default function History() {
                           <>
                             <button
                               onClick={() => toggleExpanded(run.id!)}
-                              className="w-full mt-2 text-xs text-gray-400 hover:text-gray-300 flex items-center justify-center gap-1 transition-colors mb-2"
+                              className="w-full mt-2 text-xs text-slate-600 dark:text-gray-400 hover:text-slate-700 dark:hover:text-slate-700 dark:text-gray-300 flex items-center justify-center gap-1 transition-colors mb-2"
                             >
                               <TrendingUp size={14} />
                               <span>Hide Details</span>
@@ -918,10 +1000,10 @@ export default function History() {
                 )
               })}
                 </div>
+                )}
               </div>
             </div>
-          </>
-        )}
+        </>
 
         {/* AI Coach Modal */}
         {(isAnalyzing || aiResult || error) && (
@@ -935,10 +1017,10 @@ export default function History() {
               ) : error ? (
                 <div>
                   <h3 className="text-lg font-black text-red-400 mb-3">Error</h3>
-                  <p className="text-sm text-gray-300 mb-4">{error}</p>
+                  <p className="text-sm text-slate-700 dark:text-gray-300 mb-4">{error}</p>
                   <button
                     onClick={clearResult}
-                    className="w-full py-2.5 bg-gray-900/50 hover:bg-gray-800 rounded-xl text-white text-sm font-bold border border-gray-700/50 transition-all"
+                    className="w-full rounded-xl border border-slate-300/80 bg-slate-100 py-2.5 text-sm font-bold text-slate-900 transition-all hover:bg-slate-200 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white dark:hover:bg-gray-800"
                   >
                     Close
                   </button>
@@ -950,16 +1032,16 @@ export default function History() {
                     <button
                       onClick={clearResult}
                       aria-label="Close"
-                      className="text-gray-400 hover:text-white transition-colors"
+                      className="text-slate-600 transition-colors hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
                     >
                       <X size={20} />
                     </button>
                   </div>
                   <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent my-3" />
-                  <p className="text-sm text-gray-200 mb-5 leading-relaxed">{aiResult.insight}</p>
+                  <p className="text-sm text-slate-800 dark:text-gray-200 mb-5 leading-relaxed">{aiResult.insight}</p>
                   <button
                     onClick={clearResult}
-                    className="w-full py-2.5 bg-gray-900/50 hover:bg-gray-800 rounded-xl text-white text-sm font-bold border border-gray-700/50 transition-all"
+                    className="w-full rounded-xl border border-slate-300/80 bg-slate-100 py-2.5 text-sm font-bold text-slate-900 transition-all hover:bg-slate-200 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white dark:hover:bg-gray-800"
                   >
                     Close
                   </button>

@@ -20,12 +20,11 @@ rm -rf .bookiji-tmp
 rm -rf .bookiji-packages
 # Shallow clone of main tree only. Do not use --recurse-submodules: umbrella submodules (ai-core,
 # products/*) are huge and not needed; Kinetix copies Bookiji-inc repo-root packages/* into monorepo-packages/ for @bookiji-inc/*.
-export GIT_TERMINAL_PROMPT=0
-if ! git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp; then
-  echo "Warning: Unauthenticated public clone failed. Falling back to x-access-token clone."
-  if ! git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "$(clone_url)" .bookiji-tmp; then
-    echo "Warning: x-access-token clone failed. Falling back to token-as-username clone."
-    git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://${GITHUB_TOKEN:-}@github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp || true
+if ! env GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$(clone_url)" .bookiji-tmp; then
+  echo "Warning: x-access-token clone failed. Falling back to token-as-username clone."
+  if ! env GIT_TERMINAL_PROMPT=0 git clone --depth 1 "https://${GITHUB_TOKEN:-}:x-oauth-basic@github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp; then
+    echo "Warning: Token-as-username clone failed. Falling back to unauthenticated public clone."
+    env GIT_TERMINAL_PROMPT=0 git clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp || true
   fi
 fi
 if [ -d .bookiji-tmp/packages ]; then

@@ -1,6 +1,6 @@
 import { db, RunRecord, PBRecord, RUN_VISIBLE, getWeightsForDates } from './database'
 import { UserProfile, calculateKPS } from '@kinetix/core'
-import { getProfileForRun, resolveProfileForRunWithWeightCache } from './authState'
+import { resolveProfileForRunWithWeightCache } from './authState'
 
 /**
  * KPS UTILITIES - ARCHITECTURAL INVARIANTS
@@ -182,8 +182,11 @@ export async function ensurePBInitialized(currentProfile: UserProfile): Promise<
   let bestProfile: UserProfile | null = null
   let bestAbsolute = 0
 
+  const runDates = allRuns.filter((r) => !!r.id).map((r) => r.date)
+  const weightByDate = await getWeightsForDates(runDates)
+
   for (const run of allRuns) {
-    const profileForRun = await getProfileForRun(run)
+    const profileForRun = resolveProfileForRunWithWeightCache(weightByDate, run)
     const abs = calculateAbsoluteKPS(run, profileForRun)
     if (isValidKPS(abs) && abs > bestAbsolute) {
       bestAbsolute = abs
@@ -321,9 +324,12 @@ export async function filterRunsByRelativeKpsBounds(
   let pbRun = pb ? (await db.runs.get(pb.runId)) ?? null : null
   if (pbRun && (pbRun.deleted ?? 0) !== RUN_VISIBLE) pbRun = null
 
+  const runDates = runs.filter((r) => !!r.id).map((r) => r.date)
+  const weightByDate = await getWeightsForDates(runDates)
+
   const out: RunRecord[] = []
   for (const run of runs) {
-    const profileForRun = await getProfileForRun(run)
+    const profileForRun = resolveProfileForRunWithWeightCache(weightByDate, run)
     const rel = calculateRelativeKPSSync(run, profileForRun, pb ?? null, pbRun ?? null)
     if (!Number.isFinite(rel)) continue
     // Match History list cards, which use Math.round(relativeKPS) for display.

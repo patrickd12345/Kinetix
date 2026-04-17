@@ -28,16 +28,22 @@ const state = vi.hoisted(() => ({
         return 1
       }),
     },
+    getWeightsForDates: vi.fn(async () => new Map<string, number>()),
   },
 }))
 
 vi.mock('./database', () => ({
   db: state.dbMock,
   RUN_VISIBLE: 0,
+  getWeightsForDates: state.dbMock.getWeightsForDates,
 }))
 
 vi.mock('./authState', () => ({
   getProfileForRun: state.getProfileForRunMock,
+  resolveProfileForRunWithWeightCache: (
+    _weightMap: any,
+    run: { id?: number }
+  ) => (run.id === 2 ? { age: 32, weightKg: 68 } : { age: 40, weightKg: 78 }),
 }))
 
 import {

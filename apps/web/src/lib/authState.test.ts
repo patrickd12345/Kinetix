@@ -4,10 +4,8 @@ import * as database from './database'
 import { setActivePlatformProfile, getProfileForRun, createGetProfileForRunWithWeightCache } from './authState'
 import { useSettingsStore } from '../store/settingsStore'
 
-vi.mock('./database', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./database')>()
+vi.mock('./database', () => {
   return {
-    ...actual,
     getWeightAtDate: vi.fn(),
   }
 })

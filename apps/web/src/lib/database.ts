@@ -210,18 +210,34 @@ export async function getRunsInDateRange(
   return raw.filter((r) => (r.deleted ?? 0) === RUN_VISIBLE).slice(0, limit)
 }
 
+import { ensurePBInitialized } from './kpsUtils'
+import { resolveProfileForRunWithWeightCache } from './authState'
+import { useSettingsStore } from '../store/settingsStore'
+import { toKinetixUserProfile } from './kinetixProfile'
+import { useAuth } from '../components/providers/useAuth'
+
 /**
  * Logically delete (hide) a run. It will no longer appear in list, chart, or stats.
- * If this run is the current PB, the PB is cleared so a new one can be chosen.
+ * If this run is the current PB, the PB is cleared and recomputed from remaining history.
  */
-export async function hideRun(runId: number): Promise<void> {
+export async function hideRun(runId: number, currentProfileForPB: import('@kinetix/core').UserProfile): Promise<void> {
   const run = await db.runs.get(runId)
   if (!run) return
   await db.runs.update(runId, { deleted: RUN_DELETED })
+
   const pbRecords = await db.pb.toArray()
   const isPB = pbRecords.some((p) => p.runId === runId)
   if (isPB) {
     await db.pb.clear()
+
+    // SEC-02: Ensure PB recomputation happens when a hidden/deleted run was the PB anchor.
+    // Try to compute the new PB from the remaining runs if possible.
+    try {
+      // ensurePBInitialized will naturally find the next best run since the old one is RUN_DELETED
+      await ensurePBInitialized(currentProfileForPB)
+    } catch (e) {
+      console.warn('Failed to recompute PB after hiding run', e)
+    }
   }
 }
 

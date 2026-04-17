@@ -2,12 +2,16 @@ import type { VercelRequest } from '@vercel/node'
 import { resolveKinetixRuntimeEnv } from './env/runtime.js'
 import { getSupabaseUserFromJwt } from './supabaseUserFromJwt.js'
 
-if (process.env.NODE_ENV === 'production' && process.env.KINETIX_MASTER_ACCESS) {
-  throw new Error('KINETIX_MASTER_ACCESS forbidden in production')
+// SEC-07: Double-wall production check. Rely on both VERCEL_ENV and NODE_ENV.
+const isProductionEnviroment = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production'
+
+if (isProductionEnviroment && process.env.KINETIX_MASTER_ACCESS) {
+  throw new Error('KINETIX_MASTER_ACCESS absolutely forbidden in production')
 }
 
 const MASTER_ACCESS =
-  process.env.KINETIX_MASTER_ACCESS === '1' || process.env.KINETIX_MASTER_ACCESS === 'true'
+  !isProductionEnviroment &&
+  (process.env.KINETIX_MASTER_ACCESS === '1' || process.env.KINETIX_MASTER_ACCESS === 'true')
 
 /** Matches `SKIP_AUTH_SESSION.access_token` in apps/web AuthProvider when VITE_SKIP_AUTH is set. */
 const VITE_SKIP_AUTH_BYPASS_TOKEN = 'vite-skip-auth-bypass'
@@ -34,7 +38,7 @@ export async function requireSupportOperator(req: VercelRequest): Promise<Suppor
   const token = parseBearerToken(req)
   if (!token) return null
 
-  if (process.env.NODE_ENV !== 'production' && MASTER_ACCESS && token === VITE_SKIP_AUTH_BYPASS_TOKEN) {
+  if (!isProductionEnviroment && MASTER_ACCESS && token === VITE_SKIP_AUTH_BYPASS_TOKEN) {
     return { id: 'bypass-dev', email: 'dev@local' }
   }
 
@@ -44,7 +48,7 @@ export async function requireSupportOperator(req: VercelRequest): Promise<Suppor
   if (!user?.id) return null
 
   const allowlist = getOperatorAllowlist()
-  if (!allowlist.includes(user.id) && !(process.env.NODE_ENV !== 'production' && MASTER_ACCESS)) return null
+  if (!allowlist.includes(user.id) && !(!isProductionEnviroment && MASTER_ACCESS)) return null
 
   return user
 }

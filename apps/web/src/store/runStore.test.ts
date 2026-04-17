@@ -5,8 +5,17 @@ const addMock = vi.hoisted(() => vi.fn())
 const checkAndUpdatePBMock = vi.hoisted(() => vi.fn())
 const indexRunsAfterSaveMock = vi.hoisted(() => vi.fn())
 
+const transactionMock = vi.hoisted(() => vi.fn((mode, tables, tables2, cb) => {
+  // Simple mock of Dexie transaction that just executes the callback
+  return cb()
+}))
+
 vi.mock('../lib/database', () => ({
-  db: { runs: { add: addMock } },
+  db: {
+    runs: { add: addMock },
+    pb: {},
+    transaction: transactionMock
+  },
 }))
 
 vi.mock('../lib/kpsUtils', () => ({

@@ -190,6 +190,7 @@ export function convertStravaToRunRecord(
   }
 
   return {
+    external_id: activity.id.toString(),
     date: activity.start_date,
     distance: distanceMeters,
     duration,
@@ -233,11 +234,13 @@ export async function syncStravaRuns(
     }
     if (typeof console !== 'undefined') console.log('[Strava] Fetched', activities.length, 'run(s) from API')
 
-    const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
-      (r) => (r.deleted ?? 0) === RUN_VISIBLE
-    )
+    const existingRuns = await db.runs.where('source').equals('strava').toArray()
     const existingKeys = new Set(
-      existingRuns.map((r) => `${r.date}-${Math.round(r.distance)}`)
+      existingRuns.map((r) => {
+        // SEC-06: Use explicit authoritative external_id if present, else fallback to date+distance for legacy records
+        if (r.external_id) return r.external_id
+        return `${r.date}-${Math.round(r.distance)}`
+      })
     )
 
     const records = (
@@ -250,8 +253,9 @@ export async function syncStravaRuns(
     )
       .filter((r): r is RunRecord => r !== null)
       .filter((r) => {
-        const key = `${r.date}-${Math.round(r.distance)}`
-        return !existingKeys.has(key)
+        const legacyKey = `${r.date}-${Math.round(r.distance)}`
+        const newKey = r.external_id!
+        return !existingKeys.has(legacyKey) && !existingKeys.has(newKey)
       })
 
     if (records.length === 0) {

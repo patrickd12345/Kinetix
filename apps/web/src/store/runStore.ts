@@ -61,14 +61,24 @@ const initialState = {
 }
 
 export async function persistStoppedRun(runRecord: RunRecord, userProfile: ReturnType<typeof getActiveKinetixUserProfile>) {
-  const runId = await db.runs.add(runRecord)
-  const numericRunId = typeof runId === 'number' ? runId : Number(runId)
-  if (!numericRunId || isNaN(numericRunId)) {
-    throw new Error('Run saved without a numeric IndexedDB id')
-  }
+  // SEC-03: Wrap run save and PB update in a single atomic transaction
+  let savedRunRecord: RunRecord | undefined
+  let isNewPB = false
 
-  const savedRunRecord: RunRecord = { ...runRecord, id: numericRunId }
-  const isNewPB = await checkAndUpdatePB(savedRunRecord, userProfile)
+  await db.transaction('rw', db.runs, db.pb, async () => {
+    const runId = await db.runs.add(runRecord)
+    const numericRunId = typeof runId === 'number' ? runId : Number(runId)
+    if (!numericRunId || isNaN(numericRunId)) {
+      throw new Error('Run saved without a numeric IndexedDB id')
+    }
+
+    savedRunRecord = { ...runRecord, id: numericRunId }
+    isNewPB = await checkAndUpdatePB(savedRunRecord, userProfile)
+  })
+
+  // The assignment above guarantees savedRunRecord is initialized if the transaction succeeds
+  if (!savedRunRecord) throw new Error('Transaction succeeded but run record is missing')
+
   if (isNewPB) {
     console.log('New Personal Best! This run is now your PB (KPS = 100)')
   }

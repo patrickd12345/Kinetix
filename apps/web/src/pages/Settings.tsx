@@ -293,7 +293,8 @@ export default function Settings() {
                 type="button"
                 onClick={async () => {
                   for (const run of outlierRuns) {
-                    if (run.id) await hideRun(run.id)
+                        const userProfileForDelete = profile ? toKinetixUserProfile(profile) : { age: 30, weightKg: 70 }
+                        if (run.id) await hideRun(run.id, userProfileForDelete)
                   }
                   setImportMessage(`${outlierRuns.length} run(s) hidden from stats (possible outliers).`)
                   setOutlierRuns(null)
@@ -392,7 +393,7 @@ export default function Settings() {
                 </button>
               ) : (
                 <>
-                  <p className="text-[11px] text-green-400">Connected to Withings</p>
+                  <p className="text-[11px] text-green-400">Connected to Withings (Session Only - Reconnect on reload)</p>
                   {lastWithingsWeightKg > 0 && (
                     <p className="text-sm text-white">Latest weight: {lastWithingsWeightKg.toFixed(1)} kg</p>
                   )}
@@ -618,7 +619,7 @@ export default function Settings() {
 
             {stravaCredentials || stravaToken?.trim() ? (
               <>
-                <p className="text-[11px] text-green-400">✓ Connected to Strava</p>
+                <p className="text-[11px] text-green-400">✓ Connected to Strava (Session Only - Reconnect on reload)</p>
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                   <button
                     type="button"

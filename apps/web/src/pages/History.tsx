@@ -21,6 +21,7 @@ import {
   filterRunsByRelativeKpsBounds,
 } from '../lib/kpsUtils'
 import { resolveProfileForRunWithWeightCache } from '../lib/authState'
+import { toKinetixUserProfile } from '../lib/kinetixProfile'
 import {
   buildHistoryKpsTierKey,
   clearHistoryKpsDerivedCache,
@@ -386,7 +387,8 @@ export default function History() {
   const deleteRun = async (id: number) => {
     if (confirm('Are you sure you want to delete this run?')) {
       try {
-        await hideRun(id)
+        const userProfileForDelete = profile ? toKinetixUserProfile(profile) : { age: 30, weightKg: 70 }
+        await hideRun(id, userProfileForDelete)
         setExpandedRuns((prev) => {
           const next = new Set(prev)
           next.delete(id)

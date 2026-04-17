@@ -131,11 +131,18 @@ export const useSettingsStore = create<SettingsState>()(
           settingsRehydrated: _rehydrated,
           withingsStartupSyncInFlight: _withingsStartupSyncInFlight,
           withingsStartupSyncError: _withingsStartupSyncError,
+          // SEC-02: Do not persist OAuth refresh/access tokens in localStorage
+          withingsCredentials: _withingsCredentials,
+          stravaCredentials: _stravaCredentials,
+          stravaToken: _stravaToken,
           ...rest
         } = state
         void _rehydrated
         void _withingsStartupSyncInFlight
         void _withingsStartupSyncError
+        void _withingsCredentials
+        void _stravaCredentials
+        void _stravaToken
         return rest
       },
       merge: (persisted, current) => {
@@ -143,8 +150,12 @@ export const useSettingsStore = create<SettingsState>()(
         if (!p) return current
         const out: SettingsState = { ...current, ...p }
         if (p.targetNPI !== undefined) out.targetKPS = p.targetNPI
-        if (p.withingsCredentials && typeof p.withingsCredentials.expiresAt === 'number') out.withingsCredentials = p.withingsCredentials
-        if (p.stravaCredentials && typeof p.stravaCredentials.expiresAt === 'number') out.stravaCredentials = p.stravaCredentials
+
+        // SEC-02: Explicitly remove sensitive credentials from state if they were loaded from old persist
+        out.withingsCredentials = null
+        out.stravaCredentials = null
+        out.stravaToken = ''
+
         if (!Array.isArray(p.withingsSyncTimes) || p.withingsSyncTimes.length !== 2) out.withingsSyncTimes = DEFAULT_WITHINGS_SYNC_TIMES
         out.stravaSyncError = null
         return out

@@ -7,7 +7,7 @@ const source = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'Hi
 
 describe('History remediation contracts', () => {
   it('uses the logical delete API instead of hard-deleting runs', () => {
-    expect(source).toContain('hideRun(id)')
+    expect(source).toContain('hideRun(id')
     expect(source).not.toContain('db.runs.delete')
   })
 

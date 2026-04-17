@@ -1,7 +1,8 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import type { RunRecord } from '../lib/database'
 
 const addMock = vi.hoisted(() => vi.fn())
+const updateMock = vi.hoisted(() => vi.fn())
 const checkAndUpdatePBMock = vi.hoisted(() => vi.fn())
 const indexRunsAfterSaveMock = vi.hoisted(() => vi.fn())
 
@@ -12,7 +13,10 @@ const transactionMock = vi.hoisted(() => vi.fn((mode, tables, tables2, cb) => {
 
 vi.mock('../lib/database', () => ({
   db: {
-    runs: { add: addMock },
+    runs: {
+      add: addMock,
+      update: updateMock,
+    },
     pb: {},
     transaction: transactionMock
   },
@@ -44,12 +48,20 @@ const userProfile = { age: 35, weightKg: 70 }
 describe('persistStoppedRun', () => {
   beforeEach(() => {
     addMock.mockReset()
+    updateMock.mockReset()
     checkAndUpdatePBMock.mockReset()
     indexRunsAfterSaveMock.mockReset()
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-11T12:30:00.000Z'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('commits the run and PB update before dispatching runSaved', async () => {
     addMock.mockResolvedValue(42)
+    updateMock.mockResolvedValue(1)
     checkAndUpdatePBMock.mockResolvedValue(false)
     indexRunsAfterSaveMock.mockResolvedValue(undefined)
     const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
@@ -57,21 +69,38 @@ describe('persistStoppedRun', () => {
     const saved = await persistStoppedRun(runRecord, userProfile)
 
     expect(saved.id).toBe(42)
-    expect(addMock).toHaveBeenCalledWith(runRecord)
-    expect(checkAndUpdatePBMock).toHaveBeenCalledWith({ ...runRecord, id: 42 }, userProfile)
+    expect(saved.rag_index_status).toBe('pending')
+    expect(addMock).toHaveBeenCalledWith(expect.objectContaining({
+      ...runRecord,
+      rag_index_status: 'pending',
+    }))
+    expect(checkAndUpdatePBMock).toHaveBeenCalledWith(expect.objectContaining({ id: 42 }), userProfile)
     expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'kinetix:runSaved' }))
-    expect(indexRunsAfterSaveMock).toHaveBeenCalledWith([{ ...runRecord, id: 42 }])
+    expect(indexRunsAfterSaveMock).toHaveBeenCalledWith([expect.objectContaining({ id: 42 })])
+
+    // Await the microtask queue to allow the `.then` on indexing to execute
+    await vi.runAllTimersAsync()
+    expect(updateMock).toHaveBeenCalledWith(42, expect.objectContaining({ rag_index_status: 'indexed' }))
+
     dispatchSpy.mockRestore()
   })
 
   it('does not fail the local save when RAG indexing rejects', async () => {
     addMock.mockResolvedValue(43)
+    updateMock.mockResolvedValue(1)
     checkAndUpdatePBMock.mockResolvedValue(false)
     indexRunsAfterSaveMock.mockRejectedValue(new Error('rag down'))
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    await expect(persistStoppedRun(runRecord, userProfile)).resolves.toMatchObject({ id: 43 })
+    await expect(persistStoppedRun(runRecord, userProfile)).resolves.toMatchObject({ id: 43, rag_index_status: 'pending' })
 
-    warnSpy.mockRestore()
+    // Await microtasks
+    await vi.runAllTimersAsync()
+    expect(updateMock).toHaveBeenCalledWith(43, expect.objectContaining({
+      rag_index_status: 'failed',
+      rag_index_error: 'rag down'
+    }))
+
+    errorSpy.mockRestore()
   })
 })

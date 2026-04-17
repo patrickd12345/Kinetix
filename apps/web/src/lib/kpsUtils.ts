@@ -170,7 +170,7 @@ export async function getPBRun(): Promise<RunRecord | null> {
  * Ensure PB exists before any user-facing relative KPS display.
  * Uses historical seeding first, then legacy fallback selection when needed.
  */
-export async function ensurePBInitialized(currentProfile: UserProfile): Promise<void> {
+export async function ensurePBInitialized(currentProfile?: UserProfile): Promise<void> {
   void currentProfile // retained for call-site compatibility
 
   const allRuns = (await db.runs.toArray()).filter(

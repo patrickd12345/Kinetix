@@ -142,13 +142,14 @@ export default function Menu() {
       }
       const load = async () => {
         await ensurePBInitialized(userProfile)
-        const allRuns = await db.runs
+        const CHART_RUN_LIMIT = 2000
+        // SEC-10: Limit Dexie query directly to prevent full table scan on massive datasets
+        const runsForChart = await db.runs
           .orderBy('date')
           .reverse()
           .filter((run) => (run.deleted ?? 0) === RUN_VISIBLE)
+          .limit(CHART_RUN_LIMIT)
           .toArray()
-        const CHART_RUN_LIMIT = 2000
-        const runsForChart = allRuns.slice(0, CHART_RUN_LIMIT)
         const runDates = runsForChart.map((r) => r.date)
         const weightByDate = await getWeightsForDates(runDates)
         const getProfileForRun = createGetProfileForRunWithWeightCache(weightByDate)

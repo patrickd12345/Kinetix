@@ -387,8 +387,7 @@ export default function History() {
   const deleteRun = async (id: number) => {
     if (confirm('Are you sure you want to delete this run?')) {
       try {
-        const userProfileForDelete = profile ? toKinetixUserProfile(profile) : { age: 30, weightKg: 70 }
-        await hideRun(id, userProfileForDelete)
+        await hideRun(id)
         setExpandedRuns((prev) => {
           const next = new Set(prev)
           next.delete(id)

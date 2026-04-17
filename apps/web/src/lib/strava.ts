@@ -277,7 +277,11 @@ export async function syncStravaRuns(
     return { added }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Strava sync failed'
-    console.error('[Strava] sync on startup:', msg, err)
+    console.error('[Strava] sync on startup:', {
+      error: msg,
+      raw: err,
+      resolution: 'Wait and automatically retry next startup, or trigger manually from Settings.',
+    })
     const isRateLimit = typeof msg === 'string' && /rate limit/i.test(msg)
     const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
     const isAuthError =

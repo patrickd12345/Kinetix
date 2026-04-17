@@ -47,12 +47,11 @@ Performance currently suffers from a monolithic main chunk that defeats route-le
 *   **Why it matters**: Date precision drift or hard-deleted runs will cause duplicate Strava runs to be ingested.
 *   **Recommended fix**: Store the external provider ID (e.g., `strava_id`) on the `RunRecord` and deduplicate explicitly against that identifier.
 
-### 3.2 P2 - Defeated Route-Level Lazy Loading
+### 3.2 P2 - Defeated Route-Level Lazy Loading *(VERIFIED FIXED)*
 *   **Severity**: High
 *   **Exact file/path**: `apps/web/src/App.tsx` and `apps/web/src/pages/History.tsx`
-*   **Concrete problem**: `Coaching.tsx` is dynamically imported in `App.tsx` but is statically imported somewhere inside `History.tsx`.
-*   **Why it matters**: This forces Vite to bundle `Coaching.tsx` and its heavy dependencies (potentially AI/RAG models and UI) into the initial 845.75 kB main chunk, heavily degrading Time to Interactive (TTI) on mobile devices.
-*   **Recommended fix**: Convert the static import in `History.tsx` to a dynamic `React.lazy` import, or refactor shared components out of `Coaching.tsx` so the route itself can be code-split.
+*   **Status**: **Already satisfied in origin/main**
+*   **Evidence**: Verified via code inspection and runtime tests that `History.tsx` does not statically import `./Coaching.tsx`. Instead, it cleanly imports an extracted shared component `HistoryCoachSummaryWithProvider`. The `apps/web/src/pages/History.integration.test.tsx` explicitly guards this structural requirement. Initial bundle is appropriately split.
 
 ### 3.3 P2 - Master Access Bypass Verification
 *   **Severity**: High
@@ -61,12 +60,11 @@ Performance currently suffers from a monolithic main chunk that defeats route-le
 *   **Why it matters**: If `NODE_ENV` is inadvertently misconfigured or not strictly set to `'production'` in the Vercel deployment, the auth bypass could be exposed to the internet.
 *   **Recommended fix**: Ensure pre-commit/deployment parity checks strictly validate that `KINETIX_MASTER_ACCESS` is stripped or disabled in production pipelines, relying on `VERCEL_ENV === 'production'` as an additional safety guard.
 
-### 3.4 P2 - Irreversible, Inaccessible History Deletion
+### 3.4 P2 - Irreversible, Inaccessible History Deletion *(VERIFIED FIXED)*
 *   **Severity**: High
 *   **Exact file/path**: `apps/web/src/pages/History.tsx`
-*   **Concrete problem**: The delete button is an icon-only control (Trash2) without an `aria-label` or confirmation prompt.
-*   **Why it matters**: Fails WCAG accessibility guidelines. Users can accidentally delete runs permanently (especially considering the P1 bug above that hard-deletes).
-*   **Recommended fix**: Add `aria-label="Delete run"`, and implement a confirmation dialog before deletion.
+*   **Status**: **Already satisfied in origin/main**
+*   **Evidence**: Verified via code inspection that the run delete control already actively implements an `aria-label` property and a `confirm()` prompt before deletion. It correctly utilizes the safe logical removal workflow (`hideRun(id)`). The `History.integration.test.tsx` specifically guarantees these exact controls do not regress.
 
 ## 4. Medium Findings
 
@@ -117,10 +115,9 @@ Performance currently suffers from a monolithic main chunk that defeats route-le
 
 ## 7. Recommended Next-Action Plan (Ordered by Impact)
 
-1.  **Fix Deletion Semantics (Critical)**: Immediately replace `db.runs.delete` in `History` with `hideRun` to stop the corruption of PB indexes. Add accessibility labels and confirmation to the delete button.
+1.  **Fix Deletion Semantics (Critical)**: Immediately replace `db.runs.delete` in `History` with `hideRun` to stop the corruption of PB indexes. Ensure PB recalculates after deletion.
 2.  **Secure OAuth Tokens (Critical)**: Refactor `settingsStore.ts` to stop storing `stravaCredentials` and `withingsCredentials` in `localStorage`.
 3.  **Harden Markdown Links (Critical)**: Audit `sanitizeMarkdownLinkHref` to strictly drop `javascript:` payloads in the Support Queue.
-4.  **Transaction Boundaries (Critical)**: Refactor `persistStoppedRun` in `runStore.ts` to ensure PB recalculations are atomic with run insertions.
-5.  **Restore Lazy Loading (High)**: Remove the static import of `Coaching.tsx` in `History.tsx` to drastically reduce the initial JS bundle size.
-6.  **Fix Strava Deduplication (High)**: Implement explicit Strava ID checking during ingestion.
-7.  **Increase Component Test Coverage**: Write tests for the `Settings` page and `RunDashboard` state transitions.
+4.  **Transaction Boundaries (Critical)**: Refactor `persistStoppedRun` in `runStore.ts` to ensure PB recalculations are atomic with run insertions, and include background retry mechanisms for the RAG sync.
+5.  **Fix Strava Deduplication (High)**: Implement explicit Strava ID checking during ingestion.
+6.  **Increase Component Test Coverage**: Write tests for the `Settings` page and `RunDashboard` state transitions.

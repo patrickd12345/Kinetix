@@ -33,6 +33,11 @@ export interface RunRecord {
   songArtist?: string
   /** Track tempo (beats per minute); compare to cadence (steps/min) for rhythm alignment. */
   songBpm?: number
+  // SEC-03: Add persistent indexing state to the run record for operational visibility and retryable AI Coach syncs
+  rag_index_status?: 'pending' | 'indexed' | 'failed'
+  rag_index_error?: string
+  rag_index_last_attempt_at?: string
+  rag_index_retry_count?: number
 }
 
 /**
@@ -220,7 +225,7 @@ import { useAuth } from '../components/providers/useAuth'
  * Logically delete (hide) a run. It will no longer appear in list, chart, or stats.
  * If this run is the current PB, the PB is cleared and recomputed from remaining history.
  */
-export async function hideRun(runId: number, currentProfileForPB: import('@kinetix/core').UserProfile): Promise<void> {
+export async function hideRun(runId: number): Promise<void> {
   const run = await db.runs.get(runId)
   if (!run) return
   await db.runs.update(runId, { deleted: RUN_DELETED })
@@ -234,7 +239,7 @@ export async function hideRun(runId: number, currentProfileForPB: import('@kinet
     // Try to compute the new PB from the remaining runs if possible.
     try {
       // ensurePBInitialized will naturally find the next best run since the old one is RUN_DELETED
-      await ensurePBInitialized(currentProfileForPB)
+      await ensurePBInitialized()
     } catch (e) {
       console.warn('Failed to recompute PB after hiding run', e)
     }

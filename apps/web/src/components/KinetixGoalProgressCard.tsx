@@ -87,7 +87,7 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
       <div className="grid grid-cols-2 gap-2 text-sm">
         <label className="flex flex-col gap-1" htmlFor="goal-distance">
           <span className="text-xs text-slate-600 dark:text-gray-400" id="goal-distance-label">Distance</span>
-          <select aria-label="Goal distance" id="goal-distance" className="rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white" value={distance} onChange={(e) => setDistance(e.target.value as GoalDistance)}>
+          <select aria-label="Goal distance" id="goal-distance" className="shell-focus-ring rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white" value={distance} onChange={(e) => setDistance(e.target.value as GoalDistance)}>
             <option value="5K">5K</option>
             <option value="10K">10K</option>
             <option value="Half">Half</option>
@@ -96,7 +96,7 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
         </label>
         <label className="flex flex-col gap-1" htmlFor="goal-priority">
           <span className="text-xs text-slate-600 dark:text-gray-400">Priority</span>
-          <select aria-label="Goal priority" id="goal-priority" className="rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white" value={priority} onChange={(e) => setPriority(e.target.value as GoalPriority)}>
+          <select aria-label="Goal priority" id="goal-priority" className="shell-focus-ring rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white" value={priority} onChange={(e) => setPriority(e.target.value as GoalPriority)}>
             <option value="finish">Finish</option>
             <option value="improve">Improve</option>
             <option value="PB">PB</option>
@@ -105,11 +105,11 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
         </label>
         <label className="col-span-2 flex flex-col gap-1" htmlFor="goal-event-date">
           <span className="text-xs text-slate-600 dark:text-gray-400">Event date</span>
-          <input aria-label="Goal event date" id="goal-event-date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white" />
+          <input aria-label="Goal event date" id="goal-event-date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="shell-focus-ring rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 dark:border-white/10 dark:bg-black/40 dark:text-white" />
         </label>
         <label className="col-span-2 flex flex-col gap-1" htmlFor="goal-target-time">
           <span className="text-xs text-slate-600 dark:text-gray-400">Target time (optional, mm:ss or hh:mm:ss)</span>
-          <input aria-label="Goal target time" id="goal-target-time" type="text" value={targetTime} onChange={(e) => setTargetTime(e.target.value)} placeholder="1:45:00" className="rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-slate-500" />
+          <input aria-label="Goal target time" id="goal-target-time" type="text" value={targetTime} onChange={(e) => setTargetTime(e.target.value)} placeholder="1:45:00" className="shell-focus-ring rounded-lg border border-slate-300/80 bg-white px-2 py-1.5 text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-slate-500" />
         </label>
       </div>
 

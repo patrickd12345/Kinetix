@@ -187,8 +187,30 @@ export async function syncNewRunsToRAG(
   for (const run of toIndex) {
     const ragRun = runRecordToRAGRun(run, userProfile)
     const ok = await indexRunInRAG(ragRun)
-    if (ok) indexed += 1
-    else errors += 1
+    if (ok) {
+      indexed += 1
+      if (run.id) {
+        await import('./database').then(({ db }) =>
+          db.runs.update(run.id!, {
+            rag_index_status: 'indexed',
+            rag_index_error: '',
+            rag_index_last_attempt_at: new Date().toISOString(),
+          })
+        ).catch(() => {})
+      }
+    } else {
+      errors += 1
+      console.warn('[RAG] Failed to index run into AI knowledgebase.', { runId: run.id, date: run.date })
+      if (run.id) {
+        await import('./database').then(({ db }) =>
+          db.runs.update(run.id!, {
+            rag_index_status: 'failed',
+            rag_index_error: 'syncNewRunsToRAG batch failure',
+            rag_index_last_attempt_at: new Date().toISOString(),
+          })
+        ).catch(() => {})
+      }
+    }
   }
   const skipped = runs.length - toIndex.length
   return { indexed, errors, skipped }

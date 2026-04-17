@@ -10,10 +10,11 @@ export function computeIntelligence(samples: KpsSample[]): IntelligenceResult {
   const fatigue = computeFatigue(samples)
   const recommendation = computeRecommendation(readiness, fatigue)
 
-  // TODO: AI coaching layer that adapts guidance to user context and goals.
-  // TODO: Performance prediction models for short- and medium-term KPS forecasting.
-  // TODO: Injury risk estimation combining workload, volatility, and recovery markers.
-  // TODO: Long-term planning engine for periodization and progressive load management.
+  // Future enhancements planned:
+  // - AI coaching layer that adapts guidance to user context and goals.
+  // - Performance prediction models for short- and medium-term KPS forecasting.
+  // - Injury risk estimation combining workload, volatility, and recovery markers.
+  // - Long-term planning engine for periodization and progressive load management.
 
   return {
     readiness,

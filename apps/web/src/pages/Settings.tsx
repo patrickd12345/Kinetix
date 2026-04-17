@@ -293,8 +293,7 @@ export default function Settings() {
                 type="button"
                 onClick={async () => {
                   for (const run of outlierRuns) {
-                        const userProfileForDelete = profile ? toKinetixUserProfile(profile) : { age: 30, weightKg: 70 }
-                        if (run.id) await hideRun(run.id, userProfileForDelete)
+                    if (run.id) await hideRun(run.id)
                   }
                   setImportMessage(`${outlierRuns.length} run(s) hidden from stats (possible outliers).`)
                   setOutlierRuns(null)
@@ -639,9 +638,9 @@ export default function Settings() {
                           return
                         }
 
-                        const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
+                        const existingRuns = await db.runs.where('source').equals('strava').filter(
                           (r) => (r.deleted ?? 0) === RUN_VISIBLE
-                        )
+                        ).toArray()
                         const existingKeys = new Set(
                           existingRuns.map((run) => `${run.date}-${Math.round(run.distance)}`)
                         )
@@ -790,9 +789,9 @@ export default function Settings() {
                   const { runs: normalizedRuns, stats } = isGarminFitFile(file)
                     ? await importGarminFromFitFile(file, targetKPS)
                     : await importGarminFromZipFile(file, targetKPS)
-                  const existingGarmin = (await db.runs.where('source').equals('garmin').toArray()).filter(
+                  const existingGarmin = await db.runs.where('source').equals('garmin').filter(
                     (r) => (r.deleted ?? 0) === RUN_VISIBLE
-                  )
+                  ).toArray()
                   const existingIds = new Set((existingGarmin.map(r => r.external_id).filter(Boolean) as string[]))
                   const toAdd = (
                     await Promise.all(

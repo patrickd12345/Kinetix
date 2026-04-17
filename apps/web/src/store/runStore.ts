@@ -66,13 +66,19 @@ export async function persistStoppedRun(runRecord: RunRecord, userProfile: Retur
   let isNewPB = false
 
   await db.transaction('rw', db.runs, db.pb, async () => {
-    const runId = await db.runs.add(runRecord)
+    const initialRecord = {
+      ...runRecord,
+      rag_index_status: 'pending' as const,
+      rag_index_last_attempt_at: new Date().toISOString(),
+      rag_index_retry_count: 0
+    }
+    const runId = await db.runs.add(initialRecord)
     const numericRunId = typeof runId === 'number' ? runId : Number(runId)
     if (!numericRunId || isNaN(numericRunId)) {
       throw new Error('Run saved without a numeric IndexedDB id')
     }
 
-    savedRunRecord = { ...runRecord, id: numericRunId }
+    savedRunRecord = { ...initialRecord, id: numericRunId }
     isNewPB = await checkAndUpdatePB(savedRunRecord, userProfile)
   })
 
@@ -87,9 +93,27 @@ export async function persistStoppedRun(runRecord: RunRecord, userProfile: Retur
     window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
   }
 
-  indexRunsAfterSave([savedRunRecord]).catch((error) => {
-    console.warn('[Kinetix] RAG indexing failed after local run save:', error)
-  })
+  // Attempt indexing after commit
+  indexRunsAfterSave([savedRunRecord])
+    .then(async () => {
+      await db.runs.update(savedRunRecord!.id!, {
+        rag_index_status: 'indexed',
+        rag_index_error: '',
+        rag_index_last_attempt_at: new Date().toISOString(),
+      })
+    })
+    .catch(async (error) => {
+      const msg = error instanceof Error ? error.message : String(error)
+      console.error('[Kinetix] RAG indexing failed after local run save. Data may be out of sync for AI Coach.', {
+        error: msg,
+        runId: savedRunRecord?.id,
+      })
+      await db.runs.update(savedRunRecord!.id!, {
+        rag_index_status: 'failed',
+        rag_index_error: msg,
+        rag_index_last_attempt_at: new Date().toISOString(),
+      })
+    })
 
   return savedRunRecord
 }

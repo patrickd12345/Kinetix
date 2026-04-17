@@ -84,8 +84,14 @@ export default function Layout({ children }: LayoutProps) {
     const run = async () => {
       try {
         const { items } = await getRunsPage(1, RAG_SYNC_PAGE_SIZE)
-        if (items.length === 0) return true
-        const result = await syncNewRunsToRAG(items, userProfile)
+        // SEC-03: Include previously failed/pending runs for explicit background retry alongside missing ones
+        const retryable = await import('../lib/database').then(({ db }) =>
+          db.runs.filter(r => r.rag_index_status === 'failed' || r.rag_index_status === 'pending').toArray()
+        ).catch(() => [])
+        const allToSync = [...items, ...retryable.filter(r => !items.some(i => i.id === r.id))]
+
+        if (allToSync.length === 0) return true
+        const result = await syncNewRunsToRAG(allToSync, userProfile)
         if (result.errors === 0) {
           if (typeof sessionStorage !== 'undefined') {
             sessionStorage.removeItem(SK_RAG_FAIL_STREAK)

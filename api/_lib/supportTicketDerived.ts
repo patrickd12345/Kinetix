@@ -249,8 +249,19 @@ export function getSlaMetrics(
   let resolvedLast7Days = 0
   let createdLast7Days = 0
 
+  const parseCache = new Map<string, number | null>()
+  function cachedParseIso(value: string | null | undefined): number | null {
+    if (!value) return null
+    if (parseCache.has(value)) {
+      return parseCache.get(value)!
+    }
+    const parsed = parseIso(value)
+    parseCache.set(value, parsed)
+    return parsed
+  }
+
   for (const ticket of tickets) {
-    const createdAtMs = parseIso(ticket.created_at ?? null)
+    const createdAtMs = cachedParseIso(ticket.created_at ?? null)
 
     if (createdAtMs != null && createdAtMs >= sevenDayCutoff) {
       createdLast7Days += 1
@@ -267,7 +278,7 @@ export function getSlaMetrics(
     if (createdAtMs != null) {
       const lastOpAt = ticket.last_operator_action_at
       if (lastOpAt) {
-        const lastOperatorActionAtMs = parseIso(lastOpAt)
+        const lastOperatorActionAtMs = cachedParseIso(lastOpAt)
         if (lastOperatorActionAtMs != null && lastOperatorActionAtMs >= createdAtMs) {
           firstResponseDurations.push(lastOperatorActionAtMs - createdAtMs)
         }
@@ -276,7 +287,7 @@ export function getSlaMetrics(
       if (ticket.status === 'resolved') {
         const updatedAt = ticket.updated_at
         if (updatedAt) {
-          const updatedAtMs = parseIso(updatedAt)
+          const updatedAtMs = cachedParseIso(updatedAt)
           if (updatedAtMs != null && updatedAtMs >= createdAtMs) {
             resolutionDurations.push(updatedAtMs - createdAtMs)
             if (updatedAtMs >= sevenDayCutoff) {

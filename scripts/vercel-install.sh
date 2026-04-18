@@ -1,45 +1,28 @@
 #!/bin/bash
 set -e
 
-# Clone Bookiji-inc packages: Vercel sets GITHUB_TOKEN. CI may use BOOKIJI_INC_CLONE_TOKEN
-# (PAT with repo read) when the monorepo is private; otherwise unauthenticated public clone.
+# Resolve token: prefer BOOKIJI_INC_CLONE_TOKEN, fall back to GITHUB_TOKEN.
+TOKEN="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
+if [ -z "$TOKEN" ]; then
+  echo "Error: Neither BOOKIJI_INC_CLONE_TOKEN nor GITHUB_TOKEN is set. Cross-repo clone required for monorepo packages."
+  exit 1
+fi
 
-# Do not prompt for credentials in non-interactive shell (prevents hanging/exit 128)
-export GIT_TERMINAL_PROMPT=0
-
-# Helper to clone while unsetting any persistent GITHUB_TOKEN header from actions/checkout
-# that might interfere with cross-repo access.
+# Helper to clone using exactly one pattern as per memory.
+# Strictly enforces GIT_TERMINAL_PROMPT=0 and clears http.extraheader inline.
 git_clone() {
-  local url="$1"
+  local repo_name="$1"
   local dest="$2"
-  # Unset .extraheader for this command only
-  git -c http.https://github.com/.extraheader= clone --depth 1 "$url" "$dest"
+  # Never echo TOKEN or full clone URL in logs.
+  echo "Cloning patrickd12345/${repo_name}..."
+  env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" clone --depth 1 "https://x-access-token:${TOKEN}@github.com/patrickd12345/${repo_name}.git" "$dest"
 }
 
-clone_bookiji_inc() {
-  rm -rf .bookiji-tmp
-
-  # 1. Try unauthenticated public clone first (most reliable for public repos in CI)
-  echo "Attempting unauthenticated clone of Bookiji-inc..."
-  if git_clone https://github.com/patrickd12345/Bookiji-inc .bookiji-tmp; then
-    return 0
-  fi
-
-  # 2. Try authenticated clone if unauthenticated fails (likely private repo)
-  local token="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
-  if [ -n "$token" ]; then
-    echo "Unauthenticated clone failed. Attempting authenticated clone..."
-    if git_clone "https://x-access-token:${token}@github.com/patrickd12345/Bookiji-inc" .bookiji-tmp; then
-      return 0
-    fi
-  fi
-
-  echo "Error: Failed to clone Bookiji-inc repo."
-  return 1
-}
-
+rm -rf .bookiji-tmp
 rm -rf .bookiji-packages
-clone_bookiji_inc
+
+# Clone Bookiji-inc umbrella repo to extract shared packages.
+git_clone "Bookiji-inc" .bookiji-tmp
 mv .bookiji-tmp/packages .bookiji-packages
 rm -rf .bookiji-tmp
 
@@ -50,18 +33,11 @@ if [ ! -f .bookiji-packages/ai-runtime/package.json ]; then
   exit 1
 fi
 
+# Clone ai-core if missing (it might be a submodule in the source repo).
 if [ ! -f .bookiji-packages/ai-core/package.json ]; then
-  echo "Cloning ai-core submodule..."
+  echo "ai-core not found in packages/, attempting standalone clone..."
   rm -rf .bookiji-packages/ai-core
-  # Try public first, then authenticated for submodule
-  if ! git_clone https://github.com/patrickd12345/ai-core .bookiji-packages/ai-core; then
-    token="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
-    if [ -n "$token" ]; then
-       git_clone "https://x-access-token:${token}@github.com/patrickd12345/ai-core" .bookiji-packages/ai-core
-    else
-       exit 1
-    fi
-  fi
+  git_clone "ai-core" .bookiji-packages/ai-core
 fi
 
 # Must exist before pnpm install so workspace:* resolves @bookiji-inc/* (do not use `packages/` — @kinetix/core).

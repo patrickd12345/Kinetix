@@ -5,23 +5,32 @@
 
 **RC inspection date:** 2026-04-18 (UTC, agent run)
 
-## Release candidate status: **APPROVED (web) — ready for `kinetix-rc-2` tag after merge**
+## Release candidate status: **APPROVED (web) — ready for `kinetix-rc-2` tag**
 
-The web application passes the full automated gate defined below. **This does not certify native apps**; tag as **web / full-stack** RC only in line with your release policy (see “Native verification”).
+The web application passes the full automated gate defined below on **`main`** after merge of PR **#89**. **This does not certify native apps**; tag as **web / full-stack** RC only in line with your release policy (see “Native verification”).
 
 ---
 
 ## Commit and branch inspected
 
+### Mainline (`main`) — post-merge verification (KX-FEAT-003)
+
 | Item | Value |
 |------|--------|
-| **Branch** | `cursor/kinetix-readiness-8210` (includes KX-FEAT-001 / PR #89) |
-| **HEAD commit** | `5d13cbfd99740ae3f2c7909ddf2497e52343f5b8` |
-| **Short message** | `readiness: cap KPS display at 100, gate skip-auth in prod, document audit` |
-| **Working tree** | Clean (no uncommitted changes at verification time) |
-| **Merge path** | Merge **PR #89** to `main` (or equivalent) before tagging production artifacts |
+| **Branch** | `main` |
+| **HEAD** | `9c7ebcdbecb4b00f2836fb09aeb1263cc7e7445d` (includes merge PR **#90** after PR **#89**) |
+| **KX-FEAT-001 / PR #89** | Ancestor commits `5d13cbf`, `9f7da01`; `apps/web/src/lib/kpsDisplayPolicy.ts` present |
+| **Staging smoke doc** | [`docs/KINETIX_STAGING_SMOKE.md`](KINETIX_STAGING_SMOKE.md) |
 
-> **KX-FEAT-001 presence:** Confirmed — `kpsDisplayPolicy.ts`, readiness doc, `AuthProvider` production gate for `VITE_SKIP_AUTH`, and related KPS/settings/e2e changes are on this branch at the commit above.
+### Historical — feature branch (KX-FEAT-002)
+
+| Item | Value |
+|------|--------|
+| **Branch** | `cursor/kinetix-readiness-8210` |
+| **Readiness commit** | `5d13cbfd99740ae3f2c7909ddf2497e52343f5b8` |
+| **Short message** | `readiness: cap KPS display at 100, gate skip-auth in prod, document audit` |
+
+> **KX-FEAT-001 presence:** Confirmed on `main` — `kpsDisplayPolicy.ts`, readiness doc, `AuthProvider` production gate for `VITE_SKIP_AUTH`, and related KPS/settings/e2e changes.
 
 ---
 
@@ -123,8 +132,8 @@ See also: `docs/deployment/ENV_PARITY.md`, `docs/deployment/KINETIX_STRIPE_PRODU
 
 - **Build output:** `apps/web/dist` (see `vercel.json` and `README.md`).
 - **Node:** 22.x per root `package.json` engines; `pnpm@10.30.3` lock.
-- **Prebuild:** `check-master-access.ts` runs on web `build` to prevent `VITE_MASTER_ACCESS` in production.
-- **Post-merge:** Run the same pnpm check suite on `main` in CI; deploy **preview** then **production**; verify `EntitlementRequired` and login on staging URL.
+- **Prebuild:** `scripts/check-master-access.ts` runs on web `build` and refuses builds if `VITE_SKIP_AUTH`, `VITE_MASTER_ACCESS`, etc. are set in the **build** environment.
+- **Post-merge:** Deploy **preview/staging** then **production**; verify `EntitlementRequired` and login on staging URL — see [`KINETIX_STAGING_SMOKE.md`](KINETIX_STAGING_SMOKE.md).
 
 ## Rollback notes (web)
 
@@ -138,16 +147,16 @@ See also: `docs/deployment/ENV_PARITY.md`, `docs/deployment/KINETIX_STRIPE_PRODU
 
 | Recommendation | `kinetix-rc-2` |
 |----------------|----------------|
-| **When to apply** | After **PR #89** merges to `main` (or the chosen release line), and **the same** checks pass on `main` in CI. |
+| **When to apply** | PR **#89** is merged (commit `4d18956` on `main`). Re-run CI on `main` on every promotion; tag when stakeholders accept staging smoke ([`KINETIX_STAGING_SMOKE.md`](KINETIX_STAGING_SMOKE.md)). |
 | **If native is in scope** | Add a runbook sign-off in `REPO_STATUS.md` or a release issue before production promotion. |
 
 ---
 
 ## Final recommendation
 
-**ready for RC tag (web) — `kinetix-rc-2` (after merge + CI re-run on `main`)**
+**ready for RC tag (web) — `kinetix-rc-2`** — automated gate re-verified on **`main`** at `9c7ebcd` (KX-FEAT-003).
 
 - **Not** “full product including Watch/iPhone” without native verification.
-- **Next step (mandatory for production):** Staging deploy with real Supabase + entitlements, smoke login, one paid/entitled test user, billing return URLs — follow `docs/deployment/KINETIX_VERIFICATION_CHECKLIST.md`.
+- **Next step (mandatory for production):** Execute staging smoke (`KINETIX_STAGING_SMOKE.md`) with real Supabase + entitlements; then production checklist (`KINETIX_VERIFICATION_CHECKLIST.md`).
 
 **Cross-reference:** See `docs/KINETIX_FULL_FLEDGED_READINESS.md` (KX-FEAT-001) for detailed route table and KPS contract notes; that doc is updated for KX-FEAT-002 final verification status.

@@ -2,6 +2,8 @@
 
 **Update (KX-FEAT-002, 2026-04-18):** A **release candidate pass** re-ran the full web gate (install, typecheck, lint, vitest, build, Playwright) on commit `5d13cbf` (branch `cursor/kinetix-readiness-8210`); all passed. **See** [`docs/KINETIX_RELEASE_CANDIDATE.md`](KINETIX_RELEASE_CANDIDATE.md) for RC sign-off, tag recommendation, and production next steps. Native apps remain manual verification as below.
 
+**Update (KX-FEAT-003, 2026-04-18):** After PR **#89** merged to **`main`**, the same web gate was re-run on **`main`** at `9c7ebcd` — all passed (433 Vitest, 44 Playwright). **Staging operator checklist:** [`docs/KINETIX_STAGING_SMOKE.md`](KINETIX_STAGING_SMOKE.md).
+
 **Scope:** Kinetix web app (`apps/web`, package `@kinetix/web`) — primary product surface in this monorepo. **Not** a final closure: this is the readiness pass before a formal closure review.
 
 **Branch:** `cursor/kinetix-readiness-8210`  

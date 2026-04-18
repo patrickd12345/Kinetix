@@ -1,4 +1,4 @@
-import { db, RunRecord, RUN_VISIBLE, getWeightsForDates } from './database'
+import { db, RunRecord, getWeightsForDates } from './database'
 import { UserProfile } from '@kinetix/core'
 import { isMeaningfulRunForKPS } from './kpsUtils'
 import { indexRunsAfterSave } from './ragClient'
@@ -190,6 +190,7 @@ export function convertStravaToRunRecord(
   }
 
   return {
+    external_id: activity.id.toString(),
     date: activity.start_date,
     distance: distanceMeters,
     duration,
@@ -222,10 +223,31 @@ export async function syncStravaRuns(
 ): Promise<SyncStravaResult> {
   if (!token?.trim()) return { added: [] }
   try {
-    const afterEpoch =
-      options?.recentDays != null
-        ? Math.floor(Date.now() / 1000) - options.recentDays * 86400
-        : undefined
+    // Determine overlapping boundary date using local history.
+    // 1. Boundary source must be only source='strava' records.
+    const allStravaRuns = await db.runs.where('source').equals('strava').toArray()
+    let afterEpoch: number | undefined = undefined
+
+    if (allStravaRuns.length > 0) {
+      // 2. Prefer the latest imported Strava record that has external_id populated.
+      // 3. Use that record's activity timestamp as the incremental lower bound.
+      // (Even if deleted, we don't want to re-import it, so we include logically deleted ones)
+      const runsWithExternalId = allStravaRuns.filter(r => r.external_id)
+      const boundaryRuns = runsWithExternalId.length > 0 ? runsWithExternalId : allStravaRuns
+
+      const latestRunDate = boundaryRuns.reduce((latest, run) => {
+        return run.date > latest ? run.date : latest
+      }, boundaryRuns[0].date)
+
+      // Calculate overlap: Use latest date minus 7 days buffer (for safety).
+      const latestEpoch = Math.floor(new Date(latestRunDate).getTime() / 1000)
+      const overlapBufferSeconds = 7 * 86400 // 7 days overlap buffer
+      afterEpoch = latestEpoch - overlapBufferSeconds
+    } else if (options?.recentDays != null) {
+      // Fallback for first import if explicit limit provided
+      afterEpoch = Math.floor(Date.now() / 1000) - options.recentDays * 86400
+    }
+
     const activities = await fetchStravaActivities(token, afterEpoch)
     if (activities.length === 0) {
       if (typeof console !== 'undefined') console.log('[Strava] No run activities returned from API')
@@ -233,11 +255,12 @@ export async function syncStravaRuns(
     }
     if (typeof console !== 'undefined') console.log('[Strava] Fetched', activities.length, 'run(s) from API')
 
-    const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
-      (r) => (r.deleted ?? 0) === RUN_VISIBLE
-    )
-    const existingKeys = new Set(
-      existingRuns.map((r) => `${r.date}-${Math.round(r.distance)}`)
+    // Local deduplication: Use existing runs including logically deleted runs to prevent re-adding.
+    // 1. Dedup by external_id
+    const existingIds = new Set(allStravaRuns.map(r => r.external_id).filter(Boolean) as string[])
+    // 2. Legacy fallback: Dedup by date + distance for older runs without external_id
+    const legacyKeys = new Set(
+      allStravaRuns.filter(r => !r.external_id).map((r) => `${r.date}-${Math.round(r.distance)}`)
     )
 
     const activityDates = activities.map((a) => a.start_date)
@@ -250,8 +273,11 @@ export async function syncStravaRuns(
       })
       .filter((r): r is RunRecord => r !== null)
       .filter((r) => {
-        const key = `${r.date}-${Math.round(r.distance)}`
-        return !existingKeys.has(key)
+        if (r.external_id && existingIds.has(r.external_id)) {
+          return false
+        }
+        const legacyKey = `${r.date}-${Math.round(r.distance)}`
+        return !legacyKeys.has(legacyKey)
       })
 
     if (records.length === 0) {

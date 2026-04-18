@@ -1,6 +1,6 @@
 import { useSettingsStore } from '../store/settingsStore'
 import { KINETIX_PERFORMANCE_SCORE } from '../lib/branding'
-import { fetchStravaActivities, convertStravaToRunRecord, getValidStravaToken } from '../lib/strava'
+import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
 import { db, RunRecord, RUN_VISIBLE } from '../lib/database'
 import { useState, useEffect, useRef } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
@@ -631,48 +631,24 @@ export default function Settings() {
                           setImportMessage('Connect Strava first or refresh your token.')
                           return
                         }
-                        const activities = await fetchStravaActivities(token)
 
-                        if (activities.length === 0) {
-                          setImportMessage('No running activities found in your Strava history.')
-                          return
+                        // We use syncStravaRuns here to reuse the robust deduplication and incremental fetch logic
+                        const { added, error } = await syncStravaRuns(token, targetKPS)
+
+                        if (error) {
+                          throw new Error(error)
                         }
 
-                        const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
-                          (r) => (r.deleted ?? 0) === RUN_VISIBLE
-                        )
-                        const existingKeys = new Set(
-                          existingRuns.map((run) => `${run.date}-${Math.round(run.distance)}`)
-                        )
-
-                        const activityDates = activities.map((a) => a.start_date)
-                        const weightByDate = await getWeightsForDates(activityDates)
-
-                        const records = activities
-                          .map((activity) => {
-                            const profileForDate = resolveProfileForRunWithWeightCache(weightByDate, { date: activity.start_date })
-                            return convertStravaToRunRecord(activity, profileForDate, targetKPS)
-                          })
-                          .filter((record): record is RunRecord => record !== null)
-                          .filter((record) => {
-                            const key = `${record.date}-${Math.round(record.distance)}`
-                            return !existingKeys.has(key)
-                          })
-
-                        if (records.length === 0) {
+                        if (added.length === 0) {
                           setImportMessage('All activities are already imported.')
-                          return
+                        } else {
+                          // The `syncStravaRuns` function handles the indexing logic already.
+                          // But we need to update the UI and search for outliers just for the new additions.
+                          setImportMessage(`Imported ${added.length} new run${added.length > 1 ? 's' : ''} from Strava.`)
+                          const outliers = await findOutlierRuns(added)
+                          if (outliers.length > 0) setOutlierRuns(outliers)
                         }
 
-                        const ids = await db.runs.bulkAdd(records, { allKeys: true })
-                        const added = records.map((r, i) => ({ ...r, id: ids[i] as number }))
-                        await indexRunsAfterSave(added)
-                        setImportMessage(`Imported ${added.length} new run${added.length > 1 ? 's' : ''} from Strava.`)
-                        if (typeof window !== 'undefined') {
-                          window.dispatchEvent(new CustomEvent('kinetix:runSaved'))
-                        }
-                        const outliers = await findOutlierRuns(added)
-                        if (outliers.length > 0) setOutlierRuns(outliers)
                       } catch (error) {
                         console.error('Strava import error', error)
                         const errorMsg = error instanceof Error ? error.message : 'Failed to import from Strava. Check token.'

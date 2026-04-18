@@ -4,14 +4,15 @@ set -e
 # Clone Bookiji-inc packages: Vercel sets GITHUB_TOKEN. CI may use BOOKIJI_INC_CLONE_TOKEN
 # (PAT with repo read) when the monorepo is private; otherwise unauthenticated public clone.
 
-# Helper to clone while unsetting any persistent GITHUB_TOKEN header from actions/checkout
-# that might interfere with cross-repo access.
-# Strictly enforce GIT_TERMINAL_PROMPT=0 and clear auth headers inline as per Memory.
+# Do not prompt for credentials in non-interactive shell (prevents hanging/exit 128)
+# Use env GIT_TERMINAL_PROMPT=0 inline across all fallback attempts.
+# Clear auth headers (-c http.extraheader="") inline across all fallback attempts.
+
 git_clone() {
   local url="$1"
   local dest="$2"
-  # Unset auth headers for this command only to prevent access-token leakage or conflicts.
-  env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "$url" "$dest"
+  # Unset .extraheader for this command only
+  env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" clone --depth 1 "$url" "$dest"
 }
 
 clone_bookiji_inc() {
@@ -24,7 +25,7 @@ clone_bookiji_inc() {
   fi
 
   # 2. Try authenticated clone if unauthenticated fails (likely private repo)
-  # Memory mandate: prefer BOOKIJI_INC_CLONE_TOKEN, fall back to GITHUB_TOKEN, fail if both absent.
+  # Resolve token: prefer BOOKIJI_INC_CLONE_TOKEN, fall back to GITHUB_TOKEN, fail if both absent.
   local token="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
   if [ -n "$token" ]; then
     echo "Unauthenticated clone failed. Attempting authenticated clone..."

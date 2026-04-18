@@ -7,39 +7,40 @@ set -e
 # Do not prompt for credentials in non-interactive shell (prevents hanging/exit 128)
 export GIT_TERMINAL_PROMPT=0
 
-# Helper for authenticated clone
-git_clone_auth() {
-  local token="$1"
-  local repo="$2"
-  local dest="$3"
-  # Strictly use exactly one URL pattern: x-access-token.
-  # Clear potential persistent AUTHORIZATION header from actions/checkout to prevent token mismatch.
-  # Never echo the token or full clone URL in logs.
-  env GIT_TERMINAL_PROMPT=0 git -c "http.https://github.com/.extraheader=" clone --depth 1 "https://x-access-token:${token}@github.com/patrickd12345/${repo}.git" "$dest"
-}
-
-# Helper for unauthenticated clone
-git_clone_public() {
-  local repo="$1"
+# Helper to clone while unsetting any persistent headers from actions/checkout
+# that might interfere with cross-repo access.
+git_clone_raw() {
+  local url="$1"
   local dest="$2"
-  env GIT_TERMINAL_PROMPT=0 git -c "http.https://github.com/.extraheader=" clone --depth 1 "https://github.com/patrickd12345/${repo}.git" "$dest"
+  # Use -c http.extraheader="" to clear ANY existing auth headers from actions/checkout.
+  # This is the most robust way to ensure we use the credentials in the URL.
+  env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" clone --depth 1 "$url" "$dest"
 }
 
-clone_with_fallback() {
-  local repo="$1"
+clone_with_fallbacks() {
+  local repo_name="$1"
   local dest="$2"
   local token="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
 
+  # 1. Try x-access-token authenticated clone if token is available
   if [ -n "$token" ]; then
-    echo "Attempting authenticated clone of ${repo}..."
-    if git_clone_auth "$token" "$repo" "$dest"; then
+    echo "Attempting authenticated clone of ${repo_name} (x-access-token)..."
+    if git_clone_raw "https://x-access-token:${token}@github.com/patrickd12345/${repo_name}.git" "$dest"; then
       return 0
     fi
-    echo "Warning: Authenticated clone of ${repo} failed."
+    echo "Warning: x-access-token clone failed for ${repo_name}."
+
+    # 2. Try legacy token-as-username authenticated clone (some environments prefer this)
+    echo "Attempting authenticated clone of ${repo_name} (token-as-username)..."
+    if git_clone_raw "https://${token}:x-oauth-basic@github.com/patrickd12345/${repo_name}.git" "$dest"; then
+      return 0
+    fi
+    echo "Warning: token-as-username clone failed for ${repo_name}."
   fi
 
-  echo "Attempting unauthenticated clone of ${repo}..."
-  if git_clone_public "$repo" "$dest"; then
+  # 3. Try unauthenticated public clone as fallback
+  echo "Attempting unauthenticated clone of ${repo_name}..."
+  if git_clone_raw "https://github.com/patrickd12345/${repo_name}.git" "$dest"; then
     return 0
   fi
 
@@ -50,7 +51,7 @@ rm -rf .bookiji-packages
 rm -rf .bookiji-tmp
 rm -rf monorepo-packages
 
-if clone_with_fallback "Bookiji-inc" ".bookiji-tmp"; then
+if clone_with_fallbacks "Bookiji-inc" ".bookiji-tmp"; then
   mv .bookiji-tmp/packages .bookiji-packages
   rm -rf .bookiji-tmp
 else
@@ -68,7 +69,7 @@ fi
 if [ ! -f .bookiji-packages/ai-core/package.json ]; then
   echo "Cloning ai-core submodule..."
   rm -rf .bookiji-packages/ai-core
-  if ! clone_with_fallback "ai-core" ".bookiji-packages/ai-core"; then
+  if ! clone_with_fallbacks "ai-core" ".bookiji-packages/ai-core"; then
     echo "Error: Failed to clone ai-core submodule."
     exit 1
   fi

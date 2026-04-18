@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getAllVisibleRunsOrdered, db, type RunRecord, RUN_VISIBLE } from '../lib/database'
-import { getActivePlatformProfile, getProfileForRun } from '../lib/authState'
+import { getAllVisibleRunsOrdered, db, type RunRecord, RUN_VISIBLE, getWeightsForDates } from '../lib/database'
+import { getActivePlatformProfile, resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { calculateRelativeKPSSync, getPB, isMeaningfulRunForKPS } from '../lib/kpsUtils'
 import { computeIntelligence } from '../lib/intelligence/intelligenceEngine'
 import { buildIntelligenceHealthSignals } from '../lib/intelligence/healthMetricSignals'
@@ -34,9 +34,12 @@ export function useKinetixIntelligence() {
         let pbRun = pb ? (await db.runs.get(pb.runId)) ?? null : null
         if (pbRun && (pbRun.deleted ?? 0) !== RUN_VISIBLE) pbRun = null
 
+        const runDates = runs.map((r) => r.date)
+        const weightByDate = await getWeightsForDates(runDates)
+
         const nextSamples: KpsSample[] = []
         for (const run of runs) {
-          const profileForRun = await getProfileForRun(run)
+          const profileForRun = resolveProfileForRunWithWeightCache(weightByDate, run)
           const relativeKps = calculateRelativeKPSSync(run, profileForRun, pb, pbRun)
           if (!Number.isFinite(relativeKps) || relativeKps <= 0) continue
           nextSamples.push(toKpsSample(run, relativeKps))

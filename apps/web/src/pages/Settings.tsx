@@ -15,8 +15,8 @@ import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
 import { useAuth } from '../components/providers/useAuth'
 import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
 import { findOutlierRuns, calculateAbsoluteKPS } from '../lib/kpsUtils'
-import { hideRun, bulkPutWeightEntries, getWeightHistoryCount, backfillRunWeights, type WeightEntry } from '../lib/database'
-import { getProfileForRunDate } from '../lib/authState'
+import { hideRun, bulkPutWeightEntries, getWeightHistoryCount, backfillRunWeights, getWeightsForDates, type WeightEntry } from '../lib/database'
+import { resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { formatDistance, formatTime } from '@kinetix/core'
 import { Dialog } from '../components/a11y/Dialog'
 import { featureFlags } from '../lib/featureFlags'
@@ -769,13 +769,15 @@ export default function Settings() {
                     (r) => (r.deleted ?? 0) === RUN_VISIBLE
                   )
                   const existingIds = new Set((existingGarmin.map(r => r.external_id).filter(Boolean) as string[]))
-                  const toAdd = (
-                    await Promise.all(
-                      normalizedRuns
-                        .filter((r) => !existingIds.has(r.external_id))
-                        .map(async (n) => convertGarminToRunRecord(n, await getProfileForRunDate(n.date), targetKPS))
-                    )
-                  ).filter((r): r is RunRecord => r !== null)
+
+                  const runsToProcess = normalizedRuns.filter((r) => !existingIds.has(r.external_id))
+                  const runDates = runsToProcess.map((r) => r.date)
+                  const weightByDate = await getWeightsForDates(runDates)
+
+                  const toAdd = runsToProcess
+                    .map((n) => convertGarminToRunRecord(n, resolveProfileForRunWithWeightCache(weightByDate, { date: n.date }), targetKPS))
+                    .filter((r): r is RunRecord => r !== null)
+
                   if (toAdd.length === 0) {
                     const noJson = stats.filesScanned === 0
                     const noFit = stats.fitFilesScanned === 0

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { RunRecord } from '../lib/database'
+import { RunRecord, getWeightsForDates } from '../lib/database'
 import { getPBRun, calculateRelativeKPS } from '../lib/kpsUtils'
-import { getProfileForRun } from '../lib/authState'
+import { resolveProfileForRunWithWeightCache } from '../lib/authState'
 import type { UserProfile } from '@kinetix/core'
 
 /**
@@ -18,7 +18,8 @@ export function useBaselineKPS(_userProfile: UserProfile) {
   }, [])
 
   const getRelativeKPSForRun = async (run: RunRecord): Promise<number> => {
-    const profileForRun = await getProfileForRun(run)
+    const weightByDate = await getWeightsForDates([run.date])
+    const profileForRun = resolveProfileForRunWithWeightCache(weightByDate, run)
     return calculateRelativeKPS(run, profileForRun)
   }
 

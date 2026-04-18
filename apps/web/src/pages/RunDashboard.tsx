@@ -5,7 +5,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { formatDistance, formatPace, timeToAchieveKPS, distanceToAchieveKPS } from '@kinetix/core'
 import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
-import { ensurePBInitialized, getRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS, calculateRelativeKPSSync } from '../lib/kpsUtils'
+import { ensurePBInitialized, calculateRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS, calculateRelativeKPSSync } from '../lib/kpsUtils'
 import { getRunsPage, getWeightsForDates } from '../lib/database'
 import { resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
@@ -129,7 +129,7 @@ export default function RunDashboard() {
       splits: [],
     }
     ensurePBInitialized(userProfile)
-      .then(() => getRelativeKPS(tempRun, userProfile))
+      .then(() => calculateRelativeKPS(tempRun, userProfile))
       .then(setRelativeKPS)
       .catch(() => setRelativeKPS(0))
   }, [distance, duration, averagePace, rollingPace, targetKPS, userProfile])

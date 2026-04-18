@@ -1,8 +1,8 @@
-import { db, RunRecord, RUN_VISIBLE } from './database'
+import { db, RunRecord, RUN_VISIBLE, getWeightsForDates } from './database'
 import { UserProfile } from '@kinetix/core'
 import { isMeaningfulRunForKPS } from './kpsUtils'
 import { indexRunsAfterSave } from './ragClient'
-import { getProfileForRunDate } from './authState'
+import { resolveProfileForRunWithWeightCache } from './authState'
 import { useSettingsStore } from '../store/settingsStore'
 
 /** Refresh if token expires within 1 hour. Returns valid access token or empty string. */
@@ -240,14 +240,14 @@ export async function syncStravaRuns(
       existingRuns.map((r) => `${r.date}-${Math.round(r.distance)}`)
     )
 
-    const records = (
-      await Promise.all(
-        activities.map(async (a) => {
-          const profileForDate = await getProfileForRunDate(a.start_date)
-          return convertStravaToRunRecord(a, profileForDate, targetKPS)
-        })
-      )
-    )
+    const activityDates = activities.map((a) => a.start_date)
+    const weightByDate = await getWeightsForDates(activityDates)
+
+    const records = activities
+      .map((a) => {
+        const profileForDate = resolveProfileForRunWithWeightCache(weightByDate, { date: a.start_date })
+        return convertStravaToRunRecord(a, profileForDate, targetKPS)
+      })
       .filter((r): r is RunRecord => r !== null)
       .filter((r) => {
         const key = `${r.date}-${Math.round(r.distance)}`

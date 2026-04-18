@@ -10,9 +10,9 @@ import type {
   VerifiedFactContract,
 } from '@kinetix/core'
 import { extractNumericTokensFromText } from '@kinetix/core'
-import type { RunRecord } from './database'
+import { getWeightsForDates, type RunRecord } from './database'
 import { calculateAbsoluteKPS } from './kpsUtils'
-import { getProfileForRun } from './authState'
+import { resolveProfileForRunWithWeightCache } from './authState'
 
 const RAG_PORTS = [3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010]
 let cachedRAGBaseUrl: string | null = null
@@ -137,8 +137,12 @@ export async function indexRunInRAG(ragRun: RAGRunShape): Promise<boolean> {
 export async function indexRunsAfterSave(runs: RunRecord[]): Promise<void> {
   const available = await checkRAGAvailable()
   if (!available || runs.length === 0) return
+
+  const runDates = runs.map((r) => r.date)
+  const weightByDate = await getWeightsForDates(runDates)
+
   for (const run of runs) {
-    const profile = await getProfileForRun(run)
+    const profile = resolveProfileForRunWithWeightCache(weightByDate, run)
     const ragRun = runRecordToRAGRun(run, profile)
     await indexRunInRAG(ragRun)
   }
@@ -329,8 +333,12 @@ export async function reindexAllRunsInRAG(runs: RunRecord[]): Promise<{ indexed:
   let errors = 0
   const base = await getRAGBaseUrl()
   if (!base) return { indexed: 0, errors: runs.length }
+
+  const runDates = runs.map((r) => r.date)
+  const weightByDate = await getWeightsForDates(runDates)
+
   for (const run of runs) {
-    const profile = await getProfileForRun(run)
+    const profile = resolveProfileForRunWithWeightCache(weightByDate, run)
     const ragRun = runRecordToRAGRun(run, profile)
     const ok = await indexRunInRAG(ragRun)
     if (ok) indexed += 1

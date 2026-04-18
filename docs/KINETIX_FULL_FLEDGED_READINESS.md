@@ -1,5 +1,7 @@
 # Kinetix full-fledged product readiness (KX-FEAT-001)
 
+**Update (KX-FEAT-002, 2026-04-18):** A **release candidate pass** re-ran the full web gate (install, typecheck, lint, vitest, build, Playwright) on commit `5d13cbf` (branch `cursor/kinetix-readiness-8210`); all passed. **See** [`docs/KINETIX_RELEASE_CANDIDATE.md`](KINETIX_RELEASE_CANDIDATE.md) for RC sign-off, tag recommendation, and production next steps. Native apps remain manual verification as below.
+
 **Scope:** Kinetix web app (`apps/web`, package `@kinetix/web`) — primary product surface in this monorepo. **Not** a final closure: this is the readiness pass before a formal closure review.
 
 **Branch:** `cursor/kinetix-readiness-8210`  
@@ -91,13 +93,14 @@ From repo root (`/workspace`):
 
 ## Recommended final closure checklist (next phase)
 
+- [x] **Web gate re-verified (KX-FEAT-002, 2026-04-18):** 433 unit/integration tests; 44 e2e; build OK — see `KINETIX_RELEASE_CANDIDATE.md`.  
 - [ ] Re-run full **native** manual runbook: `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md`  
 - [ ] Staging smoke with **real** Supabase + entitlements + Stripe test mode: `docs/deployment/KINETIX_VERIFICATION_CHECKLIST.md`  
 - [ ] Verify **no** `VITE_SKIP_AUTH` in production host env; confirm production bundle does not activate skip-auth (this pass: gated in `AuthProvider`).  
 - [ ] Run **Lighthouse** / CWV on production URL (optional: `lh:ci` script).  
 - [ ] Product review: NPI vs KPS naming in customer-facing copy (web branding uses KPS; README still mixes concepts in places).  
-- [ ] File sign-off: update `REPO_STATUS.md` or `docs/KINETIX_SCOPE_CLOSURE.md` when the formal closure is executed.
+- [ ] **Merge PR #89 / readiness branch, tag `kinetix-rc-2` on the chosen release line** (if approved — see `KINETIX_RELEASE_CANDIDATE.md`); file sign-off: update `REPO_STATUS.md` or `docs/KINETIX_SCOPE_CLOSURE.md` when the formal **production** release is executed.
 
 ## Recommendation
 
-**Ready for a formal “closure pass” (web)**: Core flows, KPS display rules, production auth bypass, automated regression (unit + e2e), and build are in good shape for a demo / staging freeze. **Not “product closed”** until native surfaces and live staging verification are complete.
+**Web RC-ready (2026-04-18):** The same quality bar is **confirmed** by the KX-FEAT-002 re-run. The product is **not** “fully closed” for the full *multi-surface* story (Watch/Phone) until **native** review and **live** staging with real entitlements. Use `docs/KINETIX_RELEASE_CANDIDATE.md` for the formal RC statement and `kinetix-rc-2` tag recommendation.

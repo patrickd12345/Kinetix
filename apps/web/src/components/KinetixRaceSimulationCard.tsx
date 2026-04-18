@@ -46,7 +46,7 @@ export function KinetixRaceSimulationCard({ loading, error, simulation }: Kineti
       <header>
         <h3 className="text-lg font-black text-slate-900 dark:text-white">Race Simulation</h3>
         <p className="text-xs text-slate-600 dark:text-gray-400">
-          Distance: {simulation.selectedDistanceLabel} · {simulation.isGoalDriven ? 'Goal-driven' : 'Fallback distance'}
+          Current-fitness simulation · Distance: {simulation.selectedDistanceLabel} · {simulation.isGoalDriven ? 'Goal distance selected' : 'Fallback distance selected'}
         </p>
       </header>
 
@@ -58,7 +58,7 @@ export function KinetixRaceSimulationCard({ loading, error, simulation }: Kineti
 
       <dl className="space-y-2 text-sm">
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-slate-600 dark:text-gray-400">Projected finish</dt>
+          <dt className="text-slate-600 dark:text-gray-400">Projected finish (current-fitness pacing model)</dt>
           <dd className="font-semibold text-slate-900 dark:text-white">{simulation.formattedFinishTime}</dd>
         </div>
         <div className="flex items-center justify-between gap-4">

@@ -1,4 +1,4 @@
-import { db, RunRecord, RUN_VISIBLE } from './database'
+import { db, RunRecord } from './database'
 import { UserProfile } from '@kinetix/core'
 import { isMeaningfulRunForKPS } from './kpsUtils'
 import { indexRunsAfterSave } from './ragClient'

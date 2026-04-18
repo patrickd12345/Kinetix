@@ -81,7 +81,7 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
     <section className="glass rounded-2xl p-5 border border-emerald-500/20 space-y-4" aria-label="Goal progress">
       <header>
         <h3 className="text-lg font-black text-slate-900 dark:text-white">Goal Progress</h3>
-        <p className="text-xs text-slate-600 dark:text-gray-400">Define race target, then track projected outcome and weekly emphasis.</p>
+        <p className="text-xs text-slate-600 dark:text-gray-400">Goal-date tracking from your saved race target and best recent equivalent performance.</p>
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -130,8 +130,8 @@ export function KinetixGoalProgressCard({ loading, error, progress }: KinetixGoa
         <dl className="space-y-1 text-sm">
           <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Goal</dt><dd className="font-semibold text-slate-900 dark:text-white">{goal.distance}</dd></div>
           <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Event Date</dt><dd className="text-slate-900 dark:text-white">{new Date(goal.eventDate).toLocaleDateString('en-US')}</dd></div>
-          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Target</dt><dd className="text-slate-900 dark:text-white">{formatSeconds(goal.targetTimeSeconds)}</dd></div>
-          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Projected</dt><dd className="text-slate-900 dark:text-white">{formatSeconds(progress?.projectedTimeSeconds)}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Target (saved goal time)</dt><dd className="text-slate-900 dark:text-white">{formatSeconds(goal.targetTimeSeconds)}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Projected at goal distance (goal tracker)</dt><dd className="text-slate-900 dark:text-white">{formatSeconds(progress?.projectedTimeSeconds)}</dd></div>
           <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Gap</dt><dd className="text-slate-900 dark:text-white">{progress?.targetDeltaSeconds != null ? `${progress.targetDeltaSeconds > 0 ? '+' : ''}${progress.targetDeltaSeconds}s` : '—'}</dd></div>
           <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Status</dt><dd className="text-slate-900 dark:text-white">{titleCase(progress?.status ?? 'unknown')}</dd></div>
           <div className="flex justify-between"><dt className="text-slate-600 dark:text-gray-400">Days Remaining</dt><dd className="text-slate-900 dark:text-white">{progress?.daysRemaining ?? '—'}</dd></div>

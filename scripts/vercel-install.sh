@@ -11,13 +11,23 @@ rm -rf .bookiji-packages
 # Shallow clone of main tree only. Do not use --recurse-submodules: umbrella submodules (ai-core,
 # products/*) are huge and not needed; Kinetix copies Bookiji-inc repo-root packages/* into monorepo-packages/ for @bookiji-inc/*.
 
-if ! env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp; then
+# Force GIT_TERMINAL_PROMPT=0 via export to ensure no children prompt
+export GIT_TERMINAL_PROMPT=0
+
+if ! git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp; then
   echo "Warning: Unauthenticated public clone failed. Falling back to x-access-token clone."
-  if ! env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://x-access-token:${TOKEN}@github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp; then
-    echo "Warning: x-access-token clone failed. Falling back to token-as-username clone."
-    env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://${TOKEN}:x-oauth-basic@github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp || true
+
+  if [ -n "$TOKEN" ]; then
+    if ! git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://x-access-token:${TOKEN}@github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp; then
+      echo "Warning: x-access-token clone failed. Falling back to token-as-username clone."
+      # Some environments specifically need the basic auth with a PAT to access private repos properly
+      git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://${TOKEN}:x-oauth-basic@github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp || true
+    fi
+  else
+    echo "Warning: No tokens provided, unable to attempt authenticated clone fallbacks."
   fi
 fi
+
 if [ -d .bookiji-tmp/packages ]; then
   mv .bookiji-tmp/packages .bookiji-packages
 fi
@@ -33,7 +43,7 @@ fi
 if [ ! -f .bookiji-packages/ai-core/package.json ]; then
   echo "Cloning ai-core submodule..."
   rm -rf .bookiji-packages/ai-core
-  git clone --depth 1 https://github.com/patrickd12345/ai-core.git .bookiji-packages/ai-core
+  git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 https://github.com/patrickd12345/ai-core.git .bookiji-packages/ai-core || true
 fi
 
 # Refreshes monorepo-packages/ before pnpm install so workspace:* resolves @bookiji-inc/* (Kinetix-only code stays under packages/core).

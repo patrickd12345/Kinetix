@@ -3,47 +3,33 @@ set -e
 
 # Clone Bookiji-inc packages: Vercel sets GITHUB_TOKEN. CI may use BOOKIJI_INC_CLONE_TOKEN
 # (PAT with repo read) when the monorepo is private; otherwise unauthenticated public clone.
-
-# Helper to clone while unsetting any persistent GITHUB_TOKEN header from actions/checkout
-# that might interfere with cross-repo access.
-# Strictly enforce GIT_TERMINAL_PROMPT=0 and clear auth headers inline as per Memory.
-git_clone() {
-  local url="$1"
-  local dest="$2"
-  # Unset auth headers for this command only to prevent access-token leakage or conflicts.
-  env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "$url" "$dest"
-}
-
-clone_bookiji_inc() {
-  rm -rf .bookiji-tmp
-
-  # 1. Try unauthenticated public clone first (most reliable for public repos in CI)
-  echo "Attempting unauthenticated clone of Bookiji-inc..."
-  if git_clone https://github.com/patrickd12345/Bookiji-inc .bookiji-tmp; then
-    return 0
-  fi
-
-  # 2. Try authenticated clone if unauthenticated fails (likely private repo)
-  # Memory mandate: prefer BOOKIJI_INC_CLONE_TOKEN, fall back to GITHUB_TOKEN, fail if both absent.
-  local token="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
-  if [ -n "$token" ]; then
-    echo "Unauthenticated clone failed. Attempting authenticated clone..."
-    # Use exactly one pattern: https://x-access-token:${TOKEN}@github.com/...
-    if git_clone "https://x-access-token:${token}@github.com/patrickd12345/Bookiji-inc" .bookiji-tmp; then
-      return 0
-    fi
+clone_url() {
+  if [ -n "${BOOKIJI_INC_CLONE_TOKEN:-}" ]; then
+    echo "https://x-access-token:${BOOKIJI_INC_CLONE_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
+  elif [ -n "${GITHUB_TOKEN:-}" ]; then
+    # x-access-token form matches GitHub HTTPS conventions (Vercel, Actions github.token, PATs).
+    # Default GITHUB_TOKEN in Actions often lacks cross-repo read on a private Bookiji-inc; use
+    # BOOKIJI_INC_CLONE_TOKEN when the umbrella repo is private.
+    echo "https://x-access-token:${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
   else
-     echo "Error: Neither BOOKIJI_INC_CLONE_TOKEN nor GITHUB_TOKEN is set. Cross-repo clone required."
-     exit 1
+    echo "https://github.com/patrickd12345/Bookiji-inc.git"
   fi
-
-  echo "Error: Failed to clone Bookiji-inc repo."
-  return 1
 }
 
+rm -rf .bookiji-tmp
 rm -rf .bookiji-packages
-clone_bookiji_inc
-mv .bookiji-tmp/packages .bookiji-packages
+# Shallow clone of main tree only. Do not use --recurse-submodules: umbrella submodules (ai-core,
+# products/*) are huge and not needed; Kinetix copies Bookiji-inc repo-root packages/* into monorepo-packages/ for @bookiji-inc/*.
+if ! env GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$(clone_url)" .bookiji-tmp; then
+  echo "Warning: x-access-token clone failed. Falling back to token-as-username clone."
+  if ! env GIT_TERMINAL_PROMPT=0 git clone --depth 1 "https://${GITHUB_TOKEN:-}:x-oauth-basic@github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp; then
+    echo "Warning: Token-as-username clone failed. Falling back to unauthenticated public clone."
+    env GIT_TERMINAL_PROMPT=0 git clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp || true
+  fi
+fi
+if [ -d .bookiji-tmp/packages ]; then
+  mv .bookiji-tmp/packages .bookiji-packages
+fi
 rm -rf .bookiji-tmp
 
 if [ ! -f .bookiji-packages/ai-runtime/package.json ]; then
@@ -56,18 +42,10 @@ fi
 if [ ! -f .bookiji-packages/ai-core/package.json ]; then
   echo "Cloning ai-core submodule..."
   rm -rf .bookiji-packages/ai-core
-  # Try public first, then authenticated for submodule
-  if ! git_clone https://github.com/patrickd12345/ai-core .bookiji-packages/ai-core; then
-    token="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
-    if [ -n "$token" ]; then
-       git_clone "https://x-access-token:${token}@github.com/patrickd12345/ai-core" .bookiji-packages/ai-core
-    else
-       exit 1
-    fi
-  fi
+  git clone --depth 1 https://github.com/patrickd12345/ai-core.git .bookiji-packages/ai-core
 fi
 
-# Must exist before pnpm install so workspace:* resolves @bookiji-inc/* (do not use `packages/` — @kinetix/core).
+# Refreshes monorepo-packages/ before pnpm install so workspace:* resolves @bookiji-inc/* (Kinetix-only code stays under packages/core).
 # Use a real directory copy, not a symlink: Vercel's serverless file tracer can miss workspace targets
 # behind symlinks, causing ERR_MODULE_NOT_FOUND for @bookiji-inc/* in production.
 rm -rf monorepo-packages
@@ -94,4 +72,3 @@ fi
 
 # monorepo-packages/* are source-only (dist/ gitignored). Root `pnpm install` runs `prepare`, which
 # builds shared packages so @bookiji-inc/* resolve to dist/ before Vercel traces /api and before apps/web build.
-node scripts/build-bookiji-packages.mjs

@@ -4,10 +4,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { formatTime, formatDistance } from '@kinetix/core'
 import { RunRecord } from '../lib/database'
 import { useSettingsStore } from '../store/settingsStore'
+import { capDisplayRelativeKps, MAX_DISPLAY_RELATIVE_KPS } from '../lib/kpsDisplayPolicy'
 
 const KG_TO_LBS = 2.20462
-/** KPS is 0–100 scale (PB = 100); clamp so Y-axis never shows garbage. */
-const KPS_DOMAIN: [number, number] = [0, 120]
+/** KPS is 0–100 scale (PB = 100). */
+const KPS_DOMAIN: [number, number] = [0, MAX_DISPLAY_RELATIVE_KPS]
 
 interface KPSTrendData {
   runId?: number
@@ -59,9 +60,7 @@ export function KPSTrendChart({
 
     return sortedRuns.map((run) => {
       const raw = run.id ? (relativeKPSMap.get(run.id) ?? 0) : 0
-      const kps = Number.isFinite(raw) && typeof raw === 'number'
-        ? Math.max(KPS_DOMAIN[0], Math.min(KPS_DOMAIN[1], raw))
-        : 0
+      const kps = Number.isFinite(raw) && typeof raw === 'number' ? capDisplayRelativeKps(raw) : 0
       return {
         runId: run.id,
         date: run.date,

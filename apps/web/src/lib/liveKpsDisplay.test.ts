@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  LIVE_KPS_MIN_DURATION_SECONDS,
-  LIVE_KPS_MIN_DISTANCE_KM,
   LIVE_KPS_SMOOTHING_WINDOW_MS,
   appendLiveKpsSample,
   getLiveKpsDisplayState,
@@ -145,5 +143,18 @@ describe('liveKpsDisplay', () => {
     expect(state.label).toBe('Live KPS')
     expect(state.numericValue).toBe(90)
     expect(state.isCalibrating).toBe(false)
+  })
+
+  it('caps live display at 100 (PB-relative; never show above lifetime cap)', () => {
+    const state = getLiveKpsDisplayState({
+      isRunning: true,
+      durationSeconds: 130,
+      distanceKm: 0.5,
+      paceSecPerKm: 260,
+      sampleCount: 5,
+      smoothedRelativeKps: 108.2,
+    })
+    expect(state.text).toBe('100')
+    expect(state.numericValue).toBe(100)
   })
 })

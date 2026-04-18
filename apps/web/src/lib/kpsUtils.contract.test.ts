@@ -59,4 +59,11 @@ describe('KPS contract invariants', () => {
     const run = makeRun({ id: 11, distance: 5000, duration: 1600, averagePace: 320 })
     expect(calculateRelativeKPSSync(run, profile, null, null)).toBe(0)
   })
+
+  it('caps displayed relative KPS at 100 when a run outpaces a stale PB anchor (profile drift / bad anchor)', () => {
+    const pbRun = makeRun({ id: 10, distance: 5000, duration: 1800, averagePace: 360 })
+    const faster = makeRun({ id: 11, distance: 5000, duration: 1500, averagePace: 300 })
+    const score = calculateRelativeKPSSync(faster, profile, pb, pbRun)
+    expect(score).toBe(100)
+  })
 })

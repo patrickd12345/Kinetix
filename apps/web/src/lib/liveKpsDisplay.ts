@@ -10,7 +10,10 @@ export interface LiveKpsDisplayState {
   isCalibrating: boolean
 }
 
-export const LIVE_KPS_CALIBRATION_SECONDS = 10
+export const LIVE_KPS_MIN_DURATION_SECONDS = 120
+export const LIVE_KPS_MIN_DISTANCE_KM = 0.40
+export const LIVE_KPS_MIN_PACE = 180
+export const LIVE_KPS_MAX_PACE = 900
 export const LIVE_KPS_SMOOTHING_WINDOW_MS = 3000
 
 export function appendLiveKpsSample(samples: LiveKpsSample[], sample: LiveKpsSample): LiveKpsSample[] {
@@ -31,6 +34,9 @@ export function getSmoothedLiveKps(samples: LiveKpsSample[]): number | null {
 export function getLiveKpsDisplayState(options: {
   isRunning: boolean
   durationSeconds: number
+  distanceKm: number
+  paceSecPerKm: number
+  sampleCount?: number
   smoothedRelativeKps: number | null
 }): LiveKpsDisplayState {
   if (!options.isRunning) {
@@ -42,7 +48,12 @@ export function getLiveKpsDisplayState(options: {
     }
   }
 
-  if (options.durationSeconds < LIVE_KPS_CALIBRATION_SECONDS) {
+  const hasEnoughTimeOrDistance = options.durationSeconds >= LIVE_KPS_MIN_DURATION_SECONDS || options.distanceKm >= LIVE_KPS_MIN_DISTANCE_KM
+  const hasValidDistance = options.distanceKm > 0
+  const hasValidPace = Number.isFinite(options.paceSecPerKm) && options.paceSecPerKm >= LIVE_KPS_MIN_PACE && options.paceSecPerKm <= LIVE_KPS_MAX_PACE
+  const hasEnoughSamples = options.sampleCount === undefined || options.sampleCount >= 2
+
+  if (!hasEnoughTimeOrDistance || !hasValidDistance || !hasValidPace || !hasEnoughSamples) {
     return {
       text: '--',
       label: 'Calibrating KPS',

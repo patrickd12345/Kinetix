@@ -2,10 +2,32 @@
  * Strava sync tests: convertStravaToRunRecord and syncStravaRuns (mocked fetch).
  * Run with: pnpm test (from repo root or apps/web).
  */
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { StravaActivity } from './strava'
 import { convertStravaToRunRecord, fetchStravaActivities, syncStravaRuns } from './strava'
 import type { UserProfile } from '@kinetix/core'
+
+const mockDbState = vi.hoisted(() => ({
+  runs: [] as any[],
+}))
+
+vi.mock('./database', () => ({
+  RUN_VISIBLE: 0,
+  db: {
+    runs: {
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          toArray: vi.fn(() => Promise.resolve(mockDbState.runs)),
+        })),
+      })),
+      bulkAdd: vi.fn((records) => {
+        const addedIds = records.map((_: any, i: number) => mockDbState.runs.length + i + 1)
+        mockDbState.runs.push(...records.map((r: any, i: number) => ({ ...r, id: addedIds[i] })))
+        return Promise.resolve(addedIds)
+      }),
+    },
+  },
+}))
 
 const mockUserProfile: UserProfile = {
   age: 35,
@@ -38,6 +60,7 @@ describe('convertStravaToRunRecord', () => {
     const activity = stravaActivity()
     const run = convertStravaToRunRecord(activity, mockUserProfile, 135)
     expect(run).not.toBeNull()
+    expect(run!.external_id).toBe(activity.id.toString())
     expect(run!.date).toBe(activity.start_date)
     expect(run!.distance).toBe(5000)
     expect(run!.duration).toBe(1500)
@@ -66,6 +89,10 @@ describe('convertStravaToRunRecord', () => {
 })
 
 describe('syncStravaRuns', () => {
+  beforeEach(() => {
+    mockDbState.runs = []
+  })
+
   it('returns added: [] when token is empty', async () => {
     const result = await syncStravaRuns('', 135)
     expect(result.added).toEqual([])

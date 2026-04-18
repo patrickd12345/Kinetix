@@ -1,73 +1,178 @@
 # Infisical local development
 
-**See also:** workspace **[`docs/platform/APP_INTEGRATION_STANDARD.md`](../../../../docs/platform/APP_INTEGRATION_STANDARD.md)** (secrets model and new-app checklist); Kinetix **[`docs/deployment/README.md`](./README.md)** (index).
+**See also:** workspace **[`docs/platform/APP_INTEGRATION_STANDARD.md`](../../../../docs/platform/APP_INTEGRATION_STANDARD.md)**, Kinetix **[`docs/deployment/README.md`](./README.md)**, and KX-FEAT-004 policy **[`INFISICAL_CANONICAL_SECRETS.md`](./INFISICAL_CANONICAL_SECRETS.md)**.
 
-The Kinetix repo script `pnpm dev:infisical` runs [`scripts/dev-with-infisical.mjs`](../../scripts/dev-with-infisical.mjs) to load secrets before `pnpm dev` (web + RAG).
+## Purpose
 
-## Flow
+Use Infisical as the **local source of truth** for shared platform secrets and Kinetix-specific secrets without baking secrets into the repo or asking the browser runtime to talk to Infisical directly.
 
-1. Resolve Infisical project: `INFISICAL_PROJECT_ID` or `.infisical.json` → `workspaceId`.
-2. Export JSON secrets for paths **`/platform`** and **`/kinetix`**, environment **`INFISICAL_ENV`** (default `dev`).
-3. Merge: `process.env` ← `/platform` ← `/kinetix` (later paths override earlier).
-4. Apply **temporary compatibility alias**: if `SUPABASE_SECRET_KEY` is set and neither `SUPABASE_SERVICE_ROLE_KEY` nor `SUPABASE_SERVICE_KEY` is set, set `SUPABASE_SERVICE_ROLE_KEY` from `SUPABASE_SECRET_KEY` (Bookiji `/platform` naming).
-5. **Validate** required variables (fail-fast with explicit names). If valid, spawn `pnpm dev`.
+The local flow is intentionally narrow:
 
-SSO and Supabase client setup for production parity: see [`ENV_PARITY.md`](./ENV_PARITY.md).
+- pull from **`/platform`** and **`/kinetix`**
+- merge locally for developer startup and validation
+- fail fast when required variables are missing
+- never print secret values
 
-## Secret path ownership
+## Prerequisites
 
-| Path | Owns | Notes |
-|------|------|--------|
-| **`/platform`** | Shared Bookiji infrastructure | Same Supabase project and platform guardrails as other Bookiji apps. Use for URLs, publishable keys, `SUPABASE_ACCESS_TOKEN`, `SHARED_DB_*`, and **`SUPABASE_SECRET_KEY`** (service role; server-side only). |
-| **`/kinetix`** | Kinetix-only secrets | App-specific keys (e.g. Strava, Withings, Gemini, OAuth client secrets) that are not shared platform-wide. Empty is allowed if everything lives under `/platform` or local `.env.local`. |
+1. Install the **Infisical CLI** and make sure `infisical` is on `PATH`.
+2. Log in before using Kinetix Infisical commands:
 
-Merge order means **`/kinetix` overrides `/platform`** on key collisions.
+```bash
+infisical login
+```
 
-## Public vs server-only (web bundle)
+3. Make sure the CLI can resolve the correct project via either:
+   - `INFISICAL_PROJECT_ID`, or
+   - `.infisical.json` with `workspaceId`
 
-Vite exposes env to the client when the key is prefixed with **`VITE_`** or **`NEXT_PUBLIC_`** (`envPrefix` in `apps/web/vite.config.ts`). Treat these as **public** (they ship in the browser bundle).
+If the CLI is missing or login/project resolution is broken, `pnpm dev:infisical` and `pnpm verify:infisical` should fail before any normal dev server logic starts.
 
-| Prefix | Typical use |
-|--------|-------------|
-| `VITE_*` | Preferred for Kinetix web (Supabase URL, anon/publishable key, feature flags safe for clients). |
-| `NEXT_PUBLIC_*` | Compatibility with Bookiji / Next naming; same exposure rules as `VITE_*` in this repo. |
+## Expected paths
 
-**Server-only** (do not rely on “hiding” in the client; keep out of `VITE_` / `NEXT_PUBLIC_` unless the value is designed to be public):
+Kinetix local merge expects these Infisical paths:
 
-- `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SERVICE_KEY`
-- `STRAVA_CLIENT_SECRET`, `WITHINGS_CLIENT_SECRET`, `GEMINI_API_KEY`, etc.
+| Path | Purpose | Notes |
+|------|---------|-------|
+| **`/platform`** | Shared Bookiji infrastructure secrets | Shared Supabase URL, anon/publishable keys, platform tokens, and other server-side shared values. |
+| **`/kinetix`** | Kinetix-only secrets | Product-specific OAuth, AI, billing, and integration secrets. |
 
-## Temporary alias (compatibility only)
+Merge order is:
 
-**`SUPABASE_SECRET_KEY` → `SUPABASE_SERVICE_ROLE_KEY`**
+```text
+process.env <- /platform <- /kinetix <- apps/web/.env.local
+```
 
-Bookiji’s `/platform` folder often stores the service role as `SUPABASE_SECRET_KEY`. Kinetix scripts and APIs may expect `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SERVICE_KEY`. The dev script copies across **only when** the legacy role key names are unset, so explicit `SUPABASE_SERVICE_ROLE_KEY` in Infisical or `.env` always wins.
+That means Kinetix-specific keys override shared platform keys, and local emergency overrides win last.
 
-## Required variables for `dev:infisical`
+## Local commands
 
-After merge and aliasing, the following **must** be satisfied (same resolution as [`apps/web/src/lib/supabaseClient.ts`](../../apps/web/src/lib/supabaseClient.ts)):
+### Start local development with Infisical
 
-1. **Supabase URL** — at least one non-empty value among: `VITE_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`
-2. **Supabase publishable / anon key** — at least one non-empty value among: `VITE_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+```bash
+pnpm dev:infisical
+```
 
-If validation fails, the process exits before starting `pnpm dev`, and the error lists what is missing.
+This runs [`scripts/dev-with-infisical.mjs`](../../scripts/dev-with-infisical.mjs), which:
 
-## Verification without starting the dev server
+1. resolves the Infisical project
+2. exports **`/platform`** and **`/kinetix`**
+3. applies the local merge
+4. applies the `SUPABASE_SECRET_KEY -> SUPABASE_SERVICE_ROLE_KEY` compatibility alias when needed
+5. validates required client envs before spawning `pnpm dev`
 
-Shared merge logic lives in [`scripts/infisical-merge-lib.mjs`](../../scripts/infisical-merge-lib.mjs). Run:
+### Validate secrets without starting the app
 
 ```bash
 pnpm verify:infisical
 ```
 
-Optional Infisical environment (default `dev`):
+Optional alternate environment:
 
 ```bash
 node scripts/verify-infisical.mjs --env=prod
 ```
 
-On success, the script prints key counts and whether the Supabase URL resolved (no secret values). Exit code `0` means `/platform` plus `/kinetix` merged and the Supabase URL plus publishable/anon key checks passed.
+Success means the merge completed and the required Supabase URL plus publishable/anon key resolved. Output may include key counts and validation status, but **must never include secret values**.
 
-## Alternatives
+## Required variables for a working local web client
 
-- **`pnpm dev`** without Infisical: set the same variables in `apps/web/.env.local` (see `apps/web/.env.example`).
+After merge and aliasing, the following must resolve exactly as the web client expects in [`apps/web/src/lib/supabaseClient.ts`](../../apps/web/src/lib/supabaseClient.ts):
+
+1. **Supabase URL**
+   - `VITE_SUPABASE_URL`, or
+   - `NEXT_PUBLIC_SUPABASE_URL`
+2. **Supabase publishable / anon key**
+   - `VITE_SUPABASE_ANON_KEY`, or
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`, or
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+If any required variable is missing, the Infisical helper should fail closed before normal startup.
+
+## Public vs server-only values
+
+Anything prefixed with **`VITE_`** or **`NEXT_PUBLIC_`** is treated as public by the web build and must be safe to ship to browsers.
+
+Keep secrets like these server-only:
+
+- `SUPABASE_SECRET_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SERVICE_KEY`
+- `STRAVA_CLIENT_SECRET`
+- `WITHINGS_CLIENT_SECRET`
+- `GEMINI_API_KEY`
+
+## `.env.local` emergency fallback
+
+If Infisical is temporarily unavailable, a developer may place the minimum required values in:
+
+```text
+apps/web/.env.local
+```
+
+This is an **emergency local fallback only** for unblocking development. Rules:
+
+- do not commit `.env.local`
+- do not treat `.env.local` as the canonical source of truth
+- move any durable value back into Infisical once access is restored
+- prefer the smallest possible local override rather than copying a full environment dump
+
+## Troubleshooting
+
+### `infisical: command not found`
+
+Install the Infisical CLI and retry.
+
+### CLI is installed but export fails
+
+Most common causes:
+
+- not logged in (`infisical login`)
+- wrong `INFISICAL_PROJECT_ID`
+- stale or missing `.infisical.json`
+- missing access to **`/platform`** or **`/kinetix`**
+
+### Validation fails after merge
+
+Run:
+
+```bash
+pnpm verify:infisical
+```
+
+Then fix the missing variable in the correct place:
+
+- shared value -> **`/platform`**
+- Kinetix-only value -> **`/kinetix`**
+- temporary local unblock -> `apps/web/.env.local`
+
+### Local auth redirects back to the wrong host
+
+Check [`ENV_PARITY.md`](./ENV_PARITY.md) and make sure local callback settings are compatible with localhost. Shared production redirect pins must not break local testing.
+
+## No-secret-logging rule
+
+Kinetix Infisical tooling may log:
+
+- which paths were read
+- which environment was requested
+- counts of keys found
+- names of missing variables
+
+Kinetix Infisical tooling must **not** log:
+
+- secret values
+- partially masked secret values that still reveal useful entropy
+- raw exported JSON payloads
+- copied `.env` file contents
+
+## Production and runtime non-goals
+
+This local-dev flow does **not** mean:
+
+- the browser may call Infisical at runtime
+- production deploys should fetch secrets from the browser
+- normal build, lint, or test commands should require live Infisical credentials
+- Kinetix should bypass deployment-time validation when required env vars are missing
+
+Local Infisical is for **developer startup and verification** only. Production and CI secret delivery are handled by deployment-time sync and runtime-safe environment injection, not browser access.

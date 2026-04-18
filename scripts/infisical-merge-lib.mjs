@@ -23,14 +23,35 @@ export function projectIdArgs() {
 }
 
 export function exportSecrets(secretPath, envName) {
-  const output = execFileSync(
-    "infisical",
-    [...projectIdArgs(), "export", "--env", envName, "--path", secretPath, "--format", "json"],
-    {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
+  let output;
+  try {
+    output = execFileSync(
+      "infisical",
+      [...projectIdArgs(), "export", "--env", envName, "--path", secretPath, "--format", "json"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }
+    );
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") {
+      throw new Error(
+        "Infisical CLI is not installed or not on PATH. Install the Infisical CLI and run `infisical login` before using pnpm dev:infisical or pnpm verify:infisical."
+      );
     }
-  );
+
+    const stderr =
+      error && typeof error === "object" && typeof error.stderr === "string"
+        ? error.stderr.trim()
+        : "";
+    if (stderr) {
+      throw new Error(
+        `Infisical export failed for path ${secretPath} in env ${envName}. ${stderr}`
+      );
+    }
+
+    throw error;
+  }
 
   const parsed = JSON.parse(output);
   if (!Array.isArray(parsed)) {

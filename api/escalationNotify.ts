@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { applyCors } from './_lib/cors.js'
 import { sendApiError } from './_lib/apiError.js'
 import { resolveKinetixRuntimeEnv } from './_lib/env/runtime.js'
+import { resolveEnvironmentLabelFromRaw } from './_lib/env/envLabels.js'
 
 type EscalationNotifyBody = {
   ticketId?: string
@@ -38,11 +39,8 @@ function cleanupRateLimitWindow(now: number) {
 
 function resolveEnvironmentLabel() {
   const runtime = resolveKinetixRuntimeEnv()
-  const raw = (process.env.VERCEL_ENV || runtime.nodeEnv || '').trim().toLowerCase()
-  if (raw === 'production' || raw === 'prod') return 'PROD'
-  if (raw === 'preview' || raw === 'staging' || raw === 'stage') return 'STAGING'
-  if (raw === 'development' || raw === 'dev' || raw === 'test' || raw === 'local') return 'DEV'
-  return 'UNKNOWN'
+  const raw = process.env.VERCEL_ENV || runtime.nodeEnv || ''
+  return resolveEnvironmentLabelFromRaw(raw)
 }
 
 function buildQueueLink(ticketId: string) {

@@ -1,21 +1,35 @@
 #!/bin/bash
 set -e
 
-# Resolve token: prefer BOOKIJI_INC_CLONE_TOKEN, fall back to GITHUB_TOKEN.
-TOKEN="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
-if [ -z "$TOKEN" ]; then
-  echo "Error: Neither BOOKIJI_INC_CLONE_TOKEN nor GITHUB_TOKEN is set. Cross-repo clone required for monorepo packages."
-  exit 1
-fi
-
 # Helper to clone using exactly one pattern as per memory.
 # Strictly enforces GIT_TERMINAL_PROMPT=0 and clears http.extraheader inline.
 git_clone() {
   local repo_name="$1"
   local dest="$2"
+
+  if [ -z "${BOOKIJI_INC_CLONE_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ]; then
+    echo "Error: Neither BOOKIJI_INC_CLONE_TOKEN nor GITHUB_TOKEN is set. Cross-repo clone required for monorepo packages."
+    exit 1
+  fi
+
   # Never echo TOKEN or full clone URL in logs.
   echo "Cloning patrickd12345/${repo_name}..."
-  env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" clone --depth 1 "https://x-access-token:${TOKEN}@github.com/patrickd12345/${repo_name}.git" "$dest"
+
+  # Prefer BOOKIJI_INC_CLONE_TOKEN and fall back to GITHUB_TOKEN inline
+  if [ -n "${BOOKIJI_INC_CLONE_TOKEN:-}" ]; then
+    if env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" clone --depth 1 "https://x-access-token:${BOOKIJI_INC_CLONE_TOKEN}@github.com/patrickd12345/${repo_name}.git" "$dest"; then
+      return 0
+    fi
+  fi
+
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    if env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" clone --depth 1 "https://x-access-token:${GITHUB_TOKEN}@github.com/patrickd12345/${repo_name}.git" "$dest"; then
+      return 0
+    fi
+  fi
+
+  echo "Error: Failed to clone ${repo_name} with available tokens."
+  exit 1
 }
 
 rm -rf .bookiji-tmp

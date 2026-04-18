@@ -3,29 +3,19 @@ set -e
 
 # Clone Bookiji-inc packages: Vercel sets GITHUB_TOKEN. CI may use BOOKIJI_INC_CLONE_TOKEN
 # (PAT with repo read) when the monorepo is private; otherwise unauthenticated public clone.
-clone_url() {
-  if [ -n "${BOOKIJI_INC_CLONE_TOKEN:-}" ]; then
-    echo "https://x-access-token:${BOOKIJI_INC_CLONE_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
-  elif [ -n "${GITHUB_TOKEN:-}" ]; then
-    # x-access-token form matches GitHub HTTPS conventions (Vercel, Actions github.token, PATs).
-    # Default GITHUB_TOKEN in Actions often lacks cross-repo read on a private Bookiji-inc; use
-    # BOOKIJI_INC_CLONE_TOKEN when the umbrella repo is private.
-    echo "https://x-access-token:${GITHUB_TOKEN}@github.com/patrickd12345/Bookiji-inc.git"
-  else
-    echo "https://github.com/patrickd12345/Bookiji-inc.git"
-  fi
-}
+
+TOKEN="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
 
 rm -rf .bookiji-tmp
 rm -rf .bookiji-packages
 # Shallow clone of main tree only. Do not use --recurse-submodules: umbrella submodules (ai-core,
 # products/*) are huge and not needed; Kinetix copies Bookiji-inc repo-root packages/* into monorepo-packages/ for @bookiji-inc/*.
-export GIT_TERMINAL_PROMPT=0
-if ! git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp; then
+
+if ! env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp; then
   echo "Warning: Unauthenticated public clone failed. Falling back to x-access-token clone."
-  if ! git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "$(clone_url)" .bookiji-tmp; then
+  if ! env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://x-access-token:${TOKEN}@github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp; then
     echo "Warning: x-access-token clone failed. Falling back to token-as-username clone."
-    git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://${GITHUB_TOKEN:-}@github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp || true
+    env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" -c http.https://github.com/.extraheader="" clone --depth 1 "https://${TOKEN}:x-oauth-basic@github.com/patrickd12345/Bookiji-inc.git" .bookiji-tmp || true
   fi
 fi
 if [ -d .bookiji-tmp/packages ]; then

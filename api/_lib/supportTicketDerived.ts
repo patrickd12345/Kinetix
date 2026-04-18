@@ -251,25 +251,39 @@ export function getSlaMetrics(
 
   for (const ticket of tickets) {
     const createdAtMs = parseIso(ticket.created_at ?? null)
-    const updatedAtMs = parseIso(ticket.updated_at ?? null)
-    const lastOperatorActionAtMs = parseIso(ticket.last_operator_action_at ?? null)
 
     if (createdAtMs != null && createdAtMs >= sevenDayCutoff) {
       createdLast7Days += 1
     }
 
-    if (ticket.derived && (ticket.derived.labels.includes('overdue_first_response') || ticket.derived.labels.includes('overdue_resolution'))) {
+    if (
+      ticket.derived &&
+      (ticket.derived.labels.includes('overdue_first_response') ||
+        ticket.derived.labels.includes('overdue_resolution'))
+    ) {
       overdueCount += 1
     }
 
-    if (createdAtMs != null && lastOperatorActionAtMs != null && lastOperatorActionAtMs >= createdAtMs) {
-      firstResponseDurations.push(lastOperatorActionAtMs - createdAtMs)
-    }
+    if (createdAtMs != null) {
+      const lastOpAt = ticket.last_operator_action_at
+      if (lastOpAt) {
+        const lastOperatorActionAtMs = parseIso(lastOpAt)
+        if (lastOperatorActionAtMs != null && lastOperatorActionAtMs >= createdAtMs) {
+          firstResponseDurations.push(lastOperatorActionAtMs - createdAtMs)
+        }
+      }
 
-    if (ticket.status === 'resolved' && createdAtMs != null && updatedAtMs != null && updatedAtMs >= createdAtMs) {
-      resolutionDurations.push(updatedAtMs - createdAtMs)
-      if (updatedAtMs >= sevenDayCutoff) {
-        resolvedLast7Days += 1
+      if (ticket.status === 'resolved') {
+        const updatedAt = ticket.updated_at
+        if (updatedAt) {
+          const updatedAtMs = parseIso(updatedAt)
+          if (updatedAtMs != null && updatedAtMs >= createdAtMs) {
+            resolutionDurations.push(updatedAtMs - createdAtMs)
+            if (updatedAtMs >= sevenDayCutoff) {
+              resolvedLast7Days += 1
+            }
+          }
+        }
       }
     }
   }

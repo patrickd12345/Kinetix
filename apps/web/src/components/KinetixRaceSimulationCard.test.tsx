@@ -41,7 +41,7 @@ describe('KinetixRaceSimulationCard', () => {
       />
     )
 
-    expect(screen.getByText(/Distance: Marathon · Goal-driven/i)).toBeInTheDocument()
+    expect(screen.getByText(/Current-fitness simulation · Distance: Marathon · Goal distance selected/i)).toBeInTheDocument()
   })
 
   it('shows fallback label when no goal drives simulation', () => {
@@ -53,7 +53,7 @@ describe('KinetixRaceSimulationCard', () => {
       />
     )
 
-    expect(screen.getByText(/Distance: 10K · Fallback distance/i)).toBeInTheDocument()
+    expect(screen.getByText(/Current-fitness simulation · Distance: 10K · Fallback distance selected/i)).toBeInTheDocument()
   })
 
   it('shows caution note for low-confidence result', () => {

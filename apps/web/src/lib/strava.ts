@@ -233,9 +233,9 @@ export async function syncStravaRuns(
     }
     if (typeof console !== 'undefined') console.log('[Strava] Fetched', activities.length, 'run(s) from API')
 
-    const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
+    const existingRuns = await db.runs.where('source').equals('strava').filter(
       (r) => (r.deleted ?? 0) === RUN_VISIBLE
-    )
+    ).toArray()
     const existingKeys = new Set(
       existingRuns.map((r) => `${r.date}-${Math.round(r.distance)}`)
     )

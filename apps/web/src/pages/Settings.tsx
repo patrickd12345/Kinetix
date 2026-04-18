@@ -638,9 +638,9 @@ export default function Settings() {
                           return
                         }
 
-                        const existingRuns = await db.runs.where('source').equals('strava').filter(
+                        const existingRuns = (await db.runs.where('source').equals('strava').toArray()).filter(
                           (r) => (r.deleted ?? 0) === RUN_VISIBLE
-                        ).toArray()
+                        )
                         const existingKeys = new Set(
                           existingRuns.map((run) => `${run.date}-${Math.round(run.distance)}`)
                         )
@@ -789,9 +789,9 @@ export default function Settings() {
                   const { runs: normalizedRuns, stats } = isGarminFitFile(file)
                     ? await importGarminFromFitFile(file, targetKPS)
                     : await importGarminFromZipFile(file, targetKPS)
-                  const existingGarmin = await db.runs.where('source').equals('garmin').filter(
+                  const existingGarmin = (await db.runs.where('source').equals('garmin').toArray()).filter(
                     (r) => (r.deleted ?? 0) === RUN_VISIBLE
-                  ).toArray()
+                  )
                   const existingIds = new Set((existingGarmin.map(r => r.external_id).filter(Boolean) as string[]))
                   const toAdd = (
                     await Promise.all(

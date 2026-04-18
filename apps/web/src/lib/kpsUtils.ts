@@ -173,9 +173,9 @@ export async function getPBRun(): Promise<RunRecord | null> {
 export async function ensurePBInitialized(currentProfile: UserProfile): Promise<void> {
   void currentProfile // retained for call-site compatibility
 
-  const allRuns = await db.runs
-    .filter((r) => (r.deleted ?? 0) === RUN_VISIBLE && !!r.id)
-    .toArray()
+  const allRuns = (await db.runs.toArray()).filter(
+    (r) => (r.deleted ?? 0) === RUN_VISIBLE && !!r.id
+  )
   if (allRuns.length === 0) return
 
   let bestRun: RunRecord | null = null

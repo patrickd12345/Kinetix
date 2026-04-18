@@ -12,9 +12,6 @@ const state = vi.hoisted(() => ({
   dbMock: {
     runs: {
       toArray: vi.fn(async () => state.runsStore),
-      filter: vi.fn((predicate: (r: RunRecord) => boolean) => ({
-        toArray: vi.fn(async () => state.runsStore.filter(predicate))
-      })),
       get: vi.fn(async (id: number) => state.runsStore.find((r) => r.id === id) ?? undefined),
     },
     pb: {

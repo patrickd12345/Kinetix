@@ -23,9 +23,6 @@ describe('kpsUtils performance baseline', () => {
     }))
 
     vi.spyOn(db.runs, 'toArray').mockResolvedValue(runs as any)
-    vi.spyOn(db.runs, 'filter').mockReturnValue({
-      toArray: vi.fn().mockResolvedValue(runs.filter((r) => r.deleted === RUN_VISIBLE && !!r.id))
-    } as any)
     vi.spyOn(db.runs, 'get').mockResolvedValue(runs[0] as any)
     vi.spyOn(db.pb, 'toArray').mockResolvedValue([])
     vi.spyOn(db.pb, 'add').mockResolvedValue(1)

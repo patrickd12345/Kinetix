@@ -2,47 +2,61 @@
 set -e
 
 # Clone Bookiji-inc packages: Vercel sets GITHUB_TOKEN. CI may use BOOKIJI_INC_CLONE_TOKEN
-# (PAT with repo read) when the monorepo is private.
+# (PAT with repo read) when the monorepo is private; otherwise unauthenticated public clone.
 
 # Do not prompt for credentials in non-interactive shell (prevents hanging/exit 128)
 export GIT_TERMINAL_PROMPT=0
 
-# Helper to clone while unsetting any persistent GITHUB_TOKEN header from actions/checkout
-# that might interfere with cross-repo access.
-git_clone() {
+# Helper for authenticated clone
+git_clone_auth() {
   local token="$1"
   local repo="$2"
   local dest="$3"
-
-  # Strictly use exactly one URL pattern; clear extraheaders to prevent token mismatch.
+  # Strictly use exactly one URL pattern: x-access-token.
+  # Clear potential persistent AUTHORIZATION header from actions/checkout to prevent token mismatch.
   # Never echo the token or full clone URL in logs.
-  env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" clone --depth 1 "https://x-access-token:${token}@github.com/patrickd12345/${repo}" "$dest"
+  env GIT_TERMINAL_PROMPT=0 git -c "http.https://github.com/.extraheader=" clone --depth 1 "https://x-access-token:${token}@github.com/patrickd12345/${repo}.git" "$dest"
 }
 
-clone_bookiji_inc() {
-  rm -rf .bookiji-tmp
+# Helper for unauthenticated clone
+git_clone_public() {
+  local repo="$1"
+  local dest="$2"
+  env GIT_TERMINAL_PROMPT=0 git -c "http.https://github.com/.extraheader=" clone --depth 1 "https://github.com/patrickd12345/${repo}.git" "$dest"
+}
 
-  # prefer BOOKIJI_INC_CLONE_TOKEN and fall back to GITHUB_TOKEN, failing if both are absent.
+clone_with_fallback() {
+  local repo="$1"
+  local dest="$2"
   local token="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
 
-  if [ -z "$token" ]; then
-    echo "Error: BOOKIJI_INC_CLONE_TOKEN or GITHUB_TOKEN must be set for cross-repo clone."
-    return 1
+  if [ -n "$token" ]; then
+    echo "Attempting authenticated clone of ${repo}..."
+    if git_clone_auth "$token" "$repo" "$dest"; then
+      return 0
+    fi
+    echo "Warning: Authenticated clone of ${repo} failed."
   fi
 
-  echo "Attempting authenticated clone of Bookiji-inc..."
-  if git_clone "$token" "Bookiji-inc" .bookiji-tmp; then
+  echo "Attempting unauthenticated clone of ${repo}..."
+  if git_clone_public "$repo" "$dest"; then
     return 0
   fi
 
-  echo "Error: Failed to clone Bookiji-inc repo."
   return 1
 }
 
 rm -rf .bookiji-packages
-clone_bookiji_inc
-mv .bookiji-tmp/packages .bookiji-packages
 rm -rf .bookiji-tmp
+rm -rf monorepo-packages
+
+if clone_with_fallback "Bookiji-inc" ".bookiji-tmp"; then
+  mv .bookiji-tmp/packages .bookiji-packages
+  rm -rf .bookiji-tmp
+else
+  echo "Error: Failed to clone Bookiji-inc repo."
+  exit 1
+fi
 
 if [ ! -f .bookiji-packages/ai-runtime/package.json ]; then
   echo "Error: Bookiji-inc clone did not produce .bookiji-packages/ai-runtime/package.json."
@@ -54,18 +68,15 @@ fi
 if [ ! -f .bookiji-packages/ai-core/package.json ]; then
   echo "Cloning ai-core submodule..."
   rm -rf .bookiji-packages/ai-core
-  token="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
-  if [ -n "$token" ]; then
-     git_clone "$token" "ai-core" .bookiji-packages/ai-core
-  else
-     exit 1
+  if ! clone_with_fallback "ai-core" ".bookiji-packages/ai-core"; then
+    echo "Error: Failed to clone ai-core submodule."
+    exit 1
   fi
 fi
 
 # Must exist before pnpm install so workspace:* resolves @bookiji-inc/* (do not use `packages/` — @kinetix/core).
 # Use a real directory copy, not a symlink: Vercel's serverless file tracer can miss workspace targets
 # behind symlinks, causing ERR_MODULE_NOT_FOUND for @bookiji-inc/* in production.
-rm -rf monorepo-packages
 cp -a .bookiji-packages monorepo-packages
 
 # Vercel restores dependency cache across deploys; a stale node_modules/.pnpm/lock.yaml from another

@@ -10,6 +10,7 @@ import { getRunsPage, getWeightsForDates } from '../lib/database'
 import { resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
 import { useStableKinetixUserProfile } from '../hooks/useStableKinetixUserProfile'
+import { capDisplayRelativeKps } from '../lib/kpsDisplayPolicy'
 import { RunDashboardHeader, RunGaugePanel, RunStatsPanel, RunControlsPanel, RunDesktopSummary } from './run-dashboard/RunDashboardPanels'
 import { AICoachModal, BeatTargetModal } from './run-dashboard/RunDashboardModals'
 import type { BeatTargetOption } from './run-dashboard/types'
@@ -234,7 +235,7 @@ export default function RunDashboard() {
   }, [userProfile])
 
   const displayKPS = useMemo(
-    () => (isRunning ? liveKpsDisplay.numericValue ?? 0 : relativeKPS),
+    () => capDisplayRelativeKps(isRunning ? liveKpsDisplay.numericValue ?? 0 : relativeKPS),
     [isRunning, liveKpsDisplay.numericValue, relativeKPS]
   )
 

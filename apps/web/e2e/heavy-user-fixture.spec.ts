@@ -98,7 +98,9 @@ test.describe('heavy user deterministic fixture', () => {
     await expect(page.getByRole('heading', { name: /charts/i })).toBeVisible()
 
     await page.goto('/coaching', { waitUntil: 'domcontentloaded' })
-    await expect(page.getByRole('heading', { name: 'Coaching' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Coaching', exact: true }),
+    ).toBeVisible()
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/history', { waitUntil: 'domcontentloaded' })

@@ -55,7 +55,11 @@ async function resolveAccess(userId: string): Promise<ResolveAccessResult> {
   }
 }
 
-const SKIP_AUTH = import.meta.env.VITE_SKIP_AUTH === '1' || import.meta.env.VITE_SKIP_AUTH === 'true'
+const isProdBuild =
+  import.meta.env.MODE === 'production' || import.meta.env.PROD === true
+const SKIP_AUTH =
+  !isProdBuild &&
+  (import.meta.env.VITE_SKIP_AUTH === '1' || import.meta.env.VITE_SKIP_AUTH === 'true')
 const OAUTH_PROVIDERS: OAuthProviderAvailability = {
   google:
     import.meta.env.VITE_AUTH_GOOGLE_ENABLED === '1' ||

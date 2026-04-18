@@ -2,7 +2,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { KINETIX_PERFORMANCE_SCORE } from '../lib/branding'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
 import { db, RunRecord, RUN_VISIBLE } from '../lib/database'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
 import { useWithingsAuth } from '../hooks/useWithingsAuth'
 import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
@@ -14,7 +14,12 @@ import { convertGarminToRunRecord } from '../lib/garmin'
 import { indexRunsAfterSave, reindexAllRunsInRAG } from '../lib/ragClient'
 import { useAuth } from '../components/providers/useAuth'
 import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
-import { findOutlierRuns, calculateAbsoluteKPS } from '../lib/kpsUtils'
+import {
+  findOutlierRuns,
+  calculateRelativeKPSSync,
+  getPB,
+  ensurePBInitialized,
+} from '../lib/kpsUtils'
 import { hideRun, bulkPutWeightEntries, getWeightHistoryCount, backfillRunWeights, getWeightsForDates, type WeightEntry } from '../lib/database'
 import { resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { formatDistance, formatTime } from '@kinetix/core'
@@ -62,6 +67,7 @@ export default function Settings() {
   const [reindexing, setReindexing] = useState(false)
   const [reindexMessage, setReindexMessage] = useState<string | null>(null)
   const [outlierRuns, setOutlierRuns] = useState<RunRecord[] | null>(null)
+  const [outlierRelativeKps, setOutlierRelativeKps] = useState<Map<number, number>>(() => new Map())
   const garminZipInputRef = useRef<HTMLInputElement>(null)
   const { initiateOAuth, handleOAuthCallback } = useStravaAuth()
   const { initiateOAuth: initiateWithingsOAuth, handleOAuthCallback: handleWithingsCallback, disconnect: disconnectWithings } = useWithingsAuth()
@@ -118,6 +124,36 @@ export default function Settings() {
     if (typeof indexedDB === 'undefined') return
     getWeightHistoryCount().then(setWeightHistoryCount)
   }, [])
+
+  const openOutlierDialog = useCallback(
+    async (outliers: RunRecord[]) => {
+      if (outliers.length === 0) return
+      setOutlierRuns(outliers)
+      if (!profile) {
+        setOutlierRelativeKps(new Map())
+        return
+      }
+      const user = toKinetixUserProfile(profile)
+      try {
+        await ensurePBInitialized(user)
+        const pb = await getPB()
+        let pbRun = pb ? (await db.runs.get(pb.runId)) ?? null : null
+        if (pbRun && (pbRun.deleted ?? 0) !== RUN_VISIBLE) pbRun = null
+        const runDates = outliers.map((r) => r.date)
+        const weightByDate = await getWeightsForDates(runDates)
+        const m = new Map<number, number>()
+        for (const r of outliers) {
+          if (r.id == null) continue
+          const p = resolveProfileForRunWithWeightCache(weightByDate, r)
+          m.set(r.id, calculateRelativeKPSSync(r, p, pb ?? null, pbRun))
+        }
+        setOutlierRelativeKps(m)
+      } catch {
+        setOutlierRelativeKps(new Map())
+      }
+    },
+    [profile]
+  )
 
   const handleWeightHistoryFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -254,14 +290,15 @@ export default function Settings() {
     )
   }
 
-  const safeUserProfile = toKinetixUserProfile(profile)
-
   return (
     <div className="pb-20 lg:pb-4">
       {outlierRuns != null && outlierRuns.length > 0 ? (
         <Dialog
           open
-          onClose={() => setOutlierRuns(null)}
+          onClose={() => {
+            setOutlierRuns(null)
+            setOutlierRelativeKps(new Map())
+          }}
           ariaLabelledBy="outlier-title"
           ariaDescribedBy="outlier-desc"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
@@ -269,22 +306,30 @@ export default function Settings() {
           <div className="glass rounded-2xl border border-amber-500/40 p-6 max-w-md w-full shadow-xl">
             <h2 id="outlier-title" className="text-lg font-bold text-amber-300 mb-2">Possible outliers</h2>
             <p id="outlier-desc" className="text-sm text-slate-700 dark:text-gray-300 mb-4">
-              These runs have KPS &gt; 125% of your current PB and may be bad data (e.g. GPS glitch). Hide them so they don&apos;t affect your stats?
+              These runs are scored above 125% of your current PB (relative scale; PB = 100) and may be bad data (e.g. GPS glitch). Hide them so they don&apos;t affect your stats?
             </p>
             <ul className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-              {outlierRuns.map((run) => (
-                <li key={run.id} className="text-xs text-slate-700 dark:text-gray-300 flex justify-between gap-2">
-                  <span>{run.date ? new Date(run.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
-                  <span>{formatDistance(run.distance, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}</span>
-                  <span>{formatTime(run.duration)}</span>
-                  <span className="text-amber-400 font-medium">KPS {Math.round(calculateAbsoluteKPS(run, safeUserProfile))}</span>
-                </li>
-              ))}
+              {outlierRuns.map((run) => {
+                const rel = run.id != null ? outlierRelativeKps.get(run.id) : undefined
+                return (
+                  <li key={run.id} className="text-xs text-slate-700 dark:text-gray-300 flex justify-between gap-2">
+                    <span>{run.date ? new Date(run.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
+                    <span>{formatDistance(run.distance, unitSystem)} {unitSystem === 'metric' ? 'km' : 'mi'}</span>
+                    <span>{formatTime(run.duration)}</span>
+                    <span className="text-amber-400 font-medium" title="Relative to your current PB (max 100)">
+                      {rel != null && Number.isFinite(rel) ? `KPS ${Math.round(rel)}` : 'KPS —'}
+                    </span>
+                  </li>
+                )
+              })}
             </ul>
             <div className="flex gap-3 justify-end">
               <button
                 type="button"
-                onClick={() => setOutlierRuns(null)}
+                onClick={() => {
+                  setOutlierRuns(null)
+                  setOutlierRelativeKps(new Map())
+                }}
                 className="px-4 py-2 rounded-lg border border-gray-600 text-slate-700 dark:text-gray-300 hover:bg-gray-800"
               >
                 Keep
@@ -297,6 +342,7 @@ export default function Settings() {
                   }
                   setImportMessage(`${outlierRuns.length} run(s) hidden from stats (possible outliers).`)
                   setOutlierRuns(null)
+                  setOutlierRelativeKps(new Map())
                 }}
                 className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium"
               >
@@ -646,7 +692,7 @@ export default function Settings() {
                           // But we need to update the UI and search for outliers just for the new additions.
                           setImportMessage(`Imported ${added.length} new run${added.length > 1 ? 's' : ''} from Strava.`)
                           const outliers = await findOutlierRuns(added)
-                          if (outliers.length > 0) setOutlierRuns(outliers)
+                          if (outliers.length > 0) void openOutlierDialog(outliers)
                         }
 
                       } catch (error) {
@@ -805,7 +851,7 @@ export default function Settings() {
                       `JSON files: ${stats.filesScanned}, FIT files: ${stats.fitFilesScanned}, running sessions: ${stats.runningActivities}, duplicates skipped: ${stats.duplicatesSkipped}.`
                   )
                   const outliers = await findOutlierRuns(added)
-                  if (outliers.length > 0) setOutlierRuns(outliers)
+                  if (outliers.length > 0) void openOutlierDialog(outliers)
                 } catch (err) {
                   console.error('Garmin import error', err)
                   setImportMessage(`Error: ${err instanceof Error ? err.message : 'Garmin import failed'}.`)

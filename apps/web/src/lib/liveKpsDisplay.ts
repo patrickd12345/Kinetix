@@ -3,6 +3,8 @@ export interface LiveKpsSample {
   value: number
 }
 
+import { capDisplayRelativeKps } from './kpsDisplayPolicy'
+
 export interface LiveKpsDisplayState {
   text: string
   label: string
@@ -64,7 +66,7 @@ export function getLiveKpsDisplayState(options: {
 
   const numericValue =
     options.smoothedRelativeKps != null && Number.isFinite(options.smoothedRelativeKps) && options.smoothedRelativeKps > 0
-      ? options.smoothedRelativeKps
+      ? capDisplayRelativeKps(options.smoothedRelativeKps)
       : null
 
   return {

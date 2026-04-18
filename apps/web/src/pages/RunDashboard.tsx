@@ -70,16 +70,60 @@ export default function RunDashboard() {
   })
   useLocationTracking()
 
+  // Rolling pace tracking
+  const rollingPaceSamplesRef = useRef<Array<{ durationSeconds: number; distanceMeters: number }>>([])
+  const [rollingPace, setRollingPace] = useState(0)
+
+  useEffect(() => {
+    if (!isRunning || duration === 0) {
+      rollingPaceSamplesRef.current = []
+      setRollingPace(0)
+      return
+    }
+
+    const samples = rollingPaceSamplesRef.current
+    const newSample = { durationSeconds: duration, distanceMeters: distance }
+
+    // Only add a new sample if it has advanced by at least 2 seconds to reduce array churn
+    if (samples.length === 0 || duration - samples[samples.length - 1].durationSeconds >= 2) {
+      samples.push(newSample)
+    }
+
+    // Keep only the last ~120 seconds of samples
+    const ROLLING_WINDOW_SECONDS = 120
+    while (samples.length > 0 && duration - samples[0].durationSeconds > ROLLING_WINDOW_SECONDS) {
+      samples.shift()
+    }
+
+    // Calculate rolling pace if we have a valid window
+    if (samples.length >= 2) {
+      const oldest = samples[0]
+      const newest = samples[samples.length - 1]
+
+      const deltaDistance = newest.distanceMeters - oldest.distanceMeters
+      const deltaDuration = newest.durationSeconds - oldest.durationSeconds
+
+      if (deltaDistance > 0 && deltaDuration > 0) {
+        setRollingPace(deltaDuration / (deltaDistance / 1000))
+      }
+    }
+  }, [duration, distance, isRunning])
+
   useEffect(() => {
     if (!userProfile || !(distance > 0 && duration > 0)) {
       setRelativeKPS(0)
       return
     }
+
+    // For live KPS, we want to score the rolling effort, projecting the rolling pace over the distance run so far
+    const effectivePace = rollingPace > 0 ? rollingPace : averagePace
+    const effectiveDuration = effectivePace > 0 && distance > 0 ? (distance / 1000) * effectivePace : duration
+
     const tempRun: import('../lib/database').RunRecord = {
       date: new Date().toISOString(),
       distance,
-      duration,
-      averagePace,
+      duration: effectiveDuration,
+      averagePace: effectivePace,
       targetKPS,
       locations: [],
       splits: [],
@@ -88,7 +132,7 @@ export default function RunDashboard() {
       .then(() => getRelativeKPS(tempRun, userProfile))
       .then(setRelativeKPS)
       .catch(() => setRelativeKPS(0))
-  }, [distance, duration, averagePace, targetKPS, userProfile])
+  }, [distance, duration, averagePace, rollingPace, targetKPS, userProfile])
 
   const liveKpsSamplesRef = useRef<Array<{ atMs: number; value: number }>>([])
 
@@ -113,6 +157,9 @@ export default function RunDashboard() {
     const nextDisplay = getLiveKpsDisplayState({
       isRunning,
       durationSeconds: duration,
+      distanceKm: distance / 1000,
+      paceSecPerKm: rollingPace > 0 ? rollingPace : averagePace,
+      sampleCount: rollingPaceSamplesRef.current.length,
       smoothedRelativeKps,
     })
 
@@ -120,7 +167,7 @@ export default function RunDashboard() {
       ...nextDisplay,
       label: nextDisplay.isCalibrating ? nextDisplay.label : `Live ${KPS_SHORT}`,
     })
-  }, [duration, isRunning, relativeKPS])
+  }, [duration, distance, averagePace, rollingPace, isRunning, relativeKPS])
 
   useEffect(() => {
     let cancelled = false

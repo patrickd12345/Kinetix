@@ -5,14 +5,15 @@ set -e
 # (PAT with repo read) when the monorepo is private; otherwise unauthenticated public clone.
 
 # Do not prompt for credentials in non-interactive shell (prevents hanging/exit 128)
-# Use env GIT_TERMINAL_PROMPT=0 inline across all fallback attempts.
-# Clear auth headers (-c http.extraheader="") inline across all fallback attempts.
+export GIT_TERMINAL_PROMPT=0
 
+# Helper to clone while unsetting any persistent GITHUB_TOKEN header from actions/checkout
+# that might interfere with cross-repo access.
 git_clone() {
   local url="$1"
   local dest="$2"
   # Unset .extraheader for this command only
-  env GIT_TERMINAL_PROMPT=0 git -c http.extraheader="" clone --depth 1 "$url" "$dest"
+  git -c http.https://github.com/.extraheader= clone --depth 1 "$url" "$dest"
 }
 
 clone_bookiji_inc() {
@@ -25,17 +26,12 @@ clone_bookiji_inc() {
   fi
 
   # 2. Try authenticated clone if unauthenticated fails (likely private repo)
-  # Resolve token: prefer BOOKIJI_INC_CLONE_TOKEN, fall back to GITHUB_TOKEN, fail if both absent.
   local token="${BOOKIJI_INC_CLONE_TOKEN:-${GITHUB_TOKEN:-}}"
   if [ -n "$token" ]; then
     echo "Unauthenticated clone failed. Attempting authenticated clone..."
-    # Use exactly one pattern: https://x-access-token:${TOKEN}@github.com/...
     if git_clone "https://x-access-token:${token}@github.com/patrickd12345/Bookiji-inc" .bookiji-tmp; then
       return 0
     fi
-  else
-     echo "Error: Neither BOOKIJI_INC_CLONE_TOKEN nor GITHUB_TOKEN is set. Cross-repo clone required."
-     exit 1
   fi
 
   echo "Error: Failed to clone Bookiji-inc repo."

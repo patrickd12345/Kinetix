@@ -3,6 +3,7 @@ import { KPS_SHORT } from '../lib/branding'
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
 import { useSettingsStore } from '../store/settingsStore'
 import { MapPin, TrendingUp, Heart, Zap, Scale, Trophy } from 'lucide-react'
+import { capDisplayRelativeKps } from '../lib/kpsDisplayPolicy'
 
 const KG_TO_LBS = 2.20462
 
@@ -59,7 +60,7 @@ export function RunDetails({
             <span className="text-xs text-slate-600 dark:text-gray-400 uppercase">Relative {KPS_SHORT}</span>
           </div>
           <div className="text-xl font-black text-purple-400">
-            {Math.round(relativeKPS)}
+            {Math.round(capDisplayRelativeKps(relativeKPS))}
           </div>
         </div>
 

@@ -1,6 +1,9 @@
 import { db, RunRecord, PBRecord, RUN_VISIBLE, getWeightsForDates } from './database'
 import { UserProfile, calculateKPS } from '@kinetix/core'
 import { resolveProfileForRunWithWeightCache } from './authState'
+import { capDisplayRelativeKps } from './kpsDisplayPolicy'
+
+export { MAX_DISPLAY_RELATIVE_KPS, capDisplayRelativeKps } from './kpsDisplayPolicy'
 
 /**
  * KPS UTILITIES - ARCHITECTURAL INVARIANTS
@@ -280,7 +283,7 @@ export async function calculateRelativeKPS(
     return 0
   }
 
-  return relativeKPS
+  return capDisplayRelativeKps(relativeKPS)
 }
 
 /**
@@ -306,7 +309,7 @@ export function calculateRelativeKPSSync(
   if (!isValidKPS(pbAbsoluteKPS)) return 0
   const relativeKPS = (runAbsoluteKPS / pbAbsoluteKPS) * 100
   if (isNaN(relativeKPS) || !isFinite(relativeKPS)) return 0
-  return relativeKPS
+  return capDisplayRelativeKps(relativeKPS)
 }
 
 /**
@@ -332,7 +335,7 @@ export async function filterRunsByRelativeKpsBounds(
     const profileForRun = resolveProfileForRunWithWeightCache(weightByDate, run)
     const rel = calculateRelativeKPSSync(run, profileForRun, pb ?? null, pbRun ?? null)
     if (!Number.isFinite(rel)) continue
-    // Match History list cards, which use Math.round(relativeKPS) for display.
+    // Match History list cards, which use Math.round(capped relativeKPS) for display.
     const displayRel = Math.round(rel)
     if (kpsMin != null && displayRel < kpsMin) continue
     if (kpsMax != null && displayRel > kpsMax) continue

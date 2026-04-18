@@ -414,3 +414,18 @@ export async function checkAndUpdatePB(
   return false // Not a new PB
 }
 
+/**
+ * Legacy entrypoint retained for compatibility.
+ * PB is now derived from lifetime-best run via ensurePBInitialized().
+ */
+export async function seedInitialPB(currentProfile: UserProfile): Promise<void> {
+  await ensurePBInitialized(currentProfile)
+}
+
+/**
+ * Initialize/reconcile PB from existing runs.
+ * @deprecated Use ensurePBInitialized() directly.
+ */
+export async function initializePBFromExistingRuns(currentProfile: UserProfile): Promise<void> {
+  await ensurePBInitialized(currentProfile)
+}

@@ -5,6 +5,7 @@
 
 /** sessionStorage key: persisted redirect_uri from authorize step so token exchange cannot drift from it. */
 export const KINETIX_WITHINGS_REDIRECT_STORAGE_KEY = 'kinetix_withings_redirect_uri'
+export const KINETIX_WITHINGS_CALLBACK_PATH = '/api/withings-oauth'
 
 export function normalizeWithingsRedirectUri(uri: string): string {
   const t = typeof uri === 'string' ? uri.trim() : ''
@@ -25,12 +26,12 @@ export function resolveWithingsRedirectUriForOAuth(params: {
   }
   const o = params.origin?.trim()
   if (o) {
-    return normalizeWithingsRedirectUri(`${o.replace(/\/+$/, '')}/settings`)
+    return normalizeWithingsRedirectUri(`${o.replace(/\/+$/, '')}${KINETIX_WITHINGS_CALLBACK_PATH}`)
   }
   return ''
 }
 
-/** Server token exchange: body wins (must match authorize), then env, then Origin + /settings. */
+/** Server token exchange: body wins (must match authorize), then env, then Origin + callback endpoint. */
 export function resolveWithingsRedirectUriForTokenExchange(params: {
   bodyRedirectUri?: string | undefined
   envRedirectUri?: string | undefined
@@ -46,7 +47,7 @@ export function resolveWithingsRedirectUriForTokenExchange(params: {
   }
   const o = params.requestOrigin?.trim()
   if (o) {
-    return normalizeWithingsRedirectUri(`${o.replace(/\/+$/, '')}/settings`)
+    return normalizeWithingsRedirectUri(`${o.replace(/\/+$/, '')}${KINETIX_WITHINGS_CALLBACK_PATH}`)
   }
   return ''
 }

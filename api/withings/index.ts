@@ -6,9 +6,26 @@ import { logApiEvent } from '../_lib/observability.js'
 import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime.js'
 import { resolveWithingsRedirectUriForTokenExchange } from '../_lib/withingsRedirectUri.js'
 
+function readQueryValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value
+}
+
+function redirectWithingsBrowserCallbackToSettings(req: VercelRequest, res: VercelResponse) {
+  const params = new URLSearchParams()
+  for (const key of ['code', 'state', 'error', 'error_description']) {
+    const value = readQueryValue(req.query?.[key])
+    if (typeof value === 'string' && value.trim()) {
+      params.set(key, value)
+    }
+  }
+  const location = params.size > 0 ? `/settings?${params.toString()}` : '/settings'
+  res.setHeader('Location', location)
+  return res.status(302).end()
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {
-    methods: ['POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'OPTIONS'],
     headers: ['Content-Type'],
   })
 
@@ -17,6 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'OPTIONS') return res.status(200).end()
+  if (req.method === 'GET') return redirectWithingsBrowserCallbackToSettings(req, res)
   if (req.method !== 'POST') return sendApiError(res, 405, 'Method not allowed', { source: req.headers })
 
   const body = (typeof req.body === 'object' && req.body !== null ? req.body : {}) as {

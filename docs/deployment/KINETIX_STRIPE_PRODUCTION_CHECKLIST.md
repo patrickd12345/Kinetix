@@ -8,14 +8,15 @@ Keep Kinetix and Bookiji on the **same Stripe account** (test vs live). Webhooks
 - `BILLING_ENABLED=true`
 - `STRIPE_SECRET_KEY` (same account as Bookiji)
 - `KINETIX_STRIPE_PRICE_ID`
-- `SUPABASE_URL`, `SUPABASE_ANON_KEY` (must point to Bookiji Supabase project)
+- `VITE_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL` (must point to Bookiji Supabase project)
+- `VITE_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `CORS_ALLOWED_ORIGINS` (optional tighten)
 
 **Bookiji (webhook):**
 - `BILLING_ENABLED=true`
 - `STRIPE_SECRET_KEY` (same as above)
 - `STRIPE_WEBHOOK_SECRET` (from Stripe endpoint)
-- `SUPABASE_SERVICE_ROLE_KEY` / db creds
+- `SUPABASE_SECRET_KEY` (preferred) or `SUPABASE_SERVICE_ROLE_KEY` / db creds
 
 ## Webhook endpoint registration (Stripe Dashboard)
 - Endpoint URL: `<bookiji-host>/api/payments/webhook`

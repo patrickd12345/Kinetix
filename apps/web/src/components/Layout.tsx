@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from './providers/useAuth'
 import { useSettingsStore } from '../store/settingsStore'
-import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
+import { toKinetixUserProfile } from '../lib/kinetixProfile'
 import { getActiveScopedDbUserId, getRunsPage } from '../lib/database'
 import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
@@ -77,7 +77,6 @@ export default function Layout({ children }: LayoutProps) {
     setWithingsStartupSyncInFlight,
     setWithingsStartupSyncError,
   } = useSettingsStore()
-  const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : session?.user.email ?? 'User'
   const accountDisplayName = profile?.full_name ?? profile?.display_name ?? ''
   const emailInitial =
     signedInEmail.trim().length > 0 ? signedInEmail.trim().slice(0, 1).toUpperCase() : '?'
@@ -307,9 +306,6 @@ export default function Layout({ children }: LayoutProps) {
                 data-testid="shell-signed-in-email"
               >
                 {signedInEmail || 'Signed in'}
-              </span>
-              <span className="hidden max-w-[140px] truncate text-xs text-[var(--shell-text-secondary)] lg:inline dark:text-[var(--shell-text-secondary)]">
-                {profileLabel !== signedInEmail ? profileLabel : ''}
               </span>
               <div className="relative shrink-0" ref={accountMenuRef}>
                 <button

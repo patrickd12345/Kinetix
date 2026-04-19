@@ -49,7 +49,7 @@ export function resolveKinetixRuntimeEnvFromObject(env = getDefaultEnv()) {
     stravaClientSecret: pick(env, ['STRAVA_CLIENT_SECRET']),
     withingsClientId: pick(env, ['VITE_WITHINGS_CLIENT_ID', 'WITHINGS_CLIENT_ID']),
     withingsClientSecret: pick(env, ['WITHINGS_CLIENT_SECRET']),
-    /** Canonical OAuth callback; set on Vercel to https://kinetix.bookiji.com/settings to match Withings partner URL */
+    /** Canonical OAuth callback; set on Vercel to https://kinetix.bookiji.com/api/withings-oauth to match Withings partner URL */
     withingsRedirectUri: pick(env, ['WITHINGS_REDIRECT_URI', 'VITE_WITHINGS_REDIRECT_URI']),
     supabaseUrl: pick(env, ['SUPABASE_URL', 'VITE_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL']),
     supabaseAnonKey: pick(env, [

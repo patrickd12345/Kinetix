@@ -22,7 +22,7 @@ export type KinetixRuntimeEnv = {
   stravaClientSecret: string;
   withingsClientId: string;
   withingsClientSecret: string;
-  /** Optional; must match Withings partner callback URL (e.g. https://kinetix.bookiji.com/settings) */
+  /** Optional; must match Withings partner callback URL (e.g. https://kinetix.bookiji.com/api/withings-oauth) */
   withingsRedirectUri: string;
   supabaseUrl: string;
   supabaseAnonKey: string;

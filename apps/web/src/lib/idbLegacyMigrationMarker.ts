@@ -1,6 +1,7 @@
 /**
- * One-time migration from shared `KinetixDB` → per-user `KinetixDB__<authUserId>`.
- * When this marker exists in localStorage, legacy import NEVER runs again for any user.
+ * One-time legacy shared DB check.
+ * BKI-034 intentionally does not import shared `KinetixDB` into per-user DBs.
+ * When this marker exists in localStorage, legacy import remains disabled for any user.
  */
 
 export const LEGACY_IDB_MIGRATION_MARKER_KEY = 'kinetix-idb-legacy-import-v1'

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { appendSnapshot, __constants, trimHistory } from './historyReducer'
-import { appendCoachMemory, readCoachMemory } from './memoryStore'
+import { appendCoachMemory, __constants as memoryStoreConstants, readCoachMemory } from './memoryStore'
 import { buildTrendSummary } from './trendSummary'
 import type { CoachDecisionSnapshot } from './types'
+import { coachMemoryStorageKey } from '../clientStorageScope'
 
 class MemoryStorage implements Storage {
   private data = new Map<string, string>()
@@ -57,6 +58,33 @@ describe('coach memory', () => {
   it('persistence reload reads previously stored history', () => {
     const storage = new MemoryStorage()
     appendCoachMemory(COACH_MEM_TEST_USER, snapshot('2026-04-09T08:00:00.000Z', 'maintain'), storage)
+    const reloaded = readCoachMemory(COACH_MEM_TEST_USER, storage)
+    expect(reloaded.length).toBe(1)
+    expect(reloaded[0].decision).toBe('maintain')
+  })
+
+  it('ignores legacy unscoped memory for signed-in users', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(
+      memoryStoreConstants.LEGACY_COACH_MEMORY_KEY,
+      JSON.stringify([snapshot('2026-04-09T08:00:00.000Z', 'maintain')]),
+    )
+
+    expect(readCoachMemory(COACH_MEM_TEST_USER, storage)).toEqual([])
+    expect(storage.getItem(memoryStoreConstants.LEGACY_COACH_MEMORY_KEY)).not.toBeNull()
+  })
+
+  it('reads only the current user scoped coach memory', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(
+      coachMemoryStorageKey('other-user'),
+      JSON.stringify([snapshot('2026-04-08T08:00:00.000Z', 'recovery_week')]),
+    )
+    storage.setItem(
+      coachMemoryStorageKey(COACH_MEM_TEST_USER),
+      JSON.stringify([snapshot('2026-04-09T08:00:00.000Z', 'maintain')]),
+    )
+
     const reloaded = readCoachMemory(COACH_MEM_TEST_USER, storage)
     expect(reloaded.length).toBe(1)
     expect(reloaded[0].decision).toBe('maintain')

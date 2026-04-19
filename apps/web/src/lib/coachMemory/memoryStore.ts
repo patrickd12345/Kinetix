@@ -19,10 +19,7 @@ export function readCoachMemory(
   authUserId: string,
   storage: Storage = window.localStorage
 ): CoachDecisionSnapshot[] {
-  const scoped = safeParse(storage.getItem(coachMemoryStorageKey(authUserId)))
-  if (scoped.length > 0) return scoped
-  const legacy = safeParse(storage.getItem(LEGACY_COACH_MEMORY_KEY))
-  return legacy
+  return safeParse(storage.getItem(coachMemoryStorageKey(authUserId)))
 }
 
 export function writeCoachMemory(

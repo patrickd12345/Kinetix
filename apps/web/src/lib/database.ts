@@ -90,33 +90,6 @@ export interface ProviderSyncCheckpoint {
 
 export type StoredHealthMetric = CanonicalHealthMetric & { id: string }
 
-const USER_TABLES = [
-  'runs',
-  'pb',
-  'weightHistory',
-  'providerConnections',
-  'providerSyncCheckpoints',
-  'providerSyncRuns',
-  'providerRawEvents',
-  'healthMetrics',
-] as const
-
-async function copyAllUserTables(source: KinetixDatabase, dest: KinetixDatabase): Promise<void> {
-  for (const name of USER_TABLES) {
-    const rows = await source.table(name).toArray()
-    if (rows.length === 0) continue
-    await dest.table(name).bulkPut(rows as Record<string, unknown>[])
-  }
-}
-
-async function tableRowCountSum(db: KinetixDatabase): Promise<number> {
-  let n = 0
-  for (const name of USER_TABLES) {
-    n += await db.table(name).count()
-  }
-  return n
-}
-
 function writeLegacyMigrationMarker(marker: LegacyIdbMigrationMarkerV1): void {
   if (typeof localStorage === 'undefined') return
   try {
@@ -127,50 +100,27 @@ function writeLegacyMigrationMarker(marker: LegacyIdbMigrationMarkerV1): void {
 }
 
 /**
- * One-time: if marker missing, optionally import legacy shared DB into this user's DB, then remove legacy Dexie.
- * Never runs again once localStorage marker exists (any user / same browser).
+ * One-time: record whether a pre-BKI-034 shared Dexie exists.
+ * Do not copy or delete it; legacy browser data must not be silently assigned
+ * to whichever auth user signs in next.
  */
 async function migrateLegacySharedIndexedDbOnce(
   currentAuthUserId: string,
-  targetDb: KinetixDatabase
+  _targetDb: KinetixDatabase
 ): Promise<void> {
+  void currentAuthUserId
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') return
 
   const existingMarker = parseLegacyMigrationMarker(localStorage.getItem(LEGACY_IDB_MIGRATION_MARKER_KEY))
   if (existingMarker) return
 
   const legacyExists = await Dexie.exists(LEGACY_SHARED_DB_NAME)
-  if (!legacyExists) {
-    writeLegacyMigrationMarker({
-      version: LEGACY_IDB_MIGRATION_SCHEMA_VERSION,
-      migrationOwnerUserId: null,
-      migratedAt: new Date().toISOString(),
-      importedFromLegacySharedDb: false,
-      legacyDexieAbsent: true,
-    })
-    return
-  }
-
-  const legacyDb = new KinetixDatabase(LEGACY_SHARED_DB_NAME)
-  await legacyDb.open()
-
-  const legacyRows = await tableRowCountSum(legacyDb)
-  const targetRows = await tableRowCountSum(targetDb)
-
-  let importedFromLegacySharedDb = false
-  if (legacyRows > 0 && targetRows === 0) {
-    await copyAllUserTables(legacyDb, targetDb)
-    importedFromLegacySharedDb = true
-  }
-
-  await legacyDb.delete()
-
   writeLegacyMigrationMarker({
     version: LEGACY_IDB_MIGRATION_SCHEMA_VERSION,
-    migrationOwnerUserId: importedFromLegacySharedDb ? currentAuthUserId : null,
+    migrationOwnerUserId: null,
     migratedAt: new Date().toISOString(),
-    importedFromLegacySharedDb,
-    legacyDexieAbsent: false,
+    importedFromLegacySharedDb: false,
+    legacyDexieAbsent: !legacyExists,
   })
 }
 

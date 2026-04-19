@@ -338,7 +338,7 @@ export default function Layout({ children }: LayoutProps) {
                     ) : null}
                     <div className="border-b border-slate-200 px-4 py-2 dark:border-white/10">
                       <div className="text-xs font-medium text-[var(--shell-text-tertiary)]">Email</div>
-                      <div className="break-all text-[var(--shell-text-primary)]">{signedInEmail || '—'}</div>
+                      <div className="break-all text-[var(--shell-text-primary)]">{signedInEmail || '-'}</div>
                     </div>
                     <button
                       type="button"

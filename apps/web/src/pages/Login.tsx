@@ -144,7 +144,7 @@ export default function Login() {
                 disabled={submitting || oauthSubmitting}
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-900 transition hover:bg-slate-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:hover:bg-gray-900"
               >
-                Continue with Microsoft
+                Continue with Outlook
               </button>
             )}
           </div>

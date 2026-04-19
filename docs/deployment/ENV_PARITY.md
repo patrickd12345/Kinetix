@@ -15,13 +15,13 @@ In the Kinetix Vercel project (or wherever the web app is deployed), set:
 | `VITE_SUPABASE_URL` | Same as Bookiji `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Same as Bookiji `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 
-Optional (identity UI): set to `true` or `1` to show the matching OAuth button on the login screen. If unset or false, that provider is hidden.
+Optional (identity UI): Google and Microsoft / Outlook are visible by default for BKI-019 and hidden only when the matching variable is explicitly `false` or `0`. Apple remains opt-in and is shown only when set to `true` or `1`.
 
 | Variable | Notes |
 |----------|--------|
-| `VITE_AUTH_GOOGLE_ENABLED` | Show Continue with Google |
+| `VITE_AUTH_GOOGLE_ENABLED` | Show Continue with Google unless explicitly `false` or `0` |
 | `VITE_AUTH_APPLE_ENABLED` | Show Continue with Apple |
-| `VITE_AUTH_MICROSOFT_ENABLED` | Show Continue with Microsoft (Supabase provider `azure`) |
+| `VITE_AUTH_MICROSOFT_ENABLED` | Show Continue with Outlook unless explicitly `false` or `0` (Supabase provider `azure`) |
 
 Optional (auth callback pinning): set when magic-link or OAuth must return to the **Kinetix** host even if the user started login from another Bookiji origin (for example `app.bookiji.com`). The web app builds `emailRedirectTo` / `redirectTo` from this value in [`apps/web/src/lib/authRedirect.ts`](../../apps/web/src/lib/authRedirect.ts). If unset, the callback uses `/login` on the **current** browser origin.
 
@@ -97,7 +97,7 @@ For login to work when running the app locally (`pnpm dev:web` or similar):
 Kinetix web follows the Bookiji identity standard:
 
 - primary login: email magic link (passwordless)
-- optional login: Google, Apple, Microsoft (only shown when enabled in app env)
+- optional login: Google and Outlook by default; Apple only when enabled in app env
 - unsupported: password login, password reset, username/password signup
 
 ## If these differ

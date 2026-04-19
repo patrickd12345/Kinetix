@@ -6,6 +6,7 @@ import Login from './Login'
 
 const sendMagicLink = vi.fn()
 const signInWithOAuth = vi.fn()
+let oauthProviders = { google: false, apple: false, microsoft: false }
 
 vi.mock('../components/providers/useAuth', () => ({
   useAuth: () => ({
@@ -15,7 +16,7 @@ vi.mock('../components/providers/useAuth', () => ({
     error: null,
     sendMagicLink,
     signInWithOAuth,
-    oauthProviders: { google: false, apple: false, microsoft: false },
+    oauthProviders,
     signOut: vi.fn(),
     refresh: vi.fn(),
   }),
@@ -24,6 +25,7 @@ vi.mock('../components/providers/useAuth', () => ({
 describe('Login', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    oauthProviders = { google: false, apple: false, microsoft: false }
     sendMagicLink.mockImplementation(() => new Promise(() => {}))
   })
 
@@ -42,5 +44,22 @@ describe('Login', () => {
     await userEvent.click(button)
 
     expect(sendMagicLink).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows Google and Outlook options and starts the expected OAuth providers', async () => {
+    oauthProviders = { google: true, apple: false, microsoft: true }
+    signInWithOAuth.mockResolvedValue(undefined)
+
+    render(
+      <MemoryRouter initialEntries={['/login?next=/history']}>
+        <Login />
+      </MemoryRouter>
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Continue with Google' }))
+    expect(signInWithOAuth).toHaveBeenCalledWith('google', '/history')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Continue with Outlook' }))
+    expect(signInWithOAuth).toHaveBeenCalledWith('microsoft', '/history')
   })
 })

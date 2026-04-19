@@ -60,16 +60,16 @@ const isProdBuild =
 const SKIP_AUTH =
   !isProdBuild &&
   (import.meta.env.VITE_SKIP_AUTH === '1' || import.meta.env.VITE_SKIP_AUTH === 'true')
+const oauthEnabledUnlessExplicitlyFalse = (value: string | undefined): boolean => {
+  if (value == null || value.trim() === '') return true
+  return value !== '0' && value.toLowerCase() !== 'false'
+}
 const OAUTH_PROVIDERS: OAuthProviderAvailability = {
-  google:
-    import.meta.env.VITE_AUTH_GOOGLE_ENABLED === '1' ||
-    import.meta.env.VITE_AUTH_GOOGLE_ENABLED === 'true',
+  google: oauthEnabledUnlessExplicitlyFalse(import.meta.env.VITE_AUTH_GOOGLE_ENABLED),
   apple:
     import.meta.env.VITE_AUTH_APPLE_ENABLED === '1' ||
     import.meta.env.VITE_AUTH_APPLE_ENABLED === 'true',
-  microsoft:
-    import.meta.env.VITE_AUTH_MICROSOFT_ENABLED === '1' ||
-    import.meta.env.VITE_AUTH_MICROSOFT_ENABLED === 'true',
+  microsoft: oauthEnabledUnlessExplicitlyFalse(import.meta.env.VITE_AUTH_MICROSOFT_ENABLED),
 }
 const AUTH_REDIRECT_URL =
   import.meta.env.VITE_AUTH_REDIRECT_URL ??

@@ -13,7 +13,7 @@ That means:
 - secret values are authored and rotated in Infisical first
 - Vercel and GitHub should receive synchronized copies or short-lived access derived from Infisical
 - committed repo files, ad-hoc CI variables, and local `.env.local` files are **not** canonical
-- production deploys must **fail closed** if required environment variables are missing or inconsistent
+- production deployments should have an explicit validation gate for required environment variables and should avoid silently falling back to stale or ad-hoc configuration
 
 This pilot is intentionally conservative: it documents the operating model before broader rollout to other Bookiji Inc products.
 
@@ -60,9 +60,9 @@ Expected behavior:
 2. export `/platform` and `/kinetix`
 3. merge without printing secret values
 4. validate required variables
-5. fail before startup if required values are missing
+5. fail before startup if required values are missing in the Infisical-driven local workflow
 
-`.env.local` is allowed only as an emergency local fallback and must not become the durable source of truth.
+`.env.local` is allowed only as an emergency local fallback for non-Infisical local startup paths and must not become the durable source of truth.
 
 ## Vercel Secret Sync target
 

@@ -6,7 +6,7 @@
 **Commit/tag tested:** TBD at execution time  
 **Last updated:** 2026-04-18
 
-Manual and environment checks for **staging** (preview or dedicated staging hostname) after PR **#89** merged into `main`. Use alongside [`docs/deployment/KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md).
+Manual and environment checks for **staging** (preview or dedicated staging hostname) for the KX-FEAT-004 Infisical pilot. Use alongside [`docs/deployment/KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md).
 
 **Staging rule:** Exercise **real Supabase auth** and platform profile/entitlements. **`VITE_SKIP_AUTH` must be unset/false for staging UX validation** — it is ignored in production runtime, but staging should mirror real sign-in behavior. **`VITE_SKIP_AUTH` must not be set during `pnpm build`** (see Production build safety below).
 
@@ -203,9 +203,9 @@ Fill during staging run; require **PASS** before promoting to production.
 
 ---
 
-## Automated mainline verification (KX-FEAT-003 — local/CI reproducible)
+## Historical automated baseline (KX-FEAT-003 / PR #89)
 
-When `main` contains merge of PR **#89** (`5d13cbf`, `9f7da01` ancestry), run from repo root:
+This section is preserved as historical baseline evidence from the earlier post-PR-89 mainline verification. It is not the primary operator checklist for KX-FEAT-004 env-source validation. When `main` contains merge of PR **#89** (`5d13cbf`, `9f7da01` ancestry), run from repo root:
 
 ```
 pnpm install

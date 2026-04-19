@@ -26,7 +26,7 @@ All Bookiji Inc products should follow the same baseline:
 2. **Path model:** `/platform` contains shared platform secrets; `/{product}` contains product-specific secrets.
 3. **Environment model:** `dev` backs local plus preview; `prod` backs production.
 4. **Deployment sync:** deployment systems receive secrets from the canonical store or from a documented sync/fallback path tied back to the canonical store.
-5. **Runtime validation:** apps validate required configuration and fail closed when required env vars are missing.
+5. **Runtime validation:** apps validate required configuration and fail safely when required env vars are missing, with stronger deploy-time fail-closed enforcement as the target state.
 6. **Safe logging only:** logs may contain missing variable names, path names, and validation status, but never secret values.
 
 ## Promotion criteria before broader rollout
@@ -36,7 +36,7 @@ Do not copy this standard from Kinetix into other products until the pilot demon
 1. Local developers can use `pnpm dev:infisical` or an equivalent validated wrapper without committing secrets.
 2. `pnpm verify:infisical` or equivalent validation clearly identifies missing env requirements.
 3. Preview and production deployment targets have a documented sync path from Infisical.
-4. Production deploys fail closed when required env vars are missing.
+4. Production deploys have a documented path toward fail-closed enforcement when required env vars are missing.
 5. No product requires Infisical access from the browser at runtime.
 6. Operator documentation is specific enough that humans can recover from drift without guessing.
 7. Audit logs and approval steps are defined for production-affecting changes.
@@ -67,9 +67,9 @@ That means:
 
 Secrets must be injected before runtime through deployment-time configuration, server-side retrieval, or validated local development tooling.
 
-## Fail-closed deployment rule
+## Fail-closed deployment target
 
-Production deploys must fail closed if required env vars are missing.
+Production deploys should eventually fail closed if required env vars are missing. For the KX-FEAT-004 pilot, that is a target-state standard to document and verify explicitly rather than a guarantee implied by these docs alone.
 
 Examples:
 
@@ -100,4 +100,4 @@ Before declaring a product aligned with the standard, confirm:
 - [ ] emergency local fallback is documented
 - [ ] no-secret-logging rule is documented
 - [ ] browser-runtime non-goal is explicit
-- [ ] fail-closed production rule is explicit
+- [ ] target-state production validation rule is explicit

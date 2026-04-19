@@ -1,7 +1,6 @@
 import { appendSnapshot } from './historyReducer'
 import type { CoachDecisionSnapshot } from './types'
-
-const STORAGE_KEY = 'kinetix-coach-memory-v1'
+import { LEGACY_COACH_MEMORY_KEY, coachMemoryStorageKey } from '../clientStorageScope'
 
 function safeParse(raw: string | null): CoachDecisionSnapshot[] {
   if (!raw) return []
@@ -16,24 +15,37 @@ function safeParse(raw: string | null): CoachDecisionSnapshot[] {
   }
 }
 
-export function readCoachMemory(storage: Storage = window.localStorage): CoachDecisionSnapshot[] {
-  return safeParse(storage.getItem(STORAGE_KEY))
+export function readCoachMemory(
+  authUserId: string,
+  storage: Storage = window.localStorage
+): CoachDecisionSnapshot[] {
+  const scoped = safeParse(storage.getItem(coachMemoryStorageKey(authUserId)))
+  if (scoped.length > 0) return scoped
+  const legacy = safeParse(storage.getItem(LEGACY_COACH_MEMORY_KEY))
+  return legacy
 }
 
-export function writeCoachMemory(history: CoachDecisionSnapshot[], storage: Storage = window.localStorage): void {
-  storage.setItem(STORAGE_KEY, JSON.stringify(history))
+export function writeCoachMemory(
+  authUserId: string,
+  history: CoachDecisionSnapshot[],
+  storage: Storage = window.localStorage
+): void {
+  storage.setItem(coachMemoryStorageKey(authUserId), JSON.stringify(history))
+  storage.removeItem(LEGACY_COACH_MEMORY_KEY)
 }
 
 export function appendCoachMemory(
+  authUserId: string,
   snapshot: CoachDecisionSnapshot,
   storage: Storage = window.localStorage
 ): CoachDecisionSnapshot[] {
-  const current = readCoachMemory(storage)
+  const current = readCoachMemory(authUserId, storage)
   const next = appendSnapshot(current, snapshot)
-  writeCoachMemory(next, storage)
+  writeCoachMemory(authUserId, next, storage)
   return next
 }
 
 export const __constants = {
-  STORAGE_KEY,
+  LEGACY_COACH_MEMORY_KEY,
+  coachMemoryStorageKey,
 }

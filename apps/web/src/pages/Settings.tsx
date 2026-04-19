@@ -25,6 +25,7 @@ import { resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { formatDistance, formatTime } from '@kinetix/core'
 import { Dialog } from '../components/a11y/Dialog'
 import { featureFlags } from '../lib/featureFlags'
+import { oauthDedupeSessionKey } from '../lib/clientStorageScope'
 
 export default function Settings() {
   const {
@@ -94,7 +95,13 @@ export default function Settings() {
 
     if (!code) return
 
-    const storageKey = state === 'withings' ? 'withings_oauth_code' : 'strava_oauth_code'
+    const oauthUid = session?.user?.id
+    if (!oauthUid) return
+
+    const storageKey =
+      state === 'withings'
+        ? oauthDedupeSessionKey('withings', oauthUid)
+        : oauthDedupeSessionKey('strava', oauthUid)
     if (sessionStorage.getItem(storageKey) === code) return
     sessionStorage.setItem(storageKey, code)
 
@@ -118,7 +125,7 @@ export default function Settings() {
         setImportMessage(`Error connecting to Strava: ${err.message}`)
         sessionStorage.removeItem(storageKey)
       })
-  }, [handleOAuthCallback, handleWithingsCallback])
+  }, [handleOAuthCallback, handleWithingsCallback, session?.user?.id])
 
   useEffect(() => {
     if (typeof indexedDB === 'undefined') return

@@ -1,3 +1,5 @@
+import 'fake-indexeddb/auto'
+
 if (typeof process !== 'undefined' && process.env) {
   process.env.SUPABASE_URL ||= 'https://vitest-placeholder.supabase.co'
   process.env.SUPABASE_ANON_KEY ||= 'vitest-anon-key-placeholder'

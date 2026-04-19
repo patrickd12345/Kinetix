@@ -18,6 +18,8 @@ function snapshot(date: string, decision: CoachDecisionSnapshot['decision']): Co
   return { date, decision, confidence: 'medium', reasonSummary: 'reason' }
 }
 
+const COACH_MEM_TEST_USER = 'coach-memory-test-user'
+
 describe('coach memory', () => {
   it('history append works and same-day dedupe is deterministic', () => {
     const first = snapshot('2026-04-01T10:00:00.000Z', 'build_progression')
@@ -47,15 +49,15 @@ describe('coach memory', () => {
 
   it('rerender-equivalent duplicate writes on same day are deduped', () => {
     const storage = new MemoryStorage()
-    appendCoachMemory(snapshot('2026-04-09T08:00:00.000Z', 'maintain'), storage)
-    appendCoachMemory(snapshot('2026-04-09T08:01:00.000Z', 'maintain'), storage)
-    expect(readCoachMemory(storage).length).toBe(1)
+    appendCoachMemory(COACH_MEM_TEST_USER, snapshot('2026-04-09T08:00:00.000Z', 'maintain'), storage)
+    appendCoachMemory(COACH_MEM_TEST_USER, snapshot('2026-04-09T08:01:00.000Z', 'maintain'), storage)
+    expect(readCoachMemory(COACH_MEM_TEST_USER, storage).length).toBe(1)
   })
 
   it('persistence reload reads previously stored history', () => {
     const storage = new MemoryStorage()
-    appendCoachMemory(snapshot('2026-04-09T08:00:00.000Z', 'maintain'), storage)
-    const reloaded = readCoachMemory(storage)
+    appendCoachMemory(COACH_MEM_TEST_USER, snapshot('2026-04-09T08:00:00.000Z', 'maintain'), storage)
+    const reloaded = readCoachMemory(COACH_MEM_TEST_USER, storage)
     expect(reloaded.length).toBe(1)
     expect(reloaded[0].decision).toBe('maintain')
   })

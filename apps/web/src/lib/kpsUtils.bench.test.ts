@@ -1,16 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ensurePBInitialized, filterRunsByRelativeKpsBounds } from './kpsUtils'
-import { db } from './database'
+import { db, RUN_VISIBLE, setActiveKinetixIndexedDbUser } from './database'
 import * as database from './database'
 import * as authState from './authState'
-import { RUN_VISIBLE } from './database'
 
 describe('kpsUtils performance baseline', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.restoreAllMocks()
+    await setActiveKinetixIndexedDbUser('kps-bench-user')
     vi.spyOn(database, 'getWeightsForDates').mockResolvedValue(new Map())
     // Need to set an active profile since resolveProfileForRunWithWeightCache needs it synchronously
     authState.setActivePlatformProfile({ id: 'user-1', email: 'test@test.com' } as any)
+  })
+
+  afterEach(async () => {
+    await setActiveKinetixIndexedDbUser(null)
   })
 
   it('measures N+1 queries in ensurePBInitialized', async () => {

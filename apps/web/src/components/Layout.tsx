@@ -13,11 +13,12 @@ import {
   LayoutDashboard,
   Brain,
   MoreHorizontal,
+  ChevronDown,
 } from 'lucide-react'
 import { useAuth } from './providers/useAuth'
 import { useSettingsStore } from '../store/settingsStore'
 import { getProfileLabel, toKinetixUserProfile } from '../lib/kinetixProfile'
-import { getRunsPage } from '../lib/database'
+import { getActiveScopedDbUserId, getRunsPage } from '../lib/database'
 import { syncNewRunsToRAG } from '../lib/ragClient'
 import { syncStravaRuns, getValidStravaToken } from '../lib/strava'
 import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
@@ -26,22 +27,21 @@ import ThemeSelector from './ThemeSelector'
 import AdSenseDisplayUnit from './ads/AdSenseDisplayUnit'
 import WithingsSyncPrompt from './WithingsSyncPrompt'
 import { Dialog } from './a11y/Dialog'
+import { ragBannerDismissedSessionKey, ragFailStreakSessionKey } from '../lib/clientStorageScope'
 
 const RAG_SYNC_PAGE_SIZE = 200
 const RAG_SYNC_FAIL_THRESHOLD = 3
-const SK_RAG_FAIL_STREAK = 'kinetix_rag_sync_fail_streak'
-const SK_RAG_BANNER_DISMISSED = 'kinetix_rag_sync_banner_dismissed'
 const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
 const WITHINGS_STARTUP_RETRY_DELAYS_MS = [0, 1500, 4000] as const
 
-function readRagFailStreak(): number {
+function readRagFailStreak(authUserId: string): number {
   if (typeof sessionStorage === 'undefined') return 0
-  return Number(sessionStorage.getItem(SK_RAG_FAIL_STREAK)) || 0
+  return Number(sessionStorage.getItem(ragFailStreakSessionKey(authUserId))) || 0
 }
 
-function isRagBannerDismissed(): boolean {
+function isRagBannerDismissed(authUserId: string): boolean {
   if (typeof sessionStorage === 'undefined') return false
-  return sessionStorage.getItem(SK_RAG_BANNER_DISMISSED) === '1'
+  return sessionStorage.getItem(ragBannerDismissedSessionKey(authUserId)) === '1'
 }
 
 interface LayoutProps {
@@ -51,11 +51,12 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const { profile, session, signOut } = useAuth()
+  const authUserId = session?.user?.id ?? ''
+  const signedInEmail = session?.user?.email ?? ''
   const [mobileOverflowOpen, setMobileOverflowOpen] = useState(false)
-  const [ragSyncBannerOpen, setRagSyncBannerOpen] = useState(() => {
-    if (typeof sessionStorage === 'undefined') return false
-    return readRagFailStreak() >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed()
-  })
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
+  const accountMenuRef = useRef<HTMLDivElement>(null)
+  const [ragSyncBannerOpen, setRagSyncBannerOpen] = useState(false)
   const {
     stravaCredentials,
     stravaToken,
@@ -77,9 +78,34 @@ export default function Layout({ children }: LayoutProps) {
     setWithingsStartupSyncError,
   } = useSettingsStore()
   const profileLabel = profile ? getProfileLabel(profile, session?.user.email ?? null) : session?.user.email ?? 'User'
+  const accountDisplayName = profile?.full_name ?? profile?.display_name ?? ''
+  const emailInitial =
+    signedInEmail.trim().length > 0 ? signedInEmail.trim().slice(0, 1).toUpperCase() : '?'
 
   useEffect(() => {
-    if (!profile || typeof indexedDB === 'undefined') return
+    if (!authUserId || typeof sessionStorage === 'undefined') {
+      setRagSyncBannerOpen(false)
+      return
+    }
+    setRagSyncBannerOpen(
+      readRagFailStreak(authUserId) >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed(authUserId),
+    )
+  }, [authUserId])
+
+  useEffect(() => {
+    if (!accountMenuOpen) return
+    const onDoc = (e: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setAccountMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [accountMenuOpen])
+
+  useEffect(() => {
+    if (!profile || !authUserId || typeof indexedDB === 'undefined') return
+    if (!getActiveScopedDbUserId()) return
     const userProfile = toKinetixUserProfile(profile)
     const run = async () => {
       try {
@@ -88,34 +114,34 @@ export default function Layout({ children }: LayoutProps) {
         const result = await syncNewRunsToRAG(items, userProfile)
         if (result.errors === 0) {
           if (typeof sessionStorage !== 'undefined') {
-            sessionStorage.removeItem(SK_RAG_FAIL_STREAK)
-            sessionStorage.removeItem(SK_RAG_BANNER_DISMISSED)
+            sessionStorage.removeItem(ragFailStreakSessionKey(authUserId))
+            sessionStorage.removeItem(ragBannerDismissedSessionKey(authUserId))
           }
           setRagSyncBannerOpen(false)
           return true
         }
         if (typeof sessionStorage !== 'undefined') {
-          const next = readRagFailStreak() + 1
-          sessionStorage.setItem(SK_RAG_FAIL_STREAK, String(next))
+          const next = readRagFailStreak(authUserId) + 1
+          sessionStorage.setItem(ragFailStreakSessionKey(authUserId), String(next))
           emitStructuredLog('warn', 'rag_startup_sync_errors', {
             indexed: result.indexed,
             errors: result.errors,
             skipped: result.skipped,
             streak: next,
           })
-          if (next >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed()) {
+          if (next >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed(authUserId)) {
             setRagSyncBannerOpen(true)
           }
         }
       } catch (err) {
         if (typeof sessionStorage !== 'undefined') {
-          const next = readRagFailStreak() + 1
-          sessionStorage.setItem(SK_RAG_FAIL_STREAK, String(next))
+          const next = readRagFailStreak(authUserId) + 1
+          sessionStorage.setItem(ragFailStreakSessionKey(authUserId), String(next))
           emitStructuredLog('error', 'rag_startup_sync_threw', {
             streak: next,
             message: err instanceof Error ? err.message : String(err),
           })
-          if (next >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed()) {
+          if (next >= RAG_SYNC_FAIL_THRESHOLD && !isRagBannerDismissed(authUserId)) {
             setRagSyncBannerOpen(true)
           }
         }
@@ -123,7 +149,7 @@ export default function Layout({ children }: LayoutProps) {
       return true
     }
     return scheduleStartupAttempts([0], run)
-  }, [profile])
+  }, [profile, authUserId])
 
   // Sync new runs from Strava on app startup (e.g. Garmin->Strava run).
   // Uses persisted credentials (with refresh) or legacy token. Runs at 0, 500, 1500, 2500, 4000, 5000 ms
@@ -131,6 +157,7 @@ export default function Layout({ children }: LayoutProps) {
   const stravaSyncDoneRef = useRef(false)
   useEffect(() => {
     if (!profile || typeof indexedDB === 'undefined') return
+    if (!getActiveScopedDbUserId()) return
     stravaSyncDoneRef.current = false
 
     const runSync = async (attempt: number) => {
@@ -166,6 +193,7 @@ export default function Layout({ children }: LayoutProps) {
   const withingsStartupSyncDoneRef = useRef(false)
   useEffect(() => {
     if (!profile || !settingsRehydrated || !withingsCredentials || typeof indexedDB === 'undefined') return
+    if (!getActiveScopedDbUserId()) return
     withingsStartupSyncDoneRef.current = false
 
     const runStartupReload = async () => {
@@ -271,18 +299,65 @@ export default function Layout({ children }: LayoutProps) {
                 <p className="text-xs text-[var(--shell-text-tertiary)] dark:text-[var(--shell-text-tertiary)]">Web dashboard</p>
               </Link>
             </div>
-            <div className="flex shrink-0 items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <ThemeSelector />
-              <span className="hidden max-w-[180px] truncate text-xs text-[var(--shell-text-secondary)] sm:block dark:text-[var(--shell-text-secondary)]">
-                {profileLabel}
-              </span>
-              <button
-                type="button"
-                onClick={() => void signOut()}
-                className="shell-focus-ring rounded-md border border-cyan-700/35 px-3 py-1.5 text-xs font-medium text-cyan-950 hover:bg-cyan-500/12 dark:border-cyan-400/35 dark:text-cyan-100 dark:hover:bg-cyan-500/14"
+              <span
+                className="min-w-0 max-w-[min(42vw,14rem)] truncate text-xs font-semibold text-[var(--shell-text-primary)] sm:max-w-[min(36vw,18rem)] md:max-w-xs"
+                title={signedInEmail || undefined}
+                data-testid="shell-signed-in-email"
               >
-                Sign out
-              </button>
+                {signedInEmail || 'Signed in'}
+              </span>
+              <span className="hidden max-w-[140px] truncate text-xs text-[var(--shell-text-secondary)] lg:inline dark:text-[var(--shell-text-secondary)]">
+                {profileLabel !== signedInEmail ? profileLabel : ''}
+              </span>
+              <div className="relative shrink-0" ref={accountMenuRef}>
+                <button
+                  type="button"
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Account menu"
+                  data-testid="shell-account-menu-trigger"
+                  onClick={() => setAccountMenuOpen((o) => !o)}
+                  className="shell-focus-ring flex items-center gap-1 rounded-full border border-slate-300/60 bg-white/90 px-1.5 py-1 text-[var(--shell-text-primary)] shadow-sm hover:bg-white dark:border-white/15 dark:bg-slate-900/90 dark:hover:bg-slate-900"
+                >
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-700/15 text-xs font-bold text-cyan-950 dark:bg-cyan-400/15 dark:text-cyan-50"
+                    aria-hidden
+                  >
+                    {emailInitial}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-70" aria-hidden />
+                </button>
+                {accountMenuOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute right-0 z-50 mt-2 w-64 rounded-xl border border-slate-200 bg-white py-2 text-sm shadow-xl dark:border-white/10 dark:bg-slate-950"
+                  >
+                    {accountDisplayName.trim() ? (
+                      <div className="border-b border-slate-200 px-4 py-2 dark:border-white/10">
+                        <div className="text-xs font-medium text-[var(--shell-text-tertiary)]">Name</div>
+                        <div className="font-medium text-[var(--shell-text-primary)]">{accountDisplayName}</div>
+                      </div>
+                    ) : null}
+                    <div className="border-b border-slate-200 px-4 py-2 dark:border-white/10">
+                      <div className="text-xs font-medium text-[var(--shell-text-tertiary)]">Email</div>
+                      <div className="break-all text-[var(--shell-text-primary)]">{signedInEmail || '—'}</div>
+                    </div>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="mt-1 w-full px-4 py-2 text-left text-sm font-medium text-cyan-900 hover:bg-cyan-500/10 dark:text-cyan-100 dark:hover:bg-cyan-500/15"
+                      onClick={() => {
+                        setAccountMenuOpen(false)
+                        void signOut()
+                      }}
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
@@ -336,8 +411,8 @@ export default function Layout({ children }: LayoutProps) {
                   <button
                     type="button"
                     onClick={() => {
-                      if (typeof sessionStorage !== 'undefined') {
-                        sessionStorage.setItem(SK_RAG_BANNER_DISMISSED, '1')
+                      if (typeof sessionStorage !== 'undefined' && authUserId) {
+                        sessionStorage.setItem(ragBannerDismissedSessionKey(authUserId), '1')
                       }
                       setRagSyncBannerOpen(false)
                     }}

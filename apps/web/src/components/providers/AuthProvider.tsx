@@ -8,6 +8,11 @@ import {
 } from '../../lib/platformAuth'
 import type { PlatformProfileRecord } from '../../lib/kinetixProfile'
 import { setActivePlatformProfile } from '../../lib/authState'
+import { migrateLegacyUnscopedSettingsLocalStorage } from '../../lib/migrateLegacySettingsStorage'
+import { clearLogoutSessionArtifacts, clearVolatileHistoryKpsCaches } from '../../lib/logoutCleanup'
+import { setActiveKinetixIndexedDbUser } from '../../lib/database'
+import { setSettingsPersistUserId } from '../../store/settingsScopedStorage'
+import { clearSensitiveSettingsForLogout, useSettingsStore } from '../../store/settingsStore'
 import { buildAuthRedirectTarget, resolveConfiguredAuthRedirectUrl } from '../../lib/authRedirect'
 import { formatSupabaseAuthError } from '../../lib/supabaseAuthErrors'
 import { AuthContext, type AuthContextValue, type OAuthProviderAvailability } from './useAuth'
@@ -132,12 +137,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(MOCK_BYPASS_PROFILE)
       setError(null)
       setActivePlatformProfile(MOCK_BYPASS_PROFILE)
+      setSettingsPersistUserId(MOCK_BYPASS_PROFILE.id)
+      migrateLegacyUnscopedSettingsLocalStorage(MOCK_BYPASS_PROFILE.id)
+      void Promise.resolve(useSettingsStore.persist.rehydrate()).then(() =>
+        setActiveKinetixIndexedDbUser(MOCK_BYPASS_PROFILE.id)
+      )
     }
   }, [])
 
   const hydrateFromSession = useCallback(async (currentSession: Session | null) => {
     if (SKIP_AUTH) return
     if (!currentSession) {
+      await setActiveKinetixIndexedDbUser(null)
+      setSettingsPersistUserId(null)
+      await useSettingsStore.persist.rehydrate()
       setSession(null)
       setProfile(null)
       setError(null)
@@ -147,6 +160,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setSession(currentSession)
+    setSettingsPersistUserId(currentSession.user.id)
+    migrateLegacyUnscopedSettingsLocalStorage(currentSession.user.id)
+    await useSettingsStore.persist.rehydrate()
+    await setActiveKinetixIndexedDbUser(currentSession.user.id)
     setStatus('loading')
     try {
       const access = await resolveAccess(currentSession.user.id)
@@ -262,6 +279,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     if (SKIP_AUTH) return
     if (!supabase) return
+    const { data } = await supabase.auth.getSession()
+    const uid = data.session?.user?.id
+    if (uid) {
+      setSettingsPersistUserId(uid)
+      clearSensitiveSettingsForLogout()
+      clearLogoutSessionArtifacts(uid)
+      clearVolatileHistoryKpsCaches(uid)
+    }
+    await setActiveKinetixIndexedDbUser(null)
+    setSettingsPersistUserId(null)
+    await useSettingsStore.persist.rehydrate()
     const { error: signOutError } = await supabase.auth.signOut()
     if (signOutError) throw signOutError
   }, [])

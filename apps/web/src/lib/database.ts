@@ -2,10 +2,23 @@ import Dexie, { Table } from 'dexie'
 import { UserProfile } from '@kinetix/core'
 import type { CanonicalHealthMetric } from './integrations/healthMetrics'
 import type { WithingsCapabilityMap, WithingsCursor, WithingsRawEvent, WithingsSyncRun } from './integrations/withings/types'
+import {
+  LEGACY_IDB_MIGRATION_MARKER_KEY,
+  type LegacyIdbMigrationMarkerV1,
+  LEGACY_IDB_MIGRATION_SCHEMA_VERSION,
+  parseLegacyMigrationMarker,
+} from './idbLegacyMigrationMarker'
 
 /** 0 = visible, 1 = logically deleted (hidden from UI and stats) */
 export const RUN_DELETED = 1
 export const RUN_VISIBLE = 0
+
+/** Pre-partitioning shared Dexie database (browser-wide; migrate once then remove). */
+export const LEGACY_SHARED_DB_NAME = 'KinetixDB'
+
+export function scopedIndexedDbName(authUserId: string): string {
+  return `KinetixDB__${authUserId}`
+}
 
 export interface RunRecord {
   id?: number
@@ -37,7 +50,7 @@ export interface RunRecord {
 
 /**
  * Personal Best (PB) Record
- * 
+ *
  * INVARIANT: PB is a FACT, not a calculation.
  * - PB stores the runId that achieved the PB
  * - PB stores the profile snapshot used when it was set
@@ -77,7 +90,91 @@ export interface ProviderSyncCheckpoint {
 
 export type StoredHealthMetric = CanonicalHealthMetric & { id: string }
 
-class KinetixDatabase extends Dexie {
+const USER_TABLES = [
+  'runs',
+  'pb',
+  'weightHistory',
+  'providerConnections',
+  'providerSyncCheckpoints',
+  'providerSyncRuns',
+  'providerRawEvents',
+  'healthMetrics',
+] as const
+
+async function copyAllUserTables(source: KinetixDatabase, dest: KinetixDatabase): Promise<void> {
+  for (const name of USER_TABLES) {
+    const rows = await source.table(name).toArray()
+    if (rows.length === 0) continue
+    await dest.table(name).bulkPut(rows as Record<string, unknown>[])
+  }
+}
+
+async function tableRowCountSum(db: KinetixDatabase): Promise<number> {
+  let n = 0
+  for (const name of USER_TABLES) {
+    n += await db.table(name).count()
+  }
+  return n
+}
+
+function writeLegacyMigrationMarker(marker: LegacyIdbMigrationMarkerV1): void {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.setItem(LEGACY_IDB_MIGRATION_MARKER_KEY, JSON.stringify(marker))
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * One-time: if marker missing, optionally import legacy shared DB into this user's DB, then remove legacy Dexie.
+ * Never runs again once localStorage marker exists (any user / same browser).
+ */
+async function migrateLegacySharedIndexedDbOnce(
+  currentAuthUserId: string,
+  targetDb: KinetixDatabase
+): Promise<void> {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return
+
+  const existingMarker = parseLegacyMigrationMarker(localStorage.getItem(LEGACY_IDB_MIGRATION_MARKER_KEY))
+  if (existingMarker) return
+
+  const legacyExists = await Dexie.exists(LEGACY_SHARED_DB_NAME)
+  if (!legacyExists) {
+    writeLegacyMigrationMarker({
+      version: LEGACY_IDB_MIGRATION_SCHEMA_VERSION,
+      migrationOwnerUserId: null,
+      migratedAt: new Date().toISOString(),
+      importedFromLegacySharedDb: false,
+      legacyDexieAbsent: true,
+    })
+    return
+  }
+
+  const legacyDb = new KinetixDatabase(LEGACY_SHARED_DB_NAME)
+  await legacyDb.open()
+
+  const legacyRows = await tableRowCountSum(legacyDb)
+  const targetRows = await tableRowCountSum(targetDb)
+
+  let importedFromLegacySharedDb = false
+  if (legacyRows > 0 && targetRows === 0) {
+    await copyAllUserTables(legacyDb, targetDb)
+    importedFromLegacySharedDb = true
+  }
+
+  await legacyDb.delete()
+
+  writeLegacyMigrationMarker({
+    version: LEGACY_IDB_MIGRATION_SCHEMA_VERSION,
+    migrationOwnerUserId: importedFromLegacySharedDb ? currentAuthUserId : null,
+    migratedAt: new Date().toISOString(),
+    importedFromLegacySharedDb,
+    legacyDexieAbsent: false,
+  })
+}
+
+export class KinetixDatabase extends Dexie {
   runs!: Table<RunRecord>
   pb!: Table<PBRecord>
   weightHistory!: Table<WeightEntry>
@@ -87,8 +184,8 @@ class KinetixDatabase extends Dexie {
   providerRawEvents!: Table<WithingsRawEvent>
   healthMetrics!: Table<StoredHealthMetric>
 
-  constructor() {
-    super('KinetixDB')
+  constructor(dbName: string) {
+    super(dbName)
     this.version(2).stores({
       runs: '++id, date, npi, distance, source',
       pb: '++id, runId, achievedAt',
@@ -104,8 +201,14 @@ class KinetixDatabase extends Dexie {
       return tx.table('runs').toCollection().modify((run: Record<string, unknown>) => {
         const npi = run.npi as number | undefined
         const targetNPI = run.targetNPI as number | undefined
-        if (npi !== undefined) { run.kps = npi; delete run.npi }
-        if (targetNPI !== undefined) { run.targetKPS = targetNPI; delete run.targetNPI }
+        if (npi !== undefined) {
+          run.kps = npi
+          delete run.npi
+        }
+        if (targetNPI !== undefined) {
+          run.targetKPS = targetNPI
+          delete run.targetNPI
+        }
       })
     })
     this.version(5).stores({
@@ -145,11 +248,47 @@ class KinetixDatabase extends Dexie {
   }
 }
 
-export const db = new KinetixDatabase()
+let activeDb: KinetixDatabase | null = null
+let activeScopedUserId: string | null = null
+
+export function getActiveScopedDbUserId(): string | null {
+  return activeScopedUserId
+}
+
+export function getDb(): KinetixDatabase {
+  if (!activeDb) {
+    throw new Error('Kinetix IndexedDB is not active: sign in required.')
+  }
+  return activeDb
+}
+
+export async function setActiveKinetixIndexedDbUser(authUserId: string | null): Promise<void> {
+  if (activeDb) {
+    activeDb.close()
+    activeDb = null
+    activeScopedUserId = null
+  }
+  if (!authUserId) return
+
+  const db = new KinetixDatabase(scopedIndexedDbName(authUserId))
+  await db.open()
+  await migrateLegacySharedIndexedDbOnce(authUserId, db)
+  activeDb = db
+  activeScopedUserId = authUserId
+}
+
+/** @deprecated Use getDb() — singleton `db` removed for per-user isolation */
+export const db = new Proxy({} as KinetixDatabase, {
+  get(_t, prop: keyof KinetixDatabase) {
+    const real = getDb()
+    const v = real[prop]
+    return typeof v === 'function' ? v.bind(real) : v
+  },
+})
 
 const RUNS_ORDERED = () =>
-  db.runs
-    .orderBy('date')
+  getDb()
+    .runs.orderBy('date')
     .reverse()
     .filter((r) => (r.deleted ?? 0) === RUN_VISIBLE)
 const RUNS_VISIBLE_COUNT = () => RUNS_ORDERED().count()
@@ -202,8 +341,8 @@ export async function getRunsInDateRange(
   limit: number
 ): Promise<RunRecord[]> {
   if (startDate > endDate) return []
-  const raw = await db.runs
-    .where('date')
+  const raw = await getDb()
+    .runs.where('date')
     .between(startDate, endDate, true, true)
     .limit(limit * 3)
     .toArray()
@@ -215,13 +354,13 @@ export async function getRunsInDateRange(
  * If this run is the current PB, the PB is cleared so a new one can be chosen.
  */
 export async function hideRun(runId: number): Promise<void> {
-  const run = await db.runs.get(runId)
+  const run = await getDb().runs.get(runId)
   if (!run) return
-  await db.runs.update(runId, { deleted: RUN_DELETED })
-  const pbRecords = await db.pb.toArray()
+  await getDb().runs.update(runId, { deleted: RUN_DELETED })
+  const pbRecords = await getDb().pb.toArray()
   const isPB = pbRecords.some((p) => p.runId === runId)
   if (isPB) {
-    await db.pb.clear()
+    await getDb().pb.clear()
   }
 }
 
@@ -231,7 +370,7 @@ export async function hideRun(runId: number): Promise<void> {
  */
 export async function bulkPutWeightEntries(entries: WeightEntry[]): Promise<{ count: number; latestKg: number | null }> {
   if (entries.length === 0) return { count: 0, latestKg: null }
-  await db.weightHistory.bulkPut(entries)
+  await getDb().weightHistory.bulkPut(entries)
   const sorted = [...entries].sort((a, b) => b.dateUnix - a.dateUnix)
   const latest = sorted[0]
   return { count: entries.length, latestKg: latest?.kg ?? null }
@@ -241,14 +380,14 @@ export async function bulkPutWeightEntries(entries: WeightEntry[]): Promise<{ co
  * Get weight history count (for display).
  */
 export async function getWeightHistoryCount(): Promise<number> {
-  return db.weightHistory.count()
+  return getDb().weightHistory.count()
 }
 
 /** Newest stored measurement instant (Unix seconds), for Withings `lastupdate` incremental sync. */
 export async function getMaxWeightDateUnix(): Promise<number | null> {
   if (typeof indexedDB === 'undefined') return null
   try {
-    const last = await db.weightHistory.orderBy('dateUnix').last()
+    const last = await getDb().weightHistory.orderBy('dateUnix').last()
     if (last == null) return null
     return last.dateUnix
   } catch {
@@ -263,10 +402,10 @@ export async function getWeightHistoryPage(
   page: number,
   pageSize: number
 ): Promise<{ items: WeightEntry[]; total: number }> {
-  const total = await db.weightHistory.count()
+  const total = await getDb().weightHistory.count()
   const offset = Math.max(0, (page - 1) * pageSize)
-  const items = await db.weightHistory
-    .orderBy('dateUnix')
+  const items = await getDb()
+    .weightHistory.orderBy('dateUnix')
     .reverse()
     .offset(offset)
     .limit(pageSize)
@@ -282,8 +421,8 @@ export async function getWeightHistoryInRange(
   endDate: string,
   limit: number
 ): Promise<WeightEntry[]> {
-  const raw = await db.weightHistory
-    .where('date')
+  const raw = await getDb()
+    .weightHistory.where('date')
     .between(startDate, endDate, true, true)
     .limit(limit)
     .toArray()
@@ -312,7 +451,7 @@ export async function getWeightAtDate(runDate: string): Promise<number | null> {
   const runInstant = Date.parse(runDate)
   if (!Number.isFinite(runInstant)) return null
   const runUnix = Math.floor(runInstant / 1000)
-  const entries = await db.weightHistory.where('dateUnix').belowOrEqual(runUnix).toArray()
+  const entries = await getDb().weightHistory.where('dateUnix').belowOrEqual(runUnix).toArray()
   return weightKgAtOrBeforeRunUnix(entries, runUnix)
 }
 
@@ -351,8 +490,8 @@ export async function getWeightsForDates(runDates: string[]): Promise<Map<string
   const uniqueSorted = [...new Set(runDates)].sort((a, b) => a.localeCompare(b))
   if (uniqueSorted.length === 0) return new Map()
   const maxDate = uniqueSorted[uniqueSorted.length - 1]
-  const entries = await db.weightHistory
-    .where('date')
+  const entries = await getDb()
+    .weightHistory.where('date')
     .between('1970-01-01', maxDate, true, true)
     .toArray()
   if (entries.length === 0) return new Map()
@@ -365,7 +504,7 @@ export async function getWeightsForDates(runDates: string[]): Promise<Map<string
  * weight history or for legacy runs. Call from the app (Settings); requires IndexedDB.
  */
 export async function backfillRunWeights(): Promise<{ updated: number; skipped: number }> {
-  const runs = await db.runs.toArray()
+  const runs = await getDb().runs.toArray()
   let updated = 0
   let skipped = 0
   for (const run of runs) {
@@ -376,7 +515,7 @@ export async function backfillRunWeights(): Promise<{ updated: number; skipped: 
     if (!run.id) continue
     const weight = await getWeightAtDate(run.date)
     if (weight != null && weight > 0) {
-      await db.runs.update(run.id, { weightKg: weight })
+      await getDb().runs.update(run.id, { weightKg: weight })
       updated += 1
     } else {
       skipped += 1
@@ -386,11 +525,11 @@ export async function backfillRunWeights(): Promise<{ updated: number; skipped: 
 }
 
 export async function upsertProviderConnectionState(state: ProviderConnectionState): Promise<void> {
-  await db.providerConnections.put(state)
+  await getDb().providerConnections.put(state)
 }
 
 export async function getProviderConnectionState(userId: string, provider: 'withings'): Promise<ProviderConnectionState | undefined> {
-  return db.providerConnections.get(`${provider}:${userId}`)
+  return getDb().providerConnections.get(`${provider}:${userId}`)
 }
 
 export async function setProviderSyncCheckpoint(
@@ -398,7 +537,7 @@ export async function setProviderSyncCheckpoint(
   provider: 'withings',
   cursor: WithingsCursor
 ): Promise<void> {
-  await db.providerSyncCheckpoints.put({
+  await getDb().providerSyncCheckpoints.put({
     id: `${provider}:${userId}`,
     userId,
     provider,
@@ -411,17 +550,17 @@ export async function getProviderSyncCheckpoint(
   userId: string,
   provider: 'withings'
 ): Promise<WithingsCursor> {
-  const row = await db.providerSyncCheckpoints.get(`${provider}:${userId}`)
+  const row = await getDb().providerSyncCheckpoints.get(`${provider}:${userId}`)
   return row?.cursor ?? {}
 }
 
 export async function appendProviderSyncRun(run: WithingsSyncRun): Promise<void> {
-  await db.providerSyncRuns.add(run)
+  await getDb().providerSyncRuns.add(run)
 }
 
 export async function appendProviderRawEvents(events: WithingsRawEvent[]): Promise<void> {
   if (events.length === 0) return
-  await db.providerRawEvents.bulkAdd(events)
+  await getDb().providerRawEvents.bulkAdd(events)
 }
 
 export async function putCanonicalHealthMetrics(metrics: CanonicalHealthMetric[]): Promise<void> {
@@ -430,9 +569,9 @@ export async function putCanonicalHealthMetrics(metrics: CanonicalHealthMetric[]
     ...metric,
     id: `${metric.source}:${metric.userId}:${metric.family}:${metric.sourceRecordId}`,
   }))
-  await db.healthMetrics.bulkPut(rows)
+  await getDb().healthMetrics.bulkPut(rows)
 }
 
 export async function getCanonicalHealthMetricsForUser(userId: string): Promise<StoredHealthMetric[]> {
-  return db.healthMetrics.where('userId').equals(userId).toArray()
+  return getDb().healthMetrics.where('userId').equals(userId).toArray()
 }

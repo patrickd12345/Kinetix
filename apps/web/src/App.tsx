@@ -57,7 +57,7 @@ function FullscreenStatus({
 }
 
 function ProtectedRoutes() {
-  const { status, error, profile } = useAuth()
+  const { status, error, profile, session } = useAuth()
   const location = useLocation()
 
   if (status === 'loading') {
@@ -95,7 +95,7 @@ function ProtectedRoutes() {
   }
 
   return (
-    <Layout>
+    <Layout key={session?.user?.id ?? 'shell'}>
       <Suspense fallback={<LazyRouteFallback />}>
         <Routes>
           <Route path="/" element={<RunDashboard />} />

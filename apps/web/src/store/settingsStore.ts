@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import type { TrainingGoal } from '../lib/goalRace/types'
+import { scopedSettingsStorage } from './settingsScopedStorage'
 
 export type WeightSource = 'profile' | 'withings'
 
@@ -113,9 +114,11 @@ export const useSettingsStore = create<SettingsState>()(
       lastSuccessfulWithingsSyncAt: null,
       setLastSuccessfulWithingsSyncAt: (iso) => set({ lastSuccessfulWithingsSyncAt: iso }),
       lastSuccessfulWithingsScheduledSlotKey: null,
-      setLastSuccessfulWithingsScheduledSlotKey: (slotKey) => set({ lastSuccessfulWithingsScheduledSlotKey: slotKey }),
+      setLastSuccessfulWithingsScheduledSlotKey: (slotKey) =>
+        set({ lastSuccessfulWithingsScheduledSlotKey: slotKey }),
       lastSuccessfulWithingsStartupSyncDate: null,
-      setLastSuccessfulWithingsStartupSyncDate: (dateKey) => set({ lastSuccessfulWithingsStartupSyncDate: dateKey }),
+      setLastSuccessfulWithingsStartupSyncDate: (dateKey) =>
+        set({ lastSuccessfulWithingsStartupSyncDate: dateKey }),
       withingsStartupSyncInFlight: false,
       setWithingsStartupSyncInFlight: (inFlight) => set({ withingsStartupSyncInFlight: inFlight }),
       withingsStartupSyncError: null,
@@ -126,7 +129,12 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'kinetix-settings',
-      partialize: (state) => {
+      storage: createJSONStorage(() => ({
+        getItem: (name) => scopedSettingsStorage.getItem(name),
+        setItem: (name, value) => scopedSettingsStorage.setItem(name, value),
+        removeItem: (name) => scopedSettingsStorage.removeItem(name),
+      })),
+      partialize: (state): Partial<SettingsState> => {
         const {
           settingsRehydrated: _rehydrated,
           withingsStartupSyncInFlight: _withingsStartupSyncInFlight,
@@ -143,9 +151,12 @@ export const useSettingsStore = create<SettingsState>()(
         if (!p) return current
         const out: SettingsState = { ...current, ...p }
         if (p.targetNPI !== undefined) out.targetKPS = p.targetNPI
-        if (p.withingsCredentials && typeof p.withingsCredentials.expiresAt === 'number') out.withingsCredentials = p.withingsCredentials
-        if (p.stravaCredentials && typeof p.stravaCredentials.expiresAt === 'number') out.stravaCredentials = p.stravaCredentials
-        if (!Array.isArray(p.withingsSyncTimes) || p.withingsSyncTimes.length !== 2) out.withingsSyncTimes = DEFAULT_WITHINGS_SYNC_TIMES
+        if (p.withingsCredentials && typeof p.withingsCredentials.expiresAt === 'number')
+          out.withingsCredentials = p.withingsCredentials
+        if (p.stravaCredentials && typeof p.stravaCredentials.expiresAt === 'number')
+          out.stravaCredentials = p.stravaCredentials
+        if (!Array.isArray(p.withingsSyncTimes) || p.withingsSyncTimes.length !== 2)
+          out.withingsSyncTimes = DEFAULT_WITHINGS_SYNC_TIMES
         out.stravaSyncError = null
         return out
       },
@@ -156,3 +167,23 @@ export const useSettingsStore = create<SettingsState>()(
     }
   )
 )
+
+/**
+ * Removes provider tokens and volatile sync state while preserving harmless preferences
+ * (units, targets, training goal, sync window times, etc.) in the user-scoped settings blob.
+ */
+export function clearSensitiveSettingsForLogout(): void {
+  useSettingsStore.setState((s) => ({
+    stravaToken: '',
+    stravaCredentials: null,
+    stravaSyncError: null,
+    withingsCredentials: null,
+    lastWithingsWeightKg: 0,
+    lastSuccessfulWithingsSyncAt: null,
+    lastSuccessfulWithingsScheduledSlotKey: null,
+    lastSuccessfulWithingsStartupSyncDate: null,
+    withingsStartupSyncError: null,
+    withingsStartupSyncInFlight: false,
+    weightSource: s.weightSource === 'withings' ? ('profile' as WeightSource) : s.weightSource,
+  }))
+}

@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { scopedSettingsLocalStorageKey } from '../lib/clientStorageScope'
+import { setSettingsPersistUserId } from './settingsScopedStorage'
 import { useSettingsStore } from './settingsStore'
 
+const TEST_SETTINGS_USER = 'withings-settings-test-user'
+
 describe('settingsStore withings expanded sync settings', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear()
+    setSettingsPersistUserId(TEST_SETTINGS_USER)
+    await useSettingsStore.persist.rehydrate()
     useSettingsStore.setState({
       withingsExpandedSyncEnabled: false,
       withingsSyncTimes: ['08:00', '20:00'],
@@ -30,7 +36,7 @@ describe('settingsStore withings expanded sync settings', () => {
     useSettingsStore.getState().setWithingsStartupSyncInFlight(true)
     useSettingsStore.getState().setWithingsStartupSyncError('temporary failure')
 
-    const raw = localStorage.getItem('kinetix-settings')
+    const raw = localStorage.getItem(scopedSettingsLocalStorageKey(TEST_SETTINGS_USER))
     expect(raw).toBeTruthy()
     const parsed = raw ? JSON.parse(raw) : null
     const state = parsed?.state

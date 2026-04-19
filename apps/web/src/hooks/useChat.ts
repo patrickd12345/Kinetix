@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { buildCoachGuardrailPayload, getCoachContext } from '../lib/ragClient'
 import { getPBRun } from '../lib/kpsUtils'
 import { useAuth } from '../components/providers/useAuth'
@@ -26,11 +26,17 @@ function buildContents(messages: ChatMessage[]): Array<{ role: string; parts: Ar
 }
 
 export function useChat() {
-  const { profile } = useAuth()
+  const { profile, session } = useAuth()
   const unitSystem = useSettingsStore((state) => state.unitSystem)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setMessages([])
+    setError(null)
+    setIsLoading(false)
+  }, [session?.user?.id])
 
   const sendMessage = useCallback(async (content: string) => {
     const trimmed = content.trim()
@@ -116,7 +122,7 @@ export function useChat() {
     } finally {
       setIsLoading(false)
     }
-  }, [messages, profile, unitSystem])
+  }, [messages, profile, unitSystem, session?.user?.id])
 
   const clearChat = useCallback(() => {
     setMessages([])

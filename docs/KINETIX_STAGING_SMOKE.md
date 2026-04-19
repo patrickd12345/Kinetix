@@ -1,8 +1,41 @@
-# Kinetix staging smoke — operator evidence (KX-FEAT-003)
+# Kinetix staging smoke — operator evidence (KX-FEAT-004)
 
-Manual and environment checks for **staging** (preview or dedicated staging hostname) **after** PR **#89** has merged into `main`. Use alongside [`docs/deployment/KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md).
+**Status:** Transitional  
+**Feature:** KX-FEAT-004 Infisical canonical secrets pilot  
+**Staging URL:** TBD - set the actual staging URL before use  
+**Commit/tag tested:** TBD at execution time  
+**Last updated:** 2026-04-18
 
-**Staging rule:** Exercise **real Supabase auth** and platform profile/entitlements. **`VITE_SKIP_AUTH` must be unset/false for staging UX validation** — it is ignored in production **runtime**, but staging should mirror real sign-in behavior. **`VITE_SKIP_AUTH` must not be set during `pnpm build`** (see Production build safety below).
+Manual and environment checks for **staging** (preview or dedicated staging hostname) after PR **#89** merged into `main`. Use alongside [`docs/deployment/KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md).
+
+**Staging rule:** Exercise **real Supabase auth** and platform profile/entitlements. **`VITE_SKIP_AUTH` must be unset/false for staging UX validation** — it is ignored in production runtime, but staging should mirror real sign-in behavior. **`VITE_SKIP_AUTH` must not be set during `pnpm build`** (see Production build safety below).
+
+## Purpose
+
+Manual smoke checklist for validating that a staging-grade Kinetix deployment uses the expected environment source, authenticates against the shared Bookiji Supabase project, and still passes the core user flows after the Infisical pilot rollout.
+
+---
+
+## Infisical env-source status
+
+| Item | Current expectation |
+|------|---------------------|
+| Canonical source of truth | **Infisical** (`/platform` + `/kinetix`) |
+| Staging envs currently synced from Infisical | **Target state:** yes |
+| Staging envs currently manual in Vercel/GitHub | **Possible transitional fallback:** yes, until sync is completed and audited |
+| Current state classification | **Transitional** until sync is proven, documented, and repeatable |
+
+If staging is still running on manually configured Vercel or GitHub environment variables, record that explicitly and treat the run as **transitional**, not final compliance.
+
+---
+
+## Preconditions
+
+- [ ] The commit or release candidate being tested is recorded in **Commit/tag tested**
+- [ ] Required client envs resolve (`VITE_SUPABASE_URL` and anon/publishable key equivalent)
+- [ ] Required server envs resolve for any enabled server-only features
+- [ ] Staging deployment owner confirms whether envs came from Infisical sync or manual maintenance
+- [ ] No secrets are copied into notes, screenshots, tickets, or logs
 
 ---
 
@@ -51,13 +84,23 @@ So **staging preview builds** must not inject `VITE_SKIP_AUTH=1` into the **buil
 
 ---
 
+## Compliance status rubric
+
+| Status | Meaning |
+|--------|---------|
+| **Compliant** | Staging envs are synced from Infisical using the approved path mapping and no required value is maintained manually outside the canonical flow except documented short-term fallback. |
+| **Transitional** | Some or all staging envs are still maintained manually in Vercel/GitHub while the pilot is being adopted. This is allowed only with explicit documentation and rollback clarity. |
+| **Blocked** | Required envs are missing, stale, inconsistent, or unverifiable; the smoke run cannot establish deployment correctness. |
+
+---
+
 ## Staging sign-in requirement
 
 | Step | Pass criterion |
 |------|----------------|
 | 1 | Deploy staging with **real** `VITE_SUPABASE_*` pointing at shared dev/staging Supabase project. |
 | 2 | **Do not** rely on `VITE_SKIP_AUTH` for staging smoke results. Sign in via **magic link** or **enabled OAuth** (`VITE_AUTH_*`). |
-| 3 | Confirm Supabase **URL Configuration** redirect allowlist includes your **staging origin** (e.g. `https://kinetix-staging.bookiji.com/**`). |
+| 3 | Confirm Supabase **URL Configuration** redirect allowlist includes your **staging origin** (for example `https://kinetix-staging.bookiji.com/**`). |
 
 See also: SSO + entitlement tables in [`KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md).
 
@@ -77,10 +120,10 @@ See also: SSO + entitlement tables in [`KINETIX_VERIFICATION_CHECKLIST.md`](depl
 
 | Check | Pass criterion |
 |------|----------------|
-| Happy path | Active `platform.entitlements` row with product key **`kinetix`** for test user → app reaches Run Dashboard / shell. |
-| Negative test | Removing or deactivating entitlement → **`EntitlementRequired`** (or equivalent gated UI), no silent failure. |
+| Happy path | Active `platform.entitlements` row with product key **`kinetix`** for test user -> app reaches Run Dashboard / shell. |
+| Negative test | Removing or deactivating entitlement -> **`EntitlementRequired`** (or equivalent gated UI), no silent failure. |
 
-Align with checklist sections “SSO and entitlement” and “Entitlement gating”.
+Align with checklist sections "SSO and entitlement" and "Entitlement gating".
 
 ---
 
@@ -107,7 +150,7 @@ Align with checklist sections “SSO and entitlement” and “Entitlement gatin
 | Area | Pass criterion |
 |------|----------------|
 | `/` Run dashboard | Loads; coaching/today cards render or show empty/error states (no blank shell). |
-| `/history` | Loads; relative **KPS** displays **≤ 100** per PB contract; expandable run detail if runs exist. |
+| `/history` | Loads; relative **KPS** displays **<= 100** per PB contract; expandable run detail if runs exist. |
 | `/settings` | Profile/platform identity visible; imports optional. |
 
 Automated parity: Vitest **433**, Playwright **44** on `main` after merge.
@@ -122,23 +165,41 @@ Automated parity: Vitest **433**, Playwright **44** on `main` after merge.
 | Wrong env vars | Roll back preview env overrides; redeploy prior **successful** preview. |
 | Entitlements / DB | Restore entitlement row or fix RLS separately — app is designed to **fail closed** without access. |
 
+If the staging deployment fails because of environment drift after the Infisical pilot changes:
+
+1. restore the last known good staging environment mapping
+2. document whether the failure came from Infisical data, sync configuration, or manual staging drift
+3. do not promote the same environment setup to production until the source of truth and sync path are verified
+
 ---
 
 ## Pass / fail checklist (staging operator)
 
 Fill during staging run; require **PASS** before promoting to production.
 
-| Item | Pass / Fail |
-|------|-------------|
-| Supabase URLs + anon key configured for staging | |
-| Redirect URLs include staging origin | |
-| Sign-in works **without** `VITE_SKIP_AUTH` | |
-| Entitled user reaches dashboard | |
-| Removing entitlement gates app | |
-| `/help` responds or surfaces error clearly | |
-| Dashboard + History load; KPS sensible (≤ 100 display) | |
-| Billing URLs work **if** Stripe staging enabled | |
-| `/api/admlog` stays disabled / 403 pattern per prod checklist **on prod only** — staging may vary; document | |
+| Item | Pass | Fail | Notes |
+|------|------|------|-------|
+| Commit/tag tested recorded | [ ] | [ ] | |
+| Env-source status recorded (Infisical sync vs manual) | [ ] | [ ] | |
+| Supabase URLs + anon key configured for staging | [ ] | [ ] | |
+| Redirect URLs include staging origin | [ ] | [ ] | |
+| Sign-in works **without** `VITE_SKIP_AUTH` | [ ] | [ ] | |
+| Entitled user reaches dashboard | [ ] | [ ] | |
+| Removing entitlement gates app | [ ] | [ ] | |
+| `/help` responds or surfaces error clearly | [ ] | [ ] | |
+| Dashboard + History load; KPS sensible (**<= 100** display) | [ ] | [ ] | |
+| Billing URLs work **if** Stripe staging enabled | [ ] | [ ] | |
+| `/api/admlog` stays disabled / 403 pattern per prod checklist **on prod only** — staging may vary; document | [ ] | [ ] | |
+| Overall status | [ ] | [ ] | Compliant / Transitional / Blocked |
+
+---
+
+## Execution notes
+
+- Record the exact staging URL used.
+- Record the tested commit SHA or tag.
+- Record whether the run was blocked by missing env configuration, missing entitlement, or missing sync setup.
+- Do not mark the pilot complete until the environment source is provably reachable from Infisical or an explicitly documented transitional fallback is approved.
 
 ---
 

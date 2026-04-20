@@ -46,7 +46,7 @@ Admin one-shot login is implemented in [`api/admlog/index.ts`](../../api/admlog/
 
 **Operator rules:**
 
-- Do **not** set `ADMLOG_ENABLED=true` (or `BOOKIJI_TEST_MODE=true` for admlog) in **Infisical `prod`** or Vercel Production env. `pnpm verify:infisical` with `--env=prod` fails if `ADMLOG_ENABLED` is true in merged prod secrets.
+- Do **not** set `ADMLOG_ENABLED=true` (or `BOOKIJI_TEST_MODE=true` for admlog) in **Infisical `prod`** or Vercel Production env. `node scripts/verify-infisical.mjs --env=prod` fails only if **`ADMLOG_ENABLED` is true in Infisical `/platform` or `/kinetix` prod** (local `apps/web/.env.local` and shell env are not used for that check, and `.env.local` is not merged for prod verify).
 - Use Preview / local dev with explicit flags when you need admlog; expect the JSON 403 body to state clearly when the deployment is production.
 
 **How to use admlog (non-production only):**

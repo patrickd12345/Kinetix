@@ -18,13 +18,20 @@ function parseEnvArg() {
 
 try {
   const envName = parseEnvArg();
-  const { mergedEnv, platformKeyCount, kinetixKeyCount } =
-    mergeInfisicalForKinetix(envName);
+  const mergeDotEnvLocal = envName !== "prod";
+  const { mergedEnv, platformKeyCount, kinetixKeyCount, platformSecrets, kinetixSecrets } =
+    mergeInfisicalForKinetix(envName, { mergeDotEnvLocal });
 
-  if (envName === "prod" && mergedEnv.ADMLOG_ENABLED?.trim() === "true") {
-    throw new Error(
-      "ADMLOG_ENABLED must not be true in Infisical prod — /api/admlog is dev-only; platform-auth disables it in production, but setting this flag invites misconfiguration."
-    );
+  /** Vault-only: do not treat shell or `.env.local` as Infisical prod state. */
+  if (envName === "prod") {
+    const vaultAdmlog =
+      platformSecrets.ADMLOG_ENABLED?.trim() === "true" ||
+      kinetixSecrets.ADMLOG_ENABLED?.trim() === "true";
+    if (vaultAdmlog) {
+      throw new Error(
+        "ADMLOG_ENABLED must not be true in Infisical prod — /api/admlog is dev-only; platform-auth disables it in production, but setting this flag invites misconfiguration."
+      );
+    }
   }
 
   const url =

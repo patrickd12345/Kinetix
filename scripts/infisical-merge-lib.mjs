@@ -1,6 +1,19 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { platform } from "node:os";
+
+/**
+ * Node `execFileSync("infisical", ...)` on Windows can resolve npm's `infisical.ps1` shim, which
+ * may not pipe stdout correctly. Prefer `infisical.exe` (see `where.exe infisical`).
+ * Override with `INFISICAL_CLI_EXECUTABLE` when using a non-standard install.
+ */
+export function resolveInfisicalExecutable() {
+  const fromEnv = process.env.INFISICAL_CLI_EXECUTABLE?.trim();
+  if (fromEnv) return fromEnv;
+  if (platform() === "win32") return "infisical.exe";
+  return "infisical";
+}
 
 export function projectIdArgs() {
   const fromEnv = process.env.INFISICAL_PROJECT_ID?.trim();
@@ -23,10 +36,11 @@ export function projectIdArgs() {
 }
 
 export function exportSecrets(secretPath, envName) {
+  const cli = resolveInfisicalExecutable();
   let output;
   try {
     output = execFileSync(
-      "infisical",
+      cli,
       [...projectIdArgs(), "export", "--env", envName, "--path", secretPath, "--format", "json"],
       {
         encoding: "utf8",
@@ -160,12 +174,16 @@ export function validateMergedEnvForLocalDev(env) {
 
 /**
  * @param {string} envName - Infisical environment (e.g. dev, prod)
- * @returns {{ mergedEnv: Record<string, string>, platformKeyCount: number, kinetixKeyCount: number }}
+ * @param {{ mergeDotEnvLocal?: boolean }} [options] - When `mergeDotEnvLocal` is false, `apps/web/.env.local` is not merged (used for prod Infisical verification).
+ * @returns {{ mergedEnv: Record<string, string>, platformKeyCount: number, kinetixKeyCount: number, platformSecrets: Record<string, string>, kinetixSecrets: Record<string, string> }}
  */
-export function mergeInfisicalForKinetix(envName) {
+export function mergeInfisicalForKinetix(envName, options = {}) {
+  const mergeDotEnvLocal = options.mergeDotEnvLocal !== false;
   const platformSecrets = exportSecrets("/platform", envName);
   const kinetixSecrets = exportSecrets("/kinetix", envName);
-  const localAppEnv = parseDotenvFile(join(process.cwd(), "apps", "web", ".env.local"));
+  const localAppEnv = mergeDotEnvLocal
+    ? parseDotenvFile(join(process.cwd(), "apps", "web", ".env.local"))
+    : {};
   const mergedEnv = {
     ...process.env,
     ...platformSecrets,
@@ -178,5 +196,7 @@ export function mergeInfisicalForKinetix(envName) {
     mergedEnv,
     platformKeyCount: Object.keys(platformSecrets).length,
     kinetixKeyCount: Object.keys(kinetixSecrets).length,
+    platformSecrets,
+    kinetixSecrets,
   };
 }

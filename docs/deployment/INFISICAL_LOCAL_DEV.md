@@ -124,6 +124,10 @@ This is an **emergency local fallback only** for unblocking development when you
 
 Install the Infisical CLI and retry if you want to use `pnpm dev:infisical` or `pnpm verify:infisical`.
 
+### Windows / Cursor: npm shim vs real binary
+
+On Windows, `Get-Command infisical` may point at `infisical.ps1` from npm while `infisical --version` prints nothing under some shells. Merge scripts use **`infisical.exe`** via `execFileSync` so Node hits the real binary. To force a path: set **`INFISICAL_CLI_EXECUTABLE`** to the full path of the CLI (for example the `infisical.exe` next to your global npm bin). In PowerShell you can confirm resolution with `where.exe infisical.exe` and `infisical.exe --version`.
+
 If you only need a temporary local unblock, put the minimum required browser-safe values in `apps/web/.env.local` and use a non-Infisical path such as:
 
 ```bash

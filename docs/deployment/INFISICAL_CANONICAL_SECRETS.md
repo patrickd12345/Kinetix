@@ -50,6 +50,7 @@ Kinetix-specific values win over shared defaults when the same key name exists i
 Local development uses documented pull-and-validate commands:
 
 ```bash
+pnpm dev
 pnpm dev:infisical
 pnpm verify:infisical
 ```
@@ -62,7 +63,7 @@ Expected behavior:
 4. validate required variables
 5. fail before startup if required values are missing in the Infisical-driven local workflow
 
-`.env.local` is allowed only as an emergency local fallback for non-Infisical local startup paths and must not become the durable source of truth.
+`.env.local` is allowed only as an emergency local fallback for explicit non-Infisical local startup paths such as `pnpm dev:raw` and must not become the durable source of truth.
 
 ## Vercel Secret Sync target
 
@@ -74,6 +75,8 @@ Preferred operating model:
 2. Infisical `prod` syncs to Vercel **Production**
 3. required public client variables remain explicitly present in Vercel envs
 4. server-only secrets stay server-only and must never be exposed as `VITE_*` or `NEXT_PUBLIC_*`
+
+Kinetix Production uses the official Infisical Vercel Secret Sync **`kinetix-prod-kinetix-to-vercel-production`** for Infisical `prod` `/kinetix` -> Vercel Production. Deletion is disabled so the sync does not remove unrelated legacy/manual Vercel variables. Preview/Development syncs are intentionally not configured until their callback/base URL policy is chosen.
 
 This pilot does **not** introduce a custom sync script. Use the official Infisical integration or manual operator sync.
 

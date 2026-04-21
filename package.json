@@ -8,7 +8,8 @@
   "scripts": {
     "prebuild": "tsx scripts/check-master-access.ts",
     "prepare": "node scripts/build-bookiji-packages.mjs",
-    "dev": "concurrently -n rag,web -c cyan,yellow \"pnpm --filter @kinetix/rag start\" \"pnpm --filter @kinetix/web dev\"",
+    "dev": "node scripts/dev-with-infisical.mjs",
+    "dev:raw": "concurrently -n rag,web -c cyan,yellow \"pnpm --filter @kinetix/rag start\" \"pnpm --filter @kinetix/web dev\"",
     "dev:infisical": "node scripts/dev-with-infisical.mjs",
     "verify:infisical": "node scripts/verify-infisical.mjs",
     "sync:admlog-service-role": "node scripts/sync-admlog-service-role.mjs",

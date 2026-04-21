@@ -14,6 +14,8 @@ monorepo-packages/**/dist/
 .env
 .env.local
 .env.*.local
+.env.bck
+**/.env.bck
 
 # OS
 .DS_Store

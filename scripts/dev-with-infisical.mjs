@@ -9,7 +9,7 @@ function main() {
   const envName = resolveEnvName();
   const { mergedEnv } = mergeInfisicalForKinetix(envName);
 
-  const child = spawn("pnpm", ["dev"], {
+  const child = spawn("pnpm", ["dev:raw"], {
     env: mergedEnv,
     stdio: "inherit",
     shell: true,

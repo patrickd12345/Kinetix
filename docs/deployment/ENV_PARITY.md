@@ -4,6 +4,8 @@
 
 For local development with **Infisical** (`pnpm dev:infisical`)—secret paths, merge order, public vs server-only keys, and required variables—see **[INFISICAL_LOCAL_DEV.md](./INFISICAL_LOCAL_DEV.md)**.
 
+`pnpm dev` is now the default Infisical-backed local command; `pnpm dev:infisical` is kept as an explicit alias.
+
 For `kinetix.bookiji.com` to share auth with `bookiji.com`, the Kinetix deployment must use the **same** Supabase project as Bookiji.
 
 ## Required environment variables
@@ -39,6 +41,36 @@ The Kinetix web client ([`apps/web/src/lib/supabaseClient.ts`](../../apps/web/sr
 Optional (Withings **expanded** sync — activity/sleep ingestion + scheduled HH:MM slots in Settings): in **production** builds this is off unless enabled. **`pnpm dev`** defaults it **on** so the toggles and Sync now control work without env. To turn it off locally, set `VITE_ENABLE_WITHINGS_EXPANDED_INGESTION=false` in `apps/web/.env.local`. To turn it **on** on Vercel, set `VITE_ENABLE_WITHINGS_EXPANDED_INGESTION=true`. See [`apps/web/src/lib/featureFlags.ts`](../../apps/web/src/lib/featureFlags.ts).
 
 **Session persistence:** The Supabase client uses `persistSession: true` and `autoRefreshToken: true`, so a successful sign-in is kept in the browser (per-origin storage, typically `localStorage`) and refreshed automatically. New magic links are only needed after sign-out, session expiry, or cleared site data. **Origins are isolated:** `http://localhost:5173` and `http://127.0.0.1:4173` are different sites for storage—use one consistent dev URL. Incognito/private windows drop storage when closed.
+
+## BKI-036 Withings and app-origin env migration
+
+**Status:** completed for Kinetix Production on 2026-04-20.
+
+The Infisical Vercel Secret Sync **`kinetix-prod-kinetix-to-vercel-production`** is configured and enabled:
+
+- source: Infisical `prod` `/kinetix`
+- destination: Vercel project `kinetix`, environment `production`
+- auto-sync: enabled
+- destination deletion: disabled, so unrelated/manual Vercel vars are not removed by this sync
+
+Kinetix stores product-specific Withings OAuth and app-origin values in Infisical **`/kinetix`**. Shared Supabase values remain in **`/platform`**.
+
+| Variable | Target Infisical path | Vercel Production status | Notes |
+|----------|------------------------|--------------------------|-------|
+| `WITHINGS_CLIENT_ID` | `/kinetix` | Synced | Server-side Withings client id alias |
+| `VITE_WITHINGS_CLIENT_ID` | `/kinetix` | Synced | Browser authorize client id |
+| `WITHINGS_CLIENT_SECRET` | `/kinetix` | Synced | Server-only token exchange and refresh secret |
+| `WITHINGS_REDIRECT_URI` | `/kinetix` | Synced | Production value must be `https://kinetix.bookiji.com/api/withings-oauth` |
+| `VITE_WITHINGS_REDIRECT_URI` | `/kinetix` | Synced | Production value must be `https://kinetix.bookiji.com/api/withings-oauth` |
+| `KINETIX_APP_BASE_URL` | `/kinetix` | Synced | Production value must be `https://kinetix.bookiji.com` |
+
+Do not copy local `.env.local` wholesale into Infisical or Vercel. The old local file contained unrelated dev/admin/personal keys such as `ADMLOG_ENABLED`, `ADMLOG_PASSWORD`, and `WITHINGS_REFRESH_TOKEN`; those are not durable Kinetix production configuration.
+
+For local development, use `pnpm dev`. It loads Infisical `dev` from `/platform` and `/kinetix`, then starts the raw RAG + web dev servers. `pnpm dev:raw` is the explicit non-Infisical fallback only.
+
+Preview/Development Vercel values should be handled deliberately. Infisical `dev` currently carries localhost callback/base URL values for local development, so do not blindly sync those into Vercel Preview unless the preview callback/base URL policy has been decided.
+
+**Proof performed:** `BKI_036_SYNC_PROOF` was created only in Infisical `prod /kinetix`, appeared in Vercel Production through the Secret Sync, and was then removed from both systems. No secret values were printed.
 
 ## Admlog (`GET /api/admlog`)
 
@@ -108,14 +140,14 @@ If Kinetix points at a different Supabase project or keys, SSO will break: sessi
 
 The production Kinetix web app is deployed on Vercel under the team project named **`kinetix`** (Vercel project id `prj_PqH4JVkBw7ShlOz4yOS91bK6bmmI`, team `patrick-duchesneaus-projects`). Environment variables are not committed; they must match Bookiji’s shared Supabase project for the same runtime tier.
 
-| Vercel target | Infisical env | Required client vars (minimum) |
+| Vercel target | Infisical env | Required vars (minimum) |
 |---------------|---------------|--------------------------------|
 | Preview | `dev` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (or publishable key under one of the names in [`INFISICAL_LOCAL_DEV.md`](./INFISICAL_LOCAL_DEV.md)) |
-| Production | `prod` | Same pair, using **production** Supabase URL and publishable/anon key from Infisical `prod` `/platform` |
+| Production | `prod` | Same Supabase pair from `/platform`, plus the BKI-036 Withings/app-origin keys from `/kinetix` |
 
 **Ways to keep parity:**
 
-1. **Infisical Vercel integration** — map Infisical `dev` to Vercel Preview and Infisical `prod` to Vercel Production (see [`ops/env/infisical-architecture.md`](../../../../ops/env/infisical-architecture.md)).
+1. **Infisical Vercel Secret Sync** — Kinetix Production is wired via `kinetix-prod-kinetix-to-vercel-production`, mapping Infisical `prod` `/kinetix` to Vercel Production. Add separate syncs only after choosing correct non-localhost values for Preview/Development.
 2. **Manual** — copy `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from the Bookiji Vercel project’s matching environment, or from Infisical export, into the `kinetix` project.
 
 **Smoke check (local, no secrets printed):** from [`products/Kinetix`](../../) run `pnpm verify:infisical` (validates merged `/platform` + `/kinetix` for `dev`) and `node scripts/verify-infisical.mjs --env=prod` for production Infisical.

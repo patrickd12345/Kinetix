@@ -206,10 +206,11 @@ The pnpm workspace at the repo root drives the web app and RAG service. Use this
 | Command | Purpose |
 | -------- | -------- |
 | `pnpm install` | Install all workspace dependencies |
-| `pnpm dev` | Run RAG + web together (see root `package.json` `dev`) |
+| `pnpm dev` | Run RAG + web together with Infisical-injected secrets |
+| `pnpm dev:raw` | Run RAG + web together without the Infisical preflight/injection |
 | `pnpm dev:web` | Web app only (`@kinetix/web`) |
 | `pnpm dev:rag` | RAG service only |
-| `pnpm dev:infisical` | Dev with Infisical-injected secrets — see [`docs/deployment/INFISICAL_LOCAL_DEV.md`](docs/deployment/INFISICAL_LOCAL_DEV.md) |
+| `pnpm dev:infisical` | Explicit alias for Infisical-backed dev — see [`docs/deployment/INFISICAL_LOCAL_DEV.md`](docs/deployment/INFISICAL_LOCAL_DEV.md) |
 | `pnpm build` | Build `@kinetix/core` then the web app |
 | `pnpm lint` | Lint all workspaces |
 | `pnpm type-check` | Root TypeScript check + web `type-check` |

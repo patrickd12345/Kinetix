@@ -26,7 +26,7 @@ infisical login
    - `INFISICAL_PROJECT_ID`, or
    - `.infisical.json` with `workspaceId`
 
-If the CLI is missing or login/project resolution is broken, `pnpm dev:infisical` and `pnpm verify:infisical` should fail before any normal dev server logic starts. The local `.env.local` fallback described below is for a separate non-Infisical startup path such as plain `pnpm dev`; it does **not** bypass a broken `pnpm dev:infisical` or `pnpm verify:infisical` run.
+If the CLI is missing or login/project resolution is broken, `pnpm dev`, `pnpm dev:infisical`, and `pnpm verify:infisical` should fail before any normal dev server logic starts. The local `.env.local` fallback described below is for the explicit non-Infisical startup path `pnpm dev:raw`; it does **not** bypass a broken `pnpm dev`, `pnpm dev:infisical`, or `pnpm verify:infisical` run.
 
 ## Expected paths
 
@@ -50,6 +50,12 @@ That means Kinetix-specific keys override shared platform keys, and local emerge
 ### Start local development with Infisical
 
 ```bash
+pnpm dev
+```
+
+`pnpm dev:infisical` is kept as an explicit alias for the same Infisical-backed flow:
+
+```bash
 pnpm dev:infisical
 ```
 
@@ -59,7 +65,7 @@ This runs [`scripts/dev-with-infisical.mjs`](../../scripts/dev-with-infisical.mj
 2. exports **`/platform`** and **`/kinetix`**
 3. applies the local merge
 4. applies the `SUPABASE_SECRET_KEY -> SUPABASE_SERVICE_ROLE_KEY` compatibility alias when needed
-5. validates required client envs before spawning `pnpm dev`
+5. validates required client envs before spawning `pnpm dev:raw`
 
 ### Validate secrets without starting the app
 
@@ -110,19 +116,19 @@ If Infisical is temporarily unavailable, a developer may place the minimum requi
 apps/web/.env.local
 ```
 
-This is an **emergency local fallback only** for unblocking development when you are using a non-Infisical startup path (for example `pnpm dev`). Rules:
+This is an **emergency local fallback only** for unblocking development when you are using the non-Infisical startup path (`pnpm dev:raw`). Rules:
 
 - do not commit `.env.local`
 - do not treat `.env.local` as the canonical source of truth
 - move any durable value back into Infisical once access is restored
 - prefer the smallest possible local override rather than copying a full environment dump
-- do not expect `pnpm dev:infisical` or `pnpm verify:infisical` to succeed when the Infisical CLI/login/project lookup is broken; those commands still require a working Infisical preflight
+- do not expect `pnpm dev`, `pnpm dev:infisical`, or `pnpm verify:infisical` to succeed when the Infisical CLI/login/project lookup is broken; those commands still require a working Infisical preflight
 
 ## Troubleshooting
 
 ### `infisical: command not found`
 
-Install the Infisical CLI and retry if you want to use `pnpm dev:infisical` or `pnpm verify:infisical`.
+Install the Infisical CLI and retry if you want to use `pnpm dev`, `pnpm dev:infisical`, or `pnpm verify:infisical`.
 
 ### Windows / Cursor: npm shim vs real binary
 
@@ -131,7 +137,7 @@ On Windows, `Get-Command infisical` may point at `infisical.ps1` from npm while 
 If you only need a temporary local unblock, put the minimum required browser-safe values in `apps/web/.env.local` and use a non-Infisical path such as:
 
 ```bash
-pnpm dev
+pnpm dev:raw
 ```
 
 ### CLI is installed but export fails
@@ -155,7 +161,7 @@ Then fix the missing variable in the correct place:
 
 - shared value -> **`/platform`**
 - Kinetix-only value -> **`/kinetix`**
-- temporary local unblock for non-Infisical startup -> `apps/web/.env.local`
+- temporary local unblock for non-Infisical startup -> `apps/web/.env.local` with `pnpm dev:raw`
 
 ### Local auth redirects back to the wrong host
 

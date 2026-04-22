@@ -27,9 +27,50 @@ import { useKinetixWeeklyCoachReport } from '../hooks/useKinetixWeeklyCoachRepor
 import { useKinetixTimeline } from '../hooks/useKinetixTimeline'
 import { useKinetixGoalProbability } from '../hooks/useKinetixGoalProbability'
 import { useKinetixTrainingCalendar } from '../hooks/useKinetixTrainingCalendar'
+import { useKinetixCoachingContext } from '../hooks/useKinetixCoachingContext'
 import { KinetixCoachingContextProvider } from '../context/KinetixCoachingContextProvider'
 
 /** Coaching cards + hooks; must render under a single `KinetixCoachingContextProvider`. */
+
+function KinetixNextRaceCard() {
+  const { data } = useKinetixCoachingContext()
+  const ctx = data?.plannedRaceContext
+
+  if (!ctx || !ctx.hasUpcomingRace) return null
+
+  return (
+    <section className="glass rounded-2xl p-5 border border-amber-500/30 space-y-3" aria-label="Upcoming Race Context">
+      <header className="flex justify-between items-start">
+        <div>
+          <h3 className="text-lg font-black text-amber-400">{ctx.headline}</h3>
+          <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">
+            {ctx.raceName} • {ctx.raceDate}
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-black text-amber-500">{ctx.daysToRace}</div>
+          <div className="text-[10px] uppercase text-amber-600/70 dark:text-amber-400/70 font-bold tracking-wider">Days Away</div>
+        </div>
+      </header>
+
+      <div className="text-sm text-slate-600 dark:text-gray-300 flex items-center gap-2">
+        <span className="font-semibold text-slate-900 dark:text-white">Distance:</span> {(ctx.raceDistanceMeters! / 1000).toFixed(1)}km
+        {ctx.goalTimeSeconds ? (
+          <><span className="text-slate-400">•</span> <span className="font-semibold text-slate-900 dark:text-white">Goal:</span> {ctx.goalTimeSeconds}s</>
+        ) : null}
+      </div>
+
+      {ctx.guidance.length > 0 && (
+        <ul className="text-xs text-slate-700 dark:text-gray-300 space-y-1 list-disc list-inside mt-2">
+          {ctx.guidance.map((g, i) => (
+            <li key={i}>{g}</li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 export function CoachingStack() {
   const {
     loading: intelligenceLoading,
@@ -109,6 +150,7 @@ export function CoachingStack() {
   return (
     <>
       <section className="space-y-4" aria-label="Primary coaching">
+        <KinetixNextRaceCard />
         <KinetixCoachCard loading={coachLoading} error={coachError} coach={coach} />
         <KinetixCoachExplanationCard
           loading={coachExplanationLoading}

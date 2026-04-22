@@ -1,4 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../components/providers/useAuth'
+import { listPlannedRacesForProfile, type PlannedRace } from '../lib/plannedRaces'
+import { buildPlannedRaceCoachingContext, getNextRelevantRace, toLocalDateString, type PlannedRaceCoachingContext } from '../lib/coaching/plannedRaceContext'
 import { useSettingsStore } from '../store/settingsStore'
 import { useKinetixIntelligence } from './useKinetixIntelligence'
 import { getAllVisibleRunsOrdered, type RunRecord } from '../lib/database'
@@ -79,6 +82,7 @@ const DISTANCE_KM: Record<Distance, number> = {
 export interface KinetixCoachingContextData {
   goal: ReturnType<typeof useSettingsStore.getState>['trainingGoal']
   goalProgress: GoalProgressResult | null
+  plannedRaceContext: PlannedRaceCoachingContext | null
   intelligence: ReturnType<typeof useKinetixIntelligence>['result']
   prediction: ReturnType<typeof useKinetixPredictionFromSamples>
   periodization: PeriodizationResult
@@ -107,9 +111,11 @@ export function useOptionalKinetixCoachingContextFromProvider(): KinetixCoaching
 }
 
 export function useKinetixCoachingContextState(): KinetixCoachingContextResult {
+  const { profile } = useAuth()
   const goal = useSettingsStore((s) => s.trainingGoal)
   const { loading, error, result, samples } = useKinetixIntelligence()
   const [runs, setRuns] = useState<RunRecord[]>([])
+  const [plannedRaces, setPlannedRaces] = useState<PlannedRace[]>([])
   const prediction = useKinetixPredictionFromSamples(samples, mapGoalDistance(goal?.distance))
 
   useEffect(() => {
@@ -123,8 +129,30 @@ export function useKinetixCoachingContextState(): KinetixCoachingContextResult {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+    if (!profile) {
+      setPlannedRaces([])
+      return
+    }
+    void (async () => {
+      try {
+        const races = await listPlannedRacesForProfile(profile.id)
+        if (!cancelled) setPlannedRaces(races)
+      } catch (err) {
+        console.error('Failed to load planned races for coaching context:', err)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [profile])
+
   const data = useMemo<KinetixCoachingContextData>(() => {
     const goalProgress = goal && prediction ? computeGoalProgress(goal, runs, prediction) : null
+
+    const nextRace = getNextRelevantRace(plannedRaces, toLocalDateString(new Date()))
+    const plannedRaceContext = buildPlannedRaceCoachingContext(nextRace, toLocalDateString(new Date()))
     const periodization = computePeriodization({
       goal,
       prediction: prediction ?? null,
@@ -183,6 +211,7 @@ export function useKinetixCoachingContextState(): KinetixCoachingContextResult {
     return {
       goal,
       goalProgress,
+      plannedRaceContext,
       intelligence: result,
       prediction,
       periodization,
@@ -197,7 +226,7 @@ export function useKinetixCoachingContextState(): KinetixCoachingContextResult {
         hasCoachInputs: result != null && prediction != null && loadControl != null,
       },
     }
-  }, [goal, prediction, result, runs, samples])
+  }, [goal, prediction, result, runs, samples, plannedRaces])
 
   return {
     loading,
@@ -216,10 +245,11 @@ export const __testables = {
   aggregateLoading: (values: boolean[]): boolean => values.some(Boolean),
   aggregateError: (values: Array<string | null | undefined>): string | null =>
     values.find((value): value is string => Boolean(value)) ?? null,
-  buildNullData: (): Pick<KinetixCoachingContextData, 'coach' | 'prediction' | 'loadControl' | 'goalProgress'> => ({
+  buildNullData: (): Pick<KinetixCoachingContextData, 'coach' | 'prediction' | 'loadControl' | 'goalProgress' | 'plannedRaceContext'> => ({
     coach: null,
     prediction: null,
     loadControl: null,
     goalProgress: null,
+    plannedRaceContext: null,
   }),
 }

@@ -32,8 +32,11 @@ git_clone() {
   exit 1
 }
 
-rm -rf .bookiji-tmp
-rm -rf .bookiji-packages
+if [ -d "monorepo-packages" ] && [ -f "monorepo-packages/ai-runtime/package.json" ]; then
+  echo "monorepo-packages already exists. Skipping clone."
+else
+  rm -rf .bookiji-tmp
+  rm -rf .bookiji-packages
 
 # Clone Bookiji-inc umbrella repo to extract shared packages.
 git_clone "Bookiji-inc" .bookiji-tmp
@@ -59,6 +62,7 @@ fi
 # behind symlinks, causing ERR_MODULE_NOT_FOUND for @bookiji-inc/* in production.
 rm -rf monorepo-packages
 cp -a .bookiji-packages monorepo-packages
+fi
 
 # Vercel restores dependency cache across deploys; a stale node_modules/.pnpm/lock.yaml from another
 # pnpm version triggers: WARN Ignoring not compatible lockfile at .../node_modules/.pnpm/lock.yaml

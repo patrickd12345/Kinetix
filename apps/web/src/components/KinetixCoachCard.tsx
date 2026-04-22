@@ -1,4 +1,6 @@
 ﻿import type { CoachResult } from '../lib/coach/types'
+import { useKinetixCoachingContext } from '../hooks/useKinetixCoachingContext'
+
 
 interface KinetixCoachCardProps {
   loading: boolean
@@ -11,6 +13,9 @@ function titleCase(value: string): string {
 }
 
 export function KinetixCoachCard({ loading, error, coach }: KinetixCoachCardProps) {
+  const { data } = useKinetixCoachingContext()
+  const phaseContext = data?.plannedRaceContext
+
   if (loading) {
     return (
       <section className="glass rounded-2xl p-5 border border-white/10" aria-live="polite">
@@ -40,6 +45,11 @@ export function KinetixCoachCard({ loading, error, coach }: KinetixCoachCardProp
       <header>
         <h3 className="text-lg font-black text-slate-900 dark:text-white">Kinetix Coaching Brain</h3>
         <p className="text-xs text-slate-600 dark:text-gray-400">Deterministic decision orchestrator across risk, fatigue, phase, and prediction.</p>
+        {phaseContext?.hasUpcomingRace && (
+          <p className="mt-2 text-xs font-bold text-amber-500">
+            Adjusted for upcoming race: {phaseContext.phase?.replace(/_/g, ' ')}
+          </p>
+        )}
       </header>
 
       <dl className="space-y-2 text-sm">

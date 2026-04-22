@@ -19,6 +19,7 @@ describe('useKinetixCoachingContext helpers', () => {
       prediction: null,
       loadControl: null,
       goalProgress: null,
+      plannedRaceContext: null,
     })
   })
 

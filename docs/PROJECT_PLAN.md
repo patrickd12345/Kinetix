@@ -255,3 +255,7 @@ Roadmap phases below map **themes** to **evidence in repo/docs**. They are not d
 | [`../PRODUCT_SCOPE.md`](../PRODUCT_SCOPE.md) | Audit scope (Stripe row aligned with deployment docs) |
 | [`deployment/README.md`](deployment/README.md) | SSO, Infisical, Stripe, checklists |
 | [`WEB_APPS.md`](WEB_APPS.md) | Canonical web vs legacy archive |
+
+
+## Completed Features
+- **KX-FEAT-005 (Planned Races):** Added persistent storage, Settings UI, and deterministic phase-aware coaching logic for upcoming races.

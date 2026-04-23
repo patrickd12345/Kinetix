@@ -17,5 +17,6 @@ describe('useKinetixRaceSimulation helpers', () => {
   it('formats pace and finish time deterministically', () => {
     expect(__testables.formatPace(301)).toBe('5:01/km')
     expect(__testables.formatHhMmSs(3920)).toBe('1:05:20')
+    expect(__testables.formatProjectedPace(30 * 60 + 48, '5k')).toBe('6:10/km')
   })
 })

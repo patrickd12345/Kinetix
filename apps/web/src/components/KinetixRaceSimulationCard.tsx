@@ -62,6 +62,10 @@ export function KinetixRaceSimulationCard({ loading, error, simulation }: Kineti
           <dd className="font-semibold text-slate-900 dark:text-white">{simulation.formattedFinishTime}</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
+          <dt className="text-slate-600 dark:text-gray-400">Pace</dt>
+          <dd className="font-semibold text-slate-900 dark:text-white">{simulation.formattedPace}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-4">
           <dt className="text-slate-600 dark:text-gray-400">Fade risk</dt>
           <dd className="font-semibold text-slate-900 dark:text-white">{titleCase(simulation.fadeRisk ?? 'unknown')}</dd>
         </div>

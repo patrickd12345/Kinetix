@@ -9,6 +9,14 @@ const DISTANCE_LABEL: Record<Distance, string> = {
   half: 'Half Marathon',
   marathon: 'Marathon',
 }
+
+const DISTANCE_KM: Record<Distance, number> = {
+  '5k': 5,
+  '10k': 10,
+  half: 21.0975,
+  marathon: 42.195,
+}
+
 const FALLBACK_DISTANCE: Distance = '10k'
 
 function mapGoalDistance(goalDistance: GoalDistance | null | undefined): Distance {
@@ -37,6 +45,12 @@ function formatPace(secondsPerKm: number): string {
   return `${m}:${String(s).padStart(2, '0')}/km`
 }
 
+function formatProjectedPace(projectedFinishSeconds: number | null, distance: Distance): string {
+  if (projectedFinishSeconds == null) return '—'
+  const secondsPerKm = projectedFinishSeconds / DISTANCE_KM[distance]
+  return formatPace(secondsPerKm)
+}
+
 export interface RaceSimulationSplitView extends RaceSplit {
   label: string
   paceFormatted: string
@@ -50,6 +64,7 @@ export interface KinetixRaceSimulationViewModel {
   isGoalDriven: boolean
   projectedFinishSeconds: number | null
   formattedFinishTime: string
+  formattedPace: string
   fadeRisk: 'low' | 'moderate' | 'high' | null
   pacingRecommendation: string | null
   splits: RaceSimulationSplitView[]
@@ -78,6 +93,7 @@ export function useKinetixRaceSimulation(): {
         isGoalDriven: data.goal != null,
         projectedFinishSeconds: null,
         formattedFinishTime: '—',
+        formattedPace: '—',
         fadeRisk: null,
         pacingRecommendation: null,
         splits: [],
@@ -112,6 +128,7 @@ export function useKinetixRaceSimulation(): {
       isGoalDriven: data.goal != null,
       projectedFinishSeconds: data.raceSimulation.projectedFinishSeconds,
       formattedFinishTime: formatHhMmSs(data.raceSimulation.projectedFinishSeconds),
+      formattedPace: formatProjectedPace(data.raceSimulation.projectedFinishSeconds, selectedDistance),
       fadeRisk: data.raceSimulation.fadeRisk,
       pacingRecommendation: data.raceSimulation.pacingRecommendation,
       splits,
@@ -128,4 +145,5 @@ export const __testables = {
   FALLBACK_DISTANCE,
   formatHhMmSs,
   formatPace,
+  formatProjectedPace,
 }

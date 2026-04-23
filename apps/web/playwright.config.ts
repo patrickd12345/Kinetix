@@ -23,7 +23,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       ...process.env,
-      VITE_SKIP_AUTH: '1',
+      VITE_SKIP_AUTH: process.env.VITE_SKIP_AUTH ?? '1',
       /** Enables entitlement bypass + all feature flags for full UI audit (see `src/lib/debug/masterAccess.ts`). */
       VITE_MASTER_ACCESS: '1',
       // Stable RAG base for E2E KB mocks; Playwright stubs support/kb/query — no real service on this port.

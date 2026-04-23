@@ -2,14 +2,24 @@ import { describe, expect, it } from 'vitest'
 import { buildAuthRedirectTarget, resolveConfiguredAuthRedirectUrl } from './authRedirect'
 
 describe('resolveConfiguredAuthRedirectUrl', () => {
-  it('returns configured URL unchanged when not in dev', () => {
+  it('drops configured URL when it points to another origin', () => {
     expect(
       resolveConfiguredAuthRedirectUrl(
         'http://localhost:5173',
         'https://app.bookiji.com/login',
         false
       )
-    ).toBe('https://app.bookiji.com/login')
+    ).toBeNull()
+  })
+
+  it('returns configured URL unchanged when origin matches (even outside dev)', () => {
+    expect(
+      resolveConfiguredAuthRedirectUrl(
+        'https://kinetix.bookiji.com',
+        'https://kinetix.bookiji.com/login',
+        false
+      )
+    ).toBe('https://kinetix.bookiji.com/login')
   })
 
   it('drops a non-loopback pin when dev origin is localhost', () => {

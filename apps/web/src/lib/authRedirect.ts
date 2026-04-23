@@ -1,23 +1,29 @@
 /**
  * Resolves `VITE_AUTH_REDIRECT_URL` for the current browser origin.
- * In dev builds, if the app runs on localhost but the env pins a non-localhost URL (e.g. shared
- * Infisical values for `https://app.bookiji.com/login`), magic links would otherwise open Bookiji
- * instead of this dev server. In that case we drop the pin and use `windowOrigin` only.
+ * Guardrails ensure configured redirects cannot cross origins (to prevent cross-product drift),
+ * and in dev localhost we also drop non-loopback pins.
  *
  * @param isDev - pass `import.meta.env.DEV` from the client bundle
  */
 export function resolveConfiguredAuthRedirectUrl(
   windowOrigin: string,
   configuredRedirectUrl: string | null | undefined,
-  isDev: boolean
+  _isDev: boolean
 ): string | null | undefined {
-  if (!isDev) return configuredRedirectUrl
   const trimmed = configuredRedirectUrl?.trim() ?? ''
   if (!trimmed) return configuredRedirectUrl
 
   try {
     const win = new URL(windowOrigin)
     const cfg = new URL(trimmed)
+
+    // Never allow a configured redirect from a different origin. This prevents
+    // cross-product drift (e.g., Kinetix OAuth callbacks landing on Bookiji).
+    if (cfg.origin !== win.origin) {
+      return null
+    }
+
+  
     const winIsLoopback = win.hostname === 'localhost' || win.hostname === '127.0.0.1'
     const cfgIsLoopback = cfg.hostname === 'localhost' || cfg.hostname === '127.0.0.1'
     if (winIsLoopback && !cfgIsLoopback) {

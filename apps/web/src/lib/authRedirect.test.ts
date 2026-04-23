@@ -2,7 +2,27 @@ import { describe, expect, it } from 'vitest'
 import { buildAuthRedirectTarget, resolveConfiguredAuthRedirectUrl } from './authRedirect'
 
 describe('resolveConfiguredAuthRedirectUrl', () => {
-  it('drops configured URL when it points to another origin', () => {
+  it('drops configured URL when Bookiji host points to non-Kinetix host', () => {
+    expect(
+      resolveConfiguredAuthRedirectUrl(
+        'https://app.bookiji.com',
+        'https://app.bookiji.com/login',
+        false
+      )
+    ).toBeNull()
+  })
+
+  it('accepts configured URL when Bookiji host points to Kinetix host', () => {
+    expect(
+      resolveConfiguredAuthRedirectUrl(
+        'https://app.bookiji.com',
+        'https://kinetix.bookiji.com/login',
+        false
+      )
+    ).toBe('https://kinetix.bookiji.com/login')
+  })
+
+  it('drops configured URL when it points to another origin outside Bookiji hosts', () => {
     expect(
       resolveConfiguredAuthRedirectUrl(
         'http://localhost:5173',
@@ -20,23 +40,6 @@ describe('resolveConfiguredAuthRedirectUrl', () => {
         false
       )
     ).toBe('https://kinetix.bookiji.com/login')
-  })
-
-  it('drops a non-loopback pin when dev origin is localhost', () => {
-    expect(
-      resolveConfiguredAuthRedirectUrl(
-        'http://localhost:5173',
-        'https://app.bookiji.com/login',
-        true
-      )
-    ).toBeNull()
-    expect(
-      resolveConfiguredAuthRedirectUrl(
-        'http://127.0.0.1:5173',
-        'https://kinetix.bookiji.com/login',
-        true
-      )
-    ).toBeNull()
   })
 
   it('keeps a loopback pin in dev when origin is localhost', () => {
@@ -64,5 +67,25 @@ describe('buildAuthRedirectTarget', () => {
         nextPath: '/history',
       })
     ).toBe('http://localhost:5173/login?next=%2Fhistory')
+  })
+
+  it('uses Kinetix canonical origin when login starts on app.bookiji.com', () => {
+    expect(
+      buildAuthRedirectTarget({
+        windowOrigin: 'https://app.bookiji.com',
+        configuredRedirectUrl: null,
+        nextPath: '/history',
+      })
+    ).toBe('https://kinetix.bookiji.com/login?next=%2Fhistory')
+  })
+
+  it('ignores non-Kinetix configured redirects when login starts on a Bookiji host', () => {
+    expect(
+      buildAuthRedirectTarget({
+        windowOrigin: 'https://app.bookiji.com',
+        configuredRedirectUrl: 'https://app.bookiji.com/login',
+        nextPath: '/history',
+      })
+    ).toBe('https://kinetix.bookiji.com/login?next=%2Fhistory')
   })
 })

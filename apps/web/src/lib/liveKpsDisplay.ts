@@ -50,12 +50,13 @@ export function getLiveKpsDisplayState(options: {
     }
   }
 
-  const hasEnoughTimeOrDistance = options.durationSeconds >= LIVE_KPS_MIN_DURATION_SECONDS || options.distanceKm >= LIVE_KPS_MIN_DISTANCE_KM
+  const hasEnoughTimeAndDistance =
+    options.durationSeconds >= LIVE_KPS_MIN_DURATION_SECONDS && options.distanceKm >= LIVE_KPS_MIN_DISTANCE_KM
   const hasValidDistance = options.distanceKm > 0
   const hasValidPace = Number.isFinite(options.paceSecPerKm) && options.paceSecPerKm >= LIVE_KPS_MIN_PACE && options.paceSecPerKm <= LIVE_KPS_MAX_PACE
   const hasEnoughSamples = options.sampleCount === undefined || options.sampleCount >= 2
 
-  if (!hasEnoughTimeOrDistance || !hasValidDistance || !hasValidPace || !hasEnoughSamples) {
+  if (!hasEnoughTimeAndDistance || !hasValidDistance || !hasValidPace || !hasEnoughSamples) {
     return {
       text: '--',
       label: 'Calibrating KPS',

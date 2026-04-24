@@ -7,6 +7,7 @@
 import { readFileSync } from 'fs';
 
 const PORTS = [3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010];
+const CONCURRENCY = 10;
 
 async function findRAGBaseUrl() {
   for (const port of PORTS) {
@@ -57,11 +58,16 @@ async function main() {
     console.error('RAG service not found. Start it with: pnpm dev (or pnpm dev:rag)');
     process.exit(1);
   }
-  console.log('RAG at', base, '– indexing', runs.length, 'runs...');
+  console.log('RAG at', base, '– indexing', runs.length, 'runs with concurrency', CONCURRENCY, '...');
 
   let indexed = 0;
   let errors = 0;
-  for (let i = 0; i < runs.length; i++) {
+  let cursor = 0;
+
+  async function next() {
+    if (cursor >= runs.length) return;
+    const i = cursor++;
+
     try {
       const ragRun = toRAGRun(runs[i], i);
       const res = await fetch(`${base}/index`, {
@@ -77,14 +83,23 @@ async function main() {
         errors++;
         if (errors === 1) {
           const text = await res.text();
-          console.error('  First failure (run 0):', res.status, text.slice(0, 300));
+          console.error(`  First failure (run ${i}):`, res.status, text.slice(0, 300));
         }
       }
     } catch (err) {
       errors++;
-      if (errors === 1) console.error('  First error (run 0):', err.message);
+      if (errors === 1) console.error(`  First error (run ${i}):`, err.message);
     }
+
+    return next();
   }
+
+  const workers = [];
+  const numWorkers = Math.min(CONCURRENCY, runs.length);
+  for (let i = 0; i < numWorkers; i++) {
+    workers.push(next());
+  }
+  await Promise.all(workers);
 
   console.log('Done. Indexed', indexed, 'runs,', errors, 'errors.');
 }

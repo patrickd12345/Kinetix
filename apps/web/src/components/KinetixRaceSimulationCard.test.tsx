@@ -88,7 +88,7 @@ describe('KinetixRaceSimulationCard', () => {
 
     expect(screen.getByText('Projected finish (current-fitness pacing model)')).toBeInTheDocument()
     expect(screen.getByText('30:48')).toBeInTheDocument()
-    expect(screen.getByText('Pace')).toBeInTheDocument()
+    expect(screen.getAllByText('Pace')[0]).toBeInTheDocument()
     expect(screen.getByText('6:10/km')).toBeInTheDocument()
     expect(screen.getByText('Low')).toBeInTheDocument()
     expect(screen.getByText('Normal')).toBeInTheDocument()
@@ -104,7 +104,7 @@ describe('KinetixRaceSimulationCard', () => {
     )
 
     expect(screen.getByText('0.0-2.0 km')).toBeInTheDocument()
-    expect(screen.getByText('4:50/km')).toBeInTheDocument()
+    expect(screen.getAllByText('4:50/km')[0]).toBeInTheDocument()
     expect(screen.getByText('9:40')).toBeInTheDocument()
   })
 

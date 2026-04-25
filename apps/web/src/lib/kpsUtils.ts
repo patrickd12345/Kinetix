@@ -105,6 +105,43 @@ export function calculateAbsoluteKPS(run: RunRecord, userProfile: UserProfile): 
   return isValidKPS(absoluteKPS) ? absoluteKPS : 0
 }
 
+/**
+ * Find the best absolute KPS among a provided list of runs.
+ * Filters for meaningful runs and uses weight at run date for each run's KPS.
+ */
+export function calculateBestRecentAbsoluteKPSSync(
+  runs: RunRecord[],
+  weightMap: Map<string, number>
+): number {
+  const meaningful = runs.filter(isMeaningfulRunForKPS)
+  let bestKPS = 0
+  for (const run of meaningful) {
+    const profileForRun = resolveProfileForRunWithWeightCache(weightMap, run)
+    const kps = calculateAbsoluteKPS(run, profileForRun)
+    if (isValidKPS(kps) && kps > bestKPS) bestKPS = kps
+  }
+  return bestKPS
+}
+
+/**
+ * Returns the relative KPS (PB=100) for the best of recent runs.
+ * Centralizes the canonical "Current KPS" reference value for both Dashboard and Beat Recent modal.
+ */
+export function calculateBestRecentRelativeKPSSync(
+  runs: RunRecord[],
+  weightMap: Map<string, number>,
+  pb: PBRecord | null,
+  pbRun: RunRecord | null
+): number {
+  const bestAbsolute = calculateBestRecentAbsoluteKPSSync(runs, weightMap)
+  if (bestAbsolute <= 0 || !pbRun || !pb) return 0
+
+  const pbAbsolute = calculateAbsoluteKPS(pbRun, pb.profileSnapshot)
+  if (pbAbsolute <= 0) return 0
+
+  return (bestAbsolute / pbAbsolute) * 100
+}
+
 /** KPS above this ratio of current PB is considered a suspicious outlier on import (e.g. bad data). */
 const OUTLIER_KPS_RATIO = 1.25
 

@@ -5,7 +5,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { formatDistance, formatPace, timeToAchieveKPS, distanceToAchieveKPS } from '@kinetix/core'
 import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
-import { ensurePBInitialized, calculateRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS, calculateRelativeKPSSync } from '../lib/kpsUtils'
+import { ensurePBInitialized, calculateRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, calculateRelativeKPSSync, calculateBestRecentRelativeKPSSync } from '../lib/kpsUtils'
 import { getRunsPage, getWeightsForDates } from '../lib/database'
 import { resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
@@ -65,7 +65,7 @@ export default function RunDashboard() {
     runCount7d: 0,
     distance7d: 0,
     streakDays: 0,
-    latestKps: null,
+    referenceKps: null,
     intelligence: null,
     error: null,
   })
@@ -188,7 +188,7 @@ export default function RunDashboard() {
       setHomeSummary((prev) => ({ ...prev, loading: true, error: null }))
       try {
         await ensurePBInitialized(userProfile)
-        const { items } = await getRunsPage(1, 30)
+        const { items } = await getRunsPage(1, Math.max(30, beatRecentsCount))
         const now = Date.now()
         const sevenDaysAgo = now - 7 * 86_400_000
         const meaningful = items.filter(isMeaningfulRunForKPS)
@@ -206,6 +206,10 @@ export default function RunDashboard() {
           const kps = calculateRelativeKPSSync(run, profileForRun, pb, pbRun)
           if (Number.isFinite(kps) && kps > 0) samples.push({ date: run.date, kps })
         }
+
+        // Centralized logic for best recent KPS (Current KPS display reference)
+        const bestRecentRelative = calculateBestRecentRelativeKPSSync(items.slice(0, beatRecentsCount), weightMap, pb, pbRun)
+
         const lastRun = items[0] ?? null
         const runs7d = items.filter((run) => new Date(run.date).getTime() >= sevenDaysAgo)
         const nextSummary: DirectionalHomeSummary = {
@@ -214,7 +218,7 @@ export default function RunDashboard() {
           runCount7d: runs7d.length,
           distance7d: runs7d.reduce((sum, run) => sum + run.distance, 0),
           streakDays: computeDirectionalStreakDays(items),
-          latestKps: samples.length > 0 ? samples[samples.length - 1].kps : null,
+          referenceKps: bestRecentRelative > 0 ? bestRecentRelative : (samples.length > 0 ? samples[samples.length - 1].kps : null),
           intelligence: samples.length > 0 ? computeIntelligence(samples) : null,
           error: null,
         }
@@ -227,7 +231,7 @@ export default function RunDashboard() {
             runCount7d: 0,
             distance7d: 0,
             streakDays: 0,
-            latestKps: null,
+            referenceKps: null,
             intelligence: null,
             error: err instanceof Error ? err.message : 'Unable to load today summary',
           })
@@ -238,7 +242,7 @@ export default function RunDashboard() {
     return () => {
       cancelled = true
     }
-  }, [userProfile])
+  }, [userProfile, beatRecentsCount])
 
   const displayKPS = useMemo(
     () => capDisplayRelativeKps(isRunning ? liveKpsDisplay.numericValue ?? 0 : relativeKPS),
@@ -320,16 +324,16 @@ export default function RunDashboard() {
     }
 
     const weightMap = await getWeightsForDates(meaningful.map((r) => r.date))
-    let bestKPS = 0
-    for (const run of meaningful) {
-      const profileForRun = resolveProfileForRunWithWeightCache(weightMap, run)
-      const kps = calculateAbsoluteKPS(run, profileForRun)
-      if (isValidKPS(kps) && kps > bestKPS) bestKPS = kps
-    }
-    if (bestKPS <= 0) {
+    const pb = await getPB()
+    const pbRun = await getPBRun()
+    const bestRecentRelative = calculateBestRecentRelativeKPSSync(meaningful, weightMap, pb, pbRun)
+    if (bestRecentRelative <= 0) {
       setBeatRecentsError('Could not compute KPS for recent runs.')
       return
     }
+
+    const pbAbsoluteKPS = pb && pbRun ? calculateAbsoluteKPS(pbRun, pb.profileSnapshot) : 0
+    const bestKPS = bestRecentRelative * (pbAbsoluteKPS / 100)
     const targetAbsoluteKPS = bestKPS * (1 + beatPBPercent / 100)
     const referenceRun = meaningful[0]
     const referenceDistanceKm = referenceRun.distance / 1000
@@ -485,14 +489,14 @@ export default function RunDashboard() {
     ? liveKpsDisplay.text
     : displayKPS > 0
       ? Math.floor(displayKPS).toString()
-      : homeSummary.latestKps != null
-        ? Math.round(homeSummary.latestKps).toString()
+      : homeSummary.referenceKps != null
+        ? Math.round(homeSummary.referenceKps).toString()
         : KPS_SHORT
   const heroKpsLabel = isRunning
     ? liveKpsDisplay.label
     : displayKPS > 0
       ? `Live ${KPS_SHORT}`
-      : homeSummary.latestKps != null
+      : homeSummary.referenceKps != null
         ? `Current ${KPS_SHORT}`
         : 'Baseline pending'
   const suggested = getDirectionalSuggestedTraining(homeSummary)

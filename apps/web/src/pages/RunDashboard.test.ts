@@ -22,7 +22,7 @@ function summary(overrides: Partial<DirectionalHomeSummary>): DirectionalHomeSum
     runCount7d: 0,
     distance7d: 0,
     streakDays: 0,
-    latestKps: null,
+    referenceKps: null,
     intelligence: null,
     error: null,
     ...overrides,
@@ -49,7 +49,7 @@ describe('RunDashboard directional KPS UX', () => {
         locations: [],
         splits: [],
       },
-      latestKps: 88,
+      referenceKps: 88,
       intelligence: {
         readiness: { score: 92, status: 'high', message: 'Ready.' },
         fatigue: { level: 'low', message: 'Low.' },

@@ -1,26 +1,53 @@
 /**
  * Resolves `VITE_AUTH_REDIRECT_URL` for the current browser origin.
- * In dev builds, if the app runs on localhost but the env pins a non-localhost URL (e.g. shared
- * Infisical values for `https://app.bookiji.com/login`), magic links would otherwise open Bookiji
- * instead of this dev server. In that case we drop the pin and use `windowOrigin` only.
+ * Guardrails ensure Kinetix OAuth callbacks never drift to non-Kinetix Bookiji hosts.
  *
  * @param isDev - pass `import.meta.env.DEV` from the client bundle
  */
+
+const KINETIX_CANONICAL_ORIGIN = 'https://kinetix.bookiji.com'
+
+function isBookijiHost(hostname: string): boolean {
+  return hostname === 'bookiji.com' || hostname.endsWith('.bookiji.com')
+}
+
+function isKinetixHost(hostname: string): boolean {
+  return hostname === 'kinetix.bookiji.com'
+}
+
+function fallbackAuthOrigin(windowOrigin: string): string {
+  try {
+    const win = new URL(windowOrigin)
+    if (isBookijiHost(win.hostname) && !isKinetixHost(win.hostname)) {
+      return KINETIX_CANONICAL_ORIGIN
+    }
+  } catch {
+    // Fall through to caller-provided origin.
+  }
+
+  return windowOrigin
+}
+
 export function resolveConfiguredAuthRedirectUrl(
   windowOrigin: string,
   configuredRedirectUrl: string | null | undefined,
-  isDev: boolean
+  _isDev: boolean
 ): string | null | undefined {
-  if (!isDev) return configuredRedirectUrl
   const trimmed = configuredRedirectUrl?.trim() ?? ''
   if (!trimmed) return configuredRedirectUrl
 
   try {
     const win = new URL(windowOrigin)
     const cfg = new URL(trimmed)
-    const winIsLoopback = win.hostname === 'localhost' || win.hostname === '127.0.0.1'
-    const cfgIsLoopback = cfg.hostname === 'localhost' || cfg.hostname === '127.0.0.1'
-    if (winIsLoopback && !cfgIsLoopback) {
+
+    if (isBookijiHost(win.hostname)) {
+      if (!isKinetixHost(cfg.hostname)) {
+        return null
+      }
+      return configuredRedirectUrl
+    }
+
+    if (cfg.origin !== win.origin) {
       return null
     }
   } catch {
@@ -41,6 +68,7 @@ export function buildAuthRedirectTarget(options: {
   nextPath?: string
 }): string {
   const { windowOrigin, configuredRedirectUrl, nextPath } = options
+  const authOrigin = fallbackAuthOrigin(windowOrigin)
   const trimmed = configuredRedirectUrl?.trim() ?? ''
 
   let redirectTarget: URL
@@ -48,14 +76,17 @@ export function buildAuthRedirectTarget(options: {
   if (trimmed.length > 0) {
     try {
       redirectTarget = new URL(trimmed)
+      if (isBookijiHost(new URL(windowOrigin).hostname) && !isKinetixHost(redirectTarget.hostname)) {
+        redirectTarget = new URL('/login', authOrigin)
+      }
     } catch {
-      redirectTarget = new URL('/login', windowOrigin)
+      redirectTarget = new URL('/login', authOrigin)
     }
     if (redirectTarget.pathname === '' || redirectTarget.pathname === '/') {
       redirectTarget.pathname = '/login'
     }
   } else {
-    redirectTarget = new URL('/login', windowOrigin)
+    redirectTarget = new URL('/login', authOrigin)
   }
 
   if (nextPath) {

@@ -88,8 +88,8 @@ Admin one-shot login is implemented in [`api/admlog/index.ts`](../../api/admlog/
 - On success, the handler upserts an active **`kinetix`** row in `platform.entitlements` for `admlog@bookiji.test` (via `ensureEntitlementProductKeys` in `@bookiji-inc/platform-auth`) so the app passes entitlement gating without a separate seed step.
 - **Local dev (`pnpm dev` / port 5173):** Vite registers `/api/admlog` in [`apps/web/vite-plugin-oauth.ts`](../../apps/web/vite-plugin-oauth.ts) so the route is not swallowed by the SPA. Restart the dev server after changing env.
 - **Required server env in `apps/web/.env.local` (not `VITE_*` — never commit):**
-  - `ADMLOG_ENABLED=true` (or `BOOKIJI_TEST_MODE=true` for the default local admlog password path in platform-auth).
-  - `ADMLOG_PASSWORD` — dev password used for the synthetic `admlog@bookiji.test` user (required when admlog flags are set).
+  - `ADMLOG_ENABLED=true` or `BOOKIJI_TEST_MODE=true`.
+  - `ADMLOG_PASSWORD` — dev password used for the synthetic `admlog@bookiji.test` user (required when admlog flags are set; no hardcoded fallback exists).
   - **`SUPABASE_SECRET_KEY`** — **recommended:** next-gen secret key `sb_secret_...` from Supabase Dashboard → **Project Settings → API Keys** (admlog uses Auth Admin APIs; this works when **JWT legacy API keys are disabled**).
   - **`SUPABASE_SERVICE_ROLE_KEY`** — legacy **service_role** JWT (Legacy API Keys tab). Only use if the project still allows legacy keys; otherwise Auth returns errors such as `Legacy API keys are disabled`.
 

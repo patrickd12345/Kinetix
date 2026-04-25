@@ -15,6 +15,7 @@ interface RunGaugePanelProps {
   progress: number
   isRunning: boolean
   timeToBeat: string | null
+  avgKPS?: number
 }
 
 interface RunStatsPanelProps {
@@ -78,7 +79,7 @@ export function RunDashboardHeader({ targetKPS, isRunning, hasGPSFix }: RunDashb
   )
 }
 
-export function RunGaugePanel({ displayKPS: _displayKPS, displayText, displayLabel, progress, isRunning, timeToBeat }: RunGaugePanelProps) {
+export function RunGaugePanel({ displayKPS: _displayKPS, displayText, displayLabel, progress, isRunning, timeToBeat, avgKPS }: RunGaugePanelProps) {
   return (
     <div>
       <div className="relative flex items-center justify-center mb-4">
@@ -120,6 +121,18 @@ export function RunGaugePanel({ displayKPS: _displayKPS, displayText, displayLab
           </div>
         </div>
       </div>
+
+      {isRunning && avgKPS != null && avgKPS > 0 && (
+        <div className="flex items-center justify-center gap-3 mb-3 text-xs font-bold uppercase tracking-wide">
+          <span className="text-cyan-400">
+            Live&nbsp;<span className="text-lg font-black">{displayText === '--' ? '--' : displayText}</span>
+          </span>
+          <span className="text-slate-500 dark:text-gray-600">|</span>
+          <span className="text-slate-500 dark:text-gray-400">
+            Avg&nbsp;<span className="text-lg font-black text-slate-700 dark:text-gray-300">{Math.floor(avgKPS)}</span>
+          </span>
+        </div>
+      )}
 
       {isRunning && timeToBeat && (
         <div className="flex items-center justify-center gap-2 mb-4">

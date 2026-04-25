@@ -53,6 +53,7 @@ export default function RunDashboard() {
   const { profile } = useAuth()
   const userProfile = useStableKinetixUserProfile(profile)
   const [relativeKPS, setRelativeKPS] = useState(0)
+  const [avgRelativeKPS, setAvgRelativeKPS] = useState(0)
   const [liveKpsDisplay, setLiveKpsDisplay] = useState<LiveKpsDisplayState>({
     text: '0',
     label: `Live ${KPS_SHORT}`,
@@ -134,6 +135,27 @@ export default function RunDashboard() {
       .then(setRelativeKPS)
       .catch(() => setRelativeKPS(0))
   }, [distance, duration, averagePace, rollingPace, targetKPS, userProfile])
+
+  // Avg KPS: uses actual duration + distance — exactly what will be saved to History
+  useEffect(() => {
+    if (!userProfile || !(distance > 0 && duration > 0)) {
+      setAvgRelativeKPS(0)
+      return
+    }
+    const tempRun: import('../lib/database').RunRecord = {
+      date: new Date().toISOString(),
+      distance,
+      duration,
+      averagePace,
+      targetKPS,
+      locations: [],
+      splits: [],
+    }
+    ensurePBInitialized(userProfile)
+      .then(() => calculateRelativeKPS(tempRun, userProfile))
+      .then(setAvgRelativeKPS)
+      .catch(() => setAvgRelativeKPS(0))
+  }, [distance, duration, averagePace, targetKPS, userProfile])
 
   const liveKpsSamplesRef = useRef<Array<{ atMs: number; value: number }>>([])
 
@@ -547,6 +569,7 @@ export default function RunDashboard() {
               progress={progress}
               isRunning={isRunning}
               timeToBeat={timeToBeat}
+              avgKPS={avgRelativeKPS}
             />
 
             <div>

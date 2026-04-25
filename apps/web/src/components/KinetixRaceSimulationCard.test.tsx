@@ -10,6 +10,7 @@ function makeSimulation(overrides: Partial<KinetixRaceSimulationViewModel> = {})
     isGoalDriven: true,
     projectedFinishSeconds: 2900,
     formattedFinishTime: '48:20',
+    formattedPace: '4:50/km',
     fadeRisk: 'moderate',
     pacingRecommendation: 'Keep the first third controlled, then settle into even pacing.',
     splits: [
@@ -68,6 +69,31 @@ describe('KinetixRaceSimulationCard', () => {
     expect(screen.getByText(/Confidence is low/i)).toBeInTheDocument()
   })
 
+  it('renders pace summary with formatted value', () => {
+    render(
+      <KinetixRaceSimulationCard
+        loading={false}
+        error={null}
+        simulation={makeSimulation({
+          selectedDistance: '5k',
+          selectedDistanceLabel: '5K',
+          projectedFinishSeconds: 30 * 60 + 48,
+          formattedFinishTime: '30:48',
+          formattedPace: '6:10/km',
+          fadeRisk: 'low',
+          confidenceLabel: 'Normal',
+        })}
+      />
+    )
+
+    expect(screen.getByText('Projected finish (current-fitness pacing model)')).toBeInTheDocument()
+    expect(screen.getByText('30:48')).toBeInTheDocument()
+    expect(screen.getAllByText('Pace')[0]).toBeInTheDocument()
+    expect(screen.getByText('6:10/km')).toBeInTheDocument()
+    expect(screen.getByText('Low')).toBeInTheDocument()
+    expect(screen.getByText('Normal')).toBeInTheDocument()
+  })
+
   it('renders formatted split values', () => {
     render(
       <KinetixRaceSimulationCard
@@ -78,7 +104,7 @@ describe('KinetixRaceSimulationCard', () => {
     )
 
     expect(screen.getByText('0.0-2.0 km')).toBeInTheDocument()
-    expect(screen.getByText('4:50/km')).toBeInTheDocument()
+    expect(screen.getAllByText('4:50/km')[0]).toBeInTheDocument()
     expect(screen.getByText('9:40')).toBeInTheDocument()
   })
 

@@ -51,44 +51,46 @@ describe('liveKpsDisplay', () => {
     expect(state.isCalibrating).toBe(true)
   })
 
-  it('shows eligible at 120s / 0.39 km with valid rolling pace', () => {
+  it('stays unavailable at 120s / 0.39 km until both calibration thresholds are met', () => {
     const state = getLiveKpsDisplayState({
       isRunning: true,
-      durationSeconds: 120, // Meets time threshold
+      durationSeconds: 120, // Meets time threshold only
       distanceKm: 0.39,
       paceSecPerKm: 307,
       sampleCount: 5,
       smoothedRelativeKps: 96.4,
     })
 
-    expect(state.text).toBe('96')
-    expect(state.isCalibrating).toBe(false)
+    expect(state.text).toBe('--')
+    expect(state.isCalibrating).toBe(true)
   })
 
-  it('shows eligible at 60s / 0.40 km with valid rolling pace', () => {
+  it('stays unavailable at 60s / 0.40 km until both calibration thresholds are met', () => {
     const state = getLiveKpsDisplayState({
       isRunning: true,
-      durationSeconds: 60,
-      distanceKm: 0.40, // Meets distance threshold
-      paceSecPerKm: 150, // Too fast (below 180)
+      durationSeconds: 60, // Meets distance threshold only
+      distanceKm: 0.40,
+      paceSecPerKm: 185,
       sampleCount: 5,
       smoothedRelativeKps: 96.4,
     })
 
     expect(state.text).toBe('--')
     expect(state.isCalibrating).toBe(true)
+  })
 
-    const validState = getLiveKpsDisplayState({
+  it('shows eligible once both calibration thresholds are met and pace is valid', () => {
+    const state = getLiveKpsDisplayState({
       isRunning: true,
-      durationSeconds: 60,
+      durationSeconds: 120,
       distanceKm: 0.40,
-      paceSecPerKm: 185, // Valid
+      paceSecPerKm: 185,
       sampleCount: 5,
       smoothedRelativeKps: 96.4,
     })
 
-    expect(validState.text).toBe('96')
-    expect(validState.isCalibrating).toBe(false)
+    expect(state.text).toBe('96')
+    expect(state.isCalibrating).toBe(false)
   })
 
   it('returns unavailable for NaN / Infinity / too-fast / too-slow pace', () => {

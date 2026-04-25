@@ -171,10 +171,16 @@ export default function RunDashboard() {
       return
     }
 
-    liveKpsSamplesRef.current = appendLiveKpsSample(liveKpsSamplesRef.current, {
-      atMs: Math.round(duration * 1000),
-      value: relativeKPS,
-    })
+    const hasReliableRollingPace = rollingPace > 0 && rollingPaceSamplesRef.current.length >= 2
+
+    if (hasReliableRollingPace) {
+      liveKpsSamplesRef.current = appendLiveKpsSample(liveKpsSamplesRef.current, {
+        atMs: Math.round(duration * 1000),
+        value: relativeKPS,
+      })
+    } else {
+      liveKpsSamplesRef.current = []
+    }
 
     const smoothedRelativeKps = getSmoothedLiveKps(liveKpsSamplesRef.current)
     const nextDisplay = getLiveKpsDisplayState({

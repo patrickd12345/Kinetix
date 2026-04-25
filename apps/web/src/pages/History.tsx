@@ -289,8 +289,9 @@ export default function History() {
     if (!userProfile || !chartStartDate || !chartEndDate) return
     try {
       setChartLoading(true)
+      await ensurePBInitialized(userProfile)
       const items = await getRunsInDateRange(chartStartDate, chartEndDate, CHART_LIMIT)
-      const meaningfulRuns = items.filter((r) => isMeaningfulRunForKPS(r))
+      const meaningfulRuns = items.filter((r) => (r.deleted ?? 0) === RUN_VISIBLE && isMeaningfulRunForKPS(r))
       setChartRuns(meaningfulRuns)
       const pb = await getPB()
       let pbRun = pb ? (await db.runs.get(pb.runId)) ?? null : null
@@ -309,7 +310,7 @@ export default function History() {
     } finally {
       setChartLoading(false)
     }
-  }, [userProfile, chartStartDate, chartEndDate])
+  }, [userProfile, chartStartDate, chartEndDate, listRefreshKey])
 
   useEffect(() => {
     if (!chartStartDate || !chartEndDate || !userProfile) return
@@ -395,6 +396,7 @@ export default function History() {
         if (runs.length === 1 && currentPage > 1) {
           setCurrentPage((p) => Math.max(1, p - 1))
         }
+        clearHistoryKpsDerivedCache()
         bumpListRefresh()
       } catch (error) {
         console.error('Error deleting run:', error)

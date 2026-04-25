@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, memo } from 'react'
 import { AlertTriangle, ArrowRight, Clock3, FileWarning, LayoutList, Loader2, RefreshCcw, ShieldAlert } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../components/providers/useAuth'
@@ -63,7 +63,7 @@ function healthToneClasses(health: ReturnType<typeof computeSLAHealth>) {
   }
 }
 
-function SummaryCard({ label, value, tone = 'default' }: { label: string; value: number; tone?: 'default' | 'warning' | 'danger' | 'success' | 'info' }) {
+const SummaryCard = memo(function SummaryCard({ label, value, tone = 'default' }: { label: string; value: number; tone?: 'default' | 'warning' | 'danger' | 'success' | 'info' }) {
   const surface =
     tone === 'danger'
       ? 'border-rose-200 bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/10'
@@ -92,16 +92,16 @@ function SummaryCard({ label, value, tone = 'default' }: { label: string; value:
       <div className={`mt-2 text-2xl font-semibold tabular-nums tracking-tight ${valueClass}`}>{value}</div>
     </div>
   )
-}
+})
 
-function MetricCard({ label, value }: { label: string; value: string | number }) {
+const MetricCard = memo(function MetricCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 shadow-sm dark:border-white/10 dark:bg-black/20 dark:shadow-none">
       <div className="text-xs font-medium text-slate-600 dark:text-slate-400">{label}</div>
       <div className="mt-2 text-lg font-semibold tabular-nums text-slate-900 dark:text-white">{value}</div>
     </div>
   )
-}
+})
 
 export default function OperatorDashboard() {
   const { session } = useAuth()

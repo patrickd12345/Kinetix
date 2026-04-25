@@ -1,9 +1,14 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import {
   getAdmlogBlockReason,
   getAdmlogProductionBlockReason,
   isAdmlogProductionEnvironment,
+  performAdmlogSignIn,
 } from './admlog'
+
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(),
+}))
 
 describe('getAdmlogBlockReason', () => {
   const snapshot = { ...process.env }
@@ -73,5 +78,29 @@ describe('isAdmlogProductionEnvironment', () => {
     process.env.NODE_ENV = 'development'
     delete process.env.VERCEL_ENV
     expect(isAdmlogProductionEnvironment()).toBe(false)
+  })
+})
+
+describe('performAdmlogSignIn security', () => {
+  const snapshot = { ...process.env }
+
+  afterEach(() => {
+    process.env = { ...snapshot }
+    vi.clearAllMocks()
+  })
+
+  it('fails if ADMLOG_PASSWORD is missing even if BOOKIJI_TEST_MODE is true', async () => {
+    process.env.BOOKIJI_TEST_MODE = 'true'
+    delete process.env.ADMLOG_PASSWORD
+
+    // This test is expected to FAIL before the fix because it will use DEFAULT_PASSWORD_LOCAL
+    // instead of throwing the required error.
+    await expect(
+      performAdmlogSignIn({
+        supabaseUrl: 'http://localhost:54321',
+        serviceKey: 's',
+        anonKey: 'a',
+      })
+    ).rejects.toThrow('ADMLOG_PASSWORD is required')
   })
 })

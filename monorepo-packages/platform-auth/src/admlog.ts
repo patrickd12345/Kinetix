@@ -6,7 +6,6 @@
 import { createClient, type User } from '@supabase/supabase-js'
 
 export const ADMLOG_EMAIL = 'admlog@bookiji.test'
-const DEFAULT_PASSWORD_LOCAL = 'AdmlogDev123!'
 
 function isProduction(): boolean {
   if (process.env.NODE_ENV === 'production') return true
@@ -88,9 +87,7 @@ export async function performAdmlogSignIn(config: {
   ensureEntitlementProductKeys?: string[]
 }): Promise<AdmlogTokens> {
   const { supabaseUrl, serviceKey, anonKey, ensureEntitlementProductKeys } = config
-  const password =
-    process.env.ADMLOG_PASSWORD ??
-    (process.env.BOOKIJI_TEST_MODE === 'true' ? DEFAULT_PASSWORD_LOCAL : '')
+  const password = process.env.ADMLOG_PASSWORD
   if (!password) {
     throw new Error('ADMLOG_PASSWORD is required when ADMLOG_ENABLED or BOOKIJI_TEST_MODE is set')
   }

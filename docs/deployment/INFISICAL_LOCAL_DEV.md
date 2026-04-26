@@ -47,6 +47,22 @@ That means Kinetix-specific keys override shared platform keys, and local emerge
 
 ## Local commands
 
+### Start without Infisical (validates `apps/web/.env.local`)
+
+When the Infisical CLI is not installed, use the same Supabase preflight as `pnpm dev`, but with variables from **`process.env` plus `apps/web/.env.local`** only:
+
+```bash
+pnpm dev:local
+```
+
+This spawns **`pnpm dev:raw`** (RAG + web) with the merged environment. It does not call the Infisical API.
+
+**Web only**, LAN accessible (0.0.0.0:5173):
+
+```bash
+pnpm dev:web:host
+```
+
 ### Start local development with Infisical
 
 ```bash
@@ -116,7 +132,7 @@ If Infisical is temporarily unavailable, a developer may place the minimum requi
 apps/web/.env.local
 ```
 
-This is an **emergency local fallback only** for unblocking development when you are using the non-Infisical startup path (`pnpm dev:raw`). Rules:
+This is a **local fallback** when you are not using the Infisical-injected `pnpm dev` path. Prefer **`pnpm dev:local`**, which runs the same Supabase validation and then **`pnpm dev:raw`**, or use **`pnpm dev:raw`** alone if you know your env is already set. Rules:
 
 - do not commit `.env.local`
 - do not treat `.env.local` as the canonical source of truth

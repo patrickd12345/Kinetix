@@ -289,7 +289,7 @@ struct RunTrackingView: View {
         healthKitManager.startWorkout()
         gpsManager.onLocationUpdate = { handleLocationUpdate($0) }
         healthKitManager.onHeartRateUpdate = { heartRateSamples.append((Date(), $0)) }
-        
+
         LiveActivityManager.shared.startRunActivity(
             name: "Morning Run",
             kps: currentNPI,

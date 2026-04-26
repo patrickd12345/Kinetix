@@ -5,8 +5,31 @@ struct DashboardView: View {
     @StateObject private var connectivity = ConnectivityManager.shared
     @StateObject private var coach = ConversationalCoach()
     @State private var userTextInput = ""
+    @State private var activeSubTab = 0 // 0: Live, 1: Coaching
     
     var body: some View {
+        VStack(spacing: 0) {
+            // Segmented Picker for Live vs Coaching
+            Picker("Dashboard Mode", selection: $activeSubTab) {
+                Text("Live").tag(0)
+                Text("Coaching").tag(1)
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .padding()
+            .background(Color(white: 0.05))
+
+            if activeSubTab == 0 {
+                liveView
+            } else {
+                CoachingDashboardView()
+            }
+        }
+        .onAppear {
+            connectivity.setupSession()
+        }
+    }
+
+    private var liveView: some View {
         VStack(spacing: 0) {
             // 1. LIVE METRICS HEADER
             VStack(spacing: 12) {
@@ -50,7 +73,7 @@ struct DashboardView: View {
                 }
             }
             .padding()
-            .background(Color(UIColor.systemBackground))
+            .background(Color(white: 0.08))
             .shadow(radius: 2)
             
             // 2. CONVERSATION STREAM
@@ -60,8 +83,6 @@ struct DashboardView: View {
                         ForEach(coach.conversationHistory) { msg in
                             ChatBubble(message: msg)
                         }
-                        
-                        // Spacer for keyboard
                         Color.clear.frame(height: 20)
                     }
                     .padding()
@@ -74,8 +95,9 @@ struct DashboardView: View {
                     }
                 }
             }
+            .background(Color(white: 0.05))
             
-            // 3. INPUT AREA (Voice/Text)
+            // 3. INPUT AREA
             HStack {
                 TextField("Ask Coach...", text: $userTextInput)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -88,7 +110,6 @@ struct DashboardView: View {
                 }) {
                     if coach.isSpeaking {
                         ProgressView()
-                            .frame(width: 24, height: 24)
                     } else {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.title2)
@@ -96,9 +117,7 @@ struct DashboardView: View {
                 }
                 .disabled(userTextInput.isEmpty || coach.isSpeaking)
                 
-                // Simulated Voice Button
                 Button(action: {
-                    // In real app, this triggers VAD/Whisper
                     coach.sendUserMessage("How is my form looking right now?")
                 }) {
                     Image(systemName: "mic.circle.fill")
@@ -107,10 +126,7 @@ struct DashboardView: View {
                 }
             }
             .padding()
-            .background(Color(UIColor.secondarySystemBackground))
-        }
-        .onAppear {
-            connectivity.setupSession()
+            .background(Color(white: 0.12))
         }
     }
 }
@@ -137,7 +153,7 @@ struct MetricCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(8)
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(Color.white.opacity(0.05))
         .cornerRadius(10)
     }
 }
@@ -151,8 +167,8 @@ struct ChatBubble: View {
             
             Text(message.text)
                 .padding()
-                .background(message.sender == .user ? Color.blue : Color(UIColor.secondarySystemBackground))
-                .foregroundColor(message.sender == .user ? .white : .primary)
+                .background(message.sender == .user ? Color.blue : Color.white.opacity(0.1))
+                .foregroundColor(.white)
                 .cornerRadius(16)
                 .frame(maxWidth: 280, alignment: message.sender == .user ? .trailing : .leading)
             

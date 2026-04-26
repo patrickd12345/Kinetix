@@ -5,8 +5,11 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var connectivity = ConnectivityManager.shared
     @Query(sort: [SortDescriptor<Run>(\.date, order: .reverse)]) private var runs: [Run]
+    @Query private var profiles: [RunnerProfile]
     @Binding var selectedTab: Int
     @State private var showingRunTracking = false
+    @State private var intelligenceSummary: String?
+    @State private var isIntelligenceLoading = false
     
     var body: some View {
         NavigationStack {
@@ -34,26 +37,9 @@ struct HomeView: View {
                                 .foregroundColor(.secondary)
                             
                             HStack(spacing: 16) {
-                                StatCard(
-                                    title: "Distance",
-                                    value: String(format: "%.2f", recentRun.distance / 1000),
-                                    unit: "km",
-                                    color: .blue
-                                )
-                                
-                                StatCard(
-                                    title: "KPS",
-                                    value: "\(Int(recentRun.avgNPI))",
-                                    unit: "",
-                                    color: .cyan
-                                )
-                                
-                                StatCard(
-                                    title: "Pace",
-                                    value: formatPace(recentRun.avgPace),
-                                    unit: "/km",
-                                    color: .green
-                                )
+                                StatCard(title: "Distance", value: String(format: "%.2f", recentRun.distance / 1000), unit: "km", color: .blue)
+                                StatCard(title: "KPS", value: "\(Int(recentRun.avgNPI))", unit: "", color: .cyan)
+                                StatCard(title: "Pace", value: formatPace(recentRun.avgPace), unit: "/km", color: .green)
                             }
                         }
                         .padding()
@@ -62,22 +48,97 @@ struct HomeView: View {
                         .padding(.horizontal)
                     }
                     
+                    // Apple Intelligence Readiness Card
+                    if DefaultKinetixAppleIntelligenceService.shared.isAppleIntelligenceAvailable() == .available {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "sparkles")
+                                    .foregroundColor(.cyan)
+                                Text("INTELLIGENCE")
+                                    .font(.system(size: 10, weight: .black))
+                                    .tracking(2)
+                                    .foregroundColor(.cyan)
+                                Spacer()
+                                if isIntelligenceLoading {
+                                    ProgressView().scaleEffect(0.7)
+                                }
+                            }
+
+                            if let summary = intelligenceSummary {
+                                Text(summary)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .lineSpacing(4)
+                            } else {
+                                Text("Analyzing your recent activity...")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
+                                    .italic()
+                            }
+                        }
+                        .padding(20)
+                        .background(Color.cyan.opacity(0.05))
+                        .cornerRadius(24)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24)
+                                .stroke(Color.cyan.opacity(0.2), lineWidth: 1)
+                        )
+                        .padding(.horizontal)
+                        .onAppear {
+                            generateIntelligence()
+                        }
+                        .onChange(of: runs) { _, _ in
+                            generateIntelligence(force: true)
+                        }
+                    }
+
+                    // Primary Action
+                    Button(action: {
+                        showingRunTracking = true
+                    }) {
+                        HStack(spacing: 16) {
+                            Image(systemName: "play.circle.fill")
+                                .font(.system(size: 44))
+                                .foregroundColor(.white)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("START RUN")
+                                    .font(.system(size: 20, weight: .black))
+                                    .italic()
+                                    .foregroundColor(.white)
+                                Text("Track directly on your iPhone")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.headline)
+                                .foregroundColor(.white.opacity(0.6))
+                        }
+                        .padding(24)
+                        .background(
+                            LinearGradient(
+                                colors: [.cyan, .blue],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .cornerRadius(24)
+                        .shadow(color: .cyan.opacity(0.3), radius: 10, x: 0, y: 5)
+                    }
+                    .padding(.horizontal)
+                    .buttonStyle(PlainButtonStyle())
+
                     // Quick Access Tiles (informational - tabs accessible via tab bar)
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Quick Access")
+                        Text("Explore")
                             .font(.headline)
                             .foregroundColor(.secondary)
                         
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                            HomeTile(
-                                title: "Start Run",
-                                systemImage: "play.circle.fill",
-                                accent: .green,
-                                description: "Track with iPhone"
-                            ) {
-                                showingRunTracking = true
-                            }
-                            
                             HomeTile(
                                 title: "Coach",
                                 systemImage: "figure.run",
@@ -164,6 +225,29 @@ struct HomeView: View {
         let seconds = Int(pace) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
+
+    private func generateIntelligence(force: Bool = false) {
+        guard force || intelligenceSummary == nil else { return }
+        isIntelligenceLoading = true
+
+        Task {
+            let prob = await CoachingLogicService.shared.computeGoalProbability(runs: runs, profile: profiles.first)
+            let input = ReadinessExplanationInput(
+                readinessScore: Int(prob.probability * 100),
+                readinessStatus: prob.probability > 0.7 ? "Peak" : "Building",
+                fatigueLevel: "Low",
+                trendDirection: prob.direction.rawValue,
+                recommendationType: "Aerobic"
+            )
+
+            let result = await DefaultKinetixAppleIntelligenceService.shared.generateReadinessExplanation(input)
+
+            await MainActor.run {
+                self.intelligenceSummary = result.text
+                self.isIntelligenceLoading = false
+            }
+        }
+    }
 }
 
 private struct StatCard: View {
@@ -222,4 +306,3 @@ private struct HomeTile: View {
         .buttonStyle(.plain)
     }
 }
-

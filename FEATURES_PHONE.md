@@ -3,19 +3,32 @@
 ## ✅ Implemented Features
 
 ### Core Management Features
-- ✅ **3-Tab Architecture**: Coach, History, Settings
+- ✅ **5-Tab Architecture**: Home, Coach, Build, History, Settings
 - ✅ **Watch Connectivity**: Real-time communication with Watch app
 - ✅ **Data Synchronization**: Bidirectional sync with Watch
-- ✅ **Run History**: Complete list of all runs synced from Watch
+- ✅ **Run History**: Complete list of all runs (Watch & iPhone recorded)
 - ✅ **Run Detail Views**: Full post-run analysis
+
+### Standalone Tracking (NEW)
+- ✅ **Direct Run Tracking**: iPhone now supports standalone run tracking
+- ✅ **GPS Integration**: High-precision GPS tracking with signal monitoring
+- ✅ **HealthKit Integration**: Heart rate collection directly from iPhone/Watch
+- ✅ **NPI Calculation**: Real-time KPS calculation on device
+- ✅ **"Glass" Tracking UI**: High-performance UI optimized for iPhone 17 Pro Max
 
 ### Coach Tab (Dashboard)
 - ✅ **Live Metrics Dashboard**: Real-time charts for heart rate and cadence
+- ✅ **Deterministic Coaching**: Ported from Web (Timeline, Goal Probability)
 - ✅ **Conversational AI Coach**: Ask questions about your run via voice
 - ✅ **Live Biometric Stream**: Real-time data from Watch displayed on iPhone
 - ✅ **Alert System**: Receives and vocalizes alerts from Watch
 - ✅ **Voice Recognition**: Speech recognition for questions
 - ✅ **Text-to-Speech**: Premium voices for natural-sounding coaching
+
+### Apple Intelligence (NEW)
+- ✅ **Readiness Explanations**: Context-aware readiness analysis (iOS 18+)
+- ✅ **On-Device Summaries**: Fast, private post-run summaries
+- ✅ **Proactive Insights**: Home screen intelligence cards
 
 ### History Tab
 - ✅ **Run History List**: Complete list of all runs
@@ -73,9 +86,6 @@
 ## ❌ Missing Features / Limitations
 
 ### Not Implemented
-- ❌ **Direct Run Tracking**: iPhone app does not track runs directly (Watch does)
-- ❌ **GPS Tracking**: No GPS tracking on iPhone (Watch handles this)
-- ❌ **HealthKit Workout Sessions**: Watch handles workout sessions
 - ❌ **Form Metrics Collection**: Watch collects form data, iPhone displays it
 - ❌ **Export/Share Runs**: Export to GPX/TCX or share to other apps
 - ❌ **Social Features**: Sharing, leaderboards, etc.

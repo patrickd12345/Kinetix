@@ -80,16 +80,25 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 
 ### 📱 iPhone Companion App
 
-The iPhone app serves as a **Management & Analysis Hub** with a 3-tab architecture:
+The iPhone app serves as a **Management & Analysis Hub** with a 5-tab architecture:
 
-#### 1. **Coach Tab** (Dashboard)
+#### 1. **Home Tab**
+- **Start Run**: Record runs directly on iPhone (standalone tracking)
+- **Intelligence Card**: On-device Apple Intelligence readiness insights (iOS 18+)
+- **Quick Stats**: Summary of your latest performance
+
+#### 2. **Coach Tab** (Dashboard)
+- **Deterministic Coaching**: Ported from web (Timeline, Goal Probability)
 - **Live Metrics Dashboard**: Real-time charts for heart rate and cadence
 - **Conversational AI Coach**: Ask questions about your run via voice
 - **Live Biometric Stream**: Real-time data from Watch displayed on iPhone
 - **Alert System**: Receives and vocalizes alerts from Watch
 
-#### 2. **History Tab**
-- **Run History**: Complete list of all runs synced from Watch
+#### 3. **Build Tab**
+- **Activity Builder**: Create custom workout templates for your Watch
+
+#### 4. **History Tab**
+- **Run History**: Complete list of all runs (Watch & iPhone recorded)
 - **Detailed Run Views**: Full post-run analysis including:
   - Lab report with form score
   - Biomechanics grid

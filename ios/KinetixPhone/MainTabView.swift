@@ -46,7 +46,8 @@ struct MainTabView: View {
         .onAppear {
             connectivity.bind(modelContext: modelContext)
             DiagnosticLogManager.shared.bind(modelContext)
-            
+            bootstrapLiveCoachTemplate()
+
             // Force check application context on appear
             connectivity.checkForRunState()
             // Check for active run immediately on appear
@@ -101,6 +102,24 @@ struct MainTabView: View {
             }
         } catch {
             print("⚠️ Withings startup sync failed: \(error.localizedDescription)")
+        }
+    }
+
+    @MainActor
+    private func bootstrapLiveCoachTemplate() {
+        let descriptor = FetchDescriptor<ActivityTemplate>()
+        if let templates = try? modelContext.fetch(descriptor),
+           !templates.contains(where: { $0.name == "Live Coach" }) {
+            let liveCoach = ActivityTemplate(
+                name: "Live Coach",
+                icon: "sparkles",
+                primaryScreen: .coach,
+                secondaryScreens: [.npi, .metrics, .map],
+                goal: .efficiency,
+                isCustom: false
+            )
+            modelContext.insert(liveCoach)
+            print("📱 Bootstrapped 'Live Coach' activity template")
         }
     }
 

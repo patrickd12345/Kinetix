@@ -71,6 +71,7 @@ struct SettingsView: View {
                 stravaSection
                 aiSettingsSection
                 liveTrackingSection
+                omniIntelligenceSection
                 batteryProfileSection
                 findMyNPISection
                 aiSummarySection
@@ -641,6 +642,42 @@ struct SettingsView: View {
         }
     }
     
+    private var omniIntelligenceSection: some View {
+        Section {
+            NavigationLink(destination: TechnicalInsightsView()) {
+                HStack {
+                    Label("Technical Insights", systemImage: "brain.head.profile")
+                    Spacer()
+                    Text("Reasoning Logs")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+
+            Button(action: {
+                Task {
+                    try? await GarminService.shared.connect()
+                    if GarminService.shared.isConnected {
+                        try? await GarminService.shared.fetchLatestHumanState(modelContext: modelContext)
+                        await MultiSignalCoachingEngine.shared.applyProactiveAdaptation(modelContext: modelContext)
+                    }
+                }
+            }) {
+                HStack {
+                    Label("Garmin Connect", systemImage: "link")
+                    Spacer()
+                    Text(GarminService.shared.isConnected ? "Connected" : "Not Linked")
+                        .font(.caption)
+                        .foregroundColor(GarminService.shared.isConnected ? .green : .orange)
+                }
+            }
+        } header: {
+            Text("Omni-Intelligence")
+        } footer: {
+            Text("Connect Garmin to ingest Body Battery, Stress, and Sleep telemetry. The Agentic Core correlates this with productivity signals to adapt your training.")
+        }
+    }
+
     private var aiStatusDescription: String {
         let geminiKey = Bundle.main.object(forInfoDictionaryKey: "GEMINI_API_KEY") as? String ?? ""
         if ollamaAvailable {

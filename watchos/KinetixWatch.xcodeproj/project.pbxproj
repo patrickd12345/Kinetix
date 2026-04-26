@@ -106,6 +106,22 @@
 		F9FFAD9E8FA8890A74773B38 /* StravaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17EBB47A61474FB15B69AAD /* StravaService.swift */; };
 		FA540A34A8C8C91CFF95DF75 /* UIAuditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D73BF37704B718A9EED5BC21 /* UIAuditor.swift */; };
 		FC7582C201CA944A4F9638DF /* RunDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */; };
+		E1CE00000000000000000001 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1CE00000000000000000000 /* ActivityKit.framework */; };
+		E1CE00000000000000000003 /* CoachingDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE00000000000000000002 /* CoachingDashboardView.swift */; };
+		E1CE00000000000000000005 /* TechnicalInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE00000000000000000004 /* TechnicalInsightsView.swift */; };
+		E1CE00000000000000000007 /* HumanState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE00000000000000000006 /* HumanState.swift */; };
+		E1CE00000000000000000009 /* CoachingLogicService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE00000000000000000008 /* CoachingLogicService.swift */; };
+		E1CE0000000000000000000B /* GarminService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE0000000000000000000A /* GarminService.swift */; };
+		E1CE0000000000000000000D /* KinetixAppleIntelligenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE0000000000000000000C /* KinetixAppleIntelligenceService.swift */; };
+		E1CE0000000000000000000F /* KinetixAppleIntelligenceTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE0000000000000000000E /* KinetixAppleIntelligenceTypes.swift */; };
+		E1CE00000000000000000011 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE00000000000000000010 /* LiveActivityManager.swift */; };
+		E1CE00000000000000000013 /* LivePaceCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE00000000000000000012 /* LivePaceCalculator.swift */; };
+		E1CE00000000000000000015 /* MultiSignalCoachingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE00000000000000000014 /* MultiSignalCoachingEngine.swift */; };
+		E1CE00000000000000000017 /* OAuthPresentationAnchorProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE00000000000000000016 /* OAuthPresentationAnchorProvider.swift */; };
+		E1CE00000000000000000019 /* PlatformIdentityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE00000000000000000018 /* PlatformIdentityService.swift */; };
+		E1CE0000000000000000001B /* StravaServiceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE0000000000000000001A /* StravaServiceModels.swift */; };
+		E1CE0000000000000000001D /* WithingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE0000000000000000001C /* WithingsService.swift */; };
+		E1CE0000000000000000001F /* WithingsServiceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CE0000000000000000001E /* WithingsServiceModels.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -229,6 +245,22 @@
 		F6F0132AF8F52774A2098339 /* ConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityManager.swift; sourceTree = "<group>"; };
 		FACA8BF8273B19E1A6C07A0C /* FormMonitorSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormMonitorSample.swift; sourceTree = "<group>"; };
 		FCBA0C93A296E7A2D2FC3376 /* UnifiedStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedStorageService.swift; sourceTree = "<group>"; };
+		E1CE00000000000000000000 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit; path = System/Library/Frameworks/ActivityKit.framework; sourceTree = SDKROOT; };
+		E1CE00000000000000000002 /* CoachingDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingDashboardView.swift; sourceTree = "<group>"; };
+		E1CE00000000000000000004 /* TechnicalInsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TechnicalInsightsView.swift; sourceTree = "<group>"; };
+		E1CE00000000000000000006 /* HumanState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumanState.swift; sourceTree = "<group>"; };
+		E1CE00000000000000000008 /* CoachingLogicService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingLogicService.swift; sourceTree = "<group>"; };
+		E1CE0000000000000000000A /* GarminService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarminService.swift; sourceTree = "<group>"; };
+		E1CE0000000000000000000C /* KinetixAppleIntelligenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinetixAppleIntelligenceService.swift; sourceTree = "<group>"; };
+		E1CE0000000000000000000E /* KinetixAppleIntelligenceTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinetixAppleIntelligenceTypes.swift; sourceTree = "<group>"; };
+		E1CE00000000000000000010 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		E1CE00000000000000000012 /* LivePaceCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePaceCalculator.swift; sourceTree = "<group>"; };
+		E1CE00000000000000000014 /* MultiSignalCoachingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiSignalCoachingEngine.swift; sourceTree = "<group>"; };
+		E1CE00000000000000000016 /* OAuthPresentationAnchorProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthPresentationAnchorProvider.swift; sourceTree = "<group>"; };
+		E1CE00000000000000000018 /* PlatformIdentityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformIdentityService.swift; sourceTree = "<group>"; };
+		E1CE0000000000000000001A /* StravaServiceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaServiceModels.swift; sourceTree = "<group>"; };
+		E1CE0000000000000000001C /* WithingsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WithingsService.swift; sourceTree = "<group>"; };
+		E1CE0000000000000000001E /* WithingsServiceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WithingsServiceModels.swift; sourceTree = "<group>"; };
 		FDC93EC808B7C5367193E626 /* integrate_fit_sdk.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = integrate_fit_sdk.sh; sourceTree = "<group>"; };
 		FFBA2E0057B0B97CD5C94F31 /* DOCUMENTATION_INDEX.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DOCUMENTATION_INDEX.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -238,6 +270,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E1CE00000000000000000001 /* ActivityKit.framework in Frameworks */,
 				AE942A7A7057EEB154C933A0 /* FITSwiftSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -253,6 +286,7 @@
 				1CF52A3913553661C034316B /* BatteryProfileEditorView.swift */,
 				F6F0132AF8F52774A2098339 /* ConnectivityManager.swift */,
 				5CF4421816DBAD9973071281 /* ConversationalCoach.swift */,
+				E1CE00000000000000000002 /* CoachingDashboardView.swift */,
 				1A1EC689F4A254D7AE8814BA /* DashboardView.swift */,
 				046CE128D018A4470003ABF4 /* DiagnosticLogManager.swift */,
 				9A1CE68D2B20B08237570256 /* FIT_SDK_INTEGRATION.md */,
@@ -269,6 +303,7 @@
 				B8DEFF557153BDCF17F7EC70 /* RunExporter.swift */,
 				07C6D4B88CFF9516A38E2BBD /* RunTrackingView.swift */,
 				CAD3DEAACA5A3422A37BE8F4 /* SettingsView.swift */,
+				E1CE00000000000000000004 /* TechnicalInsightsView.swift */,
 				AE45662EE8163DAE84F0602C /* TrainingDistributionView.swift */,
 				AA08962A6E2FC659C1AA89E1 /* Models */,
 				B9BFCF350590D231664F3E33 /* Services */,
@@ -376,6 +411,7 @@
 		AA08962A6E2FC659C1AA89E1 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				E1CE00000000000000000006 /* HumanState.swift */,
 				3FCF5C8ACF15B775E4E1A5EC /* RunnerProfile.swift */,
 			);
 			path = Models;
@@ -385,11 +421,23 @@
 			isa = PBXGroup;
 			children = (
 				4AA69D4DD014163239BA8B63 /* ApiKeyStorage.swift */,
+				9A121F9F8D3E9E156119EC54 /* Cloud */,
+				E1CE00000000000000000008 /* CoachingLogicService.swift */,
+				E1CE0000000000000000000A /* GarminService.swift */,
 				C637BB2BE19F32A00E24EFCF /* GPSManager.swift */,
 				DF0F04DB225D6A22C8C234C7 /* HealthKitManager.swift */,
+				E1CE0000000000000000000C /* KinetixAppleIntelligenceService.swift */,
+				E1CE0000000000000000000E /* KinetixAppleIntelligenceTypes.swift */,
+				E1CE00000000000000000010 /* LiveActivityManager.swift */,
+				E1CE00000000000000000012 /* LivePaceCalculator.swift */,
+				E1CE00000000000000000014 /* MultiSignalCoachingEngine.swift */,
+				E1CE00000000000000000016 /* OAuthPresentationAnchorProvider.swift */,
+				E1CE00000000000000000018 /* PlatformIdentityService.swift */,
 				E5632984667BA3EAF8CC857B /* RunMetricsCalculator.swift */,
 				A17EBB47A61474FB15B69AAD /* StravaService.swift */,
-				9A121F9F8D3E9E156119EC54 /* Cloud */,
+				E1CE0000000000000000001A /* StravaServiceModels.swift */,
+				E1CE0000000000000000001C /* WithingsService.swift */,
+				E1CE0000000000000000001E /* WithingsServiceModels.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -637,6 +685,21 @@
 				DA866412D487D132DE7E6C2D /* UnifiedStorageService.swift in Sources */,
 				2BC81BBC7A9C0A1628790142 /* VoiceCoach.swift in Sources */,
 				56D9B55F9ECD9A87EF1E0A74 /* WorkoutConfig.swift in Sources */,
+				E1CE00000000000000000003 /* CoachingDashboardView.swift in Sources */,
+				E1CE00000000000000000005 /* TechnicalInsightsView.swift in Sources */,
+				E1CE00000000000000000007 /* HumanState.swift in Sources */,
+				E1CE00000000000000000009 /* CoachingLogicService.swift in Sources */,
+				E1CE0000000000000000000B /* GarminService.swift in Sources */,
+				E1CE0000000000000000000D /* KinetixAppleIntelligenceService.swift in Sources */,
+				E1CE0000000000000000000F /* KinetixAppleIntelligenceTypes.swift in Sources */,
+				E1CE00000000000000000011 /* LiveActivityManager.swift in Sources */,
+				E1CE00000000000000000013 /* LivePaceCalculator.swift in Sources */,
+				E1CE00000000000000000015 /* MultiSignalCoachingEngine.swift in Sources */,
+				E1CE00000000000000000017 /* OAuthPresentationAnchorProvider.swift in Sources */,
+				E1CE00000000000000000019 /* PlatformIdentityService.swift in Sources */,
+				E1CE0000000000000000001B /* StravaServiceModels.swift in Sources */,
+				E1CE0000000000000000001D /* WithingsService.swift in Sources */,
+				E1CE0000000000000000001F /* WithingsServiceModels.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

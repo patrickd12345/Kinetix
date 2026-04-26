@@ -11,6 +11,7 @@ struct HomeView: View {
     @State private var intelligenceSummary: String?
     @State private var isIntelligenceLoading = false
     @State private var loyaltyPoints: Int = 0
+    @StateObject private var garmin = GarminService.shared
     
     var body: some View {
         NavigationStack {
@@ -29,6 +30,32 @@ struct HomeView: View {
                     }
                     .padding(.horizontal)
                     
+                    // Garmin Auth Alert
+                    if garmin.needsReauth {
+                        Button(action: {
+                            Task { try? await garmin.connect() }
+                        }) {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                Text("Garmin Connection Expired")
+                                    .font(.system(size: 14, weight: .bold))
+                                Spacer()
+                                Text("Reconnect")
+                                    .font(.system(size: 12, weight: .black))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.orange.opacity(0.2))
+                                    .cornerRadius(6)
+                            }
+                            .padding()
+                            .background(Color.orange.opacity(0.1))
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+
                     // Loyalty Status
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {

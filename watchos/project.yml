@@ -70,7 +70,7 @@ targets:
       CODE_SIGN_ENTITLEMENTS: KinetixWatch/KinetixWatch.entitlements
       SWIFT_VERSION: "5.0"
       TARGETED_DEVICE_FAMILY: "4"
-      WATCHOS_DEPLOYMENT_TARGET: "10.0"
+      WATCHOS_DEPLOYMENT_TARGET: "11.0"
       DEVELOPMENT_TEAM: "AWJBX83Y4X"
       SUPPORTED_PLATFORMS: watchos
       CODE_SIGN_STYLE: Automatic

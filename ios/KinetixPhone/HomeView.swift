@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var showingRunTracking = false
     @State private var intelligenceSummary: String?
     @State private var isIntelligenceLoading = false
+    @State private var loyaltyPoints: Int = 0
     
     var body: some View {
         NavigationStack {
@@ -28,6 +29,27 @@ struct HomeView: View {
                     }
                     .padding(.horizontal)
                     
+                    // Loyalty Status
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("PLATFORM LOYALTY")
+                                .font(.system(size: 8, weight: .black))
+                                .foregroundColor(.orange)
+                            Text("\(loyaltyPoints) pts")
+                                .font(.system(size: 14, weight: .black))
+                                .foregroundColor(.white)
+                        }
+                        Spacer()
+                        Image(systemName: "crown.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+
                     // Quick Stats
                     if !runs.isEmpty {
                         let recentRun = runs.first!
@@ -229,6 +251,9 @@ struct HomeView: View {
     private func generateIntelligence(force: Bool = false) {
         guard force || intelligenceSummary == nil else { return }
         isIntelligenceLoading = true
+
+        let loyalty = PlatformIdentityService.shared.checkLoyaltyStatus(runs: runs, states: [])
+        self.loyaltyPoints = loyalty.points
 
         Task {
             let prob = await CoachingLogicService.shared.computeGoalProbability(runs: runs, profile: profiles.first)

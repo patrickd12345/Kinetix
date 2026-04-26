@@ -2,16 +2,71 @@ import SwiftUI
 import SwiftData
 
 struct CoachingDashboardView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor<Run>(\.date, order: .reverse)]) private var runs: [Run]
     @Query private var profiles: [RunnerProfile]
+    @Query(sort: [SortDescriptor<HumanState>(\.date, order: .reverse)]) private var humanStates: [HumanState]
 
     @State private var timeline: [TimelineEvent] = []
     @State private var probability: GoalProbability?
+    @State private var synthesis: MultiSignalCoachingEngine.SynthesisResult?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // 1. Goal Probability Card (Glass)
+                // 1. Omni-Intelligence Synthesis (New!)
+                if let synth = synthesis {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Image(systemName: "brain.head.profile")
+                                .foregroundColor(.purple)
+                            Text("OMNI-INTELLIGENCE")
+                                .font(.system(size: 10, weight: .black))
+                                .tracking(2)
+                                .foregroundColor(.purple)
+                            Spacer()
+                            if synth.intensityModifier < 0.8 {
+                                Text("RECOVERY FOCUS")
+                                    .font(.system(size: 8, weight: .black))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.orange.opacity(0.2))
+                                    .foregroundColor(.orange)
+                                    .cornerRadius(4)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(synth.recommendation)
+                                .font(.system(size: 24, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+
+                            Text(synth.reasoning)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white.opacity(0.7))
+                                .lineLimit(3)
+                        }
+
+                        HStack {
+                            MetricRecoveryPill(label: "Intensity", value: "\(Int(synth.intensityModifier * 100))%", color: .purple)
+                            if let state = humanStates.first {
+                                MetricRecoveryPill(label: "Body Battery", value: "\(state.bodyBattery)", color: .cyan)
+                                MetricRecoveryPill(label: "Cognitive Load", value: "\(state.productivityScore)", color: .indigo)
+                            }
+                        }
+                    }
+                    .padding(20)
+                    .background(
+                        LinearGradient(colors: [Color.purple.opacity(0.1), Color.black.opacity(0.4)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                    .cornerRadius(24)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(Color.purple.opacity(0.3), lineWidth: 1)
+                    )
+                }
+
+                // 2. Goal Probability Card (Glass)
                 if let prob = probability {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
@@ -70,7 +125,7 @@ struct CoachingDashboardView: View {
                     )
                 }
 
-                // 2. Timeline (The deterministic engine)
+                // 3. Timeline (The deterministic engine)
                 VStack(alignment: .leading, spacing: 16) {
                     Text("COACHING TIMELINE")
                         .font(.system(size: 12, weight: .black))
@@ -78,8 +133,15 @@ struct CoachingDashboardView: View {
                         .foregroundColor(.cyan)
 
                     VStack(spacing: 0) {
-                        ForEach(Array(timeline.enumerated()), id: \.offset) { index, event in
-                            TimelineRow(event: event, isLast: index == timeline.count - 1)
+                        if timeline.isEmpty {
+                            Text("Collecting more performance data...")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .padding()
+                        } else {
+                            ForEach(Array(timeline.enumerated()), id: \.offset) { index, event in
+                                TimelineRow(event: event, isLast: index == timeline.count - 1)
+                            }
                         }
                     }
                 }
@@ -87,7 +149,7 @@ struct CoachingDashboardView: View {
                 .background(Color.white.opacity(0.05))
                 .cornerRadius(24)
 
-                // 3. Weekly Volume / Training Calendar
+                // 4. Weekly Volume / Training Calendar
                 VStack(alignment: .leading, spacing: 16) {
                     Text("WEEKLY ACTIVITY")
                         .font(.system(size: 12, weight: .black))
@@ -122,12 +184,16 @@ struct CoachingDashboardView: View {
         .onChange(of: runs) { _, _ in
             refreshCoaching()
         }
+        .onChange(of: humanStates) { _, _ in
+            refreshCoaching()
+        }
     }
 
     private func refreshCoaching() {
         let profile = profiles.first
         timeline = CoachingLogicService.shared.computeTimeline(runs: runs, profile: profile)
         probability = CoachingLogicService.shared.computeGoalProbability(runs: runs, profile: profile)
+        synthesis = MultiSignalCoachingEngine.shared.synthesize(humanState: humanStates.first, recentRuns: runs, profile: profile)
     }
 
     private func last7Days() -> [Date] {
@@ -145,6 +211,27 @@ struct CoachingDashboardView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "E"
         return String(formatter.string(from: date).prefix(1))
+    }
+}
+
+struct MetricRecoveryPill: View {
+    let label: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label.uppercased())
+                .font(.system(size: 8, weight: .black))
+                .foregroundColor(.white.opacity(0.4))
+            Text(value)
+                .font(.system(size: 14, weight: .black))
+                .foregroundColor(color)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(8)
     }
 }
 

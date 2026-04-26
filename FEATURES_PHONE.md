@@ -25,10 +25,17 @@
 - ✅ **Voice Recognition**: Speech recognition for questions
 - ✅ **Text-to-Speech**: Premium voices for natural-sounding coaching
 
-### Apple Intelligence (NEW)
-- ✅ **Readiness Explanations**: Context-aware readiness analysis (iOS 18+)
-- ✅ **On-Device Summaries**: Fast, private post-run summaries
-- ✅ **Proactive Insights**: Home screen intelligence cards
+### Omni-Intelligence & Agentic Core (NEW)
+- ✅ **Garmin Integration**: Ingest Body Battery, Stress, and Sleep telemetry.
+- ✅ **Productivity Correlation**: Correlate Cursor/GitHub "Deep Work" with physical stress spikes.
+- ✅ **Proactive Adaptation**: Auto-generate recovery-aware recommendations (e.g. Body Battery < 40).
+- ✅ **Reasoning Logs**: Full "Chain of Thought" transparency for AI coaching decisions.
+- ✅ **Technical Insights**: View raw telemetry and reasoning chains in Settings.
+
+### Apple Intelligence
+- ✅ **Readiness Explanations**: Context-aware readiness analysis (iOS 18+).
+- ✅ **On-Device Summaries**: Fast, private post-run summaries.
+- ✅ **Proactive Insights**: Home screen intelligence cards.
 
 ### History Tab
 - ✅ **Run History List**: Complete list of all runs

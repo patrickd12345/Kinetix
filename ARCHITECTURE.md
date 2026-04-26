@@ -10,9 +10,9 @@
 
 ### 2. **iPhone App** (iOS)
 - **Location**: `ios/KinetixPhone/`
-- **Purpose**: Standalone tracking, Management hub, AI coaching, settings
-- **Features**: Direct GPS tracking, HealthKit, deterministic coaching, AI analysis, voice coaching, run history, settings
-- **AI**: Uses Gemini API + On-device Apple Intelligence (iOS 18+)
+- **Purpose**: Agentic Omni-Intelligence Hub, Standalone tracking, Management
+- **Features**: Multi-signal coaching (Garmin + productivity), Direct GPS tracking, HealthKit, deterministic coaching, reasoning logs.
+- **AI**: Agentic Core (Garmin Service + Reasoning Engine) + Gemini API + Apple Intelligence.
 
 ### 3. **Web App / PWA** (Browser)
 - **Location**: `apps/web/`

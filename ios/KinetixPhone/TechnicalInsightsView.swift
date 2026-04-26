@@ -26,6 +26,19 @@ struct TechnicalInsightsView: View {
         .navigationTitle("Technical Insights")
         .scrollContentBackground(.hidden)
         .background(Color(white: 0.05).ignoresSafeArea())
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: {
+                    Task {
+                        try? await GarminService.shared.fetchLatestHumanState(modelContext: modelContext)
+                        await MultiSignalCoachingEngine.shared.applyProactiveAdaptation(modelContext: modelContext)
+                    }
+                }) {
+                    Label("Reset & Adapt", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.caption)
+                }
+            }
+        }
     }
 }
 

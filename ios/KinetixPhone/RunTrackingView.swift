@@ -289,10 +289,29 @@ struct RunTrackingView: View {
         healthKitManager.startWorkout()
         gpsManager.onLocationUpdate = { handleLocationUpdate($0) }
         healthKitManager.onHeartRateUpdate = { heartRateSamples.append((Date(), $0)) }
+
+        LiveActivityManager.shared.startRunActivity(
+            name: "Morning Run",
+            kps: currentNPI,
+            distance: totalDistance / 1000.0,
+            pace: RunMetricsCalculator.formatPace(livePace),
+            time: formatTime(elapsedTime)
+        )
+
         updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             DispatchQueue.main.async {
                 timerTick += 1
                 updateMetrics()
+
+                // Update Dynamic Island every 2 seconds
+                if timerTick % 2 == 0 {
+                    LiveActivityManager.shared.updateRunActivity(
+                        kps: currentNPI,
+                        distance: totalDistance / 1000.0,
+                        pace: RunMetricsCalculator.formatPace(livePace),
+                        time: formatTime(elapsedTime)
+                    )
+                }
             }
         }
     }
@@ -320,6 +339,7 @@ struct RunTrackingView: View {
         updateTimer?.invalidate()
         gpsManager.stopTracking()
         healthKitManager.stopWorkout()
+        LiveActivityManager.shared.stopRunActivity()
         Task { await saveRun() }
         isRunning = false
         isPaused = false

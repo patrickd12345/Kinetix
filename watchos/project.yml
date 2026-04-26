@@ -54,6 +54,7 @@ targets:
             - remote-notification
       - HealthKit
       - Push Notifications
+      - ActivityKit
 
   KinetixWatch:
     type: application

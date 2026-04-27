@@ -10,6 +10,8 @@
 **Garmin (Lane C):** Parked on partner approval; runbook ready
 **Next focus:** Operator runs the eight-row queue in [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md), then Lane A8 release tag + promote per [`PHASE4_RELEASE_RUNBOOK.md`](PHASE4_RELEASE_RUNBOOK.md)
 
+**Update (2026-04-27 evening):** [`pnpm verify:kinetix-parity`](../package.json) (`scripts/verify-kinetix-parity.mjs`) added — same gates as Vercel Kinetix build **without** `products/bookiji`. Agent batch: lint, type-check, Vitest **480**, Infisical prod merge script PASS, post-deploy probes PASS — see [`PHASE4_RELEASE_EVIDENCE.md`](PHASE4_RELEASE_EVIDENCE.md) section **Agent batch**.
+
 ---
 
 ## Stabilization phases (post-Wave 2)

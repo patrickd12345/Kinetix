@@ -22,6 +22,7 @@
 ## Testing Contract
 - Run from `products/Kinetix`.
 - Minimum gate for code changes: `pnpm lint`, `pnpm type-check`, targeted tests first (`pnpm --filter @kinetix/web test`), then broaden (`pnpm test:e2e`) when user-facing flows change.
+- **`pnpm verify:kinetix-parity`** — mirrors Vercel install + root `pnpm run build` (includes bundle budget); does **not** build `products/bookiji`. Use **`pnpm verify:vercel-parity`** when umbrella Bookiji parity is needed and the runner has enough RAM for Next.js (Bookiji builds can OOM locally).
 
 ## Change Policy
 - Preserve current architecture intent and documented boundaries; do not add a second Stripe webhook path.

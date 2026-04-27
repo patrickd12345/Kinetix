@@ -358,6 +358,40 @@ Implemented in `api/entitlements/index.ts` and `api/platform-profile/sync/index.
 |-----------|------|--------|--------|
 | 2026-04-27T19:53:24.749Z | https://kinetix.bookiji.com | PASS | GET /api/admlog=PASS; POST /api/ai-chat=PASS; GET /api/support-queue/tickets=PASS; GET /api/support-queue/kb-approval=PASS; GET /=PASS |
 
+### Agent batch (2026-04-27 PM follow-up): gates + Infisical + prod probes
+
+Runnable without browser/OAuth/Stripe keys in-repo:
+
+| Step | Result | Notes |
+|------|--------|-------|
+| `pnpm lint` | PASS | |
+| `pnpm type-check` | PASS | |
+| `pnpm --filter @kinetix/web test` | PASS | **480** tests / **107** files |
+| [`pnpm verify:kinetix-parity`](../package.json) | PASS | New script: same as `verify:vercel-parity` Phase 1 through `pnpm run build`; **skips** `products/bookiji` (avoids Next.js OOM). Ends `[verify-kinetix-parity] OK`. |
+| `node scripts/verify-infisical.mjs --env=prod` | PASS | `[verify:infisical] OK — env=prod platform_keys=8 kinetix_keys=7 supabase_url=set service_role_alias=yes` |
+| `node scripts/phase4/post-deploy-probes.mjs` | PASS | Row stamp `2026-04-27T20:08:58.202Z`, all probes green |
+| Anonymous `GET /api/entitlements?product_key=kinetix` | **401** | Expected without Bearer (route live, not 404) |
+| Anonymous `POST /api/platform-profile/sync` | **401** | Expected without Bearer |
+| `node scripts/phase4/verify-stripe-live.mjs` | **NOT RUN** (no `sk_live_` in shell) | **Human:** `infisical run --env=prod --path=/platform -- node scripts/phase4/verify-stripe-live.mjs` before live billing cutover |
+| `node scripts/phase4/verify-sso.mjs --user <email> --prod` | **NOT RUN** (needs service role via Infisical) | **Human:** `infisical run --env=prod --path=/platform -- node scripts/phase4/verify-sso.mjs --user <test-email> --prod` — paste markdown row below |
+
+**Post-deploy probes (repeat from agent batch)**
+
+| Timestamp | Host | Result | Detail |
+|-----------|------|--------|--------|
+| 2026-04-27T20:08:58.202Z | https://kinetix.bookiji.com | PASS | GET /api/admlog=PASS; POST /api/ai-chat=PASS; GET /api/support-queue/tickets=PASS; GET /api/support-queue/kb-approval=PASS; GET /=PASS |
+
+### Human-only remainder (cannot be automated here)
+
+1. **Bookiji-first SSO** — Chrome, `pilotmontreal` Google account, Bookiji login then Kinetix tab (see [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md)).
+2. **Supabase SQL** — apply entitlement migration if not already on prod; run `test_revoke` / `test_restore` helpers with a real test `user_id`.
+3. **Supabase Auth dashboard** — URL allowlist + providers (human console).
+4. **Stripe live** — env on Vercel + Infisical, webhook on Bookiji, real card checkout, confirm `platform.entitlements` row.
+5. **Help / operator / a11y** — signed-in operator allowlist user.
+6. **Release tag** — after rows 1-5 PASS, `PHASE4_RELEASE_RUNBOOK.md` tag + promote.
+7. **Native** — macOS: merge `feat/native-store-ready`, TestFlight, ASC.
+8. **Full umbrella CI parity** — `pnpm verify:vercel-parity` when `products/bookiji` build is fixed (OOM) or on a machine with enough RAM.
+
 ## Phase 4 day-1 closure prep (2026-04-27, agent run)
 
 Scope: build all artifacts and scripts that must exist before the human operator runs the interactive verification + Stripe live cutover. **Does not** complete Phase 4 closure on its own - those rows still require browser/dashboard/SQL execution by an operator.
@@ -369,7 +403,8 @@ Scope: build all artifacts and scripts that must exist before the human operator
 | `pnpm lint` | PASS | repo root, 2026-04-27 |
 | `pnpm type-check` | PASS | repo root, 2026-04-27 |
 | `pnpm --filter @kinetix/web test` | PASS | **476** tests / 106 files, 2026-04-27 (vs. 346 / 79 in 2026-04-10 baseline; growth from Garmin Connect work + new lib coverage) |
-| `pnpm verify:vercel-parity` | RUNNING | started 2026-04-27, see backgrounded shell |
+| `pnpm verify:kinetix-parity` | PASS | 2026-04-27 PM — Kinetix Vercel path without Bookiji; see **Agent batch** section above. |
+| `pnpm verify:vercel-parity` | DEFERRED | Includes `products/bookiji` Next build — use when Bookiji OOM resolved or on CI with sufficient memory. |
 
 ### Day-1 artifacts shipped (Lane A1-A4)
 

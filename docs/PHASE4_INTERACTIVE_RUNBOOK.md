@@ -9,11 +9,13 @@
 pnpm lint
 pnpm type-check
 pnpm --filter @kinetix/web test
-pnpm verify:vercel-parity
-node scripts/phase4/verify-sso.mjs --user <test-email> --prod
+pnpm verify:kinetix-parity
+# Full umbrella parity (includes products/bookiji Next.js build — needs RAM; omit if Bookiji OOM on this machine):
+# pnpm verify:vercel-parity
+infisical run --env=prod --path=/platform -- node scripts/phase4/verify-sso.mjs --user <test-email> --prod
 ```
 
-All must be PASS. Re-run the last command and capture output for the evidence row.
+`verify:kinetix-parity` mirrors Vercel's Kinetix install + `pnpm run build` without the Bookiji step. All must be PASS before interactive steps. Re-run `verify-sso.mjs` and capture the markdown row for evidence.
 
 ## SSO closure (15 min, human)
 

@@ -339,16 +339,18 @@ The eight operator-only rows in the **Operator action queue** below remain block
 
 ### Lane A API for native (unblocks iOS `EntitlementService` + `PlatformIdentityService`)
 
-Implemented in `api/entitlements/index.ts` and `api/platform-profile/sync/index.ts` (commit after `688989f`).
+Implemented in `api/entitlements/index.ts` and `api/platform-profile/sync/index.ts` (commit `3d9f02a` on `main`).
 
-| Endpoint | Before prod deploy | After (with valid JWT) |
-|----------|--------------------|-------------------------|
-| `GET /api/entitlements?product_key=kinetix` | **404** (missing) | **200** + `{ active, ends_at, source }` |
-| `POST /api/platform-profile/sync` | **404** (missing) | **200** + `{ ok: true }` |
-| `POST /api/strava-oauth` | 400 (bad body) | unchanged (handler present) |
-| `POST /api/strava-refresh` | 400 (bad body) | unchanged (handler present) |
+| Endpoint | Pre-`3d9f02a` prod | Post-deploy (anon / no JWT) | With valid `Authorization: Bearer` (expected) |
+|----------|--------------------|-------------------------|----------------------------------|
+| `GET /api/entitlements?product_key=kinetix` | **404** (missing) | **401** `unauthorized` (curl, 2026-04-27) | **200** + `{ active, ends_at, source }` |
+| `POST /api/platform-profile/sync` | **404** (missing) | **401** (curl, 2026-04-27) | **200** + `{ ok: true }` |
+| `POST /api/strava-oauth` | 400 (bad body) | 400 (unchanged) | 200 on valid `code` |
+| `POST /api/strava-refresh` | 400 (bad body) | 400 (unchanged) | 200 on valid body |
 
-**Blocker removed for Lane B merge** (macOS still required for xcodebuild / TestFlight / ASC).
+**Prod deploy verified:** Vercel `kinetix-1bplq8w2y` **Ready** (auto from `3d9f02a`); `kinetix.bookiji.com` returns **401** (not 404) for both new routes when unauthenticated.
+
+**Blocker removed for Lane B merge** (macOS still required for xcodebuild / TestFlight / ASC; watch Vercel **Hobby serverless function count** if the project nears its cap).
 
 ### Post-deploy probes after `688989f` (auto-deploy `kinetix-aayamyvnz`, Ready)
 

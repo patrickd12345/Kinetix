@@ -553,27 +553,10 @@ struct SettingsView: View {
                 }
             }
 
-            Button(action: {
-                Task {
-                    try? await GarminService.shared.connect()
-                    if GarminService.shared.isConnected {
-                        try? await GarminService.shared.fetchLatestHumanState(modelContext: modelContext)
-                        await MultiSignalCoachingEngine.shared.applyProactiveAdaptation(modelContext: modelContext)
-                    }
-                }
-            }) {
-                HStack {
-                    Label("Garmin Connect", systemImage: "link")
-                    Spacer()
-                    Text(GarminService.shared.isConnected ? "Connected" : "Not Linked")
-                        .font(.caption)
-                        .foregroundColor(GarminService.shared.isConnected ? .green : .orange)
-                }
-            }
         } header: {
             Text("Omni-Intelligence")
         } footer: {
-            Text("Connect Garmin to ingest Body Battery, Stress, and Sleep telemetry. The Agentic Core correlates this with productivity signals to adapt your training.")
+            Text("Garmin Cloud integration is excluded from v1 (see docs/IOS_LAUNCH_CHECKLIST.md). Recovery-aware coaching still uses on-device and Health-derived signals where available.")
         }
     }
 

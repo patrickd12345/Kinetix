@@ -49,6 +49,7 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 | 2026-04-27 | B1 | Commit `lane B B1` | Secrets stripped; PrivacyInfo; Strava via server |
 | 2026-04-27 | B2 | Commit `lane B B2` | Supabase + entitlement gate; platform sync stub |
 | 2026-04-27 | B3 | Commit `lane B B3` | Safari billing sheet; reader-app posture documented |
+| 2026-04-27 | B4 | Commit `lane B B4` | Garmin service deleted; Feature flag documented |
 
 ---
 
@@ -85,4 +86,11 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 - **StoreKit:** not integrated; no in-app purchase APIs.
 - **Neutral account link:** `ManageAccountOnWebButton` + `SubscriptionLinkView` (`ios/KinetixPhone/Views/Settings/SubscriptionLinkView.swift`) present `https://kinetix.bookiji.com/billing` in **`SFSafariViewController`** using the label **Manage your account** (no Subscribe / Upgrade / Premium / Buy strings).
 - **Apple guideline:** App Store Review Guideline **3.1.3(a) “Reader” Apps** — digital content/services purchased elsewhere may be accessed if the app does not steer users to purchasing using means other than IAP inside the app. This build uses a neutral external link only.
+
+---
+
+## B4 — Garmin removed for v1 (status: done in tree)
+
+- **Code:** `ios/KinetixPhone/Services/GarminService.swift` **deleted**; Home/Settings/Technical Insights no longer reference it. `Features.garminEnabled` is `false` in `Features.swift` for re-enable after **Lane C** (server-normalized Garmin data + web sync).
+- **Re-enable (post–Lane C):** restore a client that reads Kinetix server APIs (not simulated device “connect”); set `Features.garminEnabled = true` and reintroduce UI with real OAuth/server token flow per coordination contract.
 

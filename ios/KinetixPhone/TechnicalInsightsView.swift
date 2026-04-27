@@ -30,11 +30,10 @@ struct TechnicalInsightsView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: {
                     Task {
-                        try? await GarminService.shared.fetchLatestHumanState(modelContext: modelContext)
                         await MultiSignalCoachingEngine.shared.applyProactiveAdaptation(modelContext: modelContext)
                     }
                 }) {
-                    Label("Reset & Adapt", systemImage: "arrow.triangle.2.circlepath")
+                    Label("Re-run adaptation", systemImage: "arrow.triangle.2.circlepath")
                         .font(.caption)
                 }
             }

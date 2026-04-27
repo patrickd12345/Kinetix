@@ -1,0 +1,15 @@
+// Non-secret build-time keys. Rotate Strava/Google app ids in vendor consoles when recycling leaked credentials.
+// Secrets must never ship in the bundle; Strava exchange uses POST /api/strava-oauth on Kinetix web.
+
+KINETIX_WEB_BASE_URL = https:/$()/kinetix.bookiji.com
+STRAVA_CLIENT_ID = 157217
+WITHINGS_CLIENT_ID =
+GOOGLE_CLIENT_ID = 915406480058-s855cf6s4dqipjskfqh0egqq1hui6frn.apps.googleusercontent.com
+
+// Lane B2: Supabase anon key is client-side by design — set real values locally / CI secrets; placeholders keep builds compiling.
+SUPABASE_URL = https:/$()/YOUR_PROJECT.supabase.co
+SUPABASE_ANON_KEY = REPLACE_WITH_SUPABASE_ANON_KEY
+
+// Lane B5: Crash reporting (production only); leave empty for local simulator builds.
+SENTRY_DSN =
+

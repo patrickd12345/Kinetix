@@ -15,6 +15,9 @@ targets:
   KinetixPhone:
     type: application
     platform: iOS
+    configFiles:
+      Debug: ../ios/KinetixPhone/Config/Debug.xcconfig
+      Release: ../ios/KinetixPhone/Config/Release.xcconfig
     sources:
       - path: ../ios/KinetixPhone
         excludes:
@@ -32,6 +35,8 @@ targets:
       - path: KinetixWatch/CoreMLCoach.swift
       - path: KinetixWatch/FormCoach.swift
       - path: ../ios/KinetixPhone/Services/ApiKeyStorage.swift
+    resources:
+      - path: ../ios/KinetixPhone/PrivacyInfo.xcprivacy
     dependencies:
       - target: KinetixWatch
         embed: true

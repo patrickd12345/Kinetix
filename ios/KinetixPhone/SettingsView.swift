@@ -55,8 +55,6 @@ struct SettingsView: View {
     @State private var ollamaAvailable: Bool = false
     @State private var checkingOllama = false
     @State private var showAdvancedAISettings = false
-    @State private var geminiApiKey: String = ""
-    @State private var showingApiKeySaved = false
     
     private let sexOptions = ["unspecified", "female", "male", "nonbinary"]
     private let kgToLbs = 2.20462
@@ -111,7 +109,6 @@ struct SettingsView: View {
                 checkWithingsConnection()
                 updateCloudSyncStatus()
                 loadOllamaSettings()
-                loadGeminiApiKey()
                 checkOllamaAvailability()
             }
             .onChange(of: weightUnit) { oldValue, newValue in
@@ -451,137 +448,16 @@ struct SettingsView: View {
             if showAdvancedAISettings {
                 Divider()
                 
-                // Gemini API Key (Bring Your Own AI)
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Gemini API Key")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            if ApiKeyStorage.shared.hasKey(name: "gemini_api_key") {
-                                Label("Saved", systemImage: "checkmark.circle.fill")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
-                            } else {
-                                Text("Free • No credit card required")
-                                    .font(.caption2)
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                        Spacer()
-                    }
-                    
-                    if ApiKeyStorage.shared.hasKey(name: "gemini_api_key") {
-                        HStack {
-                            Text("••••••••••••••••")
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Button("Clear") {
-                                geminiApiKey = ""
-                                saveGeminiApiKey("")
-                            }
-                            .font(.caption)
-                            .foregroundColor(.red)
-                        }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(8)
-                    } else {
-                        // Step-by-step guide
-                        VStack(alignment: .leading, spacing: 8) {
-                            Button {
-                                if let url = URL(string: "https://aistudio.google.com/apikey") {
-                                    UIApplication.shared.open(url)
-                                }
-                            } label: {
-                                HStack {
-                                    Label("Get Free API Key", systemImage: "arrow.up.right.square")
-                                        .font(.subheadline)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding()
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack(alignment: .top, spacing: 8) {
-                                    Text("1.")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text("Tap above to open Google AI Studio")
-                                        .font(.caption)
-                                }
-                                HStack(alignment: .top, spacing: 8) {
-                                    Text("2.")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text("Sign in with your Google account")
-                                        .font(.caption)
-                                }
-                                HStack(alignment: .top, spacing: 8) {
-                                    Text("3.")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text("Click 'Create API Key' → Copy the key")
-                                        .font(.caption)
-                                }
-                                HStack(alignment: .top, spacing: 8) {
-                                    Text("4.")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text("Paste it below")
-                                        .font(.caption)
-                                }
-                            }
-                            .padding(.leading, 8)
-                            .foregroundColor(.secondary)
-                            
-                            SecureField("Paste your API key here", text: $geminiApiKey)
-                                .textContentType(.password)
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
-                                .padding()
-                                .background(Color(UIColor.secondarySystemBackground))
-                                .cornerRadius(8)
-                                .onChange(of: geminiApiKey) { oldValue, newValue in
-                                    // Auto-save when user pastes a valid-looking key (Gemini keys are typically 39 chars)
-                                    if !newValue.isEmpty && newValue.count >= 20 && newValue != oldValue {
-                                        saveGeminiApiKey(newValue)
-                                        // Show success feedback
-                                        withAnimation {
-                                            showingApiKeySaved = true
-                                        }
-                                        // Auto-hide after 3 seconds
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                            withAnimation {
-                                                showingApiKeySaved = false
-                                            }
-                                        }
-                                    }
-                                }
-                            
-                            if showingApiKeySaved {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                    Text("API key saved! AI analysis enabled.")
-                                        .font(.caption)
-                                        .foregroundColor(.green)
-                                }
-                                .padding(.top, 4)
-                                .transition(.opacity.combined(with: .scale))
-                            }
-                        }
-                    }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Gemini / Google AI Studio keys")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Text("Gemini API keys must not ship in the app bundle. Until Lane A adds an authenticated Gemini proxy endpoint, \(GeminiProxyService.unavailableReason()). Use local Ollama below or rely on Apple Intelligence / rule-based summaries.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 4)
-                
+
                 Divider()
                 
                 // Ollama Settings
@@ -638,7 +514,7 @@ struct SettingsView: View {
         } header: {
             Text("AI Coach")
         } footer: {
-            Text("AI analysis works automatically. Ollama (local AI) is optional - the app uses Gemini or rule-based analysis if Ollama isn't available.")
+            Text("AI analysis defaults to Apple Intelligence where available; otherwise rule-based summaries. Gemini via Google Cloud keys is removed from the binary — \(GeminiProxyService.unavailableReason()).")
         }
     }
     
@@ -679,14 +555,10 @@ struct SettingsView: View {
     }
 
     private var aiStatusDescription: String {
-        let geminiKey = Bundle.main.object(forInfoDictionaryKey: "GEMINI_API_KEY") as? String ?? ""
         if ollamaAvailable {
             return "Using local AI (Ollama)"
-        } else if !geminiKey.isEmpty && !geminiKey.contains("PASTE") {
-            return "Using Gemini AI"
-        } else {
-            return "Using rule-based analysis"
         }
+        return "Using rule-based analysis"
     }
     
     private var batteryProfileSection: some View {
@@ -924,7 +796,7 @@ struct SettingsView: View {
     @MainActor
     private func connectWithingsAsync() async {
         guard WithingsService.shared.areCredentialsConfigured() else {
-            saveConfirmationMessage = "Withings integration is not configured. Add WITHINGS_CLIENT_ID and WITHINGS_CLIENT_SECRET to Info.plist."
+            saveConfirmationMessage = "Withings is disabled until Lane A ships a token proxy. Set WITHINGS_CLIENT_ID in xcconfig only; secrets must not ship in the bundle."
             showingSaveConfirmation = true
             return
         }
@@ -1242,21 +1114,6 @@ struct SettingsView: View {
         ollamaModel = UserDefaults.standard.string(forKey: "ollama_model") ?? "llama3.2"
     }
     
-    private func loadGeminiApiKey() {
-        // Don't load the actual key value (security) - UI will show saved indicator
-        geminiApiKey = ""
-    }
-    
-    private func saveGeminiApiKey(_ key: String) {
-        do {
-            try ApiKeyStorage.shared.storeKey(name: "gemini_api_key", value: key)
-            // Clear the field after saving (for security)
-            geminiApiKey = ""
-        } catch {
-            print("Failed to save Gemini API key: \(error)")
-        }
-    }
-    
     private func checkOllamaAvailability() {
         checkingOllama = true
         Task {
@@ -1295,7 +1152,7 @@ struct SettingsView: View {
             // Show user-friendly error message
             let errorMsg = error.localizedDescription
             if errorMsg.contains("credentials") || errorMsg.contains("GOOGLE_CLIENT") {
-                saveConfirmationMessage = "Google OAuth credentials not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to Info.plist"
+                saveConfirmationMessage = "Google OAuth needs GOOGLE_CLIENT_ID in build configuration (xcconfig). iOS clients usually omit the client secret."
             } else {
                 saveConfirmationMessage = "Failed to connect: \(errorMsg)"
             }

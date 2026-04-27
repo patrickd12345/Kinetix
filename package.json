@@ -13,6 +13,7 @@
     "dev:raw": "concurrently -n rag,web -c cyan,yellow \"pnpm --filter @kinetix/rag start\" \"pnpm --filter @kinetix/web dev\"",
     "dev:infisical": "node scripts/dev-with-infisical.mjs",
     "verify:infisical": "node scripts/verify-infisical.mjs",
+    "infisical:list-keys": "node scripts/infisical-list-keys.mjs",
     "sync:admlog-service-role": "node scripts/sync-admlog-service-role.mjs",
     "dev:web": "pnpm --filter @kinetix/web dev",
     "dev:web:host": "pnpm --filter @kinetix/web dev -- --host 0.0.0.0 --port 5173",

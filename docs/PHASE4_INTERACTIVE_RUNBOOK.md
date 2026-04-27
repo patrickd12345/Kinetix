@@ -10,6 +10,8 @@ pnpm lint
 pnpm type-check
 pnpm --filter @kinetix/web test
 pnpm verify:kinetix-parity
+pnpm infisical:list-keys
+# Read-only: lists secret *names* at /platform and /kinetix for prod+dev via `infisical export` (no values).
 # Full umbrella parity (includes products/bookiji Next.js build — needs RAM; omit if Bookiji OOM on this machine):
 # pnpm verify:vercel-parity
 infisical run --env=prod --path=/platform -- node scripts/phase4/verify-sso.mjs --user <test-email> --prod

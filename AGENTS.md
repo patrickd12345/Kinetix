@@ -18,6 +18,7 @@
 ## External Integrations
 - Stripe checkout starts in Kinetix (`POST /api/billing/create-checkout-session`); canonical webhook is Bookiji-only (`POST /api/payments/webhook`).
 - Active integrations include Supabase, Stripe, Infisical, and Kinetix product providers (for example Strava/Withings).
+- **Infisical:** use the **CLI** on the machine (`infisical login` as needed). Read-only audit of which keys exist (no values): **`pnpm infisical:list-keys`** from `products/Kinetix`. Merge/health: **`pnpm verify:infisical`** (or `node scripts/verify-infisical.mjs --env=prod`). For running other scripts with vault-injected env: **`infisical run --env=prod --path=/platform -- <command>`** (see [`docs/deployment`](docs/deployment) and `memory-bookiji-infisical-cli` in the umbrella workspace). Do not paste secret values into chat.
 
 ## Testing Contract
 - Run from `products/Kinetix`.

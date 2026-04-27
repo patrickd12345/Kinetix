@@ -200,3 +200,23 @@ export function mergeInfisicalForKinetix(envName, options = {}) {
     kinetixSecrets,
   };
 }
+
+/**
+ * Merge `process.env` with `apps/web/.env.local` and validate for local dev without Infisical.
+ * Used by `pnpm dev:local` (same required Supabase keys as the Infisical path).
+ * @param {{ mergeDotEnvLocal?: boolean }} [options]
+ * @returns {{ mergedEnv: Record<string, string> }}
+ */
+export function mergeLocalOnlyDevEnv(options = {}) {
+  const mergeDotEnvLocal = options.mergeDotEnvLocal !== false;
+  const localAppEnv = mergeDotEnvLocal
+    ? parseDotenvFile(join(process.cwd(), "apps", "web", ".env.local"))
+    : {};
+  const mergedEnv = {
+    ...process.env,
+    ...localAppEnv,
+  };
+  applyPlatformServiceKeyAlias(mergedEnv);
+  validateMergedEnvForLocalDev(mergedEnv);
+  return { mergedEnv };
+}

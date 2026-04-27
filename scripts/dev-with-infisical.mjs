@@ -24,6 +24,16 @@ function main() {
   });
 }
 
+function printInfisicalUnblockHint() {
+  console.error("");
+  console.error("Without Infisical, you can still run locally if apps/web/.env.local has the required VITE_/NEXT_PUBLIC_ Supabase keys:");
+  console.error("  pnpm dev:local     # validates .env.local, then web + RAG (same as pnpm dev:raw after merge)");
+  console.error("  pnpm dev:raw        # no preflight; Vite still loads apps/web/.env.local");
+  console.error("  pnpm dev:web:host  # web only, bound to 0.0.0.0:5173");
+  console.error("");
+  console.error("Docs: docs/deployment/INFISICAL_LOCAL_DEV.md");
+}
+
 try {
   main();
 } catch (error) {
@@ -31,5 +41,13 @@ try {
   console.error(
     `[infisical] Failed to start Kinetix with merged /platform + /kinetix secrets: ${message}`
   );
+  if (
+    message.includes("Infisical CLI is not installed") ||
+    message.includes("not on PATH")
+  ) {
+    console.error("");
+    console.error("Install the Infisical CLI: https://infisical.com/docs/cli/overview");
+    printInfisicalUnblockHint();
+  }
   process.exit(1);
 }

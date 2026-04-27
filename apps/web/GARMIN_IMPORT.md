@@ -2,6 +2,8 @@
 
 Import Garmin running data from a **full account export ZIP**, a **ZIP that only contains `.fit` files**, or a **single `.fit` activity** into the web app.
 
+For **official cloud access** (OAuth and partner APIs), see `docs/GARMIN_CONNECT_DEVELOPER_PROGRAM.md` and Settings → **Garmin Connect (partner API)** once Garmin program credentials are configured.
+
 ## Where the data lives
 
 **Summarized JSON (full export)**  

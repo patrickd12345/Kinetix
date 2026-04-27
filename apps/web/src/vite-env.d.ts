@@ -17,6 +17,10 @@ interface ImportMetaEnv {
   readonly VITE_AUTH_GOOGLE_ENABLED?: string
   readonly VITE_AUTH_APPLE_ENABLED?: string
   readonly VITE_AUTH_MICROSOFT_ENABLED?: string
+  /** Garmin Connect Developer Program — public OAuth client id (after partner approval). */
+  readonly VITE_GARMIN_CONNECT_CLIENT_ID?: string
+  /** Optional; must match Garmin-registered redirect if not `{origin}/settings`. */
+  readonly VITE_GARMIN_CONNECT_REDIRECT_URI?: string
 }
 
 interface ImportMeta {

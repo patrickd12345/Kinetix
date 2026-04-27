@@ -97,9 +97,19 @@ Prereqs: Bookiji dev server on port **3000**, Kinetix available via **`vercel de
 
 For QA without a card flow, use [`apps/web/scripts/seed-kinetix-entitlement-admin.ts`](../../apps/web/scripts/seed-kinetix-entitlement-admin.ts) or a controlled migration against `platform.entitlements`.
 
+## Live cutover order (Phase 4)
+
+1. Stripe Dashboard: confirm live product + price exist; copy price id.
+2. Vercel (prod) + Infisical (`/platform`): set `BILLING_ENABLED=1`, `STRIPE_SECRET_KEY`, `KINETIX_STRIPE_PRICE_ID`. On Bookiji only: `STRIPE_WEBHOOK_SECRET`.
+3. Stripe Dashboard: configure webhook endpoint `https://app.bookiji.com/api/payments/webhook` for events `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` (plus existing Bookiji booking events).
+4. Run `node scripts/phase4/verify-stripe-live.mjs` (via Infisical) - must PASS. Reads only.
+5. Real checkout proof: complete one production checkout end-to-end and record entitlement row creation in [`../PHASE4_RELEASE_EVIDENCE.md`](../PHASE4_RELEASE_EVIDENCE.md).
+6. Only after step 5 PASS, communicate launch.
+
 ## Related docs
 
 - [`docs/platform/APP_INTEGRATION_STANDARD.md`](../../../../docs/platform/APP_INTEGRATION_STANDARD.md)
 - [`ENV_PARITY.md`](./ENV_PARITY.md)
 - [`INFISICAL_LOCAL_DEV.md`](./INFISICAL_LOCAL_DEV.md)
 - [`products/bookiji/docs/backend/STRIPE_WEBHOOK_CANONICAL.md`](../../../bookiji/docs/backend/STRIPE_WEBHOOK_CANONICAL.md)
+- [`../PHASE4_INTERACTIVE_RUNBOOK.md`](../PHASE4_INTERACTIVE_RUNBOOK.md) - operator runbook for the cutover

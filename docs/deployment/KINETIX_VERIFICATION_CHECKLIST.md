@@ -2,6 +2,8 @@
 
 Run this after DNS, Supabase redirect URLs, and Kinetix env parity are in place.
 
+> Phase 4 operators: start with [`../PHASE4_INTERACTIVE_RUNBOOK.md`](../PHASE4_INTERACTIVE_RUNBOOK.md) which sequences this checklist alongside the entitlement toggle migration ([`../../supabase/migrations/20260427180204_phase4_entitlement_toggle_helpers.sql`](../../supabase/migrations/20260427180204_phase4_entitlement_toggle_helpers.sql)) and Stripe live cutover.
+
 ## Admlog (production must stay disabled)
 
 1. On **production** `kinetix.bookiji.com`, open `GET /api/admlog` (or use curl). **Confirm:** HTTP **403** and a response that does **not** instruct you to enable `ADMLOG_ENABLED` for production.

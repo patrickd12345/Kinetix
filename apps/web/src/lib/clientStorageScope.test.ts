@@ -26,5 +26,6 @@ describe('clientStorageScope', () => {
   it('scopes oauth dedupe keys', () => {
     expect(oauthDedupeSessionKey('strava', uid)).toBe(`strava_oauth_code:${uid}`)
     expect(oauthDedupeSessionKey('withings', uid)).toBe(`withings_oauth_code:${uid}`)
+    expect(oauthDedupeSessionKey('garmin_connect', uid)).toBe(`garmin_connect_oauth_code:${uid}`)
   })
 })

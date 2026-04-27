@@ -51,6 +51,9 @@ export function resolveKinetixRuntimeEnvFromObject(env = getDefaultEnv()) {
     withingsClientSecret: pick(env, ['WITHINGS_CLIENT_SECRET']),
     /** Canonical OAuth callback; set on Vercel to https://kinetix.bookiji.com/api/withings-oauth to match Withings partner URL */
     withingsRedirectUri: pick(env, ['WITHINGS_REDIRECT_URI', 'VITE_WITHINGS_REDIRECT_URI']),
+    /** Garmin Connect Developer Program (OAuth2 PKCE). Public id may be exposed via Vite; secret server-only. */
+    garminConnectClientId: pick(env, ['GARMIN_CONNECT_CLIENT_ID', 'VITE_GARMIN_CONNECT_CLIENT_ID']),
+    garminConnectClientSecret: pick(env, ['GARMIN_CONNECT_CLIENT_SECRET']),
     supabaseUrl: pick(env, ['SUPABASE_URL', 'VITE_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL']),
     supabaseAnonKey: pick(env, [
       'SUPABASE_ANON_KEY',

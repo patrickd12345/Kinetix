@@ -1,6 +1,6 @@
 # Kinetix Scope Closure
 
-Last updated: 2026-04-10
+Last updated: 2026-04-27
 
 **Current phase:** Phase 3 (Platform Hardening) — audit-first; **does not** reopen Wave 2 web scope.
 
@@ -18,7 +18,7 @@ Scope Reopen Policy: Bug fixes only
 
 ### Closure Evidence
 
-- `pnpm --filter @kinetix/web test` -> 79 files, 346 tests passed
+- `pnpm --filter @kinetix/web test` -> **79 files, 346 tests** (closure record **2026-04-10**). Current suite size increases over time; see latest snapshot in [`KINETIX_LOCAL_VERIFICATION_BASELINE.md`](KINETIX_LOCAL_VERIFICATION_BASELINE.md).
 - `pnpm lint` -> clean
 - `pnpm type-check` -> clean
 - `pnpm run verify:vercel-parity` -> PASS (2026-04-10)
@@ -179,7 +179,7 @@ Integration Notes: `apps/web/src/test/ai-route-errors.test.ts`, `api/_lib/*` con
 # Overall Status
 
 Feature Completion: **Wave 2 web closure: CLOSED** (feature freeze active; scope reopen only for bug fixes or explicit product decision). Verified web test-backed surfaces above; native iOS/watch tracked separately in `FEATURES_PHONE.md` / `FEATURES_WATCH.md`.
-Integration Readiness: Web Vitest suite green (346 tests); coaching context + Withings/sync policy + billing return routes verified in-repo; Vercel-style parity gate green (`pnpm run verify:vercel-parity`, 2026-04-10).
+Integration Readiness: Web Vitest suite green (re-run `pnpm --filter @kinetix/web test`; counts in [`KINETIX_LOCAL_VERIFICATION_BASELINE.md`](KINETIX_LOCAL_VERIFICATION_BASELINE.md)); coaching context + Withings/sync policy + billing return routes verified in-repo; Vercel-style parity gate green (`pnpm run verify:vercel-parity`, 2026-04-10).
 Production Readiness: **Phase 4 — Release Readiness** — deployment checklist (`docs/deployment/KINETIX_VERIFICATION_CHECKLIST.md`), real Stripe/Supabase/operator passes, and environment parity (`docs/deployment/ENV_PARITY.md`). Automated gate evidence: [`PHASE4_RELEASE_EVIDENCE.md`](PHASE4_RELEASE_EVIDENCE.md) (manual production probes may still be pending).
 
 ---
@@ -200,10 +200,17 @@ Pointers: [`PRODUCT_SCOPE.md`](../PRODUCT_SCOPE.md) platform table (Partial rows
 
 # Phase 4 — Release Readiness
 
+Status: **Day-1 closure prep complete (2026-04-27 agent run); operator interactive rows still required.**
+
 - ENV parity verification — [`docs/deployment/ENV_PARITY.md`](deployment/ENV_PARITY.md)
 - Operator smoke tests — [`docs/HELP_CENTER_OPERATIONS.md`](HELP_CENTER_OPERATIONS.md)
 - Deployment checklist — [`docs/deployment/KINETIX_VERIFICATION_CHECKLIST.md`](deployment/KINETIX_VERIFICATION_CHECKLIST.md)
-- Playwright E2E / release-candidate validation (outside Wave 2 Vitest evidence)
+- **Interactive runbook (entry point):** [`docs/PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md)
+- **Web release runbook (tag + promote + probes):** [`docs/PHASE4_RELEASE_RUNBOOK.md`](PHASE4_RELEASE_RUNBOOK.md)
+- **Playwright E2E:** local 43 passed / 3 skipped; CI workflow [`.github/workflows/web-e2e.yml`](../.github/workflows/web-e2e.yml)
+- **Native (Lane B):** all seven steps shipped on `feat/native-store-ready` (worktree `Kinetix-native`); device audit + TestFlight remain operator tasks per [`docs/IOS_LAUNCH_CHECKLIST.md`](IOS_LAUNCH_CHECKLIST.md)
+- **Garmin Connect (Lane C):** parked on partner approval. Application brief: [`docs/GARMIN_CONNECT_APPLICATION_BRIEF.md`](GARMIN_CONNECT_APPLICATION_BRIEF.md). Post-approval steps: [`docs/GARMIN_POST_APPROVAL_RUNBOOK.md`](GARMIN_POST_APPROVAL_RUNBOOK.md)
+- **Operations (Lane D):** [`INCIDENT_RUNBOOK.md`](INCIDENT_RUNBOOK.md), [`STATUS_PAGE_SETUP.md`](STATUS_PAGE_SETUP.md), [`PRIVACY_TOS_LAUNCH_REVIEW.md`](PRIVACY_TOS_LAUNCH_REVIEW.md), [`PHASE4_LAUNCH_COMMS.md`](PHASE4_LAUNCH_COMMS.md)
 
 ---
 

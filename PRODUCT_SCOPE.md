@@ -11,7 +11,7 @@ Type: mixed platform
 |------------|--------|------|
 | AI Runtime | Applicable | AI is an active web, API, and mobile surface. |
 | Stripe Runtime | Applicable | Checkout on Kinetix (`POST /api/billing/create-checkout-session`); canonical webhook on Bookiji (`POST /api/payments/webhook`) updates `platform.entitlements`. See [`docs/deployment/STRIPE_KINETIX_ENTITLEMENTS.md`](docs/deployment/STRIPE_KINETIX_ENTITLEMENTS.md). |
-| CI Baseline | Partial | Wave 2 closure (2026-04-10): local `pnpm --filter @kinetix/web test` green (**346** tests), plus `pnpm lint` and `pnpm type-check`. CI workflow should keep running the same gates; native and RAG surfaces still need explicit job coverage where applicable. |
+| CI Baseline | Partial | Wave 2 closure (2026-04-10): local `pnpm --filter @kinetix/web test` green (**346** tests that day); current totals drift — see [`docs/KINETIX_LOCAL_VERIFICATION_BASELINE.md`](docs/KINETIX_LOCAL_VERIFICATION_BASELINE.md). Keep `pnpm lint` and `pnpm type-check`; CI workflow should keep running the same gates; native and RAG surfaces still need explicit job coverage where applicable. |
 | Env Contract | Partial | Canonical env work exists, but runtime resolution is still mixed across surfaces. |
 | Observability | Partial | Observability helpers exist, but usage is not consistent across API and app paths. |
 | Feature Flags | Partial | Flag-related runtime and schema surfaces exist, but governance and adoption are incomplete. |

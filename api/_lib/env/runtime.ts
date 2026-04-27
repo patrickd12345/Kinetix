@@ -24,6 +24,8 @@ export type KinetixRuntimeEnv = {
   withingsClientSecret: string;
   /** Optional; must match Withings partner callback URL (e.g. https://kinetix.bookiji.com/api/withings-oauth) */
   withingsRedirectUri: string;
+  garminConnectClientId: string;
+  garminConnectClientSecret: string;
   supabaseUrl: string;
   supabaseAnonKey: string;
   /** Next-gen `SUPABASE_SECRET_KEY` (`sb_secret_...`) preferred; legacy JWT service_role last. */

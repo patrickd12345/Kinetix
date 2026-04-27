@@ -18,6 +18,7 @@ struct SettingsView: View {
     @State private var birthDate: Date = Date()
     @State private var sex: String = "unspecified"
     @State private var targetNPIText: String = "135"
+    @StateObject private var intelligence = IntelligenceService.shared
     
     @State private var npiDistance: String = ""
     @State private var npiMinutes: String = ""
@@ -67,6 +68,7 @@ struct SettingsView: View {
             List {
                 profileSection
                 withingsSection
+                garminSection
                 cloudStorageSection
                 stravaSection
                 aiSettingsSection
@@ -75,6 +77,7 @@ struct SettingsView: View {
                 findMyNPISection
                 aiSummarySection
                 trainingDistributionSection
+                technicalInsightsSection
                 diagnosticsSection
             }
             .navigationTitle("Settings")
@@ -151,6 +154,39 @@ struct SettingsView: View {
     }
     
     // MARK: - Sections
+    private var garminSection: some View {
+        Section {
+            HStack {
+                Label("Status", systemImage: "figure.run.circle")
+                Spacer()
+                Text("Connected") // Mocked for V1 POC
+                    .foregroundColor(.green)
+            }
+
+            // In V1, this is a placeholder surface
+            HStack {
+                Label("Session", systemImage: "key.fill")
+                Spacer()
+                Text("Valid")
+                    .foregroundColor(.secondary)
+            }
+
+            Button {
+                Task {
+                    await intelligence.fetchRecoveryStatus()
+                    saveConfirmationMessage = "Garmin data refreshed"
+                    showingSaveConfirmation = true
+                }
+            } label: {
+                Label("Refresh Garmin Data", systemImage: "arrow.clockwise")
+            }
+        } header: {
+            Text("Garmin Integration (KX-FEAT-006)")
+        } footer: {
+            Text("Physiology-aware coaching uses your Garmin recovery metrics (Sleep, Body Battery) to adapt training recommendations.")
+        }
+    }
+
     private var cloudStorageSection: some View {
         Section {
             if let status = cloudSyncStatus {
@@ -814,6 +850,20 @@ struct SettingsView: View {
         }
     }
     
+    private var technicalInsightsSection: some View {
+        Section {
+            NavigationLink {
+                TechnicalInsightsView()
+            } label: {
+                Label("Technical Insights", systemImage: "brain.head.profile")
+            }
+        } header: {
+            Text("Intelligence Diagnostics")
+        } footer: {
+            Text("View deterministic reasoning logs for AI and recovery coaching.")
+        }
+    }
+
     private var diagnosticsSection: some View {
         Section {
             Button("Export Log") {

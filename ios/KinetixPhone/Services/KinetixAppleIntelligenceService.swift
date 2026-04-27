@@ -49,6 +49,13 @@ struct DefaultKinetixAppleIntelligenceService: KinetixAppleIntelligenceService {
     }
 
     func generatePreRunSuggestion(_ input: PreRunSuggestionInput) async -> PreRunSuggestionResult {
+        if let recovery = input.recoveryState, recovery == "reduced_intensity_recommended" {
+             return PreRunSuggestionResult(
+                text: "Recovery is low today. Prefer easy effort or rest. Suggestion: \(input.recommendationType) at reduced intensity.",
+                usedFallback: true
+            )
+        }
+
         guard isAppleIntelligenceAvailable() == .available else {
             return PreRunSuggestionResult(
                 text: "You're moderately ready today.",

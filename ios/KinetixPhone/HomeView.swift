@@ -4,6 +4,7 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var connectivity = ConnectivityManager.shared
+    @StateObject private var intelligence = IntelligenceService.shared
     @Query(sort: [SortDescriptor<Run>(\.date, order: .reverse)]) private var runs: [Run]
     @Binding var selectedTab: Int
     @State private var showingRunTracking = false
@@ -62,6 +63,56 @@ struct HomeView: View {
                         .padding(.horizontal)
                     }
                     
+                    // Recovery Insights (KX-FEAT-006)
+                    if let decision = intelligence.latestDecision {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text("Recovery Insight")
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                if let sleep = intelligence.latestRecovery?.sleepScore {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "zzz")
+                                        Text("\(sleep)")
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.cyan)
+                                }
+                                if let battery = intelligence.latestRecovery?.bodyBattery {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "battery.100")
+                                        Text("\(battery)%")
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                                }
+                            }
+
+                            let isReduced = decision.recoveryState == "reduced_intensity_recommended"
+
+                            HStack(spacing: 12) {
+                                Image(systemName: isReduced ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(isReduced ? .orange : .green)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(isReduced ? "Reduced Intensity Recommended" : "Optimal Recovery")
+                                        .font(.subheadline)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(isReduced ? .orange : .green)
+                                    Text(decision.guidance)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                    }
+
                     // Quick Access Tiles (informational - tabs accessible via tab bar)
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Quick Access")
@@ -156,6 +207,11 @@ struct HomeView: View {
             .sheet(isPresented: $showingRunTracking) {
                 RunTrackingView()
             }
+            .onAppear {
+                Task {
+                    await intelligence.fetchRecoveryStatus()
+                }
+            }
         }
     }
     
@@ -164,6 +220,7 @@ struct HomeView: View {
         let seconds = Int(pace) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
+
 }
 
 private struct StatCard: View {

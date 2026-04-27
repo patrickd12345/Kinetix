@@ -35,6 +35,7 @@ struct PreRunSuggestionInput {
     let readinessScore: Int
     let fatigueLevel: String
     let recommendationType: String
+    let recoveryState: String? // Added for KX-FEAT-006
 }
 
 struct PreRunSuggestionResult {

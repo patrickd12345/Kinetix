@@ -13,6 +13,9 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift.git
     from: 2.29.1
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa.git
+    from: 8.46.0
 
 targets:
   KinetixPhone:
@@ -45,6 +48,7 @@ targets:
         embed: true
       - package: FITSwiftSDK
       - package: Supabase
+      - package: Sentry
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone
       INFOPLIST_FILE: ../ios/KinetixPhone/Info.plist
@@ -60,9 +64,7 @@ targets:
           modes:
             - location
             - fetch
-            - remote-notification
       - HealthKit
-      - Push Notifications
       - ActivityKit
 
   KinetixWatch:

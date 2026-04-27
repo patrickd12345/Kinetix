@@ -50,6 +50,7 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 | 2026-04-27 | B2 | Commit `lane B B2` | Supabase + entitlement gate; platform sync stub |
 | 2026-04-27 | B3 | Commit `lane B B3` | Safari billing sheet; reader-app posture documented |
 | 2026-04-27 | B4 | Commit `lane B B4` | Garmin service deleted; Feature flag documented |
+| 2026-04-27 | B5 | Commit `lane B B5` | No Push capability; Sentry gated Device/Release |
 
 ---
 
@@ -93,4 +94,11 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 
 - **Code:** `ios/KinetixPhone/Services/GarminService.swift` **deleted**; Home/Settings/Technical Insights no longer reference it. `Features.garminEnabled` is `false` in `Features.swift` for re-enable after **Lane C** (server-normalized Garmin data + web sync).
 - **Re-enable (post–Lane C):** restore a client that reads Kinetix server APIs (not simulated device “connect”); set `Features.garminEnabled = true` and reintroduce UI with real OAuth/server token flow per coordination contract.
+
+---
+
+## B5 — Push capability removed + Sentry (status: done in tree)
+
+- **Capabilities:** `watchos/project.yml` — removed **Push Notifications** and **`remote-notification`** background mode from **KinetixPhone** (v1 does not register for APNs).
+- **Sentry:** SPM package `sentry-cocoa`; `KinetixSentry.configure()` reads **`SENTRY_DSN`** from Info.plist (`$(SENTRY_DSN)` from xcconfig). Initializes only on **physical device Release** builds (`tracesSampleRate = 0.1`); **disabled on Simulator and Debug**.
 

@@ -1,8 +1,12 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct KinetixPhoneApp: App {
+    init() {
+        KinetixSentry.configure()
+    }
+
     var body: some Scene {
         WindowGroup {
             MainTabView()

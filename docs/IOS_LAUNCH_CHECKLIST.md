@@ -94,6 +94,7 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 |------|------|-------|----------------|--------------|
 | TestFlight internal | | | | |
 | App Store review | | | | |
+| B7 checklist drafted (no ASC IDs yet) | 2026-04-27 | — | — | Lane B agent |
 
 
 ---
@@ -102,6 +103,7 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 
 - **2026-04-27:** B1 committed — rotation still required in vendor consoles; macOS build not executed in agent VM.
 - **2026-04-27:** B2 committed — Supabase SDK + entitlement gate; `GET /api/entitlements` is a Lane A handoff until live.
+- **2026-04-27:** B7 draft — ASC questionnaire/screenshot/asset checklist captured below; **no TestFlight / review submission IDs yet** (human-operated).
 
 ---
 

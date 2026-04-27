@@ -48,6 +48,11 @@ struct MainTabView: View {
             DiagnosticLogManager.shared.bind(modelContext)
             bootstrapLiveCoachTemplate()
 
+            Task {
+                await AuthService.shared.bootstrap()
+                await EntitlementService.shared.refresh()
+            }
+
             // Force check application context on appear
             connectivity.checkForRunState()
             // Check for active run immediately on appear

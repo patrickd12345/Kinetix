@@ -10,6 +10,9 @@ packages:
   FITSwiftSDK:
     url: https://github.com/garmin/fit-swift-sdk.git
     from: 21.171.0
+  Supabase:
+    url: https://github.com/supabase/supabase-swift.git
+    from: 2.29.1
 
 targets:
   KinetixPhone:
@@ -41,6 +44,7 @@ targets:
       - target: KinetixWatch
         embed: true
       - package: FITSwiftSDK
+      - package: Supabase
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone
       INFOPLIST_FILE: ../ios/KinetixPhone/Info.plist

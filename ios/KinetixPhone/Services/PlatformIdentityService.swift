@@ -56,6 +56,25 @@ class PlatformIdentityService {
     }
 
     func syncToPlatform(modelContext: ModelContext) async {
-        print("Syncing Human-State to platform.profiles...")
+        guard let token = await AuthService.shared.currentAccessToken(), !token.isEmpty else {
+            return
+        }
+
+        let url = KinetixEnvironment.webBaseURL.appendingPathComponent("api/platform-profile/sync")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data("{}".utf8)
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            if code != 200 {
+                print("PlatformIdentityService: Lane A handler missing or error (HTTP \(code)); needs server proxy from Lane A")
+            }
+        } catch {
+            print("PlatformIdentityService: sync failed — \(error.localizedDescription); needs server proxy from Lane A")
+        }
     }
 }

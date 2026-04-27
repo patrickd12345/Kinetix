@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @ObservedObject private var entitlementService = EntitlementService.shared
     @Query(sort: [SortDescriptor<Run>(\.date, order: .reverse)]) private var runs: [Run]
     @Query(sort: [SortDescriptor<WeightEntry>(\.recordedAt, order: .reverse)]) private var weightEntries: [WeightEntry]
     @Query private var profiles: [RunnerProfile]
@@ -65,8 +66,14 @@ struct SettingsView: View {
             List {
                 profileSection
                 withingsSection
-                cloudStorageSection
-                stravaSection
+                Group {
+                    if Features.requireEntitlementForPaidSurfaces && !entitlementService.state.isActive {
+                        entitlementGateSection
+                    } else {
+                        cloudStorageSection
+                        stravaSection
+                    }
+                }
                 aiSettingsSection
                 liveTrackingSection
                 omniIntelligenceSection
@@ -334,7 +341,25 @@ struct SettingsView: View {
             Text("Connect your Withings smart scale to sync recent weigh-ins. Weight history is stored on-device and shown using your selected unit.")
         }
     }
-    
+
+    private var entitlementGateSection: some View {
+        Section {
+            Text(entitlementService.state.reason ?? "Subscription status unavailable.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Button("Refresh entitlement status") {
+                Task { await EntitlementService.shared.refresh() }
+            }
+            if let url = URL(string: "https://kinetix.bookiji.com/billing") {
+                Link("Manage your account on the web", destination: url)
+            }
+        } header: {
+            Text("Kinetix membership")
+        } footer: {
+            Text("Paid integrations stay hidden until GET /api/entitlements returns active=true (Lane A). Billing is handled on kinetix.bookiji.com.")
+        }
+    }
+
     private var stravaSection: some View {
         Section {
             if isStravaConnected {

@@ -47,9 +47,33 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 | Date | Step | Artifact / ID | Notes |
 |------|------|-----------------|-------|
 | 2026-04-27 | B1 | Commit `lane B B1` | Secrets stripped; PrivacyInfo; Strava via server |
+| 2026-04-27 | B2 | Commit `lane B B2` | Supabase + entitlement gate; platform sync stub |
 
 ---
 
 ## Status line (rolling)
 
 - **2026-04-27:** B1 committed — rotation still required in vendor consoles; macOS build not executed in agent VM.
+- **2026-04-27:** B2 committed — Supabase SDK + entitlement gate; `GET /api/entitlements` is a Lane A handoff until live.
+
+---
+
+## B2 — Supabase auth + entitlement gate (status: done in tree)
+
+- **Packages:** `Supabase` SwiftPM (`watchos/project.yml`).
+- **Auth:** `AuthService` wraps `SupabaseClient`; session restored via `bootstrap()` on app launch.
+- **Entitlements:** `EntitlementService` calls `GET {KINETIX_WEB_BASE_URL}/api/entitlements?product_key=kinetix` with `Authorization: Bearer <JWT>`.
+- **Paid surfaces:** While `Features.requireEntitlementForPaidSurfaces` is true and the API returns inactive / missing, **Cloud Storage** and **Strava** sections are replaced by `entitlementGateSection`.
+
+### Lane A handoffs
+
+- Implement **`GET /api/entitlements`** with JSON body per contract:
+
+```json
+{ "active": true, "ends_at": "2026-12-31T23:59:59Z", "source": "stripe" }
+```
+
+(`ends_at` nullable when lifetime / trial without end)
+
+- Implement **`POST /api/platform-profile/sync`** (or rename consistently) for `PlatformIdentityService.syncToPlatform` — currently logs when non-200.
+

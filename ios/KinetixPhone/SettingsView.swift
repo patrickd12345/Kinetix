@@ -350,9 +350,7 @@ struct SettingsView: View {
             Button("Refresh entitlement status") {
                 Task { await EntitlementService.shared.refresh() }
             }
-            if let url = URL(string: "https://kinetix.bookiji.com/billing") {
-                Link("Manage your account on the web", destination: url)
-            }
+            ManageAccountOnWebButton()
         } header: {
             Text("Kinetix membership")
         } footer: {

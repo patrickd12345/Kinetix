@@ -48,6 +48,7 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 |------|------|-----------------|-------|
 | 2026-04-27 | B1 | Commit `lane B B1` | Secrets stripped; PrivacyInfo; Strava via server |
 | 2026-04-27 | B2 | Commit `lane B B2` | Supabase + entitlement gate; platform sync stub |
+| 2026-04-27 | B3 | Commit `lane B B3` | Safari billing sheet; reader-app posture documented |
 
 ---
 
@@ -76,4 +77,12 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 (`ends_at` nullable when lifetime / trial without end)
 
 - Implement **`POST /api/platform-profile/sync`** (or rename consistently) for `PlatformIdentityService.syncToPlatform` — currently logs when non-200.
+
+---
+
+## B3 — Reader app / no IAP (status: done in tree)
+
+- **StoreKit:** not integrated; no in-app purchase APIs.
+- **Neutral account link:** `ManageAccountOnWebButton` + `SubscriptionLinkView` (`ios/KinetixPhone/Views/Settings/SubscriptionLinkView.swift`) present `https://kinetix.bookiji.com/billing` in **`SFSafariViewController`** using the label **Manage your account** (no Subscribe / Upgrade / Premium / Buy strings).
+- **Apple guideline:** App Store Review Guideline **3.1.3(a) “Reader” Apps** — digital content/services purchased elsewhere may be accessed if the app does not steer users to purchasing using means other than IAP inside the app. This build uses a neutral external link only.
 

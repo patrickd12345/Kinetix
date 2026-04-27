@@ -51,6 +51,50 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 | 2026-04-27 | B3 | Commit `lane B B3` | Safari billing sheet; reader-app posture documented |
 | 2026-04-27 | B4 | Commit `lane B B4` | Garmin service deleted; Feature flag documented |
 | 2026-04-27 | B5 | Commit `lane B B5` | No Push capability; Sentry gated Device/Release |
+| 2026-04-27 | B6 | Commit `lane B B6` | native-ci.yml; placeholder workflow removed |
+
+---
+
+## B7 — App Store Connect package (draft for submission)
+
+### Binary & signing
+
+- Archive **KinetixPhone** scheme (embeds Watch). Follow **`watchos/SIGNING_FIX_PLAN.md`** / **`watchos/WATCH_INSTALL_FIX.md`** for team IDs, companion bundle IDs, first-install via iPhone Watch app.
+
+### Assets to prepare (human)
+
+| Asset | Notes |
+|-------|--------|
+| App icon 1024×1024 | Master for ASC; generate required smaller sizes via Asset Catalog / Xcode |
+| iPhone screenshots | 6.7", 6.5", 5.5" — Hero: coach/history/settings flows |
+| Watch screenshots | 49mm, 45mm, 41mm — Active run + summary if applicable |
+
+### App Privacy (questionnaire draft — align to actual binary)
+
+| Data type | Collected? | Linked to user? | Used for tracking? | Purpose |
+|-----------|------------|-----------------|---------------------|---------|
+| Location | Yes | Yes | No | App functionality (run tracking, maps) |
+| Fitness / Health | Yes | Yes | No | App functionality (workouts, HR, metrics) |
+| Identifiers (account) | Yes | Yes | No | App functionality (Supabase auth, entitlement check); not used for cross-app ads |
+
+### Age rating & compliance
+
+- **Violence / mature themes:** None expected → lowest appropriate rating; disclose **fitness exertion** if prompted.
+- **Account:** Sign-in via Supabase (when configured).
+- **Support URL:** `https://kinetix.bookiji.com/help` (confirm live).
+- **Marketing URL:** `https://kinetix.bookiji.com` (confirm live).
+
+### Demo account (for reviewers)
+
+- **Lane A / ops:** Provide a **non-production** or **scoped** demo email + magic-link or password per security policy; **do not** paste secrets into this repo.
+
+### Submission log (ASC)
+
+| Step | Date | Build | Submission ID | Status / ETA |
+|------|------|-------|----------------|--------------|
+| TestFlight internal | | | | |
+| App Store review | | | | |
+
 
 ---
 
@@ -101,4 +145,18 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 
 - **Capabilities:** `watchos/project.yml` — removed **Push Notifications** and **`remote-notification`** background mode from **KinetixPhone** (v1 does not register for APNs).
 - **Sentry:** SPM package `sentry-cocoa`; `KinetixSentry.configure()` reads **`SENTRY_DSN`** from Info.plist (`$(SENTRY_DSN)` from xcconfig). Initializes only on **physical device Release** builds (`tracesSampleRate = 0.1`); **disabled on Simulator and Debug**.
+
+---
+
+## B6 — Native CI + device audit evidence (status: CI workflow in repo; device audit human)
+
+- **Workflow:** `.github/workflows/native-ci.yml` replaces the placeholder. Triggers on **PR + push to `main`** when `ios/**`, `watchos/**`, or the workflow changes. Runner **`macos-14`**, **`maxim-lobanov/setup-xcode@v1`**, **`brew install xcodegen`**, `xcodegen generate`, **`xcodebuild build-for-testing`** for **KinetixPhone** (generic iOS) and **KinetixWatch** (watchOS Simulator), then **`test-without-building`** for **`KinetixHostUITests`**. **xcresult** artifacts upload on failure.
+- **Simulator name:** `WATCH_SIM` env may need updating when GitHub’s Xcode image changes Watch simulator catalog (see failing job log).
+- **Physical device audit (human):** Run **`docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md`** once on paired iPhone + Watch before RC; paste PASS/FAIL + build numbers below.
+
+### Device audit record (fill on hardware)
+
+| Run date | iOS / watchOS | Build | Flows (watch start/pause, phone shell, settings) | Evidence links |
+|----------|----------------|-------|--------------------------------------------------|----------------|
+|          |                |       |                                                  |                |
 

@@ -301,6 +301,61 @@ Interpretation: serverless invocation health restored for probed routes; admlog 
 
 **Umbrella `PROJECT_PLAN.md`:** Do not treat Phase 4 manual closure as complete until interactive rows above are **PASS** with human-recorded evidence.
 
+## Phase 4 day-2 prep (2026-04-27 PM, agent run): Vercel build mitigation
+
+Scope: triage of upstream-paste error `pnpm run build exited with 1` after the Garmin OAuth + PKCE merge (`3d76190`).
+
+### Triage
+
+- **Source project:** the failing deploy is on the **`bookiji`** Vercel project (Next.js), deployment `bookiji-b6wx1qw9t-...`, status `Error`, ~55m ago. Vercel build-system report attached: `At least one "Out of Memory" ("OOM") event was detected during the build.` next build reached `Linting and checking validity of types ...` then died on `next build`. **Out of scope for the Kinetix workspace** per `AGENTS.md` boundary; tracked separately for `products/bookiji`.
+- **Kinetix prod:** all 14 most-recent kinetix deploys (Production + Preview) are `Ready`. Confirmed clean.
+- **Kinetix env hygiene:** `vercel env ls production` confirms none of `VITE_MASTER_ACCESS`, `KINETIX_MASTER_ACCESS`, `VITE_SKIP_AUTH`, `ADMLOG_ENABLED`, `BOOKIJI_TEST_MODE` set on Kinetix Production (Mitigation A from `vercel_build_fix_and_go-live_98744609.plan.md` is a no-op).
+
+### Preventive Kinetix bundle hardening shipped
+
+Commit `688989f` on `main`. Lazy-load `Settings`, `History`, `Chat`, `WeightHistory`, `HelpCenter`, `BillingSuccess`, `BillingCancel` in [`apps/web/src/App.tsx`](../apps/web/src/App.tsx). Wrap top-level `<Routes>` in `<Suspense>` so billing pages have a fallback boundary.
+
+| Gate (re-run 2026-04-27 PM) | Result | Notes |
+|------|--------|-------|
+| `pnpm lint` | PASS | repo root |
+| `pnpm type-check` | PASS | repo root + `@kinetix/web` |
+| `pnpm --filter @kinetix/web test` | PASS | 476 tests / 106 files |
+| `pnpm --filter @kinetix/web build` | PASS | `[bundle-budget] index-CHqkRnz4.js is 196.9 kB, within 900 kB.` (was approaching 900 kB ceiling once Garmin OAuth + PKCE landed in the eager Settings page). |
+
+Why this is preventive: the `vercel_build_fix_and_go-live_98744609.plan.md` was authored against a bookiji-pasted error message, but the Kinetix bundle headroom dropped after `3d76190` and would have started failing as more lanes land. The lazy-load pulls Settings (303 kB chunk that includes all Garmin OAuth + PKCE crypto code) out of the main chunk.
+
+### Output chunks (post-fix)
+
+- `dist/assets/index-CHqkRnz4.js` 196.9 kB (main)
+- `dist/assets/Settings-MeAn2kcZ.js` 303 kB (lazy, Garmin + PKCE here)
+- `dist/assets/recharts-vendor-Cyy6gEcA.js` 361 kB (vendor, manual chunk)
+- `dist/assets/SupportQueue-DrAewTx6.js` 183 kB (lazy)
+- `dist/assets/History-CyJtsKAV.js` 81 kB (lazy)
+- All other route chunks under 65 kB.
+
+### What this does not unblock
+
+The eight operator-only rows in the **Operator action queue** below remain blocking for Phase 4 closure (Google SSO walkthrough, entitlement SQL toggle, Supabase dashboard, Stripe live cutover, real $0.50 checkout, authenticated Help Center / operator / a11y matrix).
+
+### Lane A API for native (unblocks iOS `EntitlementService` + `PlatformIdentityService`)
+
+Implemented in `api/entitlements/index.ts` and `api/platform-profile/sync/index.ts` (commit after `688989f`).
+
+| Endpoint | Before prod deploy | After (with valid JWT) |
+|----------|--------------------|-------------------------|
+| `GET /api/entitlements?product_key=kinetix` | **404** (missing) | **200** + `{ active, ends_at, source }` |
+| `POST /api/platform-profile/sync` | **404** (missing) | **200** + `{ ok: true }` |
+| `POST /api/strava-oauth` | 400 (bad body) | unchanged (handler present) |
+| `POST /api/strava-refresh` | 400 (bad body) | unchanged (handler present) |
+
+**Blocker removed for Lane B merge** (macOS still required for xcodebuild / TestFlight / ASC).
+
+### Post-deploy probes after `688989f` (auto-deploy `kinetix-aayamyvnz`, Ready)
+
+| Timestamp | Host | Result | Detail |
+|-----------|------|--------|--------|
+| 2026-04-27T19:53:24.749Z | https://kinetix.bookiji.com | PASS | GET /api/admlog=PASS; POST /api/ai-chat=PASS; GET /api/support-queue/tickets=PASS; GET /api/support-queue/kb-approval=PASS; GET /=PASS |
+
 ## Phase 4 day-1 closure prep (2026-04-27, agent run)
 
 Scope: build all artifacts and scripts that must exist before the human operator runs the interactive verification + Stripe live cutover. **Does not** complete Phase 4 closure on its own - those rows still require browser/dashboard/SQL execution by an operator.

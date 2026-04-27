@@ -12,7 +12,10 @@ export const COACH_MEMORY_PREFIX = 'kinetix-coach-memory-v1:'
 export const RAG_SYNC_SESSION_PREFIX = 'kinetix_rag_sync_'
 
 /** OAuth redirect dedupe (Settings OAuth callback). */
-export function oauthDedupeSessionKey(provider: 'strava' | 'withings', authUserId: string): string {
+export function oauthDedupeSessionKey(
+  provider: 'strava' | 'withings' | 'garmin_connect',
+  authUserId: string
+): string {
   return `${provider}_oauth_code:${authUserId}`
 }
 

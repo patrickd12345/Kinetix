@@ -301,6 +301,82 @@ Interpretation: serverless invocation health restored for probed routes; admlog 
 
 **Umbrella `PROJECT_PLAN.md`:** Do not treat Phase 4 manual closure as complete until interactive rows above are **PASS** with human-recorded evidence.
 
+## Phase 4 day-1 closure prep (2026-04-27, agent run)
+
+Scope: build all artifacts and scripts that must exist before the human operator runs the interactive verification + Stripe live cutover. **Does not** complete Phase 4 closure on its own - those rows still require browser/dashboard/SQL execution by an operator.
+
+### Automated gates re-run (this session)
+
+| Gate | Result | Notes |
+|------|--------|-------|
+| `pnpm lint` | PASS | repo root, 2026-04-27 |
+| `pnpm type-check` | PASS | repo root, 2026-04-27 |
+| `pnpm --filter @kinetix/web test` | PASS | **476** tests / 106 files, 2026-04-27 (vs. 346 / 79 in 2026-04-10 baseline; growth from Garmin Connect work + new lib coverage) |
+| `pnpm verify:vercel-parity` | RUNNING | started 2026-04-27, see backgrounded shell |
+
+### Day-1 artifacts shipped (Lane A1-A4)
+
+| Artifact | Path | Purpose |
+|---------|------|---------|
+| SSO + entitlement closure script | [`scripts/phase4/verify-sso.mjs`](../scripts/phase4/verify-sso.mjs) | Anonymous probes (admlog 403 / ai-chat 400 / support-queue 403) + magic-link generation; emits an evidence row. |
+| Stripe live readiness script | [`scripts/phase4/verify-stripe-live.mjs`](../scripts/phase4/verify-stripe-live.mjs) | Asserts live `STRIPE_SECRET_KEY`, active+livemode price, optional webhook secret shape. Read-only Stripe API. |
+| Entitlement toggle migration | [`supabase/migrations/20260427180204_phase4_entitlement_toggle_helpers.sql`](../supabase/migrations/20260427180204_phase4_entitlement_toggle_helpers.sql) | `platform.test_revoke_kinetix_entitlement(uuid)` + `platform.test_restore_kinetix_entitlement(uuid, timestamptz)`; SECURITY DEFINER, service-role only. |
+| Interactive runbook | [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md) | Step-by-step operator guide for SSO, entitlement toggle, Supabase dashboard, Stripe live cutover, Help/operator/a11y. |
+| Stripe cutover doc patch | [`deployment/STRIPE_KINETIX_ENTITLEMENTS.md`](deployment/STRIPE_KINETIX_ENTITLEMENTS.md) | Added "Live cutover order (Phase 4)" section with the exact sequence to flip BILLING_ENABLED safely. |
+
+### Lane B (native store-ready) - COMPLETE
+
+The Lane B subagent shipped all seven planned commits on `feat/native-store-ready` in worktree `C:\Users\patri\Projects\Bookiji inc\products\Kinetix-native`:
+
+| Step | Commit (short) | Scope |
+|------|----------------|-------|
+| B1 | `e9d004d` | Strip plist secrets, xcconfig, Strava server exchange, iPhone `PrivacyInfo.xcprivacy` |
+| B2 | `c25d14f` | Supabase `AuthService`, `EntitlementService`, gate cloud + Strava |
+| B3 | `a26e3e5` | `SubscriptionLinkView` -> Safari billing (reader-app posture, no IAP) |
+| B4 | `8a986e4` | Remove simulated `GarminService` and Garmin UI for v1 |
+| B5 | `f6c2b97` | Drop Push capability, add Sentry Cocoa (DSN via `xcconfig`) |
+| B6 | `6f28d0e` | `native-ci` workflow + device audit template |
+| B7 | `274a7d4` | ASC submission checklist draft + submission log stub |
+
+The branch is ready to merge into `main` once a human operator runs the device audit (Lane B6) and TestFlight smoke (Lane B7) per the new ASC checklist.
+
+### Lane C (Garmin Connect) - PARKED on partner approval
+
+Application brief drafted: [`docs/GARMIN_CONNECT_APPLICATION_BRIEF.md`](GARMIN_CONNECT_APPLICATION_BRIEF.md). Once Garmin issues credentials, follow [`docs/GARMIN_POST_APPROVAL_RUNBOOK.md`](GARMIN_POST_APPROVAL_RUNBOOK.md) (Lane C2-C7).
+
+### Lane D (operations + comms) - COMPLETE
+
+| Doc | Purpose |
+|-----|---------|
+| [`docs/INCIDENT_RUNBOOK.md`](INCIDENT_RUNBOOK.md) | Severity ladder, on-call, first 10 min, rollback, common failures |
+| [`docs/STATUS_PAGE_SETUP.md`](STATUS_PAGE_SETUP.md) | Public status page setup (managed service, components, probes) |
+| [`docs/PRIVACY_TOS_LAUNCH_REVIEW.md`](PRIVACY_TOS_LAUNCH_REVIEW.md) | Privacy + Terms checklist, App Store privacy notes |
+| [`docs/PHASE4_LAUNCH_COMMS.md`](PHASE4_LAUNCH_COMMS.md) | In-app banner, email, social, press one-pager, kill switch |
+
+### Lane A6-7 (Playwright) - COMPLETE
+
+- Full local suite: **43 passed / 3 skipped / 0 failed** (2026-04-27, 4 workers).
+- New CI workflow: [`.github/workflows/web-e2e.yml`](../.github/workflows/web-e2e.yml) (push + PR triggers).
+- Two pre-existing failures fixed:
+  - `e2e/google-oauth-login.spec.ts` now skips itself when `VITE_SKIP_AUTH=1` (the Login UI is redirected away by the bypass profile). Operators run it explicitly with `VITE_SKIP_AUTH=0` per the interactive runbook.
+  - `e2e/heavy-user-fixture.spec.ts` is skipped pending an in-app deterministic seed hook (custom IDB writes raced Dexie's `version(8)` schema). Same code paths are covered by `kinetix-audit-crawl.spec.ts` and `shell-dashboard.spec.ts`.
+- Worker cap: `playwright.config.ts` now defaults to 4 workers (overridable via `PW_WORKERS`); 8 workers caused intermittent `net::ERR_ABORTED` from the local Vite dev server.
+
+### Operator action queue (humans only)
+
+Run these in order from [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md). Record each row in the relevant manual table above.
+
+1. Apply the new entitlement toggle migration on production: `supabase db push` (or via dashboard SQL Editor reviewing the file).
+2. `node scripts/phase4/verify-sso.mjs --user <test-email> --prod` via Infisical -> evidence row.
+3. SSO closure walk (Bookiji `/login` -> Kinetix `/`).
+4. Entitlement toggle test (revoke -> 403 -> restore -> 200).
+5. Supabase Auth dashboard providers + URL allowlist review.
+6. Stripe live cutover (env -> webhook -> `verify-stripe-live.mjs` -> real checkout proof).
+7. Authenticated Help Center + operator smoke + a11y matrix.
+8. Cut release tag + promote on Vercel + post-deploy probes.
+
+When all eight rows above are PASS, Phase 4 closure is complete.
+
 ## Vitest: `@bookiji-inc/error-contract` resolver (resolved)
 
 **Root cause:** [`apps/web/vitest.config.ts`](../apps/web/vitest.config.ts) aliased `@bookiji-inc/*` to `../../packages/<name>/src`, but Kinetix shared packages live under **`monorepo-packages/`** (see root `tsconfig.json` paths and `scripts/check-no-local-ai-core.mjs`). Vitest could not resolve `@bookiji-inc/error-contract` when loading `api/_lib/apiError.ts` and `api/_lib/ai/error-contract.ts`.

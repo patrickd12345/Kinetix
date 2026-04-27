@@ -1,7 +1,8 @@
 # Phase 4 — Operator smoke checklist
 
-**Last updated:** 2026-04-10  
+**Last updated:** 2026-04-27  
 **Canonical runbook:** [`HELP_CENTER_OPERATIONS.md`](HELP_CENTER_OPERATIONS.md)  
+**Day-1 closure runbook:** [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md) (start here for the SSO + entitlement + Stripe live cutover sequence; this file is the in-app operator smoke that follows).  
 **Guardrail:** Wave 2 web **closed**; smoke tests are **manual** release gates — they do not expand Wave 2 scope.
 
 Use a **staging or production-like** environment with real Supabase, operator allowlist, and notification secrets configured (or accept documented no-ops for Slack/email).
@@ -42,5 +43,8 @@ Record environment (preview/production), date, operator user id used, and pass/f
 
 ## References
 
+- [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md) — operator runbook (SSO, entitlement toggle, Supabase dashboard, Stripe live cutover)
 - [`PHASE4_DEPLOYMENT_CHECKLIST.md`](PHASE4_DEPLOYMENT_CHECKLIST.md)
 - [`PHASE4_E2E_PLAN.md`](PHASE4_E2E_PLAN.md)
+- [`../scripts/phase4/verify-sso.mjs`](../scripts/phase4/verify-sso.mjs) — anonymous probes + magic-link generation
+- [`../scripts/phase4/verify-stripe-live.mjs`](../scripts/phase4/verify-stripe-live.mjs) — live Stripe readiness

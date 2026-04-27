@@ -1,0 +1,91 @@
+name: Web E2E (Playwright)
+
+on:
+  push:
+    paths:
+      - 'apps/web/**'
+      - 'packages/core/**'
+      - 'monorepo-packages/**'
+      - 'api/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/web-e2e.yml'
+      - 'apps/web/playwright.config.ts'
+      - 'apps/web/e2e/**'
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'packages/core/**'
+      - 'monorepo-packages/**'
+      - 'api/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/web-e2e.yml'
+      - 'apps/web/playwright.config.ts'
+      - 'apps/web/e2e/**'
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      BOOKIJI_INC_CLONE_TOKEN: ${{ secrets.BOOKIJI_INC_CLONE_TOKEN }}
+      VITE_SKIP_AUTH: '1'
+      VITE_AUTH_GOOGLE_ENABLED: 'true'
+      VITE_MASTER_ACCESS: '1'
+      VITE_RAG_SERVICE_URL: 'http://127.0.0.1:13001'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install (Vercel parity path)
+        run: bash scripts/vercel-install.sh
+
+      - name: Build @kinetix/core (Playwright webServer dependency)
+        run: pnpm --filter @kinetix/core build
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-browsers-${{ runner.os }}-${{ hashFiles('apps/web/package.json') }}
+          restore-keys: |
+            pw-browsers-${{ runner.os }}-
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright (Chromium)
+        working-directory: apps/web
+        run: pnpm exec playwright test
+        env:
+          PW_CHANNEL: ''
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14

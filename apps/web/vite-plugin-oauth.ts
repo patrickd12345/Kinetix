@@ -10,6 +10,13 @@ import {
 } from '../../api/_lib/stravaAuth'
 import { resolveWithingsRedirectUriForTokenExchange } from '../../api/_lib/withingsRedirectUri'
 import { withingsRequestToken } from './src/lib/withingsOAuthServer'
+import {
+  exchangeGarminAuthorizationCode,
+  fetchGarminPartnerUserId,
+  garminAccessTokenExpiresAtSeconds,
+  GarminAuthError,
+  refreshGarminAccessToken,
+} from '../../api/_lib/garminOAuth'
 
 type EnvMap = Record<string, string>
 type HeaderMap = Record<string, string | string[] | undefined>
@@ -235,6 +242,101 @@ async function handleStravaOAuthRequest(req: IncomingMessage, res: ServerRespons
   }
 }
 
+async function handleGarminOAuthRequest(req: IncomingMessage, res: ServerResponse, env: EnvMap) {
+  setCors(res, 'POST, OPTIONS', 'Content-Type')
+  if (handlePreflightAndMethod(req, res)) return
+
+  const payload = await readJsonBody<{
+    code?: string
+    code_verifier?: string
+    redirect_uri?: string
+  }>(req, res)
+  if (!payload) return
+  const { code, code_verifier: codeVerifier, redirect_uri: redirectUri } = payload
+  if (!code || !codeVerifier) {
+    json(res, 400, { error: 'code and code_verifier required' })
+    return
+  }
+
+  const clientId = getEnvValue(env, 'GARMIN_CONNECT_CLIENT_ID', 'VITE_GARMIN_CONNECT_CLIENT_ID')
+  const clientSecret = getEnvValue(env, 'GARMIN_CONNECT_CLIENT_SECRET')
+  if (!clientId || !clientSecret) {
+    json(res, 500, {
+      error: 'Garmin Connect OAuth not configured. Set GARMIN_CONNECT_CLIENT_ID and GARMIN_CONNECT_CLIENT_SECRET.',
+    })
+    return
+  }
+
+  try {
+    const token = await exchangeGarminAuthorizationCode({
+      code,
+      codeVerifier,
+      clientId,
+      clientSecret,
+      redirectUri:
+        typeof redirectUri === 'string' && redirectUri.startsWith('http') ? redirectUri : undefined,
+    })
+    const apiUserId = await fetchGarminPartnerUserId(token.access_token)
+    json(res, 200, {
+      access_token: token.access_token,
+      refresh_token: token.refresh_token,
+      expires_at: garminAccessTokenExpiresAtSeconds(token.expires_in),
+      garmin_api_user_id: apiUserId,
+    })
+  } catch (error) {
+    if (error instanceof GarminAuthError) {
+      console.error('[OAuth Local] Garmin token exchange:', error.message, error.details)
+      json(res, error.status, { error: error.message, details: error.details })
+      return
+    }
+    console.error('[OAuth Local] Garmin token exchange', error)
+    json(res, 500, {
+      error: 'Failed to exchange Garmin authorization code',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+}
+
+async function handleGarminRefreshRequest(req: IncomingMessage, res: ServerResponse, env: EnvMap) {
+  setCors(res, 'POST, OPTIONS', 'Content-Type')
+  if (handlePreflightAndMethod(req, res)) return
+
+  const payload = await readJsonBody<{ refresh_token?: string }>(req, res)
+  if (!payload) return
+  const { refresh_token } = payload
+  if (!refresh_token) {
+    json(res, 400, { error: 'refresh_token required' })
+    return
+  }
+
+  const clientId = getEnvValue(env, 'GARMIN_CONNECT_CLIENT_ID', 'VITE_GARMIN_CONNECT_CLIENT_ID')
+  const clientSecret = getEnvValue(env, 'GARMIN_CONNECT_CLIENT_SECRET')
+  if (!clientId || !clientSecret) {
+    json(res, 500, { error: 'Garmin Connect OAuth not configured' })
+    return
+  }
+
+  try {
+    const token = await refreshGarminAccessToken({
+      refreshToken: refresh_token,
+      clientId,
+      clientSecret,
+    })
+    json(res, 200, {
+      access_token: token.access_token,
+      refresh_token: token.refresh_token,
+      expires_at: garminAccessTokenExpiresAtSeconds(token.expires_in),
+    })
+  } catch (e) {
+    if (e instanceof GarminAuthError) {
+      json(res, e.status, { error: e.message })
+      return
+    }
+    console.error('[OAuth Local] Garmin refresh', e)
+    json(res, 500, { error: e instanceof Error ? e.message : 'Garmin refresh failed' })
+  }
+}
+
 async function handleStravaRefreshRequest(req: IncomingMessage, res: ServerResponse, env: EnvMap) {
   setCors(res, 'POST, OPTIONS', 'Content-Type')
   if (handlePreflightAndMethod(req, res)) return
@@ -360,6 +462,12 @@ export function vitePluginOAuth(): Plugin {
       })
       server.middlewares.use('/api/withings-refresh', (req, res, next) => {
         handleWithingsRefreshRequest(req, res, mergedEnv).catch(next)
+      })
+      server.middlewares.use('/api/garmin-oauth', (req, res, next) => {
+        handleGarminOAuthRequest(req, res, mergedEnv).catch(next)
+      })
+      server.middlewares.use('/api/garmin-refresh', (req, res, next) => {
+        handleGarminRefreshRequest(req, res, mergedEnv).catch(next)
       })
 
       server.middlewares.use('/api/ai-chat', (req, res) => {

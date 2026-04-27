@@ -9,6 +9,12 @@ const config = defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
+  /**
+   * Cap workers to 4 — at 8 the local Vite dev server intermittently aborts
+   * navigation (`net::ERR_ABORTED`) under audit + crawl load. Override with the
+   * `PW_WORKERS` env when investigating perf headroom.
+   */
+  workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 4,
   reporter: 'list',
   timeout: 60_000,
   use: {

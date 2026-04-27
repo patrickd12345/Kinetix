@@ -58,6 +58,7 @@
 - ✅ **Physio-Pacer Mode**: Toggle heart rate monitoring mode
 - ✅ **Data Management**: Clear all data option
 - ✅ **Garmin import**: Full Connect export ZIP (`DI_CONNECT/.../summarizedActivities.json`), a ZIP that only contains `.fit` files, or a single running `.fit` file; imports merge into local history with deduplication
+- ✅ **Garmin Connect (partner API)**: OAuth2 PKCE + token storage when `VITE_GARMIN_CONNECT_CLIENT_ID` and `GARMIN_CONNECT_CLIENT_SECRET` are configured (Health/Activity sync is a follow-on; see `docs/GARMIN_CONNECT_DEVELOPER_PROGRAM.md`)
 - ✅ **Strava import**: OAuth connect and import running activities from Strava
 - ✅ **Withings scale**: OAuth connect; on each app load, background sync refreshes tokens, pulls ~90 days of weigh-ins into local weight history (Withings `getmeas` is **paginated**—we follow every `more`/`offset` page so recent weigh-ins are not missing), and updates latest weight; **Settings → Refresh weight** runs the same merge into Weight History (not “latest only”); **KPS and run cards** resolve weight-at-date from that history whenever an entry exists on/before the run—this overrides the per-run weight snapshot so today’s run picks up a new morning weigh-in after sync; History, Weight History, and Charts reload when that sync finishes
 
@@ -75,7 +76,7 @@
 - ✅ **Authoritative ticket persistence**: `POST /support/ticket/create` stores the ticket first, then records Slack/email delivery state without rollback on notification failure
 - ✅ **Operator queue**: `/support-queue` supports operator-only ticket review, status changes, internal notes, notification retry, and deep-linked ticket selection from notification URLs
 - ✅ **KB approval bin**: Resolved tickets can move into a curated approval draft flow before manual ingest into `kinetix_support_kb`
-- ✅ **Vercel Hobby API layout**: Production deploy uses **12** serverless route files under root `api/` (excluding `api/_lib`), including merged Withings handler + rewrites and a single tickets catch-all; see `vercel.json` and [`apps/web/HELP_CENTER_ARCHITECTURE.md`](apps/web/HELP_CENTER_ARCHITECTURE.md).
+- ✅ **Vercel Hobby API layout**: Production deploy bundles multiple handlers under root `api/` (excluding `api/_lib`), including Garmin OAuth + refresh, merged Withings routes + rewrites, Strava proxy, and a tickets catch-all; confirm the live route count against the tree and [`vercel.json`](vercel.json); see [`apps/web/HELP_CENTER_ARCHITECTURE.md`](apps/web/HELP_CENTER_ARCHITECTURE.md).
 
 ### Data Persistence
 - ✅ **localStorage**: Run data and settings stored locally

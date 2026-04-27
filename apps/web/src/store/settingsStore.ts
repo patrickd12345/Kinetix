@@ -18,6 +18,15 @@ export interface StravaCredentials {
   expiresAt: number
 }
 
+/** Garmin Connect Developer Program (OAuth2 + PKCE); tokens from partner APIs only. */
+export interface GarminConnectCredentials {
+  accessToken: string
+  refreshToken: string
+  /** Unix seconds (aligned with Strava credentials in this store). */
+  expiresAt: number
+  apiUserId?: string
+}
+
 interface SettingsState {
   targetKPS: number
   setTargetKPS: (kps: number) => void
@@ -37,6 +46,10 @@ interface SettingsState {
   setStravaCredentials: (creds: StravaCredentials | null) => void
   stravaSyncError: string | null
   setStravaSyncError: (msg: string | null) => void
+  garminConnectCredentials: GarminConnectCredentials | null
+  setGarminConnectCredentials: (creds: GarminConnectCredentials | null) => void
+  garminConnectError: string | null
+  setGarminConnectError: (msg: string | null) => void
   /** Set to true when persisted state has been rehydrated from storage (so Strava sync can run). */
   settingsRehydrated: boolean
   weightSource: WeightSource
@@ -92,6 +105,12 @@ export const useSettingsStore = create<SettingsState>()(
       setStravaCredentials: (creds) => set({ stravaCredentials: creds, stravaSyncError: null }),
       stravaSyncError: null,
       setStravaSyncError: (msg) => set({ stravaSyncError: msg }),
+
+      garminConnectCredentials: null,
+      setGarminConnectCredentials: (creds) =>
+        set({ garminConnectCredentials: creds, garminConnectError: null }),
+      garminConnectError: null,
+      setGarminConnectError: (msg) => set({ garminConnectError: msg }),
 
       settingsRehydrated: false,
 
@@ -155,9 +174,17 @@ export const useSettingsStore = create<SettingsState>()(
           out.withingsCredentials = p.withingsCredentials
         if (p.stravaCredentials && typeof p.stravaCredentials.expiresAt === 'number')
           out.stravaCredentials = p.stravaCredentials
+        if (
+          p.garminConnectCredentials &&
+          typeof p.garminConnectCredentials.expiresAt === 'number' &&
+          typeof p.garminConnectCredentials.accessToken === 'string' &&
+          typeof p.garminConnectCredentials.refreshToken === 'string'
+        )
+          out.garminConnectCredentials = p.garminConnectCredentials
         if (!Array.isArray(p.withingsSyncTimes) || p.withingsSyncTimes.length !== 2)
           out.withingsSyncTimes = DEFAULT_WITHINGS_SYNC_TIMES
         out.stravaSyncError = null
+        out.garminConnectError = null
         return out
       },
       /** Must not require `state` truthy: first load / empty persist still finishes rehydration. */
@@ -177,6 +204,8 @@ export function clearSensitiveSettingsForLogout(): void {
     stravaToken: '',
     stravaCredentials: null,
     stravaSyncError: null,
+    garminConnectCredentials: null,
+    garminConnectError: null,
     withingsCredentials: null,
     lastWithingsWeightKg: 0,
     lastSuccessfulWithingsSyncAt: null,

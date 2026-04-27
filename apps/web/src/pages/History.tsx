@@ -310,12 +310,12 @@ export default function History() {
     } finally {
       setChartLoading(false)
     }
-  }, [userProfile, chartStartDate, chartEndDate, listRefreshKey])
+  }, [userProfile, chartStartDate, chartEndDate])
 
   useEffect(() => {
     if (!chartStartDate || !chartEndDate || !userProfile) return
     void loadChartRuns()
-  }, [loadChartRuns, chartStartDate, chartEndDate, userProfile])
+  }, [loadChartRuns, chartStartDate, chartEndDate, userProfile, listRefreshKey])
 
   // Refetch when app/tab becomes visible or when a run is saved (handles race when user navigates before save completes)
   useEffect(() => {
@@ -981,7 +981,7 @@ export default function History() {
                           <>
                             <button
                               onClick={() => toggleExpanded(run.id!)}
-                              className="w-full mt-2 text-xs text-slate-600 dark:text-gray-400 hover:text-slate-700 dark:hover:text-slate-700 dark:text-gray-300 flex items-center justify-center gap-1 transition-colors mb-2"
+                              className="w-full mt-2 text-xs text-slate-600 dark:text-gray-400 hover:text-slate-700 dark:hover:text-slate-700 flex items-center justify-center gap-1 transition-colors mb-2"
                             >
                               <TrendingUp size={14} />
                               <span>Hide Details</span>

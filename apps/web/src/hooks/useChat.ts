@@ -122,7 +122,7 @@ export function useChat() {
     } finally {
       setIsLoading(false)
     }
-  }, [messages, profile, unitSystem, session?.user?.id])
+  }, [messages, profile, unitSystem])
 
   const clearChat = useCallback(() => {
     setMessages([])

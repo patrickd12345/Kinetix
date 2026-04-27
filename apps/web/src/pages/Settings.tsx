@@ -6,6 +6,7 @@ import { db, RunRecord, RUN_VISIBLE } from '../lib/database'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useStravaAuth } from '../hooks/useStravaAuth'
 import { useWithingsAuth } from '../hooks/useWithingsAuth'
+import { useGarminConnectAuth } from '../hooks/useGarminConnectAuth'
 import { syncWithingsWeightsAtStartup, WITHINGS_WEIGHTS_SYNCED_EVENT } from '../lib/withings'
 import { syncWithingsData } from '../lib/integrations/withings/sync'
 import { evaluateWithingsSyncPolicy, isValidLocalTimeHHMM, normalizeSyncTimes } from '../lib/integrations/withings/syncPolicy'
@@ -46,6 +47,10 @@ export default function Settings() {
     setStravaCredentials,
     stravaSyncError,
     setStravaSyncError,
+    garminConnectCredentials,
+    setGarminConnectCredentials,
+    garminConnectError,
+    setGarminConnectError,
     weightSource,
     setWeightSource,
     withingsCredentials,
@@ -73,6 +78,12 @@ export default function Settings() {
   const garminZipInputRef = useRef<HTMLInputElement>(null)
   const { initiateOAuth, handleOAuthCallback } = useStravaAuth()
   const { initiateOAuth: initiateWithingsOAuth, handleOAuthCallback: handleWithingsCallback, disconnect: disconnectWithings } = useWithingsAuth()
+  const {
+    initiateOAuth: initiateGarminOAuth,
+    handleOAuthCallback: handleGarminOAuthCallback,
+    isGarminConnectClientConfigured,
+    garminOAuthState,
+  } = useGarminConnectAuth()
   const [withingsRefreshing, setWithingsRefreshing] = useState(false)
   const [withingsExpandedSyncStatus, setWithingsExpandedSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'failure'>('idle')
   const [withingsExpandedSyncMessage, setWithingsExpandedSyncMessage] = useState<string | null>(null)
@@ -82,6 +93,7 @@ export default function Settings() {
   const [weightBackfilling, setWeightBackfilling] = useState(false)
   const weightHistoryFileRef = useRef<HTMLInputElement>(null)
   const withingsManualSyncGate = useRef({ inFlight: false })
+  const [garminConnectLoading, setGarminConnectLoading] = useState(false)
 
   const [plannedRaces, setPlannedRaces] = useState<PlannedRace[]>([])
   const [plannedRacesLoading, setPlannedRacesLoading] = useState(false)
@@ -203,7 +215,9 @@ export default function Settings() {
     const storageKey =
       state === 'withings'
         ? oauthDedupeSessionKey('withings', oauthUid)
-        : oauthDedupeSessionKey('strava', oauthUid)
+        : state === garminOAuthState
+          ? oauthDedupeSessionKey('garmin_connect', oauthUid)
+          : oauthDedupeSessionKey('strava', oauthUid)
     if (sessionStorage.getItem(storageKey) === code) return
     sessionStorage.setItem(storageKey, code)
 
@@ -219,6 +233,20 @@ export default function Settings() {
       return
     }
 
+    if (state === garminOAuthState) {
+      handleGarminOAuthCallback(code, oauthUid)
+        .then(() => {
+          setImportMessage('Garmin Connect linked (partner API).')
+          setGarminConnectLoading(false)
+        })
+        .catch((err: Error) => {
+          setImportMessage(`Error connecting Garmin API: ${err.message}`)
+          setGarminConnectLoading(false)
+          sessionStorage.removeItem(storageKey)
+        })
+      return
+    }
+
     handleOAuthCallback(code)
       .then(() => {
         setImportMessage('Successfully connected to Strava!')
@@ -227,7 +255,13 @@ export default function Settings() {
         setImportMessage(`Error connecting to Strava: ${err.message}`)
         sessionStorage.removeItem(storageKey)
       })
-  }, [handleOAuthCallback, handleWithingsCallback, session?.user?.id])
+  }, [
+    handleOAuthCallback,
+    handleWithingsCallback,
+    handleGarminOAuthCallback,
+    garminOAuthState,
+    session?.user?.id,
+  ])
 
   useEffect(() => {
     if (typeof indexedDB === 'undefined') return
@@ -1030,6 +1064,81 @@ export default function Settings() {
               <div className={`text-xs ${importMessage.startsWith('Error:') ? 'text-red-400' : 'text-slate-700 dark:text-gray-300'}`}>
                 {importMessage}
               </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div className="text-xs text-slate-600 dark:text-gray-400 uppercase">Garmin Connect (partner API)</div>
+            {isGarminConnectClientConfigured ? (
+              <>
+                <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-2">
+                  Official OAuth2 with PKCE for the Garmin Connect Developer Program. Tokens are stored for upcoming
+                  Health/Activity API sync; runs can still be brought in via export import below or Strava.
+                </p>
+                {garminConnectCredentials ? (
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-green-400">
+                      Linked to Garmin partner API
+                      {garminConnectCredentials.apiUserId
+                        ? ` (user id ${garminConnectCredentials.apiUserId})`
+                        : ''}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGarminConnectCredentials(null)
+                        setGarminConnectError(null)
+                      }}
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      Disconnect Garmin API
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const uid = session?.user?.id
+                      if (!uid) {
+                        setImportMessage('Error: Sign in to connect Garmin.')
+                        return
+                      }
+                      setGarminConnectError(null)
+                      setGarminConnectLoading(true)
+                      void initiateGarminOAuth(uid).catch((err) => {
+                        setImportMessage(
+                          `Error: ${err instanceof Error ? err.message : 'Could not start Garmin OAuth'}`
+                        )
+                        setGarminConnectLoading(false)
+                      })
+                    }}
+                    disabled={garminConnectLoading}
+                    className="bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-full transition"
+                  >
+                    {garminConnectLoading ? 'Redirecting…' : 'Connect Garmin (official API)'}
+                  </button>
+                )}
+                {garminConnectError ? (
+                  <p className="text-[11px] text-amber-400">{garminConnectError}</p>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-2">
+                Cloud sync with Garmin uses the{' '}
+                <a
+                  href="https://developer.garmin.com/gc-developer-program/health-api/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline text-cyan-600 dark:text-cyan-400"
+                >
+                  Garmin Connect Developer Program
+                </a>
+                . After partner approval, set{' '}
+                <code className="text-slate-600 dark:text-gray-400">VITE_GARMIN_CONNECT_CLIENT_ID</code> and server{' '}
+                <code className="text-slate-600 dark:text-gray-400">GARMIN_CONNECT_CLIENT_SECRET</code>. See{' '}
+                <code className="text-slate-600 dark:text-gray-400">docs/GARMIN_CONNECT_DEVELOPER_PROGRAM.md</code>.
+                Until then, use Strava or the export import below.
+              </p>
             )}
           </div>
 

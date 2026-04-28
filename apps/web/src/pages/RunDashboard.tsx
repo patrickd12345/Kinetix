@@ -5,7 +5,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { formatDistance, formatPace, timeToAchieveKPS, distanceToAchieveKPS } from '@kinetix/core'
 import { useLocationTracking } from '../hooks/useLocationTracking'
 import { useAICoach } from '../hooks/useAICoach'
-import { ensurePBInitialized, calculateRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS, calculateRelativeKPSSync } from '../lib/kpsUtils'
+import { ensurePBInitialized, calculateRelativeKPS, getPB, getPBRun, calculateAbsoluteKPS, isMeaningfulRunForKPS, isValidKPS, calculateRelativeKPSSync, calculateBestRecentRelativeKPSSync } from '../lib/kpsUtils'
 import { getRunsPage, getWeightsForDates } from '../lib/database'
 import { resolveProfileForRunWithWeightCache } from '../lib/authState'
 import { useAuth } from '../components/providers/useAuth'
@@ -226,7 +226,9 @@ export default function RunDashboard() {
         for (const run of [...meaningful].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())) {
           const profileForRun = resolveProfileForRunWithWeightCache(weightMap, run)
           const kps = calculateRelativeKPSSync(run, profileForRun, pb, pbRun)
-          if (Number.isFinite(kps) && kps > 0) samples.push({ date: run.date, kps })
+          if (Number.isFinite(kps) && kps > 0) {
+            samples.push({ date: run.date, kps, distance: run.distance, duration: run.duration })
+          }
         }
         const lastRun = items[0] ?? null
         const runs7d = items.filter((run) => new Date(run.date).getTime() >= sevenDaysAgo)
@@ -236,7 +238,7 @@ export default function RunDashboard() {
           runCount7d: runs7d.length,
           distance7d: runs7d.reduce((sum, run) => sum + run.distance, 0),
           streakDays: computeDirectionalStreakDays(items),
-          latestKps: samples.length > 0 ? samples[samples.length - 1].kps : null,
+          referenceKps: calculateBestRecentRelativeKPSSync(meaningful, weightMap, pb, pbRun),
           intelligence: samples.length > 0 ? computeIntelligence(samples) : null,
           error: null,
         }
@@ -249,7 +251,7 @@ export default function RunDashboard() {
             runCount7d: 0,
             distance7d: 0,
             streakDays: 0,
-            latestKps: null,
+            referenceKps: null,
             intelligence: null,
             error: err instanceof Error ? err.message : 'Unable to load today summary',
           })
@@ -507,14 +509,14 @@ export default function RunDashboard() {
     ? liveKpsDisplay.text
     : displayKPS > 0
       ? Math.floor(displayKPS).toString()
-      : homeSummary.latestKps != null
-        ? Math.round(homeSummary.latestKps).toString()
+      : homeSummary.referenceKps != null
+        ? Math.round(homeSummary.referenceKps).toString()
         : KPS_SHORT
   const heroKpsLabel = isRunning
     ? liveKpsDisplay.label
     : displayKPS > 0
       ? `Live ${KPS_SHORT}`
-      : homeSummary.latestKps != null
+      : homeSummary.referenceKps != null
         ? `Current ${KPS_SHORT}`
         : 'Baseline pending'
   const suggested = getDirectionalSuggestedTraining(homeSummary)

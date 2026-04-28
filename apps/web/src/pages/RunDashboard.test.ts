@@ -22,7 +22,7 @@ function summary(overrides: Partial<DirectionalHomeSummary>): DirectionalHomeSum
     runCount7d: 0,
     distance7d: 0,
     streakDays: 0,
-    latestKps: null,
+    referenceKps: null,
     intelligence: null,
     error: null,
     ...overrides,
@@ -49,7 +49,7 @@ describe('RunDashboard directional KPS UX', () => {
         locations: [],
         splits: [],
       },
-      latestKps: 88,
+      referenceKps: 88,
       intelligence: {
         readiness: { score: 92, status: 'high', message: 'Ready.' },
         fatigue: { level: 'low', message: 'Low.' },
@@ -84,9 +84,10 @@ describe('RunDashboard directional KPS UX', () => {
     ])).toBe(3)
   })
 
-  it('keeps KPS as the visual hero and quick actions secondary', () => {
+  it('keeps KPS as the visual hero and uses referenceKps from the homeSummary', () => {
     expect(source).toContain('<DirectionalTodayCard')
     expect(source).toContain('kps={{ value: heroKpsValue, label: heroKpsLabel }}')
+    expect(source).toContain('homeSummary.referenceKps')
     expect(todayCardSource).toContain('aria-label={`${kps.label}: ${kps.value}`}')
     expect(todayCardSource).toContain('text-6xl font-black')
     expect(todayCardSource).toContain('Start Run')

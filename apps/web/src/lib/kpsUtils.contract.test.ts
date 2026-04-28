@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, beforeEach, afterEach } from 'vitest'
 import type { RunRecord, PBRecord } from './database'
-import { calculateRelativeKPSSync } from './kpsUtils'
+import { calculateRelativeKPSSync, calculateBestRecentRelativeKPSSync } from './kpsUtils'
 import type { UserProfile } from '@kinetix/core'
+import { setActivePlatformProfile } from './authState'
 
 function makeRun(overrides: Partial<RunRecord>): RunRecord {
   return {
@@ -65,5 +66,44 @@ describe('KPS contract invariants', () => {
     const faster = makeRun({ id: 11, distance: 5000, duration: 1500, averagePace: 300 })
     const score = calculateRelativeKPSSync(faster, profile, pb, pbRun)
     expect(score).toBe(100)
+  })
+})
+
+describe('calculateBestRecentRelativeKPSSync invariant', () => {
+  beforeEach(() => {
+    setActivePlatformProfile({ id: 'test-user', age: 35, weight_kg: 70 })
+  })
+
+  afterEach(() => {
+    setActivePlatformProfile(null)
+  })
+
+  it('returns the highest relative KPS from an array of runs', () => {
+    const pbRun = makeRun({ id: 10, distance: 5000, duration: 1500, averagePace: 300 })
+    const run1 = makeRun({ id: 11, distance: 5000, duration: 1700, averagePace: 340 })
+    const run2 = makeRun({ id: 12, distance: 5000, duration: 1600, averagePace: 320 }) // Faster run
+    const run3 = makeRun({ id: 13, distance: 5000, duration: 1800, averagePace: 360 })
+
+    const runs = [run1, run2, run3]
+    const weightMap = new Map<string, number>()
+    // For simplicity, default weight is provided by resolveProfileForRunWithWeightCache
+    const bestKPS = calculateBestRecentRelativeKPSSync(runs, weightMap, pb, pbRun)
+
+    const expectedKPS1 = calculateRelativeKPSSync(run1, profile, pb, pbRun)
+    const expectedKPS2 = calculateRelativeKPSSync(run2, profile, pb, pbRun)
+    const expectedKPS3 = calculateRelativeKPSSync(run3, profile, pb, pbRun)
+
+    expect(bestKPS).toBe(Math.max(expectedKPS1, expectedKPS2, expectedKPS3))
+    expect(bestKPS).toBe(expectedKPS2) // The 1600 duration run is the best
+  })
+
+  it('returns null if there are no runs or no PB', () => {
+    const pbRun = makeRun({ id: 10, distance: 5000, duration: 1500, averagePace: 300 })
+    const runs = [makeRun({ id: 11, distance: 5000, duration: 1700, averagePace: 340 })]
+    const weightMap = new Map<string, number>()
+
+    expect(calculateBestRecentRelativeKPSSync([], weightMap, pb, pbRun)).toBeNull()
+    expect(calculateBestRecentRelativeKPSSync(runs, weightMap, null, pbRun)).toBeNull()
+    expect(calculateBestRecentRelativeKPSSync(runs, weightMap, pb, null)).toBeNull()
   })
 })

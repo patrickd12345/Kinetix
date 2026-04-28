@@ -290,6 +290,29 @@ export async function calculateRelativeKPS(
  * Sync variant: compute relative KPS when PB and PB run are already loaded.
  * Use in batch (e.g. History page) to avoid N+1 getPB/getPBRun calls.
  */
+export function calculateBestRecentRelativeKPSSync(
+  runs: RunRecord[],
+  weightMap: Map<string, number>,
+  pb: PBRecord | null,
+  pbRun: RunRecord | null
+): number | null {
+  if (!pb || !pbRun || runs.length === 0) return null
+
+  let bestRelative = 0
+  let foundValid = false
+
+  for (const run of runs) {
+    const profileForRun = resolveProfileForRunWithWeightCache(weightMap, run)
+    const relKps = calculateRelativeKPSSync(run, profileForRun, pb, pbRun)
+    if (Number.isFinite(relKps) && relKps > bestRelative) {
+      bestRelative = relKps
+      foundValid = true
+    }
+  }
+
+  return foundValid ? bestRelative : null
+}
+
 export function calculateRelativeKPSSync(
   run: RunRecord,
   currentProfile: UserProfile,

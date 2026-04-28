@@ -8,7 +8,7 @@ export interface DirectionalHomeSummary {
   runCount7d: number
   distance7d: number
   streakDays: number
-  latestKps: number | null
+  referenceKps: number | null
   intelligence: IntelligenceResult | null
   error: string | null
 }

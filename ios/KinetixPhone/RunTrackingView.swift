@@ -24,170 +24,201 @@ struct RunTrackingView: View {
     @State private var livePace: Double = 0 // seconds per km
     @State private var averagePace: Double = 0 // seconds per km
     @State private var currentNPI: Double = 0
-    @State private var timerTick: Int = 0 // Force UI refresh every second
+    @State private var timerTick: Int = 0
     
     @State private var updateTimer: Timer?
     
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                // GPS Status
+        ZStack {
+            // Background Gradient
+            LinearGradient(
+                colors: [Color(white: 0.05), Color(white: 0.15)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Status Bar
                 HStack {
-                    Image(systemName: gpsStatusIcon)
-                        .foregroundColor(gpsStatusColor)
-                    Text(gpsStatusText)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(8)
-                
-                // Main Metrics
-                VStack(spacing: 30) {
-                    // Time
-                    VStack(spacing: 8) {
-                        Text("Time")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(formatTime(elapsedTime))
-                            .font(.system(size: 48, weight: .bold))
-                            .monospacedDigit()
+                    HStack(spacing: 6) {
+                        Image(systemName: gpsStatusIcon)
+                            .foregroundColor(gpsStatusColor)
+                            .font(.system(size: 14, weight: .bold))
+                        Text(gpsStatusText)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white.opacity(0.7))
                     }
-                    
-                    // Distance
-                    VStack(spacing: 8) {
-                        Text("Distance")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(String(format: "%.2f km", totalDistance / 1000.0))
-                            .font(.system(size: 36, weight: .bold))
-                            .monospacedDigit()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(20)
+
+                    Spacer()
+
+                    Button {
+                        if !isRunning { dismiss() }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.white.opacity(0.3))
                     }
-                    
-                    // NPI (Star Feature!)
-                    VStack(spacing: 8) {
-                        Text("KPS")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(String(format: "%.1f", currentNPI))
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundColor(.cyan)
-                            .monospacedDigit()
-                    }
-                    
-                    // Pace & Heart Rate
-                    HStack(spacing: 40) {
-                        VStack(spacing: 4) {
-                            Text("Pace")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(RunMetricsCalculator.formatPace(livePace))
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .monospacedDigit()
-                        }
-                        
-                        VStack(spacing: 4) {
-                            Text("Heart Rate")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(heartRate > 0 ? "\(Int(heartRate))" : "--")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .monospacedDigit()
-                        }
-                    }
+                    .opacity(isRunning ? 0 : 1)
                 }
                 .padding()
                 
                 Spacer()
+
+                // Primary Metrics (High Information Density for iPhone 17 Pro Max)
+                VStack(spacing: 40) {
+                    // Time
+                    VStack(spacing: 8) {
+                        Text("ELAPSED TIME")
+                            .font(.system(size: 12, weight: .black))
+                            .tracking(2)
+                            .foregroundColor(.cyan)
+                        Text(formatTime(elapsedTime))
+                            .font(.system(size: 84, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .monospacedDigit()
+                    }
+                    
+                    // KPS - The Star Metric
+                    VStack(spacing: 12) {
+                        Text("PERFORMANCE SCORE")
+                            .font(.system(size: 14, weight: .black))
+                            .tracking(3)
+                            .foregroundColor(.cyan)
+                        
+                        ZStack {
+                            Circle()
+                                .stroke(Color.white.opacity(0.1), lineWidth: 4)
+                                .frame(width: 180, height: 180)
+
+                            Circle()
+                                .trim(from: 0, to: CGFloat(min(currentNPI / 200.0, 1.0)))
+                                .stroke(
+                                    LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom),
+                                    style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                                )
+                                .frame(width: 180, height: 180)
+                                .rotationEffect(.degrees(-90))
+
+                            VStack(spacing: -4) {
+                                Text(String(format: "%.1f", currentNPI))
+                                    .font(.system(size: 64, weight: .black, design: .rounded))
+                                    .foregroundColor(.white)
+                                Text("KPS")
+                                    .font(.system(size: 18, weight: .black))
+                                    .foregroundColor(.cyan)
+                            }
+                        }
+                    }
+
+                    // Secondary Metrics Row
+                    HStack(spacing: 0) {
+                        MetricBox(label: "DISTANCE", value: String(format: "%.2f", totalDistance / 1000.0), unit: "KM")
+                        Divider().background(Color.white.opacity(0.1)).frame(height: 40).padding(.horizontal)
+                        MetricBox(label: "LIVE PACE", value: RunMetricsCalculator.formatPace(livePace), unit: "/KM")
+                        Divider().background(Color.white.opacity(0.1)).frame(height: 40).padding(.horizontal)
+                        MetricBox(label: "HEART RATE", value: heartRate > 0 ? "\(Int(heartRate))" : "--", unit: "BPM")
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(24)
+                }
                 
-                // Control Buttons
-                HStack(spacing: 20) {
+                Spacer()
+                
+                // Control Hub
+                HStack(spacing: 24) {
                     if !isRunning {
                         Button {
                             startRun()
                         } label: {
-                            HStack {
-                                Image(systemName: "play.fill")
-                                Text("Start")
-                            }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.green)
-                            .cornerRadius(12)
+                            CircleButton(icon: "play.fill", label: "START", color: .green)
                         }
                     } else {
                         if isPaused {
                             Button {
+                                stopRun()
+                            } label: {
+                                CircleButton(icon: "stop.fill", label: "STOP", color: .red)
+                            }
+
+                            Button {
                                 resumeRun()
                             } label: {
-                                HStack {
-                                    Image(systemName: "play.fill")
-                                    Text("Resume")
-                                }
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.green)
-                                .cornerRadius(12)
+                                CircleButton(icon: "play.fill", label: "RESUME", color: .green)
                             }
                         } else {
                             Button {
                                 pauseRun()
                             } label: {
-                                HStack {
-                                    Image(systemName: "pause.fill")
-                                    Text("Pause")
-                                }
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.orange)
-                                .cornerRadius(12)
+                                CircleButton(icon: "pause.fill", label: "PAUSE", color: .orange)
                             }
-                        }
-                        
-                        Button {
-                            stopRun()
-                        } label: {
-                            HStack {
-                                Image(systemName: "stop.fill")
-                                Text("Stop")
-                            }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.red)
-                            .cornerRadius(12)
                         }
                     }
                 }
-                .padding()
+                .padding(.bottom, 40)
             }
-            .padding()
-            .navigationTitle("Run Tracking")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
+        }
+        .statusBarHidden()
+        .onAppear {
+            gpsManager.requestAuthorization()
+            healthKitManager.requestAuthorization()
+        }
+        .onDisappear {
+            updateTimer?.invalidate()
+        }
+    }
+
+    // MARK: - Components
+
+    struct MetricBox: View {
+        let label: String
+        let value: String
+        let unit: String
+
+        var body: some View {
+            VStack(spacing: 4) {
+                Text(label)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white.opacity(0.5))
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(value)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text(unit)
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.cyan)
                 }
             }
-            .onAppear {
-                gpsManager.requestAuthorization()
-                healthKitManager.requestAuthorization()
-            }
-            .onDisappear {
-                updateTimer?.invalidate()
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    struct CircleButton: View {
+        let icon: String
+        let label: String
+        let color: Color
+
+        var body: some View {
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 80, height: 80)
+                    Circle()
+                        .stroke(color.opacity(0.3), lineWidth: 2)
+                        .frame(width: 80, height: 80)
+                    Image(systemName: icon)
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(color)
+                }
+                Text(label)
+                    .font(.system(size: 12, weight: .black))
+                    .foregroundColor(color)
             }
         }
     }
@@ -197,26 +228,18 @@ struct RunTrackingView: View {
     private var elapsedTime: TimeInterval {
         guard let startTime = startTime else { return 0 }
         let totalTime = Date().timeIntervalSince(startTime)
-        
-        // Subtract all paused time
         var totalPausedTime = pausedDuration
-        
-        // If currently paused, add the current pause duration
         if isPaused, let pauseTime = lastPauseTime {
             totalPausedTime += Date().timeIntervalSince(pauseTime)
         }
-        
         return totalTime - totalPausedTime
     }
     
-    private var heartRate: Double {
-        healthKitManager.heartRate
-    }
+    private var heartRate: Double { healthKitManager.heartRate }
     
     private var gpsStatusIcon: String {
         switch gpsManager.status {
-        case .excellent: return "location.fill"
-        case .good: return "location.fill"
+        case .excellent, .good: return "location.fill"
         case .poor: return "location"
         case .searching: return "location.circle"
         case .denied: return "location.slash"
@@ -238,13 +261,13 @@ struct RunTrackingView: View {
     
     private var gpsStatusText: String {
         switch gpsManager.status {
-        case .excellent: return "GPS Excellent"
-        case .good: return "GPS Good"
-        case .poor: return "GPS Poor"
-        case .searching: return "Searching for GPS..."
-        case .denied: return "GPS Access Denied"
-        case .failed: return "GPS Error"
-        case .unknown: return "GPS Unknown"
+        case .excellent: return "GPS EXCELLENT"
+        case .good: return "GPS GOOD"
+        case .poor: return "GPS POOR"
+        case .searching: return "SEARCHING..."
+        case .denied: return "DENIED"
+        case .failed: return "ERROR"
+        case .unknown: return "UNKNOWN"
         }
     }
     
@@ -258,30 +281,37 @@ struct RunTrackingView: View {
         livePace = 0
         averagePace = 0
         currentNPI = 0
-
         startTime = Date()
         pausedDuration = 0
         isRunning = true
         isPaused = false
-        
         gpsManager.startTracking()
         healthKitManager.startWorkout()
-        
-        // Setup location update handler
-        gpsManager.onLocationUpdate = { location in
-            handleLocationUpdate(location)
-        }
-        
-        // Setup heart rate handler
-        healthKitManager.onHeartRateUpdate = { hr in
-            heartRateSamples.append((Date(), hr))
-        }
-        
-        // Start update timer
+        gpsManager.onLocationUpdate = { handleLocationUpdate($0) }
+        healthKitManager.onHeartRateUpdate = { heartRateSamples.append((Date(), $0)) }
+
+        LiveActivityManager.shared.startRunActivity(
+            name: "Morning Run",
+            kps: currentNPI,
+            distance: totalDistance / 1000.0,
+            pace: RunMetricsCalculator.formatPace(livePace),
+            time: formatTime(elapsedTime)
+        )
+
         updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             DispatchQueue.main.async {
-                timerTick += 1 // Force UI refresh
+                timerTick += 1
                 updateMetrics()
+
+                // Update Dynamic Island every 2 seconds
+                if timerTick % 2 == 0 {
+                    LiveActivityManager.shared.updateRunActivity(
+                        kps: currentNPI,
+                        distance: totalDistance / 1000.0,
+                        pace: RunMetricsCalculator.formatPace(livePace),
+                        time: formatTime(elapsedTime)
+                    )
+                }
             }
         }
     }
@@ -301,7 +331,6 @@ struct RunTrackingView: View {
         isPaused = false
         lastPauseTime = nil
         lastLocation = nil
-        
         gpsManager.startTracking()
         healthKitManager.startWorkout()
     }
@@ -310,12 +339,8 @@ struct RunTrackingView: View {
         updateTimer?.invalidate()
         gpsManager.stopTracking()
         healthKitManager.stopWorkout()
-        
-        // Save run asynchronously
-        Task {
-            await saveRun()
-        }
-        
+        LiveActivityManager.shared.stopRunActivity()
+        Task { await saveRun() }
         isRunning = false
         isPaused = false
         dismiss()
@@ -325,35 +350,17 @@ struct RunTrackingView: View {
     
     private func handleLocationUpdate(_ location: CLLocation) {
         guard isRunning && !isPaused else { return }
-        
-        // Filter poor GPS data
-        if location.horizontalAccuracy < 0 || location.horizontalAccuracy > 50 {
-            return
-        }
-        
-        // Calculate distance
+        if location.horizontalAccuracy < 0 || location.horizontalAccuracy > 50 { return }
         if let last = lastLocation {
             let dist = gpsManager.calculateDistance(from: last, to: location)
             let timeDiff = location.timestamp.timeIntervalSince(last.timestamp)
-            
-            // Filter unrealistic jumps (e.g. > 12m/s)
             if timeDiff > 0 && (dist / timeDiff) < 12.0 {
                 totalDistance += dist
-                distanceSamples.append(
-                    DistanceSample(
-                        timestamp: location.timestamp,
-                        totalDistanceMeters: totalDistance
-                    )
-                )
+                distanceSamples.append(DistanceSample(timestamp: location.timestamp, totalDistanceMeters: totalDistance))
                 pruneDistanceSamples()
             }
         } else {
-            distanceSamples.append(
-                DistanceSample(
-                    timestamp: location.timestamp,
-                    totalDistanceMeters: totalDistance
-                )
-            )
+            distanceSamples.append(DistanceSample(timestamp: location.timestamp, totalDistanceMeters: totalDistance))
             pruneDistanceSamples()
         }
         lastLocation = location
@@ -361,80 +368,23 @@ struct RunTrackingView: View {
     
     private func updateMetrics() {
         guard isRunning && !isPaused else { return }
-        
         let duration = elapsedTime
-        
         if totalDistance > 0 && duration > 0 {
-            // Average pace remains for run summaries/history.
             averagePace = duration / (totalDistance / 1000.0)
-
-            // Live pace uses a short rolling window.
-            livePace = LivePaceCalculator.rollingPace(
-                from: distanceSamples,
-                windowSeconds: max(1, livePaceRollingWindowSeconds),
-                now: Date()
-            )
-            
-            // Calculate NPI
+            livePace = LivePaceCalculator.rollingPace(from: distanceSamples, windowSeconds: max(1, livePaceRollingWindowSeconds), now: Date())
             if totalDistance > 100 && duration > 30 {
-                let calculatedNPI = RunMetricsCalculator.calculateNPI(
-                    distanceMeters: totalDistance,
-                    durationSeconds: duration
-                )
-                
-                // Only update currentNPI if calculation is valid
-                if RunMetricsCalculator.isValidNPI(calculatedNPI) {
-                    currentNPI = calculatedNPI
-                } else {
-                    // Invalid NPI - keep previous value or set to 0
-                    if !RunMetricsCalculator.isValidNPI(currentNPI) {
-                        currentNPI = 0
-                    }
-                }
+                let calculatedNPI = RunMetricsCalculator.calculateNPI(distanceMeters: totalDistance, durationSeconds: duration)
+                if RunMetricsCalculator.isValidNPI(calculatedNPI) { currentNPI = calculatedNPI }
             }
         }
     }
     
     private func saveRun() async {
-        // Save run if there's any elapsed time (even if GPS hasn't locked yet)
-        guard elapsedTime > 0 else {
-            print("Run not saved: no elapsed time")
-            return
-        }
-        
-        // If no distance, still save with 0 distance (GPS might not have locked)
+        guard elapsedTime > 0 else { return }
         let distanceToSave = totalDistance > 0 ? totalDistance : 0.0
-        
-        let avgHeartRate = heartRateSamples.isEmpty ? 0.0 : 
-            heartRateSamples.map { $0.1 }.reduce(0, +) / Double(heartRateSamples.count)
-        
-        // Calculate pace - use a default if no distance
-        let avgPace: Double
-        if distanceToSave > 0 {
-            avgPace = averagePace > 0 ? averagePace : elapsedTime / (distanceToSave / 1000.0)
-        } else {
-            avgPace = 0.0 // No pace if no distance
-        }
-        
-        // Calculate NPI - only if we have distance
-        let avgNPI: Double
-        if distanceToSave > 0 {
-            let calculatedNPI = RunMetricsCalculator.calculateNPI(
-                distanceMeters: distanceToSave,
-                durationSeconds: elapsedTime
-            )
-            
-            // Validate NPI before saving
-            if RunMetricsCalculator.isValidNPI(calculatedNPI) {
-                avgNPI = calculatedNPI
-            } else {
-                // Invalid NPI - use 0 as fallback
-                avgNPI = 0.0
-                print("⚠️ Warning: Calculated invalid KPS for run. Distance: \(distanceToSave)m, Duration: \(elapsedTime)s")
-            }
-        } else {
-            avgNPI = 0.0 // No NPI if no distance
-        }
+        let avgHeartRate = heartRateSamples.isEmpty ? 0.0 : heartRateSamples.map { $0.1 }.reduce(0, +) / Double(heartRateSamples.count)
+        let avgPace = distanceToSave > 0 ? (averagePace > 0 ? averagePace : elapsedTime / (distanceToSave / 1000.0)) : 0.0
+        let avgNPI = distanceToSave > 0 ? RunMetricsCalculator.calculateNPI(distanceMeters: distanceToSave, durationSeconds: elapsedTime) : 0.0
         
         let run = Run(
             date: startTime ?? Date(),
@@ -447,19 +397,14 @@ struct RunTrackingView: View {
             routeData: gpsManager.routeCoordinates
         )
         
-        // Save run using UnifiedStorageService (handles local save + automatic cloud sync)
         do {
             try await UnifiedStorageService.shared.saveRun(run, modelContext: modelContext)
-            print("Run saved: \(distanceToSave)m in \(elapsedTime)s")
         } catch {
             print("Failed to save run: \(error)")
         }
     }
     
-    private func formatTime(_ seconds: TimeInterval) -> String {
-        return RunMetricsCalculator.formatTime(seconds)
-    }
-
+    private func formatTime(_ seconds: TimeInterval) -> String { return RunMetricsCalculator.formatTime(seconds) }
     private func pruneDistanceSamples() {
         let keepSeconds = max(30.0, max(1, livePaceRollingWindowSeconds) * 6.0)
         let cutoff = Date().addingTimeInterval(-keepSeconds)

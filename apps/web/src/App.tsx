@@ -3,17 +3,19 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import AdSenseScript from './components/ads/AdSenseScript'
 import Layout from './components/Layout'
 import RunDashboard from './pages/RunDashboard'
-import History from './pages/History'
-import Chat from './pages/Chat'
-import Settings from './pages/Settings'
-import WeightHistory from './pages/WeightHistory'
-import HelpCenter from './pages/HelpCenter'
 import Login from './pages/Login'
 import EntitlementRequired from './pages/EntitlementRequired'
-import BillingSuccess from './pages/BillingSuccess'
-import BillingCancel from './pages/BillingCancel'
 import { useAuth } from './components/providers/useAuth'
 
+// Lazy: keep Garmin OAuth + PKCE crypto (Settings) and other heavy routes out of index-*.js.
+// See scripts/check-web-bundle-budget.mjs (900 kB cap on main chunk).
+const Settings = lazy(() => import('./pages/Settings'))
+const History = lazy(() => import('./pages/History'))
+const Chat = lazy(() => import('./pages/Chat'))
+const WeightHistory = lazy(() => import('./pages/WeightHistory'))
+const HelpCenter = lazy(() => import('./pages/HelpCenter'))
+const BillingSuccess = lazy(() => import('./pages/BillingSuccess'))
+const BillingCancel = lazy(() => import('./pages/BillingCancel'))
 const Coaching = lazy(() => import('./pages/Coaching'))
 const Menu = lazy(() => import('./pages/Menu'))
 const OperatorDashboard = lazy(() => import('./pages/OperatorDashboard'))
@@ -119,12 +121,14 @@ function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AdSenseScript />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/billing/success" element={<BillingSuccess />} />
-        <Route path="/billing/cancel" element={<BillingCancel />} />
-        <Route path="/*" element={<ProtectedRoutes />} />
-      </Routes>
+      <Suspense fallback={<LazyRouteFallback />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/billing/success" element={<BillingSuccess />} />
+          <Route path="/billing/cancel" element={<BillingCancel />} />
+          <Route path="/*" element={<ProtectedRoutes />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }

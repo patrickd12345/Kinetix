@@ -80,16 +80,25 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 
 ### 📱 iPhone Companion App
 
-The iPhone app serves as a **Management & Analysis Hub** with a 3-tab architecture:
+The iPhone app serves as a **Management & Analysis Hub** with a 5-tab architecture:
 
-#### 1. **Coach Tab** (Dashboard)
+#### 1. **Home Tab**
+- **Start Run**: Record runs directly on iPhone (standalone tracking)
+- **Intelligence Card**: On-device Apple Intelligence readiness insights (iOS 18+)
+- **Quick Stats**: Summary of your latest performance
+
+#### 2. **Coach Tab** (Dashboard)
+- **Deterministic Coaching**: Ported from web (Timeline, Goal Probability)
 - **Live Metrics Dashboard**: Real-time charts for heart rate and cadence
 - **Conversational AI Coach**: Ask questions about your run via voice
 - **Live Biometric Stream**: Real-time data from Watch displayed on iPhone
 - **Alert System**: Receives and vocalizes alerts from Watch
 
-#### 2. **History Tab**
-- **Run History**: Complete list of all runs synced from Watch
+#### 3. **Build Tab**
+- **Activity Builder**: Create custom workout templates for your Watch
+
+#### 4. **History Tab**
+- **Run History**: Complete list of all runs (Watch & iPhone recorded)
 - **Detailed Run Views**: Full post-run analysis including:
   - Lab report with form score
   - Biomechanics grid
@@ -207,8 +216,10 @@ The pnpm workspace at the repo root drives the web app and RAG service. Use this
 | -------- | -------- |
 | `pnpm install` | Install all workspace dependencies |
 | `pnpm dev` | Run RAG + web together with Infisical-injected secrets |
+| `pnpm dev:local` | Same as `dev:raw` after merging `process.env` + `apps/web/.env.local` and validating Supabase keys (no Infisical CLI) |
 | `pnpm dev:raw` | Run RAG + web together without the Infisical preflight/injection |
 | `pnpm dev:web` | Web app only (`@kinetix/web`) |
+| `pnpm dev:web:host` | Web only on `0.0.0.0:5173` (LAN / device testing) |
 | `pnpm dev:rag` | RAG service only |
 | `pnpm dev:infisical` | Explicit alias for Infisical-backed dev — see [`docs/deployment/INFISICAL_LOCAL_DEV.md`](docs/deployment/INFISICAL_LOCAL_DEV.md) |
 | `pnpm build` | Build `@kinetix/core` then the web app |
@@ -240,6 +251,9 @@ The pnpm workspace at the repo root drives the web app and RAG service. Use this
    - `KinetixWatch` (Watch app)
    - `KinetixPhone` (iPhone app)
 6. Build & Run on both devices
+7. After `git pull`, run **`xcodegen generate`** again in `watchos/` whenever new `.swift` files appear so `KinetixWatch.xcodeproj` includes them (otherwise Xcode may report types as missing).
+
+**Swift “Could not read priors” / stale incremental builds:** In Xcode choose **Product → Clean Build Folder**, or delete the project’s folder under `~/Library/Developer/Xcode/DerivedData/` (e.g. `KinetixWatch-*`), then rebuild.
 
 ### ⚠️ Critical Setup for Connectivity
 For the Watch and iPhone apps to communicate properly (WCSession), strict Bundle ID rules apply:

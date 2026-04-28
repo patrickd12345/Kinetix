@@ -20,8 +20,20 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>GEMINI_API_KEY</key>
-	<string>AIzaSyBo5iWSR6yGbWU8EzoOEU7JusjciFVATSE</string>
+	<key>KINETIX_WEB_BASE_URL</key>
+	<string>$(KINETIX_WEB_BASE_URL)</string>
+	<key>STRAVA_CLIENT_ID</key>
+	<string>$(STRAVA_CLIENT_ID)</string>
+	<key>WITHINGS_CLIENT_ID</key>
+	<string>$(WITHINGS_CLIENT_ID)</string>
+	<key>GOOGLE_CLIENT_ID</key>
+	<string>$(GOOGLE_CLIENT_ID)</string>
+	<key>SENTRY_DSN</key>
+	<string>$(SENTRY_DSN)</string>
+	<key>SUPABASE_URL</key>
+	<string>$(SUPABASE_URL)</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
@@ -60,18 +72,5 @@
 			</array>
 		</dict>
 	</array>
-	<key>STRAVA_CLIENT_ID</key>
-	<string>157217</string>
-	<key>STRAVA_CLIENT_SECRET</key>
-	<string>3652b26562c819e1a13ebb34e517e707dab939b2</string>
-	<key>WITHINGS_CLIENT_ID</key>
-	<string></string>
-	<key>WITHINGS_CLIENT_SECRET</key>
-	<string></string>
-	<key>GOOGLE_CLIENT_ID</key>
-	<string>915406480058-s855cf6s4dqipjskfqh0egqq1hui6frn.apps.googleusercontent.com</string>
-	<key>GOOGLE_CLIENT_SECRET</key>
-	<string></string>
 </dict>
 </plist>
-

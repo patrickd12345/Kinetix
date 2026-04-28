@@ -1,6 +1,6 @@
 # Kinetix Local Verification Baseline
 
-Last updated: 2026-04-10
+Last updated: 2026-04-27
 
 ## Environment
 
@@ -27,6 +27,10 @@ Last updated: 2026-04-10
 - Command: `pnpm --filter @kinetix/web test` (includes `build:bookiji-packages`, `pnpm --filter @kinetix/core build`, `vitest run`)
 - Final status: PASS (recorded 2026-04-10)
 - Final result: `Test Files 79 passed (79)`, `Tests 346 passed (346)`
+
+## Current `@kinetix/web` Vitest snapshot (informative)
+
+Authoritative counts are always from a fresh **`pnpm --filter @kinetix/web test`** on `main` (or your branch). Representative run **2026-04-27**: **`Test Files 106 passed (106)`**, **`Tests 476 passed (476)`**. This does **not** replace the Wave 2 closure numbers above; it documents drift as tests and API-in-web coverage grew.
 
 ## Repo quality gates (Wave 2)
 

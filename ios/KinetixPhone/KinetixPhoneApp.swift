@@ -1,8 +1,12 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct KinetixPhoneApp: App {
+    init() {
+        KinetixSentry.configure()
+    }
+
     var body: some Scene {
         WindowGroup {
             MainTabView()
@@ -14,7 +18,13 @@ struct KinetixPhoneApp: App {
             RunnerProfile.self,
             DiagnosticLogEntry.self,
             CustomBatteryProfile.self,
+<<<<<<< HEAD
             WeightEntry.self
+=======
+            WeightEntry.self,
+            HumanState.self,
+            ReasoningLog.self
+>>>>>>> origin/main
         ])
     }
 }

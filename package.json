@@ -11,6 +11,7 @@
     "dev": "node scripts/dev-with-infisical.mjs",
     "dev:local": "node scripts/dev-local.mjs",
     "dev:raw": "concurrently -n rag,web -c cyan,yellow \"pnpm --filter @kinetix/rag start\" \"pnpm --filter @kinetix/web dev\"",
+    "start": "pnpm dev:local",
     "dev:infisical": "node scripts/dev-with-infisical.mjs",
     "verify:infisical": "node scripts/verify-infisical.mjs",
     "infisical:list-keys": "node scripts/infisical-list-keys.mjs",

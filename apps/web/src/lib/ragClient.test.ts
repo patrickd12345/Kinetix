@@ -2,10 +2,16 @@
  * RAG client: RunRecord → RAGRunShape mapping and downstream embedding text (song metadata).
  * BPM validity 40–240 is enforced in Postgres (see migration); web does not duplicate validation.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { RunRecord } from './database'
 import type { UserProfile } from '@kinetix/core'
-import { runRecordToRAGRun } from './ragClient'
+import * as ragClient from './ragClient'
+import {
+  clearRagBaseUrlCache,
+  reindexAllRunsInRAG,
+  runRecordToRAGRun,
+  syncNewRunsToRAG,
+} from './ragClient'
 import { EmbeddingService } from '../../../rag/services/embeddingService.js'
 
 const mockUserProfile: UserProfile = {
@@ -73,6 +79,42 @@ describe('RunRecord JSON round-trip', () => {
     expect(copy.songBpm).toBe(120)
     const rag = runRecordToRAGRun(copy, mockUserProfile)
     expect(rag.songBpm).toBe(120)
+  })
+})
+
+describe('syncNewRunsToRAG', () => {
+  let baseSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    baseSpy = vi.spyOn(ragClient, 'getRAGBaseUrl')
+  })
+
+  afterEach(() => {
+    baseSpy.mockRestore()
+  })
+
+  it('returns zero errors when RAG service URL cannot be resolved (skips all)', async () => {
+    baseSpy.mockResolvedValue(null)
+    const run = baseRun({ id: 1 })
+    const out = await syncNewRunsToRAG([run], mockUserProfile)
+    expect(out).toEqual({ indexed: 0, errors: 0, skipped: 1 })
+  })
+})
+
+describe('reindexAllRunsInRAG', () => {
+  it('does not count every run as failed when RAG URL cannot be resolved', async () => {
+    /** Avoid .env VITE_RAG_SERVICE_URL or a prior test leaving localhost cache. */
+    vi.stubEnv('VITE_RAG_SERVICE_URL', '')
+    clearRagBaseUrlCache()
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('no network')))
+    try {
+      const out = await reindexAllRunsInRAG([baseRun({ id: 1 }), baseRun({ id: 2 })])
+      expect(out).toEqual({ indexed: 0, errors: 0, noRagService: true })
+    } finally {
+      vi.unstubAllGlobals()
+      vi.unstubAllEnvs()
+      clearRagBaseUrlCache()
+    }
   })
 })
 

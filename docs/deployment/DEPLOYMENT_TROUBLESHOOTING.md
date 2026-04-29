@@ -79,3 +79,7 @@ You do **not** restart Vercel. The app shows that error when `VITE_SUPABASE_URL`
 3. **Redeploy**: Deployments → … on latest → **Redeploy** (or push a commit).
 
 Values must match the Bookiji Supabase project for SSO. See [ENV_PARITY.md](./ENV_PARITY.md) for details.
+
+## 7. Withings sync and Content-Security-Policy (`connect-src`)
+
+The web app calls the Withings Measure API from the browser (`https://wbsapi.withings.net`). Production CSP is set in **root** [`vercel.json`](../../vercel.json) (`Content-Security-Policy` → `connect-src`). That list must include **`https://wbsapi.withings.net`**. If it is missing, the browser blocks the request and weight sync can surface as **Failed to fetch** in the UI while same-origin calls (e.g. `/api/withings-refresh`) still work.

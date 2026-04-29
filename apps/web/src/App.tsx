@@ -67,9 +67,16 @@ function ProtectedRoutes() {
   }
 
   if (status === 'error') {
+    const err = error ?? ''
+    const title =
+      err.includes('Missing Supabase env') || err.includes('VITE_SUPABASE')
+        ? 'Supabase not configured'
+        : err.includes('Platform profile not found')
+          ? 'Platform profile missing'
+          : 'Profile validation failed'
     return (
       <FullscreenStatus
-        title="Profile validation failed"
+        title={title}
         message={error ?? 'Platform profile is required for Kinetix.'}
         tone="error"
       />

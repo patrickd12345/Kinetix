@@ -22,11 +22,13 @@ export function clearRagBaseUrlCache(): void {
   cachedRAGBaseUrl = null
 }
 
-/** Resolve RAG base URL: use VITE_RAG_SERVICE_URL if set, else try localhost ports 3001..3010 until /health responds. */
+/** Resolve RAG base URL: use VITE_RAG_SERVICE_URL if set, else try localhost ports 3001..3010 until /health responds (dev only). */
 export async function getRAGBaseUrl(): Promise<string | null> {
   const explicit = import.meta.env.VITE_RAG_SERVICE_URL
   if (explicit && typeof explicit === 'string') return explicit
   if (cachedRAGBaseUrl) return cachedRAGBaseUrl
+  /** Production CSP and deployment never expose loopback; set VITE_RAG_SERVICE_URL for hosted RAG. */
+  if (!import.meta.env.DEV) return null
   for (const port of RAG_PORTS) {
     const base = `http://localhost:${port}`
     try {

@@ -80,6 +80,10 @@ You do **not** restart Vercel. The app shows that error when `VITE_SUPABASE_URL`
 
 Values must match the Bookiji Supabase project for SSO. See [ENV_PARITY.md](./ENV_PARITY.md) for details.
 
-## 7. Withings sync and Content-Security-Policy (`connect-src`)
+## 7. Google Fonts and CSP (`style-src` / `font-src`)
+
+The web shell imports Inter from **Google Fonts** in [`apps/web/src/index.css`](../../apps/web/src/index.css). Production CSP is set in root [`vercel.json`](../../vercel.json): **`style-src`** must allow **`https://fonts.googleapis.com`** (stylesheet `@import`) and **`font-src`** must allow **`https://fonts.gstatic.com`** (font files). Without these, the browser blocks fonts and logs CSP violations.
+
+## 8. Withings sync and Content-Security-Policy (`connect-src`)
 
 The web app calls the Withings Measure API from the browser (`https://wbsapi.withings.net`). Production CSP is set in **root** [`vercel.json`](../../vercel.json) (`Content-Security-Policy` → `connect-src`). That list must include **`https://wbsapi.withings.net`**. If it is missing, the browser blocks the request and weight sync can surface as **Failed to fetch** in the UI while same-origin calls (e.g. `/api/withings-refresh`) still work.

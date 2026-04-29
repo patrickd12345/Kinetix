@@ -64,6 +64,14 @@ Kinetix stores product-specific Withings OAuth and app-origin values in Infisica
 | `VITE_WITHINGS_REDIRECT_URI` | `/kinetix` | Synced | Production value must be `https://kinetix.bookiji.com/api/withings-oauth` |
 | `KINETIX_APP_BASE_URL` | `/kinetix` | Synced | Production value must be `https://kinetix.bookiji.com` |
 
+**Google AdSense (Standard 10):** store the public client id in Infisical **`/kinetix`** for both **`dev`** and **`prod`** so `pnpm dev` and production builds agree. The value must match [`apps/web/public/ads.txt`](../../apps/web/public/ads.txt) (`pub-…` in `ads.txt` = same digits as `ca-pub-…`).
+
+| Variable | Target Infisical path | Notes |
+|----------|------------------------|--------|
+| `VITE_ADSENSE_CLIENT` | `/kinetix` | e.g. `ca-pub-…` (public; injected at build) |
+| `VITE_ADSENSE_SLOT` | `/kinetix` | Optional; required for the standard display unit when ads are shown |
+| `VITE_ADSENSE_GLOBAL_OFF` | `/kinetix` | Optional; `true` disables script + units |
+
 Do not copy local `.env.local` wholesale into Infisical or Vercel. The old local file contained unrelated dev/admin/personal keys such as `ADMLOG_ENABLED`, `ADMLOG_PASSWORD`, and `WITHINGS_REFRESH_TOKEN`; those are not durable Kinetix production configuration.
 
 For local development, use `pnpm dev`. It loads Infisical `dev` from `/platform` and `/kinetix`, then starts the raw RAG + web dev servers. `pnpm dev:raw` is the explicit non-Infisical fallback only.

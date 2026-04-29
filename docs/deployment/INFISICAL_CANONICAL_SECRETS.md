@@ -35,7 +35,7 @@ Kinetix reads secrets from two folders:
 | Path | Ownership | Examples |
 |------|-----------|----------|
 | **`/platform`** | shared Bookiji platform | Supabase URL, anon/publishable key, platform-wide server credentials |
-| **`/kinetix`** | Kinetix-specific | Strava, Withings, Gemini, billing, and Kinetix-only overrides |
+| **`/kinetix`** | Kinetix-specific | Strava, Withings, Gemini, billing, AdSense public client/slot (`VITE_ADSENSE_*`), and Kinetix-only overrides |
 
 Resolution order:
 

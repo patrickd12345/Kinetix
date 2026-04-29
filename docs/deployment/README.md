@@ -14,6 +14,7 @@ Index for **identity (SSO)**, **secrets (Infisical)**, **billing (Stripe subscri
 | Checkout session API, Bookiji webhook, `platform.entitlements` | [STRIPE_KINETIX_ENTITLEMENTS.md](./STRIPE_KINETIX_ENTITLEMENTS.md) |
 | Subdomain and DNS | [KINETIX_SUBDOMAIN.md](./KINETIX_SUBDOMAIN.md) |
 | Manual go-live checks | [KINETIX_VERIFICATION_CHECKLIST.md](./KINETIX_VERIFICATION_CHECKLIST.md) |
+| **AdSense + web MVP go-live** (ads.txt, CSP, Infisical, deploy checks) | [ADSENSE_GO_LIVE.md](./ADSENSE_GO_LIVE.md) |
 | Product plan (vision, roadmap, risks, spine) | [../PROJECT_PLAN.md](../PROJECT_PLAN.md) |
 | Optional umbrella memory bridge (governance; default off) | [MEMORY_BRIDGE_CONTRACT.md](../../../../docs/platform/MEMORY_BRIDGE_CONTRACT.md) — *Kinetix operator notes* |
 

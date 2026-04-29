@@ -411,3 +411,4 @@ struct RunTrackingView: View {
         distanceSamples.removeAll { $0.timestamp < cutoff }
     }
 }
+

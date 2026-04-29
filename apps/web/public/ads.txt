@@ -1,6 +1,4 @@
 # Kinetix web — Google AdSense ads.txt (Standard 10).
-# Before production monetization: replace the pub- id below with your AdSense publisher id
-# (AdSense Account > Account information). It must match VITE_ADSENSE_CLIENT (ca-pub-... same digits).
-# See https://support.google.com/adsense/answer/7532444
+# Must match VITE_ADSENSE_CLIENT (ca-pub-… same numeric id). https://support.google.com/adsense/answer/7532444
 #
-google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+google.com, pub-2311249346490347, DIRECT, f08c47fec0942fa0

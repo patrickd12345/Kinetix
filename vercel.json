@@ -31,7 +31,7 @@
       "destination": "/api/strava-refresh"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/)(?!ads\\.txt$)(?!robots\\.txt$)(?!sitemap\\.xml$).*)",
       "destination": "/index.html"
     }
   ],
@@ -70,7 +70,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests; script-src 'self' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://www.googleapis.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://*.vercel-insights.com https://wbsapi.withings.net; frame-src 'self' https://googleads.g.doubleclick.net https://*.googlesyndication.com https://tpc.googlesyndication.com; worker-src 'self' blob:; manifest-src 'self'"
+          "value": "default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests; script-src 'self' https://pagead2.googlesyndication.com https://www.googletagservices.com https://www.gstatic.com https://www.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://www.googleapis.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://adservice.google.com https://*.vercel-insights.com https://wbsapi.withings.net; frame-src 'self' https://googleads.g.doubleclick.net https://*.googlesyndication.com https://tpc.googlesyndication.com https://www.google.com; worker-src 'self' blob:; manifest-src 'self'"
         }
       ]
     }

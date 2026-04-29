@@ -2,6 +2,7 @@ import { FormEvent, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/providers/useAuth'
 import ThemeSelector from '../components/ThemeSelector'
+import Footer from '../components/Footer'
 
 export default function Login() {
   const { status, sendMagicLink, signInWithOAuth, oauthProviders } = useAuth()
@@ -150,6 +151,7 @@ export default function Login() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   )
 }

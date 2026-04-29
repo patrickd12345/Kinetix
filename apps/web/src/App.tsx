@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AdSenseScript from './components/ads/AdSenseScript'
 import Layout from './components/Layout'
@@ -6,6 +6,7 @@ import RunDashboard from './pages/RunDashboard'
 import Login from './pages/Login'
 import EntitlementRequired from './pages/EntitlementRequired'
 import { useAuth } from './components/providers/useAuth'
+import { getEnvReadiness } from './lib/env/envReadiness'
 
 // Lazy: keep Garmin OAuth + PKCE crypto (Settings) and other heavy routes out of index-*.js.
 // See scripts/check-web-bundle-budget.mjs (900 kB cap on main chunk).
@@ -20,6 +21,9 @@ const Coaching = lazy(() => import('./pages/Coaching'))
 const Menu = lazy(() => import('./pages/Menu'))
 const OperatorDashboard = lazy(() => import('./pages/OperatorDashboard'))
 const SupportQueue = lazy(() => import('./pages/SupportQueue'))
+const Privacy = lazy(() => import('./pages/Privacy'))
+const Terms = lazy(() => import('./pages/Terms'))
+const Contact = lazy(() => import('./pages/Contact'))
 
 function LazyRouteFallback() {
   return (
@@ -125,12 +129,21 @@ function ProtectedRoutes() {
 }
 
 function App() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.debug('[kinetix env readiness]', getEnvReadiness())
+    }
+  }, [])
+
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AdSenseScript />
       <Suspense fallback={<LazyRouteFallback />}>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/billing/success" element={<BillingSuccess />} />
           <Route path="/billing/cancel" element={<BillingCancel />} />
           <Route path="/*" element={<ProtectedRoutes />} />

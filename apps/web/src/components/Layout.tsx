@@ -25,14 +25,20 @@ import { scheduleStartupAttempts } from '../lib/startupOrchestrator'
 import { runWithingsStartupReload } from '../lib/integrations/withings/startupSync'
 import ThemeSelector from './ThemeSelector'
 import AdSenseDisplayUnit from './ads/AdSenseDisplayUnit'
+import AdSlot from './ads/AdSlot'
+import Footer from './Footer'
+import CookieBanner from './CookieBanner'
 import WithingsSyncPrompt from './WithingsSyncPrompt'
 import { Dialog } from './a11y/Dialog'
 import { ragBannerDismissedSessionKey, ragFailStreakSessionKey } from '../lib/clientStorageScope'
+import { isRagServiceConfigured } from '../lib/env/envReadiness'
+import { formatOptionalIntegrationError } from '../lib/env/runtime'
 
 const RAG_SYNC_PAGE_SIZE = 200
 const RAG_SYNC_FAIL_THRESHOLD = 3
-const STRAVA_STARTUP_RETRY_DELAYS_MS = [0, 500, 1500, 2500, 4000, 5000] as const
-const WITHINGS_STARTUP_RETRY_DELAYS_MS = [0, 1500, 4000] as const
+/** Deferred past first paint (KX-MVP-BETA-001). */
+const STRAVA_STARTUP_RETRY_DELAYS_MS = [1500, 2000, 3000, 4000, 5500, 6500] as const
+const WITHINGS_STARTUP_RETRY_DELAYS_MS = [2000, 3500, 6000] as const
 
 function readRagFailStreak(authUserId: string): number {
   if (typeof sessionStorage === 'undefined') return 0
@@ -103,6 +109,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [accountMenuOpen])
 
   useEffect(() => {
+    if (!isRagServiceConfigured()) return
     if (!profile || !authUserId || typeof indexedDB === 'undefined') return
     if (!getActiveScopedDbUserId()) return
     const userProfile = toKinetixUserProfile(profile)
@@ -182,7 +189,7 @@ export default function Layout({ children }: LayoutProps) {
         }
         if (r.error) setStravaSyncError(r.error)
       } catch (e) {
-        setStravaSyncError(e instanceof Error ? e.message : 'Strava sync failed')
+        setStravaSyncError(formatOptionalIntegrationError(e))
       }
       return true
     }
@@ -229,7 +236,7 @@ export default function Layout({ children }: LayoutProps) {
         }
         return true
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Withings startup sync failed'
+        const message = formatOptionalIntegrationError(error)
         setWithingsStartupSyncError(message)
         emitStructuredLog('warn', 'withings_startup_sync_failed', { message })
         return false
@@ -430,6 +437,10 @@ export default function Layout({ children }: LayoutProps) {
             ) : null}
             {children}
             <AdSenseDisplayUnit />
+            <div className="mt-6">
+              <AdSlot />
+            </div>
+            <Footer />
           </main>
         </div>
       </div>
@@ -521,6 +532,7 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
         </div>
       </Dialog>
+      <CookieBanner />
     </div>
   )
 }

@@ -50,14 +50,9 @@ class VoiceCoach: NSObject, ObservableObject {
             let session = AVAudioSession.sharedInstance()
             // Record requires interrupting or specific handling
             #if os(watchOS)
-            if #available(watchOS 11.0, *) {
-                try session.setCategory(.playAndRecord, mode: .measurement, options: [.allowBluetoothHFP, .mixWithOthers])
-            } else {
-                // Fallback: omit .allowBluetooth on older watchOS versions
                 try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers])
-            }
             #else
-            try session.setCategory(.playAndRecord, mode: .measurement, options: [.allowBluetoothHFP, .mixWithOthers])
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers])
             #endif
             try session.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {

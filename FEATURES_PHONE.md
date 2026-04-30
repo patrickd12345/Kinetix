@@ -81,9 +81,9 @@
 - ✅ **Text-to-Speech**: Premium voices for natural-sounding coaching
 
 ### AI Integration
-- ✅ **Gemini API Integration**: AI-powered coaching and conversational responses
+- ✅ **Coach AI (Apple-first)**: Platform gate targets iPhone + iOS 26+ for native/on-device path; conversational chat uses a neutral fallback until Apple Intelligence / Foundation Models coach chat is wired (`TODO`). Production UX does not mention Gemini or third-party keys.
 - ✅ **Run Analysis**: AI-generated summaries and insights
-- ✅ **Conversational Coach**: Interactive Q&A with AI coach
+- ✅ **Conversational Coach**: Interactive Q&A with AI coach (DEBUG-only optional Gemini for engineering when enabled)
 
 ### Data Management
 - ✅ **SwiftData Persistence**: Local data storage

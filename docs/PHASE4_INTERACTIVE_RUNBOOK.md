@@ -3,6 +3,8 @@
 **Audience:** human operator with Bookiji org admin + Supabase service-role + Vercel admin.
 **Companion:** [`PHASE4_RELEASE_EVIDENCE.md`](PHASE4_RELEASE_EVIDENCE.md) (where results land).
 
+**2026-04-30:** Automated preflight (`pnpm verify:kinetix-parity`, `pnpm infisical:list-keys`, `bash watchos/scripts/verify-native-cli.sh`, post-deploy probes) is recorded under **Automation preflight (2026-04-30, go-live plan)** in the evidence doc. The eight human steps below are still **required** for Phase 4 closure.
+
 ## Pre-flight (5 min, scripted)
 
 ```bash

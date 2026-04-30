@@ -13,6 +13,7 @@
 
 ### Metrics & Analytics
 - ✅ **NPI Calculation**: Normalized Performance Index tracking
+- ✅ **KPS display (History & run detail)**: PB-relative display capped at 100, matching iPhone/web policy (shared `KpsRelativeDisplay` logic)
 - ✅ **Pace Tracking**: Real-time pace calculation (seconds per km)
 - ✅ **Distance Tracking**: GPS-based distance measurement
 - ✅ **Heart Rate Monitoring**: HealthKit integration for heart rate data

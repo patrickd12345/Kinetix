@@ -1,8 +1,8 @@
 # Kinetix Scope Closure
 
-Last updated: 2026-04-27
+Last updated: 2026-04-30
 
-**Current phase:** Phase 3 (Platform Hardening) — audit-first; **does not** reopen Wave 2 web scope.
+**Current phase:** Phase 4 (Release Readiness) — operator queue, env parity, and go-live runbooks per [`PHASE4_RELEASE_EVIDENCE.md`](PHASE4_RELEASE_EVIDENCE.md) and [`PHASE4_RELEASE_RUNBOOK.md`](PHASE4_RELEASE_RUNBOOK.md); **does not** reopen Wave 2 web scope. **Parallel (non-release-blocking):** Phase 3 (Platform Hardening) workstreams in [`PRODUCT_SCOPE.md`](PRODUCT_SCOPE.md) and [§ Phase 3 — Platform Hardening](#phase-3--platform-hardening) below.
 
 ## Wave 1
 

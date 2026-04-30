@@ -19,6 +19,7 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 - End-user Help Center and behavior contract: [`apps/web/HELP_CENTER.md`](apps/web/HELP_CENTER.md), [`apps/web/HELP_CENTER_ARCHITECTURE.md`](apps/web/HELP_CENTER_ARCHITECTURE.md)
 - Operator runbook: [`docs/HELP_CENTER_OPERATIONS.md`](docs/HELP_CENTER_OPERATIONS.md)
 - Product roadmap and status: [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md)
+- **Go-live / Phase 4:** operator queue + evidence — [`docs/PHASE4_RELEASE_EVIDENCE.md`](docs/PHASE4_RELEASE_EVIDENCE.md); tag + promote — [`docs/PHASE4_RELEASE_RUNBOOK.md`](docs/PHASE4_RELEASE_RUNBOOK.md)
 
 ## 🚀 Core Features
 

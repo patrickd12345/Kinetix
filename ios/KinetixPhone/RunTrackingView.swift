@@ -105,7 +105,7 @@ struct RunTrackingView: View {
                                 .rotationEffect(.degrees(-90))
 
                             VStack(spacing: -4) {
-                                Text(String(format: "%.1f", min(100, max(0, currentNPI))))
+                                Text(String(format: "%.1f", max(0, currentNPI)))
                                     .font(.system(size: 64, weight: .black, design: .rounded))
                                     .foregroundColor(.white)
                                 Text("KPS")

@@ -1486,7 +1486,7 @@ struct SettingsView: View {
             }
 
             let activities = try await StravaService.shared.fetchActivities(accessToken: accessToken, days: stravaDays)
-            let existingRuns = runs.filter { $0.source == "strava" }
+            let existingRuns = runs.filter { $0.source.hasPrefix("strava") }
             var imported = 0
 
             for activity in activities {
@@ -1509,7 +1509,7 @@ struct SettingsView: View {
 
                 let run = Run(
                     date: activityDate,
-                    source: "strava",
+                    source: "strava:\(activity.id)",
                     distance: activity.distance,
                     duration: Double(activity.moving_time),
                     avgPace: paceSecondsPerKm,

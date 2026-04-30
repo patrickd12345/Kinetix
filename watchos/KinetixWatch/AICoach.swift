@@ -13,6 +13,20 @@ struct SharedAIAnalysis {
 }
 
 final class SharedAIExecutionService {
+    /// Exact production copy when coach chat cannot use the native provider (no Gemini / third-party names).
+    static let coachChatUnavailableUserMessage: String = {
+        #if os(watchOS)
+        return "Open Kinetix on iPhone for coach chat."
+        #else
+        return "Coach AI is not available on this device yet."
+        #endif
+    }()
+
+    #if DEBUG && os(iOS)
+    /// `KinetixPhoneTests` injects a mock `KinetixAppleIntelligenceService`. Must be `nil` in production; clear after each test.
+    static var _unitTestCoachChatProvider: KinetixAppleIntelligenceService?
+    #endif
+
     private var ollamaURL: String {
         UserDefaults.standard.string(forKey: "ollama_api_url") ?? "http://localhost:11434"
     }
@@ -101,28 +115,63 @@ final class SharedAIExecutionService {
         )
     }
 
+    /// Coach chat: Apple / native provider first (`KinetixAppleIntelligenceService`), then DEBUG-only Gemini when flagged, else controlled fallback.
     func ask(question: String, metrics: FormMetrics) async throws -> String {
-        let key = Self.resolveGeminiApiKey()
-        guard !key.contains("PASTE") && !key.isEmpty else {
-            return "Please configure your Gemini API Key in settings."
+        let apple: (text: String, usedFallback: Bool)
+        #if os(iOS)
+        let provider: KinetixAppleIntelligenceService = {
+            #if DEBUG
+            if let injected = Self._unitTestCoachChatProvider { return injected }
+            #endif
+            return DefaultKinetixAppleIntelligenceService.shared
+        }()
+        apple = await provider.generateChatResponse(question: question, metrics: metrics)
+        #else
+        apple = await DefaultKinetixAppleIntelligenceService.shared.generateChatResponse(question: question, metrics: metrics)
+        #endif
+
+        let trimmedApple = apple.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !apple.usedFallback && !trimmedApple.isEmpty {
+            return trimmedApple
         }
 
-        let context = """
-        Current Run Metrics:
-        - Cadence: \(Int(metrics.cadence ?? 0)) spm
-        - Vertical Oscillation: \(Int(metrics.verticalOscillation ?? 0)) cm
-        - Ground Contact: \(Int(metrics.groundContactTime ?? 0)) ms
-        - Heart Rate: \(Int(metrics.heartRate ?? 0)) bpm
-        - Pace: \(metrics.pace ?? 0) sec/km
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: "kinetix_dev_enable_gemini_coach_chat") {
+            let key = Self.resolveGeminiApiKey()
+            if !key.isEmpty && !key.contains("PASTE") {
+                let prompt = Self.buildCoachChatPrompt(question: question, metrics: metrics)
+                if let geminiText = try? await fetchGeminiResponse(prompt: prompt, apiKey: key) {
+                    let trimmed = geminiText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        return trimmed
+                    }
+                }
+            }
+        }
+        #endif
 
-        User Question: "\(question)"
-
-        Answer as a running coach. Keep it brief (under 20 words) for voice output.
-        """
-
-        let text = try await fetchGeminiResponse(prompt: context, apiKey: key)
-        return text.replacingOccurrences(of: "*", with: "")
+        return Self.coachChatUnavailableUserMessage
     }
+
+    #if DEBUG
+    private static func buildCoachChatPrompt(question: String, metrics: FormMetrics) -> String {
+        let paceStr = metrics.pace.map { String(format: "%.0f s/km", $0) } ?? "n/a"
+        let distStr = metrics.distance.map { String(format: "%.2f km", $0 / 1000) } ?? "n/a"
+        let cadStr = metrics.cadence.map { String(format: "%.0f spm", $0) } ?? "n/a"
+        let hrStr = metrics.heartRate.map { String(format: "%.0f bpm", $0) } ?? "n/a"
+        return """
+        You are Kinetix, a knowledgeable running coach. Answer briefly (under 120 words), actionable, and encouraging.
+
+        Athlete question: \(question)
+
+        Current live context (may be incomplete if not running):
+        - Pace: \(paceStr)
+        - Distance: \(distStr)
+        - Cadence: \(cadStr)
+        - Heart rate: \(hrStr)
+        """
+    }
+    #endif
 
     private func analyzeWithOllama(
         distance: Double,
@@ -280,23 +329,25 @@ final class SharedAIExecutionService {
         songBpm: Int?,
         avgCadence: Double?
     ) -> SharedAIAnalysis {
-        let npiDiff = npi - targetNPI
+        let kpsShown = min(100.0, max(0, npi))
+        let targetShown = min(100.0, max(0, targetNPI))
+        let npiDiff = kpsShown - targetShown
 
         var title: String
         var insight: String
 
         if npiDiff > 10 {
             title = "Strong Performance Above Target"
-            insight = "Your KPS of \(Int(npi)) is \(Int(npiDiff)) points above your target of \(Int(targetNPI)). Excellent work! You're performing well above expectations."
+            insight = "Your KPS of \(Int(kpsShown)) is \(Int(npiDiff)) points above your target of \(Int(targetShown)). Excellent work! You're performing well above expectations."
         } else if npiDiff > 0 {
             title = "Target Achieved"
-            insight = "Your KPS of \(Int(npi)) meets your target of \(Int(targetNPI)). Great consistency! You're on track with your goals."
+            insight = "Your KPS of \(Int(kpsShown)) meets your target of \(Int(targetShown)). Great consistency! You're on track with your goals."
         } else if npiDiff > -10 {
             title = "Near Target Performance"
-            insight = "Your KPS of \(Int(npi)) is \(Int(abs(npiDiff))) points below target. You're close! Focus on maintaining consistent pace."
+            insight = "Your KPS of \(Int(kpsShown)) is \(Int(abs(npiDiff))) points below target. You're close! Focus on maintaining consistent pace."
         } else {
             title = "Below Target - Room for Improvement"
-            insight = "Your KPS of \(Int(npi)) is \(Int(abs(npiDiff))) points below target. Consider focusing on pace consistency and training volume."
+            insight = "Your KPS of \(Int(kpsShown)) is \(Int(abs(npiDiff))) points below target. Consider focusing on pace consistency and training volume."
         }
 
         insight += " Your \(String(format: "%.2f", distance)) km run at \(pace)/km shows good effort."
@@ -435,7 +486,7 @@ class AICoach: ObservableObject {
             print("Ask Error: \(errorMsg)")
             print("Full error: \(error)")
             self.error = errorMsg
-            return "Coach offline: \(errorMsg)"
+            return SharedAIExecutionService.coachChatUnavailableUserMessage
         }
     }
 }

@@ -1,6 +1,10 @@
 import Foundation
+#if canImport(ActivityKit)
 import ActivityKit
+#endif
 
+#if canImport(ActivityKit)
+@available(iOS 16.1, *)
 struct KinetixAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         var kps: Double
@@ -12,6 +16,7 @@ struct KinetixAttributes: ActivityAttributes {
     var runName: String
 }
 
+@available(iOS 16.1, *)
 class LiveActivityManager {
     static let shared = LiveActivityManager()
     private var currentActivity: Activity<KinetixAttributes>?
@@ -23,7 +28,12 @@ class LiveActivityManager {
         let state = KinetixAttributes.ContentState(kps: kps, distance: distance, pace: pace, elapsedTime: time)
 
         do {
-            currentActivity = try Activity.request(attributes: attributes, contentState: state, pushType: nil)
+            if #available(iOS 16.2, *) {
+                let content = ActivityContent(state: state, staleDate: nil)
+                currentActivity = try Activity.request(attributes: attributes, content: content, pushType: nil)
+            } else {
+                currentActivity = try Activity.request(attributes: attributes, contentState: state, pushType: nil)
+            }
             print("🚀 Started Live Activity")
         } catch {
             print("❌ Error starting Live Activity: \(error.localizedDescription)")
@@ -33,15 +43,33 @@ class LiveActivityManager {
     func updateRunActivity(kps: Double, distance: Double, pace: String, time: String) {
         Task {
             let state = KinetixAttributes.ContentState(kps: kps, distance: distance, pace: pace, elapsedTime: time)
-            await currentActivity?.update(using: state)
+            if #available(iOS 16.2, *) {
+                let content = ActivityContent(state: state, staleDate: nil)
+                await currentActivity?.update(content)
+            } else {
+                await currentActivity?.update(using: state)
+            }
         }
     }
 
     func stopRunActivity() {
         Task {
-            await currentActivity?.end(dismissalPolicy: .immediate)
+            if #available(iOS 16.2, *) {
+                await currentActivity?.end(nil, dismissalPolicy: .immediate)
+            } else {
+                await currentActivity?.end(dismissalPolicy: .immediate)
+            }
             currentActivity = nil
             print("🛑 Ended Live Activity")
         }
     }
 }
+#else
+// Fallbacks for platforms/OS versions where ActivityKit is unavailable
+struct LiveActivityManager {
+    static let shared = LiveActivityManager()
+    func startRunActivity(name: String, kps: Double, distance: Double, pace: String, time: String) { /* no-op */ }
+    func updateRunActivity(kps: Double, distance: Double, pace: String, time: String) { /* no-op */ }
+    func stopRunActivity() { /* no-op */ }
+}
+#endif

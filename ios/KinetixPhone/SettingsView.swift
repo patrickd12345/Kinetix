@@ -56,10 +56,15 @@ struct SettingsView: View {
     @State private var ollamaAvailable: Bool = false
     @State private var checkingOllama = false
     @State private var showAdvancedAISettings = false
+    @State private var showDeveloperCoachTools = false
+    /// Used only by `#if DEBUG` developer Gemini section (never shown in Release UI).
+    @State private var geminiApiKeyDraft: String = ""
+    @State private var geminiKeyStatusMessage: String?
+    @AppStorage("kinetix_dev_enable_gemini_coach_chat") private var devGeminiCoachChatEnabled = false
     
     private let sexOptions = ["unspecified", "female", "male", "nonbinary"]
     private let kgToLbs = 2.20462
-    private let appleIntelligenceService: KinetixAppleIntelligenceService = DefaultKinetixAppleIntelligenceService()
+    private let appleIntelligenceService: KinetixAppleIntelligenceService = DefaultKinetixAppleIntelligenceService.shared
     
     var body: some View {
         NavigationStack {
@@ -117,6 +122,7 @@ struct SettingsView: View {
                 updateCloudSyncStatus()
                 loadOllamaSettings()
                 checkOllamaAvailability()
+                loadGeminiApiKeyDraft()
             }
             .onChange(of: weightUnit) { oldValue, newValue in
                 guard oldValue != newValue else { return }
@@ -466,21 +472,18 @@ struct SettingsView: View {
                 Spacer()
             }
             .padding(.vertical, 4)
+
+            #if DEBUG
+            DisclosureGroup(isExpanded: $showDeveloperCoachTools) {
+                geminiDeveloperCoachChatSection
+            } label: {
+                Text("Developer tools")
+                    .font(.subheadline)
+            }
+            #endif
             
             // Advanced Settings (collapsed by default)
             if showAdvancedAISettings {
-                Divider()
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Gemini / Google AI Studio keys")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Text("Gemini API keys must not ship in the app bundle. Until Lane A adds an authenticated Gemini proxy endpoint, \(GeminiProxyService.unavailableReason()). Use local Ollama below or rely on Apple Intelligence / rule-based summaries.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.vertical, 4)
-
                 Divider()
                 
                 // Ollama Settings
@@ -535,9 +538,68 @@ struct SettingsView: View {
                     .font(.caption)
             }
         } header: {
-            Text("AI Coach")
+            Text("Coach & analysis")
         } footer: {
-            Text("AI analysis defaults to Apple Intelligence where available; otherwise rule-based summaries. Gemini via Google Cloud keys is removed from the binary — \(GeminiProxyService.unavailableReason()).")
+            Text("Coach chat uses on-device AI when your iPhone supports it. Otherwise you’ll see a short unavailable message. Optional local analysis tools are under Advanced settings.")
+        }
+    }
+
+    #if DEBUG
+    private var geminiDeveloperCoachChatSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Developer — experimental coach chat")
+                .font(.subheadline)
+                .foregroundColor(.orange)
+            Text("DEBUG builds only. Optional Gemini key for engineering; Release builds never show this section.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Toggle("Enable Gemini coach chat (debug)", isOn: $devGeminiCoachChatEnabled)
+            SecureField("Gemini API key (debug)", text: $geminiApiKeyDraft)
+                .textContentType(.password)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            HStack {
+                Button("Save key") {
+                    saveGeminiApiKeyFromDraft()
+                }
+                Button("Remove key") {
+                    removeGeminiApiKey()
+                }
+                .foregroundColor(.red)
+            }
+            .font(.subheadline)
+            if let msg = geminiKeyStatusMessage {
+                Text(msg)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    #endif
+
+    private func loadGeminiApiKeyDraft() {
+        geminiApiKeyDraft = ApiKeyStorage.shared.getKey(name: "gemini_api_key") ?? ""
+    }
+
+    private func saveGeminiApiKeyFromDraft() {
+        let trimmed = geminiApiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        do {
+            try ApiKeyStorage.shared.storeKey(name: "gemini_api_key", value: trimmed)
+            geminiKeyStatusMessage = trimmed.isEmpty ? "Key removed." : "Key saved (debug)."
+            loadGeminiApiKeyDraft()
+        } catch {
+            geminiKeyStatusMessage = error.localizedDescription
+        }
+    }
+
+    private func removeGeminiApiKey() {
+        do {
+            try ApiKeyStorage.shared.removeKey(name: "gemini_api_key")
+            geminiApiKeyDraft = ""
+            geminiKeyStatusMessage = "Key removed."
+        } catch {
+            geminiKeyStatusMessage = error.localizedDescription
         }
     }
     
@@ -561,10 +623,13 @@ struct SettingsView: View {
     }
 
     private var aiStatusDescription: String {
-        if ollamaAvailable {
-            return "Using local AI (Ollama)"
+        if appleIntelligenceService.isAppleIntelligenceAvailable() == .available {
+            return "On-device AI path available for supported summaries (iOS 26+ iPhone)"
         }
-        return "Using rule-based analysis"
+        if ollamaAvailable {
+            return "Ollama reachable — optional for run analysis"
+        }
+        return "Built-in rules when optional AI backends aren’t available"
     }
     
     private var batteryProfileSection: some View {
@@ -1086,6 +1151,7 @@ struct SettingsView: View {
         }
         summaryError = nil
         let totalDistance = recentRuns.map(\.distance).reduce(0, +) / 1000
+        let totalDuration = recentRuns.map(\.duration).reduce(0, +)
         let avgNPI = recentRuns.map(\.avgNPI).reduce(0, +) / Double(recentRuns.count)
         let bestNPI = recentRuns.map(\.avgNPI).max() ?? avgNPI
         let stabilityScore = recentRuns.compactMap { $0.formScore }.averageOrNil() ?? 0
@@ -1095,9 +1161,10 @@ struct SettingsView: View {
         let result = await appleIntelligenceService.generatePostRunSummary(
             PostRunSummaryInput(
                 distance: totalDistance * 1000,
+                duration: totalDuration,
                 pace: recentRuns.compactMap(\.avgPace).averageOrNil() ?? 0,
-                heartRateAvg: recentRuns.compactMap(\.avgHeartRate).averageOrNil(),
                 kps: avgNPI,
+                heartRateAvg: recentRuns.compactMap(\.avgHeartRate).averageOrNil(),
                 trendDirection: trendDirection
             )
         )

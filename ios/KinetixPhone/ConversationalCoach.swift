@@ -44,8 +44,8 @@ class ConversationalCoach: ObservableObject {
         // 1. Add user message to UI
         conversationHistory.append(ChatMessage(sender: .user, text: text))
         
-        // 2. Add loading indicator
-        let loadingMessage = ChatMessage(sender: .coach, text: "💭 Thinking...")
+        // 2. Minimal loading state (avoid heavy / playful blocks in demo builds)
+        let loadingMessage = ChatMessage(sender: .coach, text: "Working…")
         conversationHistory.append(loadingMessage)
         let loadingId = loadingMessage.id
         
@@ -57,7 +57,18 @@ class ConversationalCoach: ObservableObject {
         
         // 5. Ask AI
         Task {
-            let response = await aiExecutionService.ask(question: text, metrics: metrics)
+            let response: String
+            do {
+                response = try await aiExecutionService.ask(question: text, metrics: metrics)
+            } catch {
+                logger.log("AI ask failed: \(error.localizedDescription)", category: "chat")
+                await MainActor.run {
+                    conversationHistory.removeAll { $0.id == loadingId }
+                    conversationHistory.append(ChatMessage(sender: .coach, text: SharedAIExecutionService.coachChatUnavailableUserMessage))
+                    isSpeaking = false
+                }
+                return
+            }
 
             // Remove loading message
             await MainActor.run {
@@ -70,22 +81,15 @@ class ConversationalCoach: ObservableObject {
             if trimmed.isEmpty {
                 logger.log("AI returned empty response", category: "chat")
                 await MainActor.run {
-                    conversationHistory.append(ChatMessage(sender: .coach, text: "⚠️ Coach is offline right now. Try again in a moment."))
-                    isSpeaking = false
-                }
-            } else if response.lowercased().contains("error") || response.lowercased().contains("offline") {
-                logger.log("AI response error: \(response)", category: "chat")
-                await MainActor.run {
-                    conversationHistory.append(ChatMessage(sender: .coach, text: "⚠️ \(trimmed)"))
+                    conversationHistory.append(ChatMessage(sender: .coach, text: SharedAIExecutionService.coachChatUnavailableUserMessage))
                     isSpeaking = false
                 }
             } else {
-                // Success - Add response to UI
+                let safe = CoachChatSanitizer.sanitizeUserFacing(trimmed)
                 await MainActor.run {
-                    conversationHistory.append(ChatMessage(sender: .coach, text: trimmed))
+                    conversationHistory.append(ChatMessage(sender: .coach, text: safe))
                     isSpeaking = false
-                    // Speak it!
-                    speak(trimmed)
+                    speak(safe)
                 }
             }
         }

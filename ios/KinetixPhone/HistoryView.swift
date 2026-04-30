@@ -15,7 +15,7 @@ struct HistoryView: View {
                 } else {
                     ForEach(runs) { run in
                         NavigationLink(destination: RunDetailView(run: run)) {
-                            RunRow(run: run)
+                            RunRow(run: run, allRuns: runs)
                         }
                         .listRowBackground(Color.white.opacity(0.05))
                     }
@@ -30,6 +30,7 @@ struct HistoryView: View {
 
 struct RunRow: View {
     let run: Run
+    let allRuns: [Run]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -38,7 +39,7 @@ struct RunRow: View {
                     .font(.system(size: 16, weight: .black))
                     .foregroundColor(.white)
                 Spacer()
-                Text("\(Int(run.avgNPI)) KPS")
+                Text("\(KpsRelativeDisplay.displayKpsInt(for: run, among: allRuns)) KPS")
                     .font(.system(size: 14, weight: .black))
                     .foregroundColor(.cyan)
             }
@@ -67,6 +68,7 @@ struct RunRow: View {
 struct RunDetailView: View {
     let run: Run
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: [SortDescriptor<Run>(\.date, order: .reverse)]) private var allRuns: [Run]
     @Query private var profiles: [RunnerProfile]
     
     @StateObject private var aiCoach = AICoach()
@@ -110,7 +112,7 @@ struct RunDetailView: View {
 
                 // 2. Performance Summary
                 HStack(spacing: 16) {
-                    PerformanceMetricCard(label: "KPS", value: "\(Int(run.avgNPI))", icon: "bolt.fill", color: .cyan)
+                    PerformanceMetricCard(label: "KPS", value: "\(KpsRelativeDisplay.displayKpsInt(for: run, among: allRuns))", icon: "bolt.fill", color: .cyan)
                     PerformanceMetricCard(label: "DISTANCE", value: String(format: "%.2f", run.distance / 1000), unit: "KM", icon: "figure.run", color: .blue)
                 }
                 

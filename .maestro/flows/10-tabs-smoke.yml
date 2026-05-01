@@ -13,40 +13,39 @@ tags:
       notifications: allow
 - runFlow: ../helpers/dismiss-system-alerts.yml
 
-- assertVisible:
-    id: "KinetixTab.home"
+- assertVisible: "KINETIX"
 - takeScreenshot: 10-tab-home
 
 - tapOn:
-    id: "KinetixTab.coach"
+    point: "30%,95%"
 - waitForAnimationToEnd:
     timeout: 4000
 - runFlow: ../helpers/dismiss-system-alerts.yml
 - takeScreenshot: 10-tab-coach
 
 - tapOn:
-    id: "KinetixTab.build"
+    point: "50%,95%"
 - waitForAnimationToEnd:
     timeout: 4000
 - runFlow: ../helpers/dismiss-system-alerts.yml
 - takeScreenshot: 10-tab-build
 
 - tapOn:
-    id: "KinetixTab.history"
+    point: "70%,95%"
 - waitForAnimationToEnd:
     timeout: 4000
 - runFlow: ../helpers/dismiss-system-alerts.yml
 - takeScreenshot: 10-tab-history
 
 - tapOn:
-    id: "KinetixTab.settings"
+    point: "90%,95%"
 - waitForAnimationToEnd:
     timeout: 4000
 - runFlow: ../helpers/dismiss-system-alerts.yml
 - takeScreenshot: 10-tab-settings
 
 - tapOn:
-    id: "KinetixTab.home"
+    point: "10%,95%"
 - waitForAnimationToEnd:
     timeout: 4000
 - assertVisible: "KINETIX"

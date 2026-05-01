@@ -20,14 +20,14 @@ tags:
     times: 5
     commands:
       - tapOn:
-          id: "KinetixTab.home"
+          point: "10%,95%"
       - waitForAnimationToEnd:
           timeout: 2000
       - takeScreenshot: crawl-iter-home
       - runFlow: ../helpers/dismiss-system-alerts.yml
 
       - tapOn:
-          id: "KinetixTab.coach"
+          point: "30%,95%"
       - waitForAnimationToEnd:
           timeout: 2000
       - scroll
@@ -36,7 +36,7 @@ tags:
       - runFlow: ../helpers/dismiss-system-alerts.yml
 
       - tapOn:
-          id: "KinetixTab.build"
+          point: "50%,95%"
       - waitForAnimationToEnd:
           timeout: 2000
       - scroll
@@ -44,7 +44,7 @@ tags:
       - runFlow: ../helpers/dismiss-system-alerts.yml
 
       - tapOn:
-          id: "KinetixTab.history"
+          point: "70%,95%"
       - waitForAnimationToEnd:
           timeout: 2000
       - scroll
@@ -52,7 +52,7 @@ tags:
       - runFlow: ../helpers/dismiss-system-alerts.yml
 
       - tapOn:
-          id: "KinetixTab.settings"
+          point: "90%,95%"
       - waitForAnimationToEnd:
           timeout: 2000
       - scroll

@@ -14,7 +14,7 @@ tags:
 - runFlow: ../helpers/dismiss-system-alerts.yml
 
 - tapOn:
-    id: "KinetixTab.build"
+    point: "50%,95%"
 - waitForAnimationToEnd:
     timeout: 4000
 - assertVisible: "Activity Builder"

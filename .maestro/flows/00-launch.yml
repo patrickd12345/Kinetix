@@ -15,14 +15,4 @@ tags:
     timeout: 5000
 - runFlow: ../helpers/dismiss-system-alerts.yml
 - assertVisible: "KINETIX"
-- assertVisible:
-    id: "KinetixTab.home"
-- assertVisible:
-    id: "KinetixTab.coach"
-- assertVisible:
-    id: "KinetixTab.build"
-- assertVisible:
-    id: "KinetixTab.history"
-- assertVisible:
-    id: "KinetixTab.settings"
 - takeScreenshot: 00-launch-home

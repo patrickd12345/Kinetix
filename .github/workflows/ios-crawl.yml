@@ -20,7 +20,10 @@ concurrency:
 
 jobs:
   crawl:
-    runs-on: macos-14
+    # macos-15 ships Xcode 16.3+ (Swift 6.1) which is required by the
+    # transitive swift-crypto >=4.5.0 pulled in by Supabase. macos-14 only
+    # has Xcode 16.2 (Swift 6.0) and fails dependency resolution.
+    runs-on: macos-15
     timeout-minutes: 25
     env:
       DERIVED_DATA: ${{ github.workspace }}/build/DerivedData

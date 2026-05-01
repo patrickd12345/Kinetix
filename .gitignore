@@ -34,6 +34,7 @@ apps/web/coverage/
 garmin.zip
 supabase/.temp/platform_data_dump.sql
 supabase/.temp/platform_data_dump_after_seed.sql
+supabase/.temp/cli-latest
 
 # IDE (optional)
 .idea/

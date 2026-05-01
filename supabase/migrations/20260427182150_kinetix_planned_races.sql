@@ -32,6 +32,11 @@ grant all privileges on table kinetix.planned_races to service_role;
 
 alter table kinetix.planned_races enable row level security;
 
+drop policy if exists "kinetix_planned_races_select_own" on kinetix.planned_races;
+drop policy if exists "kinetix_planned_races_insert_own" on kinetix.planned_races;
+drop policy if exists "kinetix_planned_races_update_own" on kinetix.planned_races;
+drop policy if exists "kinetix_planned_races_delete_own" on kinetix.planned_races;
+
 create policy "kinetix_planned_races_select_own"
   on kinetix.planned_races for select using (auth.uid() = profile_id);
 create policy "kinetix_planned_races_insert_own"

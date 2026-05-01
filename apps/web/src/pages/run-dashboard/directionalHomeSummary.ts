@@ -8,7 +8,8 @@ export interface DirectionalHomeSummary {
   runCount7d: number
   distance7d: number
   streakDays: number
-  latestKps: number | null
+  /** Best recent KPS (relative to PB) used as the current dashboard reference. */
+  referenceKps: number | null
   intelligence: IntelligenceResult | null
   error: string | null
 }

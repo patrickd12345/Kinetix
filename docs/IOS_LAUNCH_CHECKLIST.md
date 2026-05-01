@@ -114,17 +114,19 @@ Follow `docs/audit/KINETIX_NATIVE_AUDIT_RUNBOOK.md` once on a **paired physical 
 - **Entitlements:** `EntitlementService` calls `GET {KINETIX_WEB_BASE_URL}/api/entitlements?product_key=kinetix` with `Authorization: Bearer <JWT>`.
 - **Paid surfaces:** While `Features.requireEntitlementForPaidSurfaces` is true and the API returns inactive / missing, **Cloud Storage** and **Strava** sections are replaced by `entitlementGateSection`.
 
-### Lane A handoffs
+### Lane A handoffs (status: implemented in Kinetix `api/`)
 
-- Implement **`GET /api/entitlements`** with JSON body per contract:
+- **`GET /api/entitlements?product_key=kinetix`** — `Authorization: Bearer <Supabase JWT>`. Returns JSON per contract:
 
 ```json
 { "active": true, "ends_at": "2026-12-31T23:59:59Z", "source": "stripe" }
 ```
 
-(`ends_at` nullable when lifetime / trial without end)
+(`ends_at` null when no end date on active entitlements; `source` from the best-matching active row)
 
-- Implement **`POST /api/platform-profile/sync`** (or rename consistently) for `PlatformIdentityService.syncToPlatform` — currently logs when non-200.
+- **`POST /api/platform-profile/sync`** — same Bearer token; body may be `{}`. Upserts `platform.profiles` for the user (used by `PlatformIdentityService.syncToPlatform`).
+
+Both require `SUPABASE_SERVICE_ROLE_KEY` on the Vercel Kinetix project (same as other server-side platform routes).
 
 ---
 

@@ -45,6 +45,8 @@ process.env <- /platform <- /kinetix <- apps/web/.env.local
 
 That means Kinetix-specific keys override shared platform keys, and local emergency overrides win last.
 
+**Browser bundle:** `apps/web/vite.config.dev.ts` forwards Supabase-related `VITE_*` and `NEXT_PUBLIC_*` values from `process.env` into `import.meta.env` at dev-server startup so the client (e.g. `createClient` in `supabaseClient.ts`) matches the Infisical merge, not only the Vite dev server middleware.
+
 ## Local commands
 
 ### Start without Infisical (validates `apps/web/.env.local`)

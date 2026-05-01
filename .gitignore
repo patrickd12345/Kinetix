@@ -46,3 +46,6 @@ supabase/.temp/platform_data_dump_after_seed.sql
 
 # Playwright MCP / local tooling
 .playwright-mcp/
+
+# Firecrawl CLI scrape/search outputs (see Firecrawl skill)
+.firecrawl/

@@ -33,7 +33,7 @@ struct HistoryView: View {
                                     .font(.caption2)
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text("KPS \(Int(run.avgNPI))")
+                                Text("KPS \(KpsRelativeDisplay.displayKpsInt(for: run, among: runs))")
                                     .font(.system(size: 12, weight: .black))
                                     .foregroundColor(.cyan)
                             }

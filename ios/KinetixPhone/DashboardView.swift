@@ -15,7 +15,8 @@ struct DashboardView: View {
                 Text("Coaching").tag(1)
             }
             .pickerStyle(SegmentedPickerStyle())
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
             .background(Color(white: 0.05))
 
             if activeSubTab == 0 {
@@ -32,17 +33,17 @@ struct DashboardView: View {
     private var liveView: some View {
         VStack(spacing: 0) {
             // 1. LIVE METRICS HEADER
-            VStack(spacing: 12) {
-                HStack {
+            VStack(spacing: 10) {
+                HStack(spacing: 8) {
                     MetricCard(title: "HR", value: "\(Int(connectivity.currentMetrics.heartRate ?? 0))", unit: "bpm", color: .red)
                     MetricCard(title: "CADENCE", value: "\(Int(connectivity.currentMetrics.cadence ?? 0))", unit: "spm", color: .blue)
                     MetricCard(title: "BOUNCE", value: String(format: "%.1f", connectivity.currentMetrics.verticalOscillation ?? 0), unit: "cm", color: .purple)
                 }
                 
                 if !connectivity.cadenceHistory.isEmpty {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("Live Cadence").font(.caption).bold().foregroundColor(.gray)
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Live Cadence").font(.caption2).bold().foregroundColor(.gray)
                             Chart {
                                 ForEach(connectivity.cadenceHistory, id: \.0) { item in
                                     LineMark(x: .value("Time", item.0), y: .value("SPM", item.1))
@@ -52,11 +53,11 @@ struct DashboardView: View {
                             }
                             .chartYScale(domain: 150...200)
                             .chartXAxis(.hidden)
-                            .frame(height: 60)
+                            .frame(height: 48)
                         }
                         
-                        VStack(alignment: .leading) {
-                            Text("Live HR").font(.caption).bold().foregroundColor(.gray)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Live HR").font(.caption2).bold().foregroundColor(.gray)
                             Chart {
                                 ForEach(connectivity.heartRateHistory, id: \.0) { item in
                                     LineMark(x: .value("Time", item.0), y: .value("BPM", item.1))
@@ -66,26 +67,37 @@ struct DashboardView: View {
                             }
                             .chartYScale(domain: 100...190)
                             .chartXAxis(.hidden)
-                            .frame(height: 60)
+                            .frame(height: 48)
                         }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 4)
                 }
             }
-            .padding()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
             .background(Color(white: 0.08))
             .shadow(radius: 2)
             
             // 2. CONVERSATION STREAM
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 12) {
+                    LazyVStack(spacing: 8) {
+                        if coach.conversationHistory.isEmpty {
+                            Text("Messages appear here.")
+                                .font(.footnote)
+                                .foregroundColor(.gray.opacity(0.75))
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .padding(.horizontal, 20)
+                        }
                         ForEach(coach.conversationHistory) { msg in
                             ChatBubble(message: msg)
                         }
-                        Color.clear.frame(height: 20)
+                        Color.clear.frame(height: 12)
                     }
-                    .padding()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                 }
                 .onChange(of: coach.conversationHistory.count) { _, _ in
                     if let lastId = coach.conversationHistory.last?.id {
@@ -98,7 +110,7 @@ struct DashboardView: View {
             .background(Color(white: 0.05))
             
             // 3. INPUT AREA
-            HStack {
+            HStack(spacing: 10) {
                 TextField("Ask Coach...", text: $userTextInput)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                 
@@ -121,11 +133,12 @@ struct DashboardView: View {
                     coach.sendUserMessage("How is my form looking right now?")
                 }) {
                     Image(systemName: "mic.circle.fill")
-                        .font(.largeTitle)
+                        .font(.title)
                         .foregroundColor(.red)
                 }
             }
-            .padding()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
             .background(Color(white: 0.12))
         }
     }
@@ -138,13 +151,13 @@ struct MetricCard: View {
     let color: Color
     
     var body: some View {
-        VStack {
+        VStack(spacing: 2) {
             Text(title)
-                .font(.caption)
+                .font(.caption2)
                 .fontWeight(.bold)
                 .foregroundColor(.gray)
             Text(value)
-                .font(.title)
+                .font(.title2)
                 .fontWeight(.heavy)
                 .foregroundColor(color)
             Text(unit)
@@ -152,7 +165,8 @@ struct MetricCard: View {
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
-        .padding(8)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
         .background(Color.white.opacity(0.05))
         .cornerRadius(10)
     }
@@ -166,10 +180,12 @@ struct ChatBubble: View {
             if message.sender == .user { Spacer() }
             
             Text(message.text)
-                .padding()
+                .font(.subheadline)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
                 .background(message.sender == .user ? Color.blue : Color.white.opacity(0.1))
                 .foregroundColor(.white)
-                .cornerRadius(16)
+                .cornerRadius(14)
                 .frame(maxWidth: 280, alignment: message.sender == .user ? .trailing : .leading)
             
             if message.sender == .coach { Spacer() }

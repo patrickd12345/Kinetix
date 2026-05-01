@@ -17,11 +17,18 @@ import { resolveProfileForRunWithWeightCache } from './authState'
 const RAG_PORTS = [3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010]
 let cachedRAGBaseUrl: string | null = null
 
-/** Resolve RAG base URL: use VITE_RAG_SERVICE_URL if set, else try localhost ports 3001..3010 until /health responds. */
+/** Clears the resolved localhost cache (e.g. env switch or RAG restarted on another port). */
+export function clearRagBaseUrlCache(): void {
+  cachedRAGBaseUrl = null
+}
+
+/** Resolve RAG base URL: use VITE_RAG_SERVICE_URL if set, else try localhost ports 3001..3010 until /health responds (dev only). */
 export async function getRAGBaseUrl(): Promise<string | null> {
   const explicit = import.meta.env.VITE_RAG_SERVICE_URL
   if (explicit && typeof explicit === 'string') return explicit
   if (cachedRAGBaseUrl) return cachedRAGBaseUrl
+  /** Production CSP and deployment never expose loopback; set VITE_RAG_SERVICE_URL for hosted RAG. */
+  if (!import.meta.env.DEV) return null
   for (const port of RAG_PORTS) {
     const base = `http://localhost:${port}`
     try {
@@ -183,7 +190,10 @@ export async function syncNewRunsToRAG(
   userProfile: UserProfile
 ): Promise<{ indexed: number; errors: number; skipped: number }> {
   const base = await getRAGBaseUrl()
-  if (!base) return { indexed: 0, errors: runs.length, skipped: 0 }
+  if (!base) {
+    /** No RAG endpoint (no env / no local service): defer sync — do not count as per-run index failures. */
+    return { indexed: 0, errors: 0, skipped: runs.length }
+  }
   const indexedIds = await getIndexedRunIds()
   const toIndex = runs.filter((run) => !indexedIds.has(runToRagId(run)))
   let indexed = 0
@@ -328,11 +338,16 @@ export async function getCoachContext(
  * Reindex all runs into RAG. Use after initial setup or to fix missing indexes.
  * Uses weight at run date for each run's KPS.
  */
-export async function reindexAllRunsInRAG(runs: RunRecord[]): Promise<{ indexed: number; errors: number }> {
+export async function reindexAllRunsInRAG(runs: RunRecord[]): Promise<{
+  indexed: number
+  errors: number
+  /** True when no RAG URL could be resolved (not the same as per-run index failures). */
+  noRagService: boolean
+}> {
   let indexed = 0
   let errors = 0
   const base = await getRAGBaseUrl()
-  if (!base) return { indexed: 0, errors: runs.length }
+  if (!base) return { indexed: 0, errors: 0, noRagService: true }
 
   const runDates = runs.map((r) => r.date)
   const weightByDate = await getWeightsForDates(runDates)
@@ -344,5 +359,5 @@ export async function reindexAllRunsInRAG(runs: RunRecord[]): Promise<{ indexed:
     if (ok) indexed += 1
     else errors += 1
   }
-  return { indexed, errors }
+  return { indexed, errors, noRagService: false }
 }

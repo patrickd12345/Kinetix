@@ -19,6 +19,7 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 - End-user Help Center and behavior contract: [`apps/web/HELP_CENTER.md`](apps/web/HELP_CENTER.md), [`apps/web/HELP_CENTER_ARCHITECTURE.md`](apps/web/HELP_CENTER_ARCHITECTURE.md)
 - Operator runbook: [`docs/HELP_CENTER_OPERATIONS.md`](docs/HELP_CENTER_OPERATIONS.md)
 - Product roadmap and status: [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md)
+- **Go-live / Phase 4:** operator queue + evidence — [`docs/PHASE4_RELEASE_EVIDENCE.md`](docs/PHASE4_RELEASE_EVIDENCE.md); tag + promote — [`docs/PHASE4_RELEASE_RUNBOOK.md`](docs/PHASE4_RELEASE_RUNBOOK.md)
 
 ## 🚀 Core Features
 
@@ -209,12 +210,14 @@ The pnpm workspace at the repo root drives the web app and RAG service. Use this
 
 - **Node.js** 22.x (see `package.json` `engines`)
 - **pnpm** 8+ (see `packageManager` in `package.json`)
+- **Supabase (web auth/profile):** Either **`pnpm dev`** with the Infisical CLI logged in (injects `VITE_SUPABASE_*`), or create **`apps/web/.env.local`** from [`apps/web/.env.example`](apps/web/.env.example) with **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** (same Supabase project as Bookiji for SSO). Without these, the app shows profile validation errors.
 
 ### Common commands
 
 | Command | Purpose |
 | -------- | -------- |
 | `pnpm install` | Install all workspace dependencies |
+| `pnpm start` | Same as **`pnpm dev:local`** — RAG + web; merges `apps/web/.env.local` and validates Supabase keys before start |
 | `pnpm dev` | Run RAG + web together with Infisical-injected secrets |
 | `pnpm dev:local` | Same as `dev:raw` after merging `process.env` + `apps/web/.env.local` and validating Supabase keys (no Infisical CLI) |
 | `pnpm dev:raw` | Run RAG + web together without the Infisical preflight/injection |

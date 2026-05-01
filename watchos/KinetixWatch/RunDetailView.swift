@@ -5,8 +5,13 @@ import MapKit
 struct RunDetailView: View {
     let run: Run
     let unitSystem: String
+    @Query(sort: \Run.date, order: .reverse) private var allRuns: [Run]
     @State private var aiSummaryText: String?
     private let watchCoachingService = KinetixWatchCoachingService()
+
+    private var displayKps: Int {
+        KpsRelativeDisplay.displayKpsInt(for: run, among: allRuns)
+    }
     
     var body: some View {
         ScrollView {
@@ -23,7 +28,7 @@ struct RunDetailView: View {
                                 .font(.caption2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.gray)
-                            Text("\(Int(run.avgNPI))")
+                            Text("\(displayKps)")
                                 .font(.system(size: 32, weight: .black, design: .rounded))
                                 .foregroundColor(.cyan)
                         }

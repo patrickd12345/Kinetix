@@ -8,6 +8,7 @@ struct MainTabView: View {
     @AppStorage("weightSource") private var weightSource: String = "profile"
     @AppStorage("lastWithingsWeightKg") private var lastWithingsWeightKg: Double = 0
     @AppStorage("withingsLastStartupSyncAt") private var withingsLastStartupSyncAt: Double = 0
+    @AppStorage("stravaLastStartupSyncAt") private var stravaLastStartupSyncAt: Double = 0
     
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -63,6 +64,7 @@ struct MainTabView: View {
 
             Task {
                 await syncWithingsWeightsOnStartupIfNeeded()
+                await syncStravaRunsOnStartupIfNeeded()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
@@ -111,6 +113,80 @@ struct MainTabView: View {
     }
 
     @MainActor
+    private func syncStravaRunsOnStartupIfNeeded() async {
+        let now = Date().timeIntervalSince1970
+        let minInterval: TimeInterval = 4 * 60 * 60
+        guard now - stravaLastStartupSyncAt >= minInterval else { return }
+        guard CloudTokenStorage.shared.hasTokens(provider: "strava") else { return }
+        stravaLastStartupSyncAt = now
+
+        do {
+            guard let tokens = try CloudTokenStorage.shared.getTokens(provider: "strava") else { return }
+            var accessToken = tokens.accessToken
+            if !CloudTokenStorage.shared.isTokenValid(provider: "strava") {
+                let refreshed = try await StravaService.shared.refreshAccessToken(refreshToken: tokens.refreshToken)
+                try CloudTokenStorage.shared.storeTokens(
+                    provider: "strava",
+                    accessToken: refreshed.accessToken,
+                    refreshToken: refreshed.refreshToken,
+                    expiresAt: refreshed.expiresAt
+                )
+                accessToken = refreshed.accessToken
+            }
+
+            let activities = try await StravaService.shared.fetchActivities(accessToken: accessToken, days: 30)
+            let existingRuns = try modelContext.fetch(FetchDescriptor<Run>())
+            var importedRuns: [Run] = []
+
+            for activity in activities {
+                guard activity.type == "Run" || activity.sport_type == "Run" else { continue }
+                guard activity.distance > 0, activity.moving_time > 0 else { continue }
+                guard let activityDate = ISO8601DateFormatter().date(from: activity.start_date) else { continue }
+
+                let externalSource = "strava:\(activity.id)"
+                if existingRuns.contains(where: { $0.source == externalSource }) { continue }
+
+                let duplicate = existingRuns.contains { run in
+                    abs(run.date.timeIntervalSince(activityDate)) < 1 &&
+                    abs(run.distance - activity.distance) < 1 &&
+                    abs(run.duration - Double(activity.moving_time)) < 1
+                }
+                if duplicate { continue }
+
+                let distanceKm = activity.distance / 1000.0
+                let paceSecondsPerKm = Double(activity.moving_time) / distanceKm
+                let npi = (3600.0 / paceSecondsPerKm) * pow(distanceKm, 0.06) * 10.0
+
+                let run = Run(
+                    date: activityDate,
+                    source: externalSource,
+                    distance: activity.distance,
+                    duration: Double(activity.moving_time),
+                    avgPace: paceSecondsPerKm,
+                    avgNPI: npi,
+                    avgHeartRate: activity.average_heartrate ?? 0,
+                    avgCadence: activity.average_cadence != nil ? activity.average_cadence! * 2 : nil,
+                    avgVerticalOscillation: nil,
+                    avgGroundContactTime: nil,
+                    avgStrideLength: nil,
+                    formScore: nil,
+                    routeData: []
+                )
+                modelContext.insert(run)
+                importedRuns.append(run)
+            }
+
+            if !importedRuns.isEmpty {
+                try modelContext.save()
+                _ = try await SupabaseRunSyncService.shared.upsertRuns(importedRuns)
+                print("📱 Strava startup sync imported \(importedRuns.count) run(s).")
+            }
+        } catch {
+            print("⚠️ Strava startup sync failed: \(error.localizedDescription)")
+        }
+    }
+
+    @MainActor
     private func bootstrapLiveCoachTemplate() {
         let descriptor = FetchDescriptor<ActivityTemplate>()
         if let templates = try? modelContext.fetch(descriptor),
@@ -140,5 +216,4 @@ struct MainTabView: View {
         try modelContext.save()
     }
 }
-
 

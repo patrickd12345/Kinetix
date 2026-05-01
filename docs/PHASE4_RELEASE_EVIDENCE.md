@@ -301,6 +301,97 @@ Interpretation: serverless invocation health restored for probed routes; admlog 
 
 **Umbrella `PROJECT_PLAN.md`:** Do not treat Phase 4 manual closure as complete until interactive rows above are **PASS** with human-recorded evidence.
 
+## Phase 4 day-2 prep (2026-04-27 PM, agent run): Vercel build mitigation
+
+Scope: triage of upstream-paste error `pnpm run build exited with 1` after the Garmin OAuth + PKCE merge (`3d76190`).
+
+### Triage
+
+- **Source project:** the failing deploy is on the **`bookiji`** Vercel project (Next.js), deployment `bookiji-b6wx1qw9t-...`, status `Error`, ~55m ago. Vercel build-system report attached: `At least one "Out of Memory" ("OOM") event was detected during the build.` next build reached `Linting and checking validity of types ...` then died on `next build`. **Out of scope for the Kinetix workspace** per `AGENTS.md` boundary; tracked separately for `products/bookiji`.
+- **Kinetix prod:** all 14 most-recent kinetix deploys (Production + Preview) are `Ready`. Confirmed clean.
+- **Kinetix env hygiene:** `vercel env ls production` confirms none of `VITE_MASTER_ACCESS`, `KINETIX_MASTER_ACCESS`, `VITE_SKIP_AUTH`, `ADMLOG_ENABLED`, `BOOKIJI_TEST_MODE` set on Kinetix Production (Mitigation A from `vercel_build_fix_and_go-live_98744609.plan.md` is a no-op).
+
+### Preventive Kinetix bundle hardening shipped
+
+Commit `688989f` on `main`. Lazy-load `Settings`, `History`, `Chat`, `WeightHistory`, `HelpCenter`, `BillingSuccess`, `BillingCancel` in [`apps/web/src/App.tsx`](../apps/web/src/App.tsx). Wrap top-level `<Routes>` in `<Suspense>` so billing pages have a fallback boundary.
+
+| Gate (re-run 2026-04-27 PM) | Result | Notes |
+|------|--------|-------|
+| `pnpm lint` | PASS | repo root |
+| `pnpm type-check` | PASS | repo root + `@kinetix/web` |
+| `pnpm --filter @kinetix/web test` | PASS | 476 tests / 106 files |
+| `pnpm --filter @kinetix/web build` | PASS | `[bundle-budget] index-CHqkRnz4.js is 196.9 kB, within 900 kB.` (was approaching 900 kB ceiling once Garmin OAuth + PKCE landed in the eager Settings page). |
+
+Why this is preventive: the `vercel_build_fix_and_go-live_98744609.plan.md` was authored against a bookiji-pasted error message, but the Kinetix bundle headroom dropped after `3d76190` and would have started failing as more lanes land. The lazy-load pulls Settings (303 kB chunk that includes all Garmin OAuth + PKCE crypto code) out of the main chunk.
+
+### Output chunks (post-fix)
+
+- `dist/assets/index-CHqkRnz4.js` 196.9 kB (main)
+- `dist/assets/Settings-MeAn2kcZ.js` 303 kB (lazy, Garmin + PKCE here)
+- `dist/assets/recharts-vendor-Cyy6gEcA.js` 361 kB (vendor, manual chunk)
+- `dist/assets/SupportQueue-DrAewTx6.js` 183 kB (lazy)
+- `dist/assets/History-CyJtsKAV.js` 81 kB (lazy)
+- All other route chunks under 65 kB.
+
+### What this does not unblock
+
+The eight operator-only rows in the **Operator action queue** below remain blocking for Phase 4 closure (Google SSO walkthrough, entitlement SQL toggle, Supabase dashboard, Stripe live cutover, real $0.50 checkout, authenticated Help Center / operator / a11y matrix).
+
+### Lane A API for native (unblocks iOS `EntitlementService` + `PlatformIdentityService`)
+
+Implemented in `api/entitlements/index.ts` and `api/platform-profile/sync/index.ts` (commit `3d9f02a` on `main`).
+
+| Endpoint | Pre-`3d9f02a` prod | Post-deploy (anon / no JWT) | With valid `Authorization: Bearer` (expected) |
+|----------|--------------------|-------------------------|----------------------------------|
+| `GET /api/entitlements?product_key=kinetix` | **404** (missing) | **401** `unauthorized` (curl, 2026-04-27) | **200** + `{ active, ends_at, source }` |
+| `POST /api/platform-profile/sync` | **404** (missing) | **401** (curl, 2026-04-27) | **200** + `{ ok: true }` |
+| `POST /api/strava-oauth` | 400 (bad body) | 400 (unchanged) | 200 on valid `code` |
+| `POST /api/strava-refresh` | 400 (bad body) | 400 (unchanged) | 200 on valid body |
+
+**Prod deploy verified:** Vercel `kinetix-1bplq8w2y` **Ready** (auto from `3d9f02a`); `kinetix.bookiji.com` returns **401** (not 404) for both new routes when unauthenticated.
+
+**Blocker removed for Lane B merge** (macOS still required for xcodebuild / TestFlight / ASC; watch Vercel **Hobby serverless function count** if the project nears its cap).
+
+### Post-deploy probes after `688989f` (auto-deploy `kinetix-aayamyvnz`, Ready)
+
+| Timestamp | Host | Result | Detail |
+|-----------|------|--------|--------|
+| 2026-04-27T19:53:24.749Z | https://kinetix.bookiji.com | PASS | GET /api/admlog=PASS; POST /api/ai-chat=PASS; GET /api/support-queue/tickets=PASS; GET /api/support-queue/kb-approval=PASS; GET /=PASS |
+
+### Agent batch (2026-04-27 PM follow-up): gates + Infisical + prod probes
+
+Runnable without browser/OAuth/Stripe keys in-repo:
+
+| Step | Result | Notes |
+|------|--------|-------|
+| `pnpm lint` | PASS | |
+| `pnpm type-check` | PASS | |
+| `pnpm --filter @kinetix/web test` | PASS | **480** tests / **107** files |
+| [`pnpm verify:kinetix-parity`](../package.json) | PASS | New script: same as `verify:vercel-parity` Phase 1 through `pnpm run build`; **skips** `products/bookiji` (avoids Next.js OOM). Ends `[verify-kinetix-parity] OK`. |
+| `node scripts/verify-infisical.mjs --env=prod` | PASS | `[verify:infisical] OK — env=prod platform_keys=8 kinetix_keys=7 supabase_url=set service_role_alias=yes` |
+| `node scripts/phase4/post-deploy-probes.mjs` | PASS | Row stamp `2026-04-27T20:08:58.202Z`, all probes green |
+| Anonymous `GET /api/entitlements?product_key=kinetix` | **401** | Expected without Bearer (route live, not 404) |
+| Anonymous `POST /api/platform-profile/sync` | **401** | Expected without Bearer |
+| `node scripts/phase4/verify-stripe-live.mjs` | **NOT RUN** (no `sk_live_` in shell) | **Human:** `infisical run --env=prod --path=/platform -- node scripts/phase4/verify-stripe-live.mjs` before live billing cutover |
+| `node scripts/phase4/verify-sso.mjs --user <email> --prod` | **NOT RUN** (needs service role via Infisical) | **Human:** `infisical run --env=prod --path=/platform -- node scripts/phase4/verify-sso.mjs --user <test-email> --prod` — paste markdown row below |
+
+**Post-deploy probes (repeat from agent batch)**
+
+| Timestamp | Host | Result | Detail |
+|-----------|------|--------|--------|
+| 2026-04-27T20:08:58.202Z | https://kinetix.bookiji.com | PASS | GET /api/admlog=PASS; POST /api/ai-chat=PASS; GET /api/support-queue/tickets=PASS; GET /api/support-queue/kb-approval=PASS; GET /=PASS |
+
+### Human-only remainder (cannot be automated here)
+
+1. **Bookiji-first SSO** — Chrome, `pilotmontreal` Google account, Bookiji login then Kinetix tab (see [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md)).
+2. **Supabase SQL** — apply entitlement migration if not already on prod; run `test_revoke` / `test_restore` helpers with a real test `user_id`.
+3. **Supabase Auth dashboard** — URL allowlist + providers (human console).
+4. **Stripe live** — env on Vercel + Infisical, webhook on Bookiji, real card checkout, confirm `platform.entitlements` row.
+5. **Help / operator / a11y** — signed-in operator allowlist user.
+6. **Release tag** — after rows 1-5 PASS, `PHASE4_RELEASE_RUNBOOK.md` tag + promote.
+7. **Native** — macOS: merge `feat/native-store-ready`, TestFlight, ASC.
+8. **Full umbrella CI parity** — `pnpm verify:vercel-parity` when `products/bookiji` build is fixed (OOM) or on a machine with enough RAM.
+
 ## Phase 4 day-1 closure prep (2026-04-27, agent run)
 
 Scope: build all artifacts and scripts that must exist before the human operator runs the interactive verification + Stripe live cutover. **Does not** complete Phase 4 closure on its own - those rows still require browser/dashboard/SQL execution by an operator.
@@ -312,7 +403,8 @@ Scope: build all artifacts and scripts that must exist before the human operator
 | `pnpm lint` | PASS | repo root, 2026-04-27 |
 | `pnpm type-check` | PASS | repo root, 2026-04-27 |
 | `pnpm --filter @kinetix/web test` | PASS | **476** tests / 106 files, 2026-04-27 (vs. 346 / 79 in 2026-04-10 baseline; growth from Garmin Connect work + new lib coverage) |
-| `pnpm verify:vercel-parity` | RUNNING | started 2026-04-27, see backgrounded shell |
+| `pnpm verify:kinetix-parity` | PASS | 2026-04-27 PM — Kinetix Vercel path without Bookiji; see **Agent batch** section above. |
+| `pnpm verify:vercel-parity` | DEFERRED | Includes `products/bookiji` Next build — use when Bookiji OOM resolved or on CI with sufficient memory. |
 
 ### Day-1 artifacts shipped (Lane A1-A4)
 
@@ -361,6 +453,28 @@ Application brief drafted: [`docs/GARMIN_CONNECT_APPLICATION_BRIEF.md`](GARMIN_C
   - `e2e/google-oauth-login.spec.ts` now skips itself when `VITE_SKIP_AUTH=1` (the Login UI is redirected away by the bypass profile). Operators run it explicitly with `VITE_SKIP_AUTH=0` per the interactive runbook.
   - `e2e/heavy-user-fixture.spec.ts` is skipped pending an in-app deterministic seed hook (custom IDB writes raced Dexie's `version(8)` schema). Same code paths are covered by `kinetix-audit-crawl.spec.ts` and `shell-dashboard.spec.ts`.
 - Worker cap: `playwright.config.ts` now defaults to 4 workers (overridable via `PW_WORKERS`); 8 workers caused intermittent `net::ERR_ABORTED` from the local Vite dev server.
+
+### Automation preflight (2026-04-30, go-live plan)
+
+Runnable checks recorded here **do not** replace the eight **human** operator rows below; they preflight CI parity, Infisical key **names**, native compile/tests, and production HTTP probes.
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| [`pnpm verify:kinetix-parity`](../package.json) | **PASS** | `[verify-kinetix-parity] OK` — install parity script, type-check, lint, `pnpm run build`, web bundle budget |
+| [`pnpm infisical:list-keys`](../package.json) | **PASS** | `/kinetix` lists **`VITE_WITHINGS_CLIENT_ID`**, **`WITHINGS_CLIENT_ID`**, **`WITHINGS_CLIENT_SECRET`**, **`WITHINGS_REDIRECT_URI`**, **`VITE_WITHINGS_REDIRECT_URI`** for **prod** and **dev**. Prod has **`VITE_AUTH_REDIRECT_URL`**; dev `/kinetix` export shows **10** keys vs **11** on prod — reconcile if dev redirects must match prod policy. |
+| [`bash watchos/scripts/verify-native-cli.sh`](../watchos/scripts/verify-native-cli.sh) | **PASS** | XcodeGen + Watch `watchsimulator` target build + **KinetixPhoneTests** (**15** tests, 0 failures) |
+| `node scripts/phase4/post-deploy-probes.mjs --host https://kinetix.bookiji.com` | **PASS** | See row in **Post-deploy probes (2026-04-30)** |
+
+**Post-deploy probes (2026-04-30)**
+
+| Timestamp | Host | Result | Detail |
+|-----------|------|--------|--------|
+| 2026-04-30T02:54:22.198Z | https://kinetix.bookiji.com | PASS | GET /api/admlog=PASS; POST /api/ai-chat=PASS; GET /api/support-queue/tickets=PASS; GET /api/support-queue/kb-approval=PASS; GET /=PASS |
+| 2026-04-30T11:18:56.877Z | https://kinetix.bookiji.com | PASS | Lane A8 post-tag probe run after RC tag correction (`kinetix-phase4-rc-2026-04-30` -> `ad8f4ed`): GET /api/admlog=PASS; POST /api/ai-chat=PASS; GET /api/support-queue/tickets=PASS; GET /api/support-queue/kb-approval=PASS; GET /=PASS |
+
+**Lane A8** ([`PHASE4_RELEASE_RUNBOOK.md`](PHASE4_RELEASE_RUNBOOK.md)): release tag corrected to `kinetix-phase4-rc-2026-04-30` -> `ad8f4ed`, and Vercel production deploy `dpl_8f2FsD4XWqKNdpduhmGpymX6cseD` confirmed/promoted state (`vercel promote` returned 409 because it is already current production). Post-deploy probes PASS.
+
+**Lane B**: CLI/native gates above **PASS**; **physical iPhone/Watch** smoke and **TestFlight / ASC** remain **human** ([`kinetix/KX-SMOKE-013-real-device-smoke.md`](kinetix/KX-SMOKE-013-real-device-smoke.md), native audit runbook).
 
 ### Operator action queue (humans only)
 

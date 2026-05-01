@@ -1240,11 +1240,13 @@ export default function Settings() {
                     setReindexMessage('No runs in the app. Import from Strava or Garmin first.')
                     return
                   }
-                  const { indexed, errors } = await reindexAllRunsInRAG(runs)
+                  const { indexed, errors, noRagService } = await reindexAllRunsInRAG(runs)
                   setReindexMessage(
-                    errors === 0
-                      ? `Indexed ${indexed} runs in RAG.`
-                      : `Indexed ${indexed} runs, ${errors} failed. Is the RAG service running?`
+                    noRagService
+                      ? 'RAG service is not reachable. Start the RAG app locally (see apps/rag, default port 3001) or set VITE_RAG_SERVICE_URL. No runs were sent.'
+                      : errors === 0
+                        ? `Indexed ${indexed} runs in RAG.`
+                        : `Indexed ${indexed} runs, ${errors} failed. Check that the RAG service is running and that /index returns OK.`
                   )
                 } catch (err) {
                   setReindexMessage(`Error: ${err instanceof Error ? err.message : 'Reindex failed'}.`)

@@ -3,17 +3,23 @@
 **Audience:** human operator with Bookiji org admin + Supabase service-role + Vercel admin.
 **Companion:** [`PHASE4_RELEASE_EVIDENCE.md`](PHASE4_RELEASE_EVIDENCE.md) (where results land).
 
+**2026-04-30:** Automated preflight (`pnpm verify:kinetix-parity`, `pnpm infisical:list-keys`, `bash watchos/scripts/verify-native-cli.sh`, post-deploy probes) is recorded under **Automation preflight (2026-04-30, go-live plan)** in the evidence doc. The eight human steps below are still **required** for Phase 4 closure.
+
 ## Pre-flight (5 min, scripted)
 
 ```bash
 pnpm lint
 pnpm type-check
 pnpm --filter @kinetix/web test
-pnpm verify:vercel-parity
-node scripts/phase4/verify-sso.mjs --user <test-email> --prod
+pnpm verify:kinetix-parity
+pnpm infisical:list-keys
+# Read-only: lists secret *names* at /platform and /kinetix for prod+dev via `infisical export` (no values).
+# Full umbrella parity (includes products/bookiji Next.js build — needs RAM; omit if Bookiji OOM on this machine):
+# pnpm verify:vercel-parity
+infisical run --env=prod --path=/platform -- node scripts/phase4/verify-sso.mjs --user <test-email> --prod
 ```
 
-All must be PASS. Re-run the last command and capture output for the evidence row.
+`verify:kinetix-parity` mirrors Vercel's Kinetix install + `pnpm run build` without the Bookiji step. All must be PASS before interactive steps. Re-run `verify-sso.mjs` and capture the markdown row for evidence.
 
 ## SSO closure (15 min, human)
 

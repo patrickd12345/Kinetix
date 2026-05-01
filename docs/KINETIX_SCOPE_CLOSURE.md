@@ -1,8 +1,8 @@
 # Kinetix Scope Closure
 
-Last updated: 2026-04-27
+Last updated: 2026-04-30
 
-**Current phase:** Phase 3 (Platform Hardening) — audit-first; **does not** reopen Wave 2 web scope.
+**Current phase:** Phase 4 (Release Readiness) — operator queue, env parity, and go-live runbooks per [`PHASE4_RELEASE_EVIDENCE.md`](PHASE4_RELEASE_EVIDENCE.md) and [`PHASE4_RELEASE_RUNBOOK.md`](PHASE4_RELEASE_RUNBOOK.md); **does not** reopen Wave 2 web scope. **Parallel (non-release-blocking):** Phase 3 (Platform Hardening) workstreams in [`PRODUCT_SCOPE.md`](PRODUCT_SCOPE.md) and [§ Phase 3 — Platform Hardening](#phase-3--platform-hardening) below.
 
 ## Wave 1
 
@@ -208,7 +208,8 @@ Status: **Day-1 closure prep complete (2026-04-27 agent run); operator interacti
 - **Interactive runbook (entry point):** [`docs/PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md)
 - **Web release runbook (tag + promote + probes):** [`docs/PHASE4_RELEASE_RUNBOOK.md`](PHASE4_RELEASE_RUNBOOK.md)
 - **Playwright E2E:** local 43 passed / 3 skipped; CI workflow [`.github/workflows/web-e2e.yml`](../.github/workflows/web-e2e.yml)
-- **Native (Lane B):** all seven steps shipped on `feat/native-store-ready` (worktree `Kinetix-native`); device audit + TestFlight remain operator tasks per [`docs/IOS_LAUNCH_CHECKLIST.md`](IOS_LAUNCH_CHECKLIST.md)
+- **Lane A native contract (2026-04-27 PM):** `GET /api/entitlements` + `POST /api/platform-profile/sync` in [`api/`](../api/) (`api/entitlements/index.ts`, `api/platform-profile/sync/index.ts`).
+- **Native (Lane B):** all seven steps shipped on `feat/native-store-ready` (worktree `Kinetix-native`); server routes above unblock `EntitlementService` — device audit + TestFlight + merge remain operator tasks per [`docs/IOS_LAUNCH_CHECKLIST.md`](IOS_LAUNCH_CHECKLIST.md)
 - **Garmin Connect (Lane C):** parked on partner approval. Application brief: [`docs/GARMIN_CONNECT_APPLICATION_BRIEF.md`](GARMIN_CONNECT_APPLICATION_BRIEF.md). Post-approval steps: [`docs/GARMIN_POST_APPROVAL_RUNBOOK.md`](GARMIN_POST_APPROVAL_RUNBOOK.md)
 - **Operations (Lane D):** [`INCIDENT_RUNBOOK.md`](INCIDENT_RUNBOOK.md), [`STATUS_PAGE_SETUP.md`](STATUS_PAGE_SETUP.md), [`PRIVACY_TOS_LAUNCH_REVIEW.md`](PRIVACY_TOS_LAUNCH_REVIEW.md), [`PHASE4_LAUNCH_COMMS.md`](PHASE4_LAUNCH_COMMS.md)
 

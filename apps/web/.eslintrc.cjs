@@ -34,6 +34,15 @@ module.exports = {
       files: ['src/lib/withingsOAuthServer.ts'],
       parserOptions: { project: null },
     },
+    {
+      files: [
+        'vite.config.ts',
+        'vite.config.shared.ts',
+        'vite.config.dev.ts',
+        'vite-plugin-oauth.ts',
+      ],
+      parserOptions: { project: './tsconfig.node.json' },
+    },
   ],
   rules: {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],

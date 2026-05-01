@@ -11,6 +11,7 @@ struct HistoryView: View {
             List {
                 if runs.isEmpty {
                     ContentUnavailableView("No Runs Yet", systemImage: "figure.run", description: Text("Start a run on your iPhone or Watch to see it here."))
+                        .foregroundStyle(.white)
                         .listRowBackground(Color.clear)
                 } else {
                     ForEach(runs) { run in
@@ -22,6 +23,7 @@ struct HistoryView: View {
                 }
             }
             .navigationTitle("History")
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .scrollContentBackground(.hidden)
             .background(Color(white: 0.05).ignoresSafeArea())
         }
@@ -182,6 +184,7 @@ struct RunDetailView: View {
         }
         .navigationTitle(run.date.formatted(date: .abbreviated, time: .omitted))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .background(Color(white: 0.05).ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

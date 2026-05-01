@@ -11,7 +11,7 @@ tags:
       all: deny
       location: allow
       notifications: allow
-- runFlow: ../../helpers/dismiss-system-alerts.yml
+- runFlow: ../helpers/dismiss-system-alerts.yml
 
 - tapOn:
     text: "Build"
@@ -31,7 +31,7 @@ tags:
       - waitForAnimationToEnd:
           timeout: 4000
       - takeScreenshot: 30-builder-live-coach-editor
-      - runFlow: ../../helpers/dismiss-system-alerts.yml
+      - runFlow: ../helpers/dismiss-system-alerts.yml
       - tapOn:
           text: "Cancel"
           optional: true

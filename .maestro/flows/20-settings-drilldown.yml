@@ -11,7 +11,7 @@ tags:
       all: deny
       location: allow
       notifications: allow
-- runFlow: ../../helpers/dismiss-system-alerts.yml
+- runFlow: ../helpers/dismiss-system-alerts.yml
 
 - tapOn:
     text: "Settings"

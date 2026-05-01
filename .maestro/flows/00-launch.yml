@@ -13,7 +13,7 @@ tags:
       notifications: allow
 - waitForAnimationToEnd:
     timeout: 5000
-- runFlow: ../../helpers/dismiss-system-alerts.yml
+- runFlow: ../helpers/dismiss-system-alerts.yml
 - assertVisible: "KINETIX"
 - assertVisible: "Home"
 - assertVisible: "Coach"

@@ -11,7 +11,7 @@ tags:
       all: deny
       location: allow
       notifications: allow
-- runFlow: ../../helpers/dismiss-system-alerts.yml
+- runFlow: ../helpers/dismiss-system-alerts.yml
 
 - assertVisible: "Home"
 - takeScreenshot: 10-tab-home
@@ -21,7 +21,7 @@ tags:
     index: 0
 - waitForAnimationToEnd:
     timeout: 4000
-- runFlow: ../../helpers/dismiss-system-alerts.yml
+- runFlow: ../helpers/dismiss-system-alerts.yml
 - takeScreenshot: 10-tab-coach
 
 - tapOn:
@@ -29,7 +29,7 @@ tags:
     index: 0
 - waitForAnimationToEnd:
     timeout: 4000
-- runFlow: ../../helpers/dismiss-system-alerts.yml
+- runFlow: ../helpers/dismiss-system-alerts.yml
 - takeScreenshot: 10-tab-build
 
 - tapOn:
@@ -37,7 +37,7 @@ tags:
     index: 0
 - waitForAnimationToEnd:
     timeout: 4000
-- runFlow: ../../helpers/dismiss-system-alerts.yml
+- runFlow: ../helpers/dismiss-system-alerts.yml
 - takeScreenshot: 10-tab-history
 
 - tapOn:
@@ -45,7 +45,7 @@ tags:
     index: 0
 - waitForAnimationToEnd:
     timeout: 4000
-- runFlow: ../../helpers/dismiss-system-alerts.yml
+- runFlow: ../helpers/dismiss-system-alerts.yml
 - takeScreenshot: 10-tab-settings
 
 - tapOn:

@@ -14,8 +14,7 @@ tags:
 - runFlow: ../helpers/dismiss-system-alerts.yml
 
 - tapOn:
-    text: "Settings"
-    index: 0
+    id: "KinetixTab.settings"
 - waitForAnimationToEnd:
     timeout: 4000
 - assertVisible: "Settings"

@@ -18,6 +18,7 @@ struct MainTabView: View {
                     Label("Home", systemImage: "house.fill")
                 }
                 .tag(0)
+                .accessibilityIdentifier("KinetixTab.home")
             
             // Dashboard (auto-shown when run starts)
             DashboardView()
@@ -25,24 +26,28 @@ struct MainTabView: View {
                     Label("Coach", systemImage: "figure.run")
                 }
                 .tag(1)
+                .accessibilityIdentifier("KinetixTab.coach")
             
             ActivityBuilderView()
                 .tabItem {
                     Label("Build", systemImage: "hammer")
                 }
                 .tag(2)
+                .accessibilityIdentifier("KinetixTab.build")
             
             HistoryView()
                 .tabItem {
                     Label("History", systemImage: "clock.arrow.circlepath")
                 }
                 .tag(3)
+                .accessibilityIdentifier("KinetixTab.history")
             
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gear")
                 }
                 .tag(4)
+                .accessibilityIdentifier("KinetixTab.settings")
         }
         .onAppear {
             connectivity.bind(modelContext: modelContext)

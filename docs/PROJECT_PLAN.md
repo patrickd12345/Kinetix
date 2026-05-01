@@ -10,6 +10,8 @@
 **Garmin (Lane C):** Parked on partner approval; runbook ready
 **Next focus:** Operator runs the eight-row queue in [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md), then Lane A8 release tag + Vercel production promote per [`PHASE4_RELEASE_RUNBOOK.md`](PHASE4_RELEASE_RUNBOOK.md)
 
+**Update (2026-05-01):** iPhone **Maestro crawl** CI ([`.github/workflows/ios-crawl.yml`](../.github/workflows/ios-crawl.yml), `macos-15`) plus **Native CI** on `macos-15` for Swift 6.1 / swift-crypto resolution; tab targets use `KinetixTab.*` accessibility identifiers for stable flows — see [`docs/testing/IOS_MAESTRO_CRAWL.md`](testing/IOS_MAESTRO_CRAWL.md).
+
 **Operator-owned go-live remainder (not marked complete by automation):**
 - Re-verify live key presence after `infisical login` (`pnpm infisical:list-keys`) and confirm production names remain aligned with [`deployment/ENV_PARITY.md`](deployment/ENV_PARITY.md).
 - Lane A8 release actions: create git tag, promote Vercel production deployment, run and record post-deploy probes, optionally run live billing smoke when Stripe live cutover is enabled.

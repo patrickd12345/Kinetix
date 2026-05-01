@@ -30,9 +30,8 @@ which requires **Swift 6.1**. On **`macos-14`**, `setup-xcode` with
 images ship **Xcode 16.3+ (Swift 6.1)** by default, which unblocks the build.
 
 **Related:** [`.github/workflows/native-ci.yml`](../../.github/workflows/native-ci.yml)
-still targets **`macos-14`**. If that job fails with the same swift-crypto / Swift
-version mismatch, bump it to **`macos-15`** (or pin Xcode 16.3+) like the crawl
-workflow.
+also runs on **`macos-15`** with the same Swift 6.1 baseline as this crawl (see
+that workflow file for the current runner image).
 
 ### Tooling orientation (Playwright vs Maestro vs XCUITest)
 
@@ -190,6 +189,12 @@ maestro test .maestro/flows/10-tabs-smoke.yml
   `reports/simulator.log`.
 - **Cache key collision.** The CI cache key is namespaced
   (`ios-crawl-`) so it does not collide with `native-ci.yml`.
+- **Tab bar automation.** SwiftUI `TabView` does not always expose tab titles as
+  plain `Text` in the accessibility tree (Maestro was unable to match `"Build"` /
+  `"Settings"` on Simulator). [`MainTabView`](../../ios/KinetixPhone/MainTabView.swift)
+  assigns stable **`accessibilityIdentifier`** values `KinetixTab.home`,
+  `KinetixTab.coach`, `KinetixTab.build`, `KinetixTab.history`, and
+  `KinetixTab.settings`; flows tap and assert with `id:` instead of tab label text.
 
 ## When a flow fails
 

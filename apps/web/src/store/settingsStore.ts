@@ -158,11 +158,17 @@ export const useSettingsStore = create<SettingsState>()(
           settingsRehydrated: _rehydrated,
           withingsStartupSyncInFlight: _withingsStartupSyncInFlight,
           withingsStartupSyncError: _withingsStartupSyncError,
+          stravaToken: _stravaToken,
+          stravaCredentials: _stravaCredentials,
+          withingsCredentials: _withingsCredentials,
           ...rest
         } = state
         void _rehydrated
         void _withingsStartupSyncInFlight
         void _withingsStartupSyncError
+        void _stravaToken
+        void _stravaCredentials
+        void _withingsCredentials
         return rest
       },
       merge: (persisted, current) => {
@@ -170,10 +176,9 @@ export const useSettingsStore = create<SettingsState>()(
         if (!p) return current
         const out: SettingsState = { ...current, ...p }
         if (p.targetNPI !== undefined) out.targetKPS = p.targetNPI
-        if (p.withingsCredentials && typeof p.withingsCredentials.expiresAt === 'number')
-          out.withingsCredentials = p.withingsCredentials
-        if (p.stravaCredentials && typeof p.stravaCredentials.expiresAt === 'number')
-          out.stravaCredentials = p.stravaCredentials
+        out.stravaToken = ''
+        out.stravaCredentials = null
+        out.withingsCredentials = null
         if (
           p.garminConnectCredentials &&
           typeof p.garminConnectCredentials.expiresAt === 'number' &&

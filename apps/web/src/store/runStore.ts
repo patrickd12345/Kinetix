@@ -61,14 +61,17 @@ const initialState = {
 }
 
 export async function persistStoppedRun(runRecord: RunRecord, userProfile: ReturnType<typeof getActiveKinetixUserProfile>) {
-  const runId = await db.runs.add(runRecord)
-  const numericRunId = typeof runId === 'number' ? runId : Number(runId)
-  if (!numericRunId || isNaN(numericRunId)) {
-    throw new Error('Run saved without a numeric IndexedDB id')
-  }
+  const { savedRunRecord, isNewPB } = await db.transaction('rw', db.runs, db.pb, async () => {
+    const runId = await db.runs.add(runRecord)
+    const numericRunId = typeof runId === 'number' ? runId : Number(runId)
+    if (!numericRunId || isNaN(numericRunId)) {
+      throw new Error('Run saved without a numeric IndexedDB id')
+    }
 
-  const savedRunRecord: RunRecord = { ...runRecord, id: numericRunId }
-  const isNewPB = await checkAndUpdatePB(savedRunRecord, userProfile)
+    const savedRunRecord: RunRecord = { ...runRecord, id: numericRunId }
+    const isNewPB = await checkAndUpdatePB(savedRunRecord, userProfile)
+    return { savedRunRecord, isNewPB }
+  })
   if (isNewPB) {
     console.log('New Personal Best! This run is now your PB (KPS = 100)')
   }

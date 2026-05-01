@@ -2,11 +2,16 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { RunRecord } from '../lib/database'
 
 const addMock = vi.hoisted(() => vi.fn())
+const transactionMock = vi.hoisted(() => vi.fn())
 const checkAndUpdatePBMock = vi.hoisted(() => vi.fn())
 const indexRunsAfterSaveMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../lib/database', () => ({
-  db: { runs: { add: addMock } },
+  db: {
+    runs: { add: addMock },
+    pb: {},
+    transaction: transactionMock,
+  },
 }))
 
 vi.mock('../lib/kpsUtils', () => ({
@@ -35,6 +40,8 @@ const userProfile = { age: 35, weightKg: 70 }
 describe('persistStoppedRun', () => {
   beforeEach(() => {
     addMock.mockReset()
+    transactionMock.mockReset()
+    transactionMock.mockImplementation(async (_mode, _runs, _pb, callback) => callback())
     checkAndUpdatePBMock.mockReset()
     indexRunsAfterSaveMock.mockReset()
   })
@@ -48,10 +55,24 @@ describe('persistStoppedRun', () => {
     const saved = await persistStoppedRun(runRecord, userProfile)
 
     expect(saved.id).toBe(42)
+    expect(transactionMock).toHaveBeenCalledWith('rw', expect.anything(), expect.anything(), expect.any(Function))
     expect(addMock).toHaveBeenCalledWith(runRecord)
     expect(checkAndUpdatePBMock).toHaveBeenCalledWith({ ...runRecord, id: 42 }, userProfile)
     expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'kinetix:runSaved' }))
     expect(indexRunsAfterSaveMock).toHaveBeenCalledWith([{ ...runRecord, id: 42 }])
+    dispatchSpy.mockRestore()
+  })
+
+  it('does not dispatch or index when PB reconciliation fails', async () => {
+    addMock.mockResolvedValue(44)
+    checkAndUpdatePBMock.mockRejectedValue(new Error('pb failed'))
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+
+    await expect(persistStoppedRun(runRecord, userProfile)).rejects.toThrow('pb failed')
+
+    expect(transactionMock).toHaveBeenCalled()
+    expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'kinetix:runSaved' }))
+    expect(indexRunsAfterSaveMock).not.toHaveBeenCalled()
     dispatchSpy.mockRestore()
   })
 

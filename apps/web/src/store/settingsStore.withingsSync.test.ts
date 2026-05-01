@@ -47,4 +47,62 @@ describe('settingsStore withings expanded sync settings', () => {
     expect(state.withingsStartupSyncInFlight).toBeUndefined()
     expect(state.withingsStartupSyncError).toBeUndefined()
   })
+
+  it('does not persist Strava or Withings credential material to localStorage', () => {
+    useSettingsStore.getState().setStravaToken('legacy-manual-token')
+    useSettingsStore.getState().setStravaCredentials({
+      accessToken: 'strava-access',
+      refreshToken: 'strava-refresh',
+      expiresAt: 1_800_000_000,
+    })
+    useSettingsStore.getState().setWithingsCredentials({
+      accessToken: 'withings-access',
+      refreshToken: 'withings-refresh',
+      userId: 'withings-user',
+      expiresAt: 1_800_000_000_000,
+    })
+
+    const raw = localStorage.getItem(scopedSettingsLocalStorageKey(TEST_SETTINGS_USER))
+    expect(raw).toBeTruthy()
+    const parsed = raw ? JSON.parse(raw) : null
+    const state = parsed?.state
+    expect(state.stravaToken).toBeUndefined()
+    expect(state.stravaCredentials).toBeUndefined()
+    expect(state.withingsCredentials).toBeUndefined()
+    expect(raw).not.toContain('legacy-manual-token')
+    expect(raw).not.toContain('strava-refresh')
+    expect(raw).not.toContain('withings-refresh')
+  })
+
+  it('drops legacy persisted Strava and Withings credentials during rehydrate', async () => {
+    localStorage.setItem(
+      scopedSettingsLocalStorageKey(TEST_SETTINGS_USER),
+      JSON.stringify({
+        state: {
+          targetKPS: 100,
+          stravaToken: 'legacy-manual-token',
+          stravaCredentials: {
+            accessToken: 'strava-access',
+            refreshToken: 'strava-refresh',
+            expiresAt: 1_800_000_000,
+          },
+          withingsCredentials: {
+            accessToken: 'withings-access',
+            refreshToken: 'withings-refresh',
+            userId: 'withings-user',
+            expiresAt: 1_800_000_000_000,
+          },
+        },
+        version: 0,
+      })
+    )
+
+    await useSettingsStore.persist.rehydrate()
+
+    const state = useSettingsStore.getState()
+    expect(state.targetKPS).toBe(100)
+    expect(state.stravaToken).toBe('')
+    expect(state.stravaCredentials).toBeNull()
+    expect(state.withingsCredentials).toBeNull()
+  })
 })

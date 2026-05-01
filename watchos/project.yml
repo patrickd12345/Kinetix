@@ -99,6 +99,7 @@ targets:
           - "**/*.app"
           - "**/*.ipa"
       - path: ../ios/KinetixPhone/Services/ApiKeyStorage.swift
+      - path: ../ios/KinetixPhone/Services/KinetixWatchConnectivityDiagnostics.swift
       - path: ../ios/KinetixPhone/Services/KpsRelativeDisplay.swift
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.patrickduchesneau.KinetixPhone.watchkitapp

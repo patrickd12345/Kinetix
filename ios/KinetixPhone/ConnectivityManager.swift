@@ -9,6 +9,10 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var connectionStatusMessage: String = "Initializing..."
     @Published var lastUpdate: Date? = nil
     @Published var lastActivitySync: Date? = nil
+
+    /// KX-WATCH-024: last successful ping/pong round-trip (interactive `sendMessage` reply).
+    @Published var lastDiagnosticPongAt: Date?
+    @Published var lastDiagnosticPingError: String?
     
     // Run State
     @Published var isRunActive: Bool = false
@@ -67,6 +71,60 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         let storedWeight = UserDefaults.standard.double(forKey: "lastWithingsWeightKg")
         syncWithingsWeightToWatch(storedWeight)
     }
+
+    /// Sends a diagnostic ping; Watch answers via `replyHandler` with `kx_diag_v1` = `pong`.
+    func sendDiagnosticPingToWatch() {
+        let session = WCSession.default
+        guard WCSession.isSupported() else {
+            lastDiagnosticPingError = "WCSession not supported on this device"
+            DiagnosticLogManager.shared.log("Diagnostic ping: WCSession not supported", category: "connectivity")
+            return
+        }
+        guard session.activationState == .activated else {
+            lastDiagnosticPingError = "Session not activated yet"
+            return
+        }
+        guard session.isPaired else {
+            lastDiagnosticPingError = "No Apple Watch paired"
+            return
+        }
+        guard session.isWatchAppInstalled else {
+            lastDiagnosticPingError = "Watch app not installed"
+            return
+        }
+        guard session.isReachable else {
+            lastDiagnosticPingError = "Watch not reachable — open Kinetix on Watch and wake iPhone"
+            DiagnosticLogManager.shared.log("Diagnostic ping skipped: not reachable", category: "connectivity")
+            return
+        }
+
+        lastDiagnosticPingError = nil
+        let payload: [String: Any] = [
+            KinetixWatchConnectivityDiagnostics.messageKey: KinetixWatchConnectivityDiagnostics.ping,
+        ]
+        session.sendMessage(
+            payload,
+            replyHandler: { [weak self] reply in
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    let kind = reply[KinetixWatchConnectivityDiagnostics.messageKey] as? String
+                    guard kind == KinetixWatchConnectivityDiagnostics.pong else {
+                        self.lastDiagnosticPingError = "Unexpected reply from Watch"
+                        return
+                    }
+                    self.lastDiagnosticPongAt = Date()
+                    self.lastDiagnosticPingError = nil
+                    DiagnosticLogManager.shared.log("Watch diagnostic pong (replyHandler)", category: "connectivity")
+                }
+            },
+            errorHandler: { [weak self] error in
+                DispatchQueue.main.async {
+                    self?.lastDiagnosticPingError = error.localizedDescription
+                    DiagnosticLogManager.shared.log("Diagnostic ping failed: \(error.localizedDescription)", category: "connectivity")
+                }
+            }
+        )
+    }
     
     func setupSession() {
         if WCSession.isSupported() {
@@ -113,12 +171,26 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         }
         session.activate() // Reactivate if needed
     }
+
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        DispatchQueue.main.async {
+            self.updateConnectionStatus(session: session)
+        }
+    }
     
     // Receive real-time message from Watch
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
         DispatchQueue.main.async {
             // Update connection status - receiving messages means watch is connected
             self.updateConnectionStatus(session: session)
+
+            if let kind = message[KinetixWatchConnectivityDiagnostics.messageKey] as? String,
+               kind == KinetixWatchConnectivityDiagnostics.pong {
+                self.lastDiagnosticPongAt = Date()
+                self.lastDiagnosticPingError = nil
+                DiagnosticLogManager.shared.log("Watch diagnostic pong (message)", category: "connectivity")
+                return
+            }
             
             if let request = message["requestActivities"] as? Bool, request {
                 self.pushActivitiesToWatch()

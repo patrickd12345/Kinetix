@@ -14,6 +14,8 @@
 
 **Update (2026-05-01, iOS layout):** Root-tab scroll surfaces apply `kinetixFloatingTabBarClearance()` (`ios/KinetixPhone/KinetixTabBarLayout.swift`) so Home, Coach, Build, History, and Settings content stays above the iOS 18 floating tab bar in screenshots; evidence notes added to the same Maestro doc and [`KX-SMOKE-013-real-device-smoke.md`](kinetix/KX-SMOKE-013-real-device-smoke.md).
 
+**Update (2026-05-01, KX-WATCH-024):** Watch/iPhone `WCSession` contract documented ([`kinetix/KX-WATCH-024-watch-connectivity-contract.md`](kinetix/KX-WATCH-024-watch-connectivity-contract.md)); ping/pong diagnostic (`KinetixWatchConnectivityDiagnostics`, Settings ping + Watch phone link); reachability delegate on both sides; troubleshooting: [`testing/WATCH_CONNECTIVITY_TROUBLESHOOTING.md`](testing/WATCH_CONNECTIVITY_TROUBLESHOOTING.md). End-to-end WC proof remains **BLOCKED_ON_PHYSICAL_WATCH** on simulators.
+
 **Update (2026-05-01, BKI-104):** Web UI verification now has a named user-evidence crawl path: `pnpm test:crawl`, [`.github/workflows/web-crawl.yml`](../.github/workflows/web-crawl.yml), and [`docs/testing/WEB_PLAYWRIGHT_CRAWL.md`](testing/WEB_PLAYWRIGHT_CRAWL.md). Future web UI claims should inspect screenshots, traces/videos, and logs before reporting.
 
 **Operator-owned go-live remainder (not marked complete by automation):**

@@ -270,6 +270,8 @@ For the Watch and iPhone apps to communicate properly (WCSession), strict Bundle
 
 If you see "Watch App Not Installed" in the iPhone app diagnostics, one of these 3 rules is broken.
 
+**Runtime connectivity (ping/pong, reachability, simulator limits):** see [`docs/kinetix/KX-WATCH-024-watch-connectivity-contract.md`](docs/kinetix/KX-WATCH-024-watch-connectivity-contract.md) and [`docs/testing/WATCH_CONNECTIVITY_TROUBLESHOOTING.md`](docs/testing/WATCH_CONNECTIVITY_TROUBLESHOOTING.md).
+
 ### Watch Installation Troubleshooting
 
 **Having issues installing the Watch app?** See the comprehensive fix guide:

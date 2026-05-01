@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var entitlementService = EntitlementService.shared
+    @ObservedObject private var watchConnectivity = ConnectivityManager.shared
     @Query(sort: [SortDescriptor<Run>(\.date, order: .reverse)]) private var runs: [Run]
     @Query(sort: [SortDescriptor<WeightEntry>(\.recordedAt, order: .reverse)]) private var weightEntries: [WeightEntry]
     @Query private var profiles: [RunnerProfile]
@@ -815,6 +816,30 @@ struct SettingsView: View {
     
     private var diagnosticsSection: some View {
         Section {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Watch (WCSession)")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Text(watchConnectivity.connectionStatusMessage)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                if let pongAt = watchConnectivity.lastDiagnosticPongAt {
+                    Text("Last diagnostic pong: \(pongAt.formatted(date: .omitted, time: .standard))")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                if let pingErr = watchConnectivity.lastDiagnosticPingError {
+                    Text(pingErr)
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button("Ping Watch (diagnostic)") {
+                watchConnectivity.sendDiagnosticPingToWatch()
+            }
+
             Button("Export Log") {
                 logExportText = DiagnosticLogManager.shared.exportLogs()
                 showingLogExport = true
@@ -825,7 +850,7 @@ struct SettingsView: View {
         } header: {
             Text("Diagnostics")
         } footer: {
-            Text("Sync errors, audio issues, and runtime notes are captured here.")
+            Text("Ping sends a live message when the Watch app is reachable; use for KX-WATCH-024 checks. Sync errors and runtime notes are in Export Log.")
         }
     }
     

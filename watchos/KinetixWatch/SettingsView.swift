@@ -142,7 +142,19 @@ struct SettingsView: View {
                 
                 Toggle("Voice Alerts", isOn: $formCoach.useVoiceAlerts)
             }
-            
+            Section(header: Text("PHONE LINK")) {
+                HStack {
+                    Text("Reachability")
+                    Spacer()
+                    Text(locationManager.phoneLinkStatusLine)
+                        .font(.caption2)
+                        .foregroundColor(locationManager.isPhoneReachable ? .green : .secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+                Text("Live messages require the iPhone app awake. Templates and weight still sync via application context when not reachable.")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+            }
             
             Section(header: Text("SYSTEM")) { 
                 Picker("Units", selection: $unitSystem) { 

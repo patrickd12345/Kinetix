@@ -213,6 +213,10 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var gpsError: String? = nil
     @Published var healthKitError: String? = nil
     @Published var workoutError: String? = nil
+
+    /// KX-WATCH-024: interactive session reachability (phone foreground + awake).
+    @Published var isPhoneReachable: Bool = false
+    @Published var phoneLinkStatusLine: String = "Initializing..."
     
     // Form Metrics
     @Published var currentFormMetrics = FormMetrics()
@@ -338,13 +342,37 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
         // Session activated - resend state if needed
         DispatchQueue.main.async {
             print("⌚️ Watch: Session activated (State: \(activationState.rawValue))")
+            self.refreshPhoneLinkStatus(session: session)
             // Ensure iPhone has latest run state upon activation
             self.notifyPhoneRunStateChanged(isRunning: self.isRunning)
             self.requestLatestWithingsWeightSync()
         }
     }
+
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        DispatchQueue.main.async {
+            self.refreshPhoneLinkStatus(session: session)
+        }
+    }
+    
+    func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+        if let kind = message[KinetixWatchConnectivityDiagnostics.messageKey] as? String,
+           kind == KinetixWatchConnectivityDiagnostics.ping {
+            replyHandler([
+                KinetixWatchConnectivityDiagnostics.messageKey: KinetixWatchConnectivityDiagnostics.pong,
+                KinetixWatchConnectivityDiagnostics.pongTimestampKey: Date().timeIntervalSince1970,
+            ])
+            print("⌚️ Watch: diagnostic pong (replyHandler)")
+            return
+        }
+        processIncomingPhonePayload(message)
+    }
     
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+        processIncomingPhonePayload(message)
+    }
+
+    private func processIncomingPhonePayload(_ message: [String: Any]) {
         if let data = message["activities"] as? Data {
             handleIncomingActivities(data)
         }
@@ -355,6 +383,24 @@ class LocationManager: NSObject, ObservableObject, WCSessionDelegate {
             handleIncomingWithingsWeight(rawWeight, syncedAt: message["withingsWeightSyncedAt"])
         }
         handleIncomingRaceReadiness(message)
+    }
+
+    private func refreshPhoneLinkStatus(session: WCSession) {
+        isPhoneReachable = session.isReachable
+        guard session.activationState == .activated else {
+            phoneLinkStatusLine = "Session inactive"
+            return
+        }
+        if !session.isCompanionAppInstalled {
+            phoneLinkStatusLine = "iPhone app missing"
+            isPhoneReachable = false
+            return
+        }
+        if session.isReachable {
+            phoneLinkStatusLine = "iPhone reachable"
+        } else {
+            phoneLinkStatusLine = "iPhone not reachable"
+        }
     }
     
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {

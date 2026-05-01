@@ -1,5 +1,9 @@
 # Kinetix Watch App - Feature List
 
+## Product scope (KX-WATCH-024)
+
+**Target split:** Watch is the **live run cockpit** (session control + live metrics + in-run form feedback). **iPhone** owns planning, conversational coaching, history and lab analysis, settings, and integrations. See [`docs/kinetix/KX-WATCH-024-watch-connectivity-contract.md`](docs/kinetix/KX-WATCH-024-watch-connectivity-contract.md). Connectivity troubleshooting: [`docs/testing/WATCH_CONNECTIVITY_TROUBLESHOOTING.md`](docs/testing/WATCH_CONNECTIVITY_TROUBLESHOOTING.md).
+
 ## ✅ Implemented Features
 
 ### Core Running Features
@@ -59,6 +63,7 @@
 - ✅ **Bidirectional Sync**: Activities and battery profiles sync from iPhone
 - ✅ **Alert System**: Sends alerts to iPhone for vocalization
 - ✅ **Background Updates**: Application context for reliable sync
+- ✅ **Diagnostic ping/pong**: Settings (iPhone) and phone reachability line (Watch); keys `kx_diag_v1` (KX-WATCH-024)
 
 ### Form Analysis
 - ✅ **Form Coach**: Real-time form analysis and recommendations

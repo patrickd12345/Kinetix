@@ -3,7 +3,8 @@ import SwiftUI
 /// Layout helpers for root tabs: iOS 18 `TabView` uses a floating tab bar that can overlap scroll edges.
 enum KinetixTabBarLayout {
     /// Extra space so the last cells sit above the floating bar plus home indicator.
-    static let floatingBarBottomClearance: CGFloat = 56
+    /// Slightly generous so Settings list footers (e.g. Diagnostics caption) clear the iOS 18 floating tab bar in Maestro screenshots.
+    static let floatingBarBottomClearance: CGFloat = 72
 }
 
 extension View {

@@ -5,6 +5,10 @@ node_modules/
 
 # Build / cache
 crawl-artifacts/
+crawl-artifacts-*/
+crawl-screens-*/
+ss_unpack/
+_tmp_maestro_ss/
 tmp-job*.log
 dist/
 monorepo-packages/**/dist/

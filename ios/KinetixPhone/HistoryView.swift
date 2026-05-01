@@ -24,10 +24,14 @@ struct HistoryView: View {
             }
             .kinetixFloatingTabBarClearance()
             .navigationTitle("History")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(Color(white: 0.05), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .scrollContentBackground(.hidden)
             .background(Color(white: 0.05).ignoresSafeArea())
         }
+        .preferredColorScheme(.dark)
     }
 }
 

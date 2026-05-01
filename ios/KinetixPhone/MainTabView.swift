@@ -11,43 +11,33 @@ struct MainTabView: View {
     @AppStorage("stravaLastStartupSyncAt") private var stravaLastStartupSyncAt: Double = 0
     
     var body: some View {
+        // iOS 18+ `Tab` associates identifiers with the tab bar item (Maestro
+        // could not see `.accessibilityIdentifier` on root tab content).
         TabView(selection: $selectedTab) {
-            // Home screen (default)
-            HomeView(selectedTab: $selectedTab)
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
-                .tag(0)
-                .accessibilityIdentifier("KinetixTab.home")
-            
-            // Dashboard (auto-shown when run starts)
-            DashboardView()
-                .tabItem {
-                    Label("Coach", systemImage: "figure.run")
-                }
-                .tag(1)
-                .accessibilityIdentifier("KinetixTab.coach")
-            
-            ActivityBuilderView()
-                .tabItem {
-                    Label("Build", systemImage: "hammer")
-                }
-                .tag(2)
-                .accessibilityIdentifier("KinetixTab.build")
-            
-            HistoryView()
-                .tabItem {
-                    Label("History", systemImage: "clock.arrow.circlepath")
-                }
-                .tag(3)
-                .accessibilityIdentifier("KinetixTab.history")
-            
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
-                .tag(4)
-                .accessibilityIdentifier("KinetixTab.settings")
+            Tab("Home", systemImage: "house.fill", value: 0) {
+                HomeView(selectedTab: $selectedTab)
+            }
+            .accessibilityIdentifier("KinetixTab.home")
+
+            Tab("Coach", systemImage: "figure.run", value: 1) {
+                DashboardView()
+            }
+            .accessibilityIdentifier("KinetixTab.coach")
+
+            Tab("Build", systemImage: "hammer", value: 2) {
+                ActivityBuilderView()
+            }
+            .accessibilityIdentifier("KinetixTab.build")
+
+            Tab("History", systemImage: "clock.arrow.circlepath", value: 3) {
+                HistoryView()
+            }
+            .accessibilityIdentifier("KinetixTab.history")
+
+            Tab("Settings", systemImage: "gear", value: 4) {
+                SettingsView()
+            }
+            .accessibilityIdentifier("KinetixTab.settings")
         }
         .onAppear {
             connectivity.bind(modelContext: modelContext)

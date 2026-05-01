@@ -42,6 +42,35 @@ that workflow file for the current runner image).
 | "Crawl" / smoke | Natural fit | Natural fit (`takeScreenshot`, tab walks) | Heavier setup |
 | CI runner | Linux / any | **macOS** | **macOS** |
 
+### Why this can feel stronger than the web Playwright loop
+
+This workflow is not automatically "better because Apple"; it feels better
+because the evidence loop is tighter for this specific product:
+
+- **The app surface is finite.** `MainTabView` has five top-level tabs, so a
+  crawl can quickly cover the real navigation spine: Home, Coach, Build,
+  History, and Settings. Web apps often have more routing states, responsive
+  breakpoints, auth states, ads/scripts, and browser differences.
+- **The simulator is a single controlled device.** A named iPhone Simulator,
+  clean install, fixed permissions, and fresh app state make the screenshots
+  easier to trust. Web Playwright often has to manage browser storage, server
+  boot timing, network mocks, viewport variance, and hydration timing.
+- **Maestro reads like a user checklist.** `tapOn`, `assertVisible`,
+  `takeScreenshot`, and YAML flow names map directly to manual QA language.
+  That makes failures easier to explain in chat and easier to turn into fixes.
+- **Artifacts are naturally visual.** The crawl uploads step screenshots,
+  JUnit, simulator logs, and build logs every run. That gives agents something
+  concrete to inspect even from Windows.
+- **Native bugs are closer to the user.** Accessibility exposure, tab
+  automation, SwiftData launch crashes, HealthKit prompts, and Simulator driver
+  startup are app/runtime realities. The crawl finds integration bugs unit tests
+  and static review miss.
+
+The strategy for future agents: use Maestro as a **native user evidence loop**,
+not as a replacement for Swift unit tests or TestFlight. A fix is convincing
+when the app builds, installs, launches, runs the relevant flow, and leaves
+screenshots/logs that match the claim.
+
 This is the iOS UI evidence path referenced from
 [`docs/AGENT_BOOTSTRAP.md`](../AGENT_BOOTSTRAP.md).
 
@@ -196,12 +225,11 @@ maestro test .maestro/flows/10-tabs-smoke.yml
   **`MAESTRO_DRIVER_STARTUP_TIMEOUT`** (default 180000ms). Override in CI via
   [`.github/workflows/ios-crawl.yml`](../../.github/workflows/ios-crawl.yml)
   `env` if runners get slower.
-- **Tab bar automation.** SwiftUI `TabView` does not always expose tab titles as
-  plain `Text` in the accessibility tree (Maestro was unable to match `"Build"` /
-  `"Settings"` on Simulator). [`MainTabView`](../../ios/KinetixPhone/MainTabView.swift)
-  assigns stable **`accessibilityIdentifier`** values `KinetixTab.home`,
-  `KinetixTab.coach`, `KinetixTab.build`, `KinetixTab.history`, and
-  `KinetixTab.settings`; flows tap and assert with `id:` instead of tab label text.
+- **Tab bar automation.** SwiftUI classic `.tabItem { Label }` + identifiers on
+  tab *content* did not surface on the tab *bar* for Maestro. [`MainTabView`](../../ios/KinetixPhone/MainTabView.swift)
+  uses the iOS 18 **`Tab` / `TabView(selection:)`** API so each bar item can carry
+  **`accessibilityIdentifier`** `KinetixTab.home`, `.coach`, `.build`, `.history`,
+  and `.settings`; flows tap and assert with `id:`.
 
 ## When a flow fails
 

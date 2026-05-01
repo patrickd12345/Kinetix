@@ -37,6 +37,7 @@
 		3800E800E0863A08BC17E66F /* KpsRelativeDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986C8B329EE85F9BD41ABDEF /* KpsRelativeDisplayTests.swift */; };
 		3AD094771226714784FE8E7D /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630B26361C0079B001F8B7EB /* Components.swift */; };
 		3B68FC66ECFBF5C6551ECD8F /* StravaServiceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 592FF7901FBB37D464C7CE7B /* StravaServiceModels.swift */; };
+		B1C2D3E4F5061728394A5B6C7 /* SupabaseRunSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D3E4F5061728394A5B6C7D8 /* SupabaseRunSyncService.swift */; };
 		3EE85CE9B1CE356CCD010C5D /* EntitlementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F602751606A7ADC622E903CB /* EntitlementService.swift */; };
 		3F44A1D14DB956BD88DF3ADB /* CoachingDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC2F814465291AF0CF79D20E /* CoachingDashboardView.swift */; };
 		42A7D7A1F75F96BABFDBADC4 /* ConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6F0132AF8F52774A2098339 /* ConnectivityManager.swift */; };
@@ -219,6 +220,7 @@
 		532D09965946600C770C99A4 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		55B7AFEFE8FD83B632331831 /* KinetixPublic.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = KinetixPublic.xcconfig; sourceTree = "<group>"; };
 		592FF7901FBB37D464C7CE7B /* StravaServiceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaServiceModels.swift; sourceTree = "<group>"; };
+		C2D3E4F5061728394A5B6C7D8 /* SupabaseRunSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseRunSyncService.swift; sourceTree = "<group>"; };
 		59A1919E19F634A123F4EDE1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		5CF4421816DBAD9973071281 /* ConversationalCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationalCoach.swift; sourceTree = "<group>"; };
 		5FF6F95328A593771B0A7701 /* KinetixWatchCoachingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinetixWatchCoachingService.swift; sourceTree = "<group>"; };
@@ -519,6 +521,7 @@
 				E5632984667BA3EAF8CC857B /* RunMetricsCalculator.swift */,
 				A17EBB47A61474FB15B69AAD /* StravaService.swift */,
 				592FF7901FBB37D464C7CE7B /* StravaServiceModels.swift */,
+				C2D3E4F5061728394A5B6C7D8 /* SupabaseRunSyncService.swift */,
 				6DD77DCC4C48B277F0D98415 /* WithingsService.swift */,
 				784BD1B47C68CD0355C89074 /* WithingsServiceModels.swift */,
 				9A121F9F8D3E9E156119EC54 /* Cloud */,
@@ -822,6 +825,7 @@
 				CC50472692F34FA2282A64FB /* SettingsView.swift in Sources */,
 				F9FFAD9E8FA8890A74773B38 /* StravaService.swift in Sources */,
 				3B68FC66ECFBF5C6551ECD8F /* StravaServiceModels.swift in Sources */,
+				B1C2D3E4F5061728394A5B6C7 /* SupabaseRunSyncService.swift in Sources */,
 				BFCDF24F57143FE23E3BF9F5 /* SubscriptionLinkView.swift in Sources */,
 				22394527FA667448E94965DC /* TechnicalInsightsView.swift in Sources */,
 				88A8F169DAEB374DD680F9AB /* TrainingDistributionView.swift in Sources */,

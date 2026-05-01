@@ -1,9 +1,47 @@
 # iOS Crawl with Maestro
 
-Automated "user crawl" of the **KinetixPhone** iOS app, modeled after the way
-we use Playwright on the web. Runs in CI on the existing `macos-14` runner so
-contributors on Windows / Linux can still get visual evidence and a regression
-signal for the iPhone app.
+Automated "user crawl" of the **KinetixPhone** iOS app. This is the closest
+practical equivalent to Playwright for native iOS: YAML flows, per-step
+screenshots, JUnit output, and CI-friendly runs.
+
+## Platform constraint (agents on Windows / Linux)
+
+**iOS Simulator and Xcode run only on macOS.** A Cursor session on Windows cannot
+spin up an iPhone Simulator or drive Maestro against a local `.app` the way
+Playwright drives Chromium. Realistic options:
+
+| Situation | Where the Simulator runs | Typical tool |
+| --- | --- | --- |
+| Mac available | Local Mac | Maestro CLI or XCUITest |
+| No Mac, GitHub access | GitHub Actions `macos-*` | Maestro in CI (**this doc**) |
+| Real devices required | Device farm (BrowserStack, Sauce, AWS Device Farm) | Farm tooling + `.ipa` |
+
+This repo implements the **CI path**:
+[`.github/workflows/ios-crawl.yml`](../../.github/workflows/ios-crawl.yml) runs on
+**`macos-15`** so contributors still get screenshots, logs, and JUnit without a
+local Mac.
+
+### Why `macos-15` (Swift 6.1 / swift-crypto)
+
+SPM resolution can pull **swift-crypto** `>= 4.5.0` (for example via Supabase),
+which requires **Swift 6.1**. On **`macos-14`**, `setup-xcode` with
+`latest-stable` has resolved to **Xcode 16.2 (Swift 6.0)**, which fails during
+**dependency resolution** before `xcodebuild` produces an `.app`. **`macos-15`**
+images ship **Xcode 16.3+ (Swift 6.1)** by default, which unblocks the build.
+
+**Related:** [`.github/workflows/native-ci.yml`](../../.github/workflows/native-ci.yml)
+still targets **`macos-14`**. If that job fails with the same swift-crypto / Swift
+version mismatch, bump it to **`macos-15`** (or pin Xcode 16.3+) like the crawl
+workflow.
+
+### Tooling orientation (Playwright vs Maestro vs XCUITest)
+
+| | Playwright (web) | Maestro (this crawl) | XCUITest |
+| --- | --- | --- | --- |
+| Authoring | TS/JS | YAML flows | Swift |
+| Local on Windows | Yes | No (needs macOS Simulator) | No |
+| "Crawl" / smoke | Natural fit | Natural fit (`takeScreenshot`, tab walks) | Heavier setup |
+| CI runner | Linux / any | **macOS** | **macOS** |
 
 This is the iOS UI evidence path referenced from
 [`docs/AGENT_BOOTSTRAP.md`](../AGENT_BOOTSTRAP.md).

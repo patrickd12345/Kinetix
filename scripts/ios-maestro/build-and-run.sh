@@ -111,6 +111,7 @@ xcrun simctl bootstatus "${UDID}" -b
 # Build the app for the simulator
 # --------------------------------------------------------------------------
 echo "==> xcodebuild (${SCHEME} for ${SIM_DEVICE})"
+set +e
 xcodebuild \
   -project watchos/KinetixWatch.xcodeproj \
   -scheme "${SCHEME}" \
@@ -119,8 +120,18 @@ xcodebuild \
   -derivedDataPath "${DERIVED_DATA}" \
   CODE_SIGNING_ALLOWED=NO \
   build \
+  2>&1 \
   | tee "${REPORTS_DIR}/xcodebuild.log" \
-  | xcbeautify --quieter 2>/dev/null || true
+  | (xcbeautify --quieter 2>/dev/null || cat)
+XCODE_EXIT="${PIPESTATUS[0]}"
+set -e
+if [[ "${XCODE_EXIT}" -ne 0 ]]; then
+  echo "ERROR: xcodebuild failed with exit code ${XCODE_EXIT}." >&2
+  echo "       full log: ${REPORTS_DIR}/xcodebuild.log" >&2
+  echo "==== last 80 lines of xcodebuild log ====" >&2
+  tail -n 80 "${REPORTS_DIR}/xcodebuild.log" >&2 || true
+  exit "${XCODE_EXIT}"
+fi
 
 APP_PATH="$(/usr/bin/find "${DERIVED_DATA}" -type d -name 'KinetixPhone.app' \
   -path '*Debug-iphonesimulator*' -print -quit)"

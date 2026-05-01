@@ -45,6 +45,7 @@ targets:
       - path: KinetixWatch/CoreMLCoach.swift
       - path: KinetixWatch/FormCoach.swift
       - path: ../ios/KinetixPhone/Services/ApiKeyStorage.swift
+      - path: ../ios/KinetixPhone/Services/SupabaseRunSyncService.swift
     resources:
       - path: ../ios/KinetixPhone/PrivacyInfo.xcprivacy
     dependencies:

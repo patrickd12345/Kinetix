@@ -20,7 +20,7 @@ Add child-project-specific constraints here. They must not conflict with the man
 ### Evidence paths for UI claims
 
 - **Web:** Playwright e2e under `apps/web` (`pnpm --filter @kinetix/web test:e2e`).
-- **iOS (KinetixPhone):** Maestro crawl on the existing `macos-14` GitHub Actions runner. Trigger the [`iOS Crawl (Maestro)`](../.github/workflows/ios-crawl.yml) workflow and read screenshots / JUnit / `simulator.log` from the uploaded artifact. See [`docs/testing/IOS_MAESTRO_CRAWL.md`](testing/IOS_MAESTRO_CRAWL.md).
+- **iOS (KinetixPhone):** Maestro user-crawl on GitHub Actions **`macos-15`** (Simulator cannot run on Windows; see [`docs/testing/IOS_MAESTRO_CRAWL.md`](testing/IOS_MAESTRO_CRAWL.md)). Trigger [`iOS Crawl (Maestro)`](../.github/workflows/ios-crawl.yml) (`workflow_dispatch` or push to `ios-crawl/**`), then read artifact screenshots, JUnit, `simulator.log`, and `xcodebuild.log` per that doc.
 - **watchOS (KinetixWatch):** `KinetixHostUITests` driven by [`.github/workflows/native-ci.yml`](../.github/workflows/native-ci.yml).
 
-When claiming an iOS UI fix is complete from a non-macOS host, the Maestro crawl artifacts (or an equivalent `xcresult`) are the required evidence.
+When claiming an iOS UI fix is complete from a non-macOS host, Maestro crawl artifacts (or an equivalent `xcresult`) are the required evidence.

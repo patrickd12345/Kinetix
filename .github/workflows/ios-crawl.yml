@@ -60,7 +60,7 @@ jobs:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
             build/DerivedData
-          key: ${{ runner.os }}-ios-crawl-${{ hashFiles('watchos/project.yml', 'ios/**/*.swift') }}
+          key: ${{ runner.os }}-ios-crawl-${{ hashFiles('watchos/project.yml', 'watchos/KinetixWatch.xcodeproj/project.pbxproj', 'ios/**/*.swift') }}
           restore-keys: |
             ${{ runner.os }}-ios-crawl-
 

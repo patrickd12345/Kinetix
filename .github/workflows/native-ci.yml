@@ -22,7 +22,11 @@ concurrency:
 
 jobs:
   ios_watch:
-    runs-on: macos-14
+    # macos-15 ships Xcode 16.3+ (Swift 6.1) which is required by the
+    # transitive swift-crypto >=4.5.0 pulled in by Supabase. macos-14 only
+    # has Xcode 16.2 (Swift 6.0) and fails dependency resolution.
+    runs-on: macos-15
+    timeout-minutes: 45
     env:
       DERIVED_DATA: ${{ github.workspace }}/DerivedData
 
@@ -44,7 +48,7 @@ jobs:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
             DerivedData
-          key: ${{ runner.os }}-native-${{ hashFiles('watchos/project.yml', 'ios/**/*.swift') }}
+          key: ${{ runner.os }}-native-${{ hashFiles('watchos/project.yml', 'watchos/KinetixWatch.xcodeproj/project.pbxproj', 'ios/**/*.swift') }}
           restore-keys: |
             ${{ runner.os }}-native-
 

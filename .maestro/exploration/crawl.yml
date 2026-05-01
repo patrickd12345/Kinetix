@@ -9,7 +9,7 @@ tags:
     stopApp: true
     permissions:
       all: deny
-      location: allow
+      location: inuse
       notifications: allow
 - waitForAnimationToEnd:
     timeout: 5000

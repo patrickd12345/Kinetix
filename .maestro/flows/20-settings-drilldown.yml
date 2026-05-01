@@ -9,7 +9,7 @@ tags:
     stopApp: false
     permissions:
       all: deny
-      location: allow
+      location: inuse
       notifications: allow
 - runFlow: ../helpers/dismiss-system-alerts.yml
 

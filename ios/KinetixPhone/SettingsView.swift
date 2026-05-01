@@ -43,6 +43,7 @@ struct SettingsView: View {
     @State private var showingCloudAuth = false
     
     @State private var isStravaConnected = false
+    @State private var stravaImporting = false
     @State private var stravaExporting = false
     @State private var showingStravaExport = false
     @State private var stravaDays = 90
@@ -376,6 +377,23 @@ struct SettingsView: View {
                 }
                 
                 Button {
+                    Task {
+                        await importRunsFromStrava()
+                    }
+                } label: {
+                    HStack {
+                        if stravaImporting {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Importing…")
+                        } else {
+                            Label("Import from Strava", systemImage: "square.and.arrow.down")
+                        }
+                    }
+                }
+                .disabled(stravaImporting || stravaExporting)
+
+                Button {
                     showingStravaExport = true
                 } label: {
                     HStack {
@@ -387,7 +405,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                .disabled(stravaExporting)
+                .disabled(stravaExporting || stravaImporting)
                 
                 Button(role: .destructive) {
                     disconnectStrava()
@@ -1253,6 +1271,18 @@ struct SettingsView: View {
     }
     
     private func connectStrava() {
+        guard !stravaImporting && !stravaExporting else {
+            saveConfirmationMessage = "Please wait for the current Strava operation to finish."
+            showingSaveConfirmation = true
+            return
+        }
+
+        if isStravaConnected {
+            saveConfirmationMessage = "Strava is already connected."
+            showingSaveConfirmation = true
+            return
+        }
+
         // Check if credentials are configured
         guard StravaService.shared.areCredentialsConfigured() else {
             saveConfirmationMessage = "Strava integration is not configured. Please contact the developer."
@@ -1302,6 +1332,12 @@ struct SettingsView: View {
     }
     
     private func exportStravaToGoogleDrive() async {
+        guard !stravaImporting else {
+            saveConfirmationMessage = "Please wait for Strava import to finish before exporting."
+            showingSaveConfirmation = true
+            return
+        }
+
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let _ = windowScene.windows.first?.rootViewController else {
             saveConfirmationMessage = "Could not find view controller"
@@ -1417,6 +1453,86 @@ struct SettingsView: View {
             showingStravaExport = false
         } catch {
             saveConfirmationMessage = "Export failed: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
+    }
+
+    private func importRunsFromStrava() async {
+        guard !stravaImporting else { return }
+        guard !stravaExporting else {
+            saveConfirmationMessage = "Please wait for Strava export to finish before importing."
+            showingSaveConfirmation = true
+            return
+        }
+
+        stravaImporting = true
+        defer { stravaImporting = false }
+
+        do {
+            guard let tokens = try CloudTokenStorage.shared.getTokens(provider: "strava") else {
+                throw StravaError.authenticationFailed("Not connected to Strava")
+            }
+
+            var accessToken = tokens.accessToken
+            if !CloudTokenStorage.shared.isTokenValid(provider: "strava") {
+                let refreshed = try await StravaService.shared.refreshAccessToken(refreshToken: tokens.refreshToken)
+                try CloudTokenStorage.shared.storeTokens(
+                    provider: "strava",
+                    accessToken: refreshed.accessToken,
+                    refreshToken: refreshed.refreshToken,
+                    expiresAt: refreshed.expiresAt
+                )
+                accessToken = refreshed.accessToken
+            }
+
+            let activities = try await StravaService.shared.fetchActivities(accessToken: accessToken, days: stravaDays)
+            let existingRuns = runs.filter { $0.source.hasPrefix("strava") }
+            var imported = 0
+
+            for activity in activities {
+                guard activity.type == "Run" || activity.sport_type == "Run" else { continue }
+                guard activity.distance > 0, activity.moving_time > 0 else { continue }
+                guard let activityDate = ISO8601DateFormatter().date(from: activity.start_date) else { continue }
+
+                let duplicate = existingRuns.contains { run in
+                    abs(run.date.timeIntervalSince(activityDate)) < 1 &&
+                    abs(run.distance - activity.distance) < 1 &&
+                    abs(run.duration - Double(activity.moving_time)) < 1
+                }
+                if duplicate { continue }
+
+                let distanceKm = activity.distance / 1000.0
+                let paceSecondsPerKm = Double(activity.moving_time) / distanceKm
+                let speedKmH = 3600.0 / paceSecondsPerKm
+                let factor = pow(distanceKm, 0.06)
+                let npi = speedKmH * factor * 10.0
+
+                let run = Run(
+                    date: activityDate,
+                    source: "strava:\(activity.id)",
+                    distance: activity.distance,
+                    duration: Double(activity.moving_time),
+                    avgPace: paceSecondsPerKm,
+                    avgNPI: npi,
+                    avgHeartRate: activity.average_heartrate ?? 0,
+                    avgCadence: activity.average_cadence != nil ? activity.average_cadence! * 2 : nil,
+                    avgVerticalOscillation: nil,
+                    avgGroundContactTime: nil,
+                    avgStrideLength: nil,
+                    formScore: nil,
+                    routeData: []
+                )
+                modelContext.insert(run)
+                imported += 1
+            }
+
+            try modelContext.save()
+            saveConfirmationMessage = imported > 0
+                ? "✅ Imported \(imported) new run\(imported == 1 ? "" : "s") from Strava."
+                : "No new Strava runs found to import."
+            showingSaveConfirmation = true
+        } catch {
+            saveConfirmationMessage = "Strava import failed: \(error.localizedDescription)"
             showingSaveConfirmation = true
         }
     }

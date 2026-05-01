@@ -29,6 +29,14 @@ Kinetix web uses the **same Supabase project** as Bookiji for SSO ([`ENV_PARITY.
 
 Access is still enforced by reading **`platform.entitlements`** for `product_key = 'kinetix'` ([`apps/web/src/lib/platformAuth.ts`](../../apps/web/src/lib/platformAuth.ts)). No Stripe keys in the browser bundle.
 
+### 4. Provider token storage
+
+- Strava and Withings OAuth refresh tokens must not be persisted in browser storage.
+- Client settings may hold provider credentials in memory for the active tab/session, but persisted settings must contain only non-secret connection preferences and sync metadata.
+- Server-side provider token storage is reserved for `kinetix.provider_token_vault` and must be accessed with service-role APIs only.
+- Clients must not receive `refresh_token` values from Kinetix-owned OAuth or refresh endpoints once vault-backed provider routes are enabled.
+- Apply [`supabase/migrations/20260501000000_kinetix_provider_token_vault.sql`](../../supabase/migrations/20260501000000_kinetix_provider_token_vault.sql) before switching provider refresh flows to server-held tokens.
+
 ```mermaid
 sequenceDiagram
   participant User

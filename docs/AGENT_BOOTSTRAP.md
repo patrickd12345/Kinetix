@@ -11,6 +11,7 @@ Read this file first for every agent prompt in this child project.
 6. When relevant, inspect real deployment/config/auth/external-system behavior before claiming completion.
 7. For secrets and production-like operations, follow the umbrella-approved secret handling path in `../../docs/standards/02-secrets-and-config.md` and the **Infisical and secrets** section in umbrella `../../AGENTS.md`. **Default for agents is the Infisical CLI** (and product scripts like `pnpm verify:infisical` / `pnpm infisical:list-keys` where defined). Do not assume Infisical MCP is installed in Cursor; use `@infisical/mcp` only when that server is configured and tool descriptors exist under `mcps/`. Never paste secret values into the chat.
 8. Do not claim a fix is complete without evidence appropriate to the defect type (tests, runtime checks, logs, integration proof, or deployment validation as applicable).
+9. Enforce umbrella Standard 12 operational baseline for product runtime hygiene: required Sentry error capture and PR traceability template, required `/api/health` uptime endpoint, optional analytics scaffold disabled by default unless explicitly configured.
 <!-- END:BOOKIJI-UMBRELLA-BOOTSTRAP:BKI-043B -->
 
 ## Project-Specific Notes

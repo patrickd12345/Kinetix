@@ -1,5 +1,31 @@
-## Kinetix Scope Closure
+## Summary
+What this PR does (one paragraph)
 
-- [ ] Does this change affect a tracked feature?
-- [ ] If yes, did you update docs/KINETIX_SCOPE_CLOSURE.md?
-- [ ] Is this feature now Soft Freeze / Closed / Verified?
+## Traceability
+- Source instruction/comment:
+- Implementation PR:
+- Related PRs:
+- Scope split:
+- Duplicate/overlap check:
+- Merge order:
+
+## Scope
+Explicit list of what is included
+
+## Explicitly Excluded
+What was intentionally NOT done
+
+## Verification
+Commands run:
+- pnpm lint
+- pnpm type-check
+- pnpm test (or targeted)
+
+Results:
+- pass/fail
+
+## Risks
+List real risks only
+
+## Next 5 Actions
+Concrete next steps

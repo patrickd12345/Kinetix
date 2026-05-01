@@ -17,6 +17,8 @@
         "test:coverage": "pnpm run build:bookiji-packages && pnpm --filter @kinetix/core build && vitest run --coverage",
         "test:vitest:serial": "vitest run --pool forks --poolOptions.forks.minForks=1 --poolOptions.forks.maxForks=1",
         "test:e2e": "pnpm exec playwright test",
+        "test:crawl": "pnpm exec playwright test e2e/kinetix-audit-crawl.spec.ts --workers=1 --retries=0 --reporter=line,html",
+        "test:crawl:hard": "pnpm exec playwright test e2e/ai-chat-smoke.spec.ts e2e/settings-interactions.spec.ts e2e/charts.spec.ts e2e/operator-support-queue-smoke.spec.ts e2e/help-support-search-flow.spec.ts --workers=1 --retries=0 --reporter=line,html",
         "test:e2e:operator": "pnpm exec playwright test e2e/operator-support-queue-smoke.spec.ts",
         "test:e2e:headed": "pnpm exec playwright test --headed",
         "support-corpus:ingest": "node ./support-corpus/ingest-corpus.mjs"

@@ -1,0 +1,72 @@
+name: Web Crawl (Playwright)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "web-crawl/**"
+    paths:
+      - "apps/web/**"
+      - "api/**"
+      - "packages/core/**"
+      - "monorepo-packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/web-crawl.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-crawl-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PW_TRACE: "on"
+  PW_VIDEO: "1"
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --dir apps/web exec playwright install --with-deps chromium
+
+      - name: Run web user-evidence crawl
+        run: pnpm test:crawl
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-crawl-playwright-report-${{ github.run_id }}
+          path: apps/web/playwright-report/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload crawl artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-crawl-test-results-${{ github.run_id }}
+          path: apps/web/test-results/**
+          if-no-files-found: warn
+          retention-days: 14

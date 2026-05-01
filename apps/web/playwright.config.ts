@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test'
 const liveGoogleProof = process.env.LIVE_GOOGLE_PROOF === '1'
 const baseURL = process.env.PW_BASE_URL ?? (liveGoogleProof ? 'https://kinetix.bookiji.com' : 'http://127.0.0.1:5173')
 const video = process.env.PW_VIDEO === '1' || liveGoogleProof ? 'on' : 'off'
+const trace = process.env.PW_TRACE === '1' || process.env.PW_TRACE === 'on' ? 'on' : 'on-first-retry'
 
 const config = defineConfig({
   testDir: './e2e',
@@ -20,7 +21,8 @@ const config = defineConfig({
   use: {
     baseURL,
     video,
-    trace: 'on-first-retry',
+    trace,
+    screenshot: 'only-on-failure',
     actionTimeout: 30_000,
     navigationTimeout: 60_000,
   },

@@ -8,13 +8,15 @@
 **Wave 2 (web):** Closed
 **Native (Lane B):** Store-ready branch awaiting device audit + TestFlight smoke
 **Garmin (Lane C):** Parked on partner approval; runbook ready
-**Next focus:** Operator runs the eight-row queue in [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md), then Lane A8 release tag + Vercel production promote per [`PHASE4_RELEASE_RUNBOOK.md`](PHASE4_RELEASE_RUNBOOK.md)
+**Next focus:** **Weekend 2026-05-02 → Monday AM:** native binary + internal TestFlight per [`deployment/NATIVE_MONDAY_READINESS_PLAN.md`](deployment/NATIVE_MONDAY_READINESS_PLAN.md) (merges [`deployment/KINETIX_IOS_WATCH_TESTFLIGHT_CHECKLIST.md`](deployment/KINETIX_IOS_WATCH_TESTFLIGHT_CHECKLIST.md), [`kinetix/KX-SMOKE-013-real-device-smoke.md`](kinetix/KX-SMOKE-013-real-device-smoke.md), WC diagnostics). Parallel: Phase 4 interactive queue in [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md); Lane A8 / Vercel promote per [`PHASE4_RELEASE_RUNBOOK.md`](PHASE4_RELEASE_RUNBOOK.md) when native gate is green.
 
 **Update (2026-05-01):** iPhone **Maestro crawl** CI ([`.github/workflows/ios-crawl.yml`](../.github/workflows/ios-crawl.yml), `macos-15`) plus **Native CI** on `macos-15` for Swift 6.1 / swift-crypto resolution; tab targets use `KinetixTab.*` accessibility identifiers for stable flows — see [`docs/testing/IOS_MAESTRO_CRAWL.md`](testing/IOS_MAESTRO_CRAWL.md).
 
 **Update (2026-05-01, iOS layout):** Root-tab scroll surfaces apply `kinetixFloatingTabBarClearance()` (`ios/KinetixPhone/KinetixTabBarLayout.swift`) so Home, Coach, Build, History, and Settings content stays above the iOS 18 floating tab bar in screenshots; evidence notes added to the same Maestro doc and [`KX-SMOKE-013-real-device-smoke.md`](kinetix/KX-SMOKE-013-real-device-smoke.md).
 
 **Update (2026-05-01, KX-WATCH-024):** Watch/iPhone `WCSession` contract documented ([`kinetix/KX-WATCH-024-watch-connectivity-contract.md`](kinetix/KX-WATCH-024-watch-connectivity-contract.md)); ping/pong diagnostic (`KinetixWatchConnectivityDiagnostics`, Settings ping + Watch phone link); reachability delegate on both sides; troubleshooting: [`testing/WATCH_CONNECTIVITY_TROUBLESHOOTING.md`](testing/WATCH_CONNECTIVITY_TROUBLESHOOTING.md). End-to-end WC proof remains **BLOCKED_ON_PHYSICAL_WATCH** on simulators.
+
+**Update (2026-05-02):** Weekend execution playbook for **Monday AM native readiness** (iPhone + Watch, internal TestFlight): [`deployment/NATIVE_MONDAY_READINESS_PLAN.md`](deployment/NATIVE_MONDAY_READINESS_PLAN.md).
 
 **Update (2026-05-01, BKI-104):** Web UI verification now has a named user-evidence crawl path: `pnpm test:crawl`, [`.github/workflows/web-crawl.yml`](../.github/workflows/web-crawl.yml), and [`docs/testing/WEB_PLAYWRIGHT_CRAWL.md`](testing/WEB_PLAYWRIGHT_CRAWL.md). Future web UI claims should inspect screenshots, traces/videos, and logs before reporting.
 

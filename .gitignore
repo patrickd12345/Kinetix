@@ -8,6 +8,7 @@ crawl-artifacts/
 crawl-artifacts-*/
 crawl-screens-*/
 ss_unpack/
+ss_verify_*/
 _tmp_maestro_ss/
 tmp-job*.log
 dist/

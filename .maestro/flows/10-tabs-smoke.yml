@@ -1,0 +1,57 @@
+appId: com.patrickduchesneau.KinetixPhone
+name: 10-tabs-smoke
+tags:
+  - smoke
+---
+- launchApp:
+    appId: com.patrickduchesneau.KinetixPhone
+    clearState: false
+    stopApp: false
+    permissions:
+      all: deny
+      location: allow
+      notifications: allow
+- runFlow: ../../helpers/dismiss-system-alerts.yml
+
+- assertVisible: "Home"
+- takeScreenshot: 10-tab-home
+
+- tapOn:
+    text: "Coach"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow: ../../helpers/dismiss-system-alerts.yml
+- takeScreenshot: 10-tab-coach
+
+- tapOn:
+    text: "Build"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow: ../../helpers/dismiss-system-alerts.yml
+- takeScreenshot: 10-tab-build
+
+- tapOn:
+    text: "History"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow: ../../helpers/dismiss-system-alerts.yml
+- takeScreenshot: 10-tab-history
+
+- tapOn:
+    text: "Settings"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow: ../../helpers/dismiss-system-alerts.yml
+- takeScreenshot: 10-tab-settings
+
+- tapOn:
+    text: "Home"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "KINETIX"
+- takeScreenshot: 10-tab-home-return

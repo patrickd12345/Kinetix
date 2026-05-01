@@ -1,0 +1,30 @@
+appId: com.patrickduchesneau.KinetixPhone
+name: 40-history-empty
+tags:
+  - smoke
+---
+- launchApp:
+    appId: com.patrickduchesneau.KinetixPhone
+    clearState: false
+    stopApp: false
+    permissions:
+      all: deny
+      location: allow
+      notifications: allow
+- runFlow: ../../helpers/dismiss-system-alerts.yml
+
+- tapOn:
+    text: "History"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "History"
+- takeScreenshot: 40-history-screen
+
+- runFlow:
+    when:
+      visible:
+        text: "No Runs Yet"
+    commands:
+      - assertVisible: "No Runs Yet"
+      - takeScreenshot: 40-history-empty-state

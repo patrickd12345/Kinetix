@@ -1,0 +1,51 @@
+appId: com.patrickduchesneau.KinetixPhone
+name: helpers/dismiss-system-alerts
+---
+- runFlow:
+    when:
+      visible:
+        text: "Allow Once"
+    commands:
+      - tapOn: "Allow Once"
+- runFlow:
+    when:
+      visible:
+        text: "Allow While Using App"
+    commands:
+      - tapOn: "Allow While Using App"
+- runFlow:
+    when:
+      visible:
+        text: "Don't Allow"
+    commands:
+      - tapOn: "Don't Allow"
+- runFlow:
+    when:
+      visible:
+        text: "Allow"
+    commands:
+      - tapOn: "Allow"
+- runFlow:
+    when:
+      visible:
+        text: "OK"
+    commands:
+      - tapOn: "OK"
+- runFlow:
+    when:
+      visible:
+        text: "Continue"
+    commands:
+      - tapOn: "Continue"
+- runFlow:
+    when:
+      visible:
+        text: "Not Now"
+    commands:
+      - tapOn: "Not Now"
+- runFlow:
+    when:
+      visible:
+        text: "Don\u2019t Allow"
+    commands:
+      - tapOn: "Don\u2019t Allow"

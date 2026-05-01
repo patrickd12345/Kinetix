@@ -1,0 +1,44 @@
+appId: com.patrickduchesneau.KinetixPhone
+name: 20-settings-drilldown
+tags:
+  - smoke
+---
+- launchApp:
+    appId: com.patrickduchesneau.KinetixPhone
+    clearState: false
+    stopApp: false
+    permissions:
+      all: deny
+      location: allow
+      notifications: allow
+- runFlow: ../../helpers/dismiss-system-alerts.yml
+
+- tapOn:
+    text: "Settings"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Settings"
+- takeScreenshot: 20-settings-top
+
+- scroll
+- takeScreenshot: 20-settings-scroll-1
+
+- scroll
+- takeScreenshot: 20-settings-scroll-2
+
+- scroll
+- takeScreenshot: 20-settings-scroll-3
+
+- scroll
+- takeScreenshot: 20-settings-scroll-4
+
+- scrollUntilVisible:
+    element:
+      text: "Diagnostics"
+    direction: DOWN
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 50
+    centerElement: false
+- takeScreenshot: 20-settings-diagnostics-visible

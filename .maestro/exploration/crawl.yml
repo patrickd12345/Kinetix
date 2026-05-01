@@ -1,0 +1,67 @@
+appId: com.patrickduchesneau.KinetixPhone
+name: exploration/crawl
+tags:
+  - exploration
+---
+- launchApp:
+    appId: com.patrickduchesneau.KinetixPhone
+    clearState: true
+    stopApp: true
+    permissions:
+      all: deny
+      location: allow
+      notifications: allow
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: ../helpers/dismiss-system-alerts.yml
+- takeScreenshot: crawl-00-home
+
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          text: "Home"
+          index: 0
+      - waitForAnimationToEnd:
+          timeout: 2000
+      - takeScreenshot: crawl-iter-home
+      - runFlow: ../helpers/dismiss-system-alerts.yml
+
+      - tapOn:
+          text: "Coach"
+          index: 0
+      - waitForAnimationToEnd:
+          timeout: 2000
+      - scroll
+      - scroll
+      - takeScreenshot: crawl-iter-coach
+      - runFlow: ../helpers/dismiss-system-alerts.yml
+
+      - tapOn:
+          text: "Build"
+          index: 0
+      - waitForAnimationToEnd:
+          timeout: 2000
+      - scroll
+      - takeScreenshot: crawl-iter-build
+      - runFlow: ../helpers/dismiss-system-alerts.yml
+
+      - tapOn:
+          text: "History"
+          index: 0
+      - waitForAnimationToEnd:
+          timeout: 2000
+      - scroll
+      - takeScreenshot: crawl-iter-history
+      - runFlow: ../helpers/dismiss-system-alerts.yml
+
+      - tapOn:
+          text: "Settings"
+          index: 0
+      - waitForAnimationToEnd:
+          timeout: 2000
+      - scroll
+      - scroll
+      - scroll
+      - takeScreenshot: crawl-iter-settings
+      - runFlow: ../helpers/dismiss-system-alerts.yml

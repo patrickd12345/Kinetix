@@ -1,0 +1,11 @@
+includeTags: []
+excludeTags:
+  - manual
+  - flaky
+executionOrder:
+  flowsOrder:
+    - 00-launch
+    - 10-tabs-smoke
+    - 20-settings-drilldown
+    - 30-builder
+    - 40-history-empty

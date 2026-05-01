@@ -1,0 +1,45 @@
+appId: com.patrickduchesneau.KinetixPhone
+name: 30-builder
+tags:
+  - smoke
+---
+- launchApp:
+    appId: com.patrickduchesneau.KinetixPhone
+    clearState: false
+    stopApp: false
+    permissions:
+      all: deny
+      location: allow
+      notifications: allow
+- runFlow: ../../helpers/dismiss-system-alerts.yml
+
+- tapOn:
+    text: "Build"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Activity Builder"
+- takeScreenshot: 30-builder-list
+
+- runFlow:
+    when:
+      visible:
+        text: "Live Coach"
+    commands:
+      - tapOn:
+          text: "Live Coach"
+      - waitForAnimationToEnd:
+          timeout: 4000
+      - takeScreenshot: 30-builder-live-coach-editor
+      - runFlow: ../../helpers/dismiss-system-alerts.yml
+      - tapOn:
+          text: "Cancel"
+          optional: true
+      - tapOn:
+          text: "Done"
+          optional: true
+      - back
+
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 30-builder-after-close

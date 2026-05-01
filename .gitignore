@@ -4,6 +4,7 @@ node_modules/
 .bookiji-tmp/
 
 # Build / cache
+crawl-artifacts/
 dist/
 monorepo-packages/**/dist/
 

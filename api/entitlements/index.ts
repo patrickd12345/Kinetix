@@ -6,8 +6,9 @@ import { logApiEvent } from '../_lib/observability.js'
 import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime.js'
 import { getSupabaseUserFromJwt } from '../_lib/supabaseUserFromJwt.js'
 import { aggregateEntitlementPayload, parseProductKey } from '../_lib/platformEntitlements.js'
+import { captureApiException, withSentryApiHandler } from '../_lib/sentry.js'
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {
     methods: ['GET', 'OPTIONS'],
     headers: ['Content-Type', 'Authorization'],
@@ -74,5 +75,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const payload = aggregateEntitlementPayload(data ?? [])
-  return res.status(200).json(payload)
+  try {
+    return res.status(200).json(payload)
+  } catch (error) {
+    captureApiException(error)
+    throw error
+  }
 }
+
+export default withSentryApiHandler(handler)

@@ -4,7 +4,11 @@
   "private": true,
   "type": "module",
   "description": "AI-Powered Running Coach with Kinetix Performance Score (KPS)",
-  "workspaces": ["packages/core", "monorepo-packages/*", "apps/*"],
+  "workspaces": [
+    "packages/core",
+    "monorepo-packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "prebuild": "tsx scripts/check-master-access.ts",
     "prepare": "node scripts/build-bookiji-packages.mjs",
@@ -34,13 +38,14 @@
     "lh:ci": "lhci autorun"
   },
   "dependencies": {
-    "@kinetix/core": "workspace:*",
-    "@bookiji-inc/error-contract": "workspace:*",
     "@bookiji-inc/ai-runtime": "workspace:*",
+    "@bookiji-inc/error-contract": "workspace:*",
     "@bookiji-inc/observability": "workspace:*",
     "@bookiji-inc/persistent-memory-runtime": "workspace:*",
-    "@bookiji-inc/stripe-runtime": "workspace:*",
     "@bookiji-inc/platform-auth": "workspace:*",
+    "@bookiji-inc/stripe-runtime": "workspace:*",
+    "@kinetix/core": "workspace:*",
+    "@sentry/node": "^10.51.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.57.4",
     "@vercel/node": "^3.0.0",

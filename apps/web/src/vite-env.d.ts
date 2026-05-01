@@ -1,10 +1,16 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  readonly VITE_SENTRY_ENVIRONMENT?: string
+  readonly SENTRY_ENVIRONMENT?: string
   readonly VITE_ADSENSE_CLIENT?: string
   readonly VITE_ADSENSE_SLOT?: string
   readonly VITE_ADSENSE_GLOBAL_OFF?: string
   readonly VITE_ADSENSE_APPROVAL_MODE?: string
+  readonly VITE_POSTHOG_KEY?: string
+  readonly VITE_SENTRY_DSN?: string
+  readonly NEXT_PUBLIC_SENTRY_DSN?: string
+  readonly NEXT_PUBLIC_SENTRY_ENVIRONMENT?: string
   readonly VITE_ESCALATION_PROXY_URL?: string
   readonly VITE_ENABLE_OPERATOR_DASHBOARD?: string
   readonly VITE_ENABLE_SLA_METRICS?: string

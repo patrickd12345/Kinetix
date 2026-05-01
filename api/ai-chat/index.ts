@@ -3,8 +3,9 @@ import { applyCors } from '../_lib/cors.js'
 import { serializeApiError, toApiHttpError } from '../_lib/ai/error-contract.js'
 import { getObservedRequestId, logApiEvent } from '../_lib/observability.js'
 import { handleAiChatRequest } from '../_lib/ai/requestHandlers.js'
+import { captureApiException, withSentryApiHandler } from '../_lib/sentry.js'
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {
     methods: ['POST', 'OPTIONS'],
     headers: ['Content-Type', 'Authorization', 'x-openai-key'],
@@ -29,6 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     return res.status(200).json(result)
   } catch (error) {
+    captureApiException(error)
     const requestId = getObservedRequestId(req.headers || {})
     logApiEvent('error', 'kinetix_ai_chat_failed', {
       requestId,
@@ -44,3 +46,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(status).json(serializeApiError(normalized))
   }
 }
+
+export default withSentryApiHandler(handler)

@@ -27,6 +27,7 @@
         "@bookiji-inc/observability": "workspace:*",
         "@bookiji-inc/persistent-memory-runtime": "workspace:*",
         "@kinetix/core": "workspace:*",
+        "@sentry/react": "^10.51.0",
         "@supabase/ssr": "^0.5.2",
         "@supabase/supabase-js": "^2.57.4",
         "@types/react-window": "^2.0.0",

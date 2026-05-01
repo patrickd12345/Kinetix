@@ -7,6 +7,7 @@
 | **Run Tracking** | ✅ | ❌ | ✅ |
 | **GPS Tracking** | ✅ | ❌ | ✅ |
 | **NPI Calculation** | ✅ | ❌ | ✅ |
+| **KPS display (PB-relative, cap 100)** | ✅ | ✅ | ✅ |
 | **Heart Rate** | ✅ (HealthKit) | ❌ | ⚠️ (Simulated) |
 | **Form Metrics** | ✅ | ❌ | ❌ |
 | **Activity Presets** | ✅ | ❌ | ❌ |
@@ -63,6 +64,11 @@
 - **Phone**: ❌ Displays NPI from Watch data
 - **Web**: ✅ Full calculation matching iOS formula
 
+#### KPS display (PB-relative, cap 100)
+- **Watch**: ✅ History and run detail use the same capped, personal-best-relative display as Phone/Web
+- **Phone**: ✅ Home, history, and run views
+- **Web**: ✅ Shared display policy in `kpsDisplayPolicy`
+
 #### Pace Tracking
 - **Watch**: ✅ Real-time pace calculation
 - **Phone**: ⚠️ Displays pace from Watch
@@ -113,7 +119,7 @@
 
 #### AI Coach Analysis
 - **Watch**: ⚠️ Sends data to Phone for analysis
-- **Phone**: ✅ Gemini API integration
+- **Phone**: ✅ Apple-first platform gate (iPhone + iOS 26+); native coach chat still wiring (`TODO`); production fallback is neutral copy only (no Gemini in App Store UX)
 - **Web**: ✅ Local LLM (Ollama) with fallback
 
 #### Conversational Coach

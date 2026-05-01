@@ -454,6 +454,28 @@ Application brief drafted: [`docs/GARMIN_CONNECT_APPLICATION_BRIEF.md`](GARMIN_C
   - `e2e/heavy-user-fixture.spec.ts` is skipped pending an in-app deterministic seed hook (custom IDB writes raced Dexie's `version(8)` schema). Same code paths are covered by `kinetix-audit-crawl.spec.ts` and `shell-dashboard.spec.ts`.
 - Worker cap: `playwright.config.ts` now defaults to 4 workers (overridable via `PW_WORKERS`); 8 workers caused intermittent `net::ERR_ABORTED` from the local Vite dev server.
 
+### Automation preflight (2026-04-30, go-live plan)
+
+Runnable checks recorded here **do not** replace the eight **human** operator rows below; they preflight CI parity, Infisical key **names**, native compile/tests, and production HTTP probes.
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| [`pnpm verify:kinetix-parity`](../package.json) | **PASS** | `[verify-kinetix-parity] OK` — install parity script, type-check, lint, `pnpm run build`, web bundle budget |
+| [`pnpm infisical:list-keys`](../package.json) | **PASS** | `/kinetix` lists **`VITE_WITHINGS_CLIENT_ID`**, **`WITHINGS_CLIENT_ID`**, **`WITHINGS_CLIENT_SECRET`**, **`WITHINGS_REDIRECT_URI`**, **`VITE_WITHINGS_REDIRECT_URI`** for **prod** and **dev**. Prod has **`VITE_AUTH_REDIRECT_URL`**; dev `/kinetix` export shows **10** keys vs **11** on prod — reconcile if dev redirects must match prod policy. |
+| [`bash watchos/scripts/verify-native-cli.sh`](../watchos/scripts/verify-native-cli.sh) | **PASS** | XcodeGen + Watch `watchsimulator` target build + **KinetixPhoneTests** (**15** tests, 0 failures) |
+| `node scripts/phase4/post-deploy-probes.mjs --host https://kinetix.bookiji.com` | **PASS** | See row in **Post-deploy probes (2026-04-30)** |
+
+**Post-deploy probes (2026-04-30)**
+
+| Timestamp | Host | Result | Detail |
+|-----------|------|--------|--------|
+| 2026-04-30T02:54:22.198Z | https://kinetix.bookiji.com | PASS | GET /api/admlog=PASS; POST /api/ai-chat=PASS; GET /api/support-queue/tickets=PASS; GET /api/support-queue/kb-approval=PASS; GET /=PASS |
+| 2026-04-30T11:18:56.877Z | https://kinetix.bookiji.com | PASS | Lane A8 post-tag probe run after RC tag correction (`kinetix-phase4-rc-2026-04-30` -> `ad8f4ed`): GET /api/admlog=PASS; POST /api/ai-chat=PASS; GET /api/support-queue/tickets=PASS; GET /api/support-queue/kb-approval=PASS; GET /=PASS |
+
+**Lane A8** ([`PHASE4_RELEASE_RUNBOOK.md`](PHASE4_RELEASE_RUNBOOK.md)): release tag corrected to `kinetix-phase4-rc-2026-04-30` -> `ad8f4ed`, and Vercel production deploy `dpl_8f2FsD4XWqKNdpduhmGpymX6cseD` confirmed/promoted state (`vercel promote` returned 409 because it is already current production). Post-deploy probes PASS.
+
+**Lane B**: CLI/native gates above **PASS**; **physical iPhone/Watch** smoke and **TestFlight / ASC** remain **human** ([`kinetix/KX-SMOKE-013-real-device-smoke.md`](kinetix/KX-SMOKE-013-real-device-smoke.md), native audit runbook).
+
 ### Operator action queue (humans only)
 
 Run these in order from [`PHASE4_INTERACTIVE_RUNBOOK.md`](PHASE4_INTERACTIVE_RUNBOOK.md). Record each row in the relevant manual table above.

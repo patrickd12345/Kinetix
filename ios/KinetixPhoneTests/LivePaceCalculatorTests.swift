@@ -32,7 +32,8 @@ final class LivePaceCalculatorTests: XCTestCase {
             now: start.addingTimeInterval(4)
         )
 
-        XCTAssertEqual(pace, 375, accuracy: 0.001)
+        // Window [T+1, T+4]: interpolated distance at T+1 is 4 m (mid-segment 0→8 m); end 16 m → Δ12 m / 3 s → 250 s/km.
+        XCTAssertEqual(pace, 250, accuracy: 0.001)
     }
 
     func testRollingPaceReturnsZeroForSparseOrStationaryData() {

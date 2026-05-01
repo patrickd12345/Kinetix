@@ -43,6 +43,7 @@ struct SettingsView: View {
     @State private var showingCloudAuth = false
     
     @State private var isStravaConnected = false
+    @State private var stravaImporting = false
     @State private var stravaExporting = false
     @State private var showingStravaExport = false
     @State private var stravaDays = 90
@@ -56,10 +57,15 @@ struct SettingsView: View {
     @State private var ollamaAvailable: Bool = false
     @State private var checkingOllama = false
     @State private var showAdvancedAISettings = false
+    @State private var showDeveloperCoachTools = false
+    /// Used only by `#if DEBUG` developer Gemini section (never shown in Release UI).
+    @State private var geminiApiKeyDraft: String = ""
+    @State private var geminiKeyStatusMessage: String?
+    @AppStorage("kinetix_dev_enable_gemini_coach_chat") private var devGeminiCoachChatEnabled = false
     
     private let sexOptions = ["unspecified", "female", "male", "nonbinary"]
     private let kgToLbs = 2.20462
-    private let appleIntelligenceService: KinetixAppleIntelligenceService = DefaultKinetixAppleIntelligenceService()
+    private let appleIntelligenceService: KinetixAppleIntelligenceService = DefaultKinetixAppleIntelligenceService.shared
     
     var body: some View {
         NavigationStack {
@@ -117,6 +123,7 @@ struct SettingsView: View {
                 updateCloudSyncStatus()
                 loadOllamaSettings()
                 checkOllamaAvailability()
+                loadGeminiApiKeyDraft()
             }
             .onChange(of: weightUnit) { oldValue, newValue in
                 guard oldValue != newValue else { return }
@@ -370,6 +377,23 @@ struct SettingsView: View {
                 }
                 
                 Button {
+                    Task {
+                        await importRunsFromStrava()
+                    }
+                } label: {
+                    HStack {
+                        if stravaImporting {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Importing…")
+                        } else {
+                            Label("Import from Strava", systemImage: "square.and.arrow.down")
+                        }
+                    }
+                }
+                .disabled(stravaImporting || stravaExporting)
+
+                Button {
                     showingStravaExport = true
                 } label: {
                     HStack {
@@ -381,7 +405,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                .disabled(stravaExporting)
+                .disabled(stravaExporting || stravaImporting)
                 
                 Button(role: .destructive) {
                     disconnectStrava()
@@ -466,21 +490,18 @@ struct SettingsView: View {
                 Spacer()
             }
             .padding(.vertical, 4)
+
+            #if DEBUG
+            DisclosureGroup(isExpanded: $showDeveloperCoachTools) {
+                geminiDeveloperCoachChatSection
+            } label: {
+                Text("Developer tools")
+                    .font(.subheadline)
+            }
+            #endif
             
             // Advanced Settings (collapsed by default)
             if showAdvancedAISettings {
-                Divider()
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Gemini / Google AI Studio keys")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Text("Gemini API keys must not ship in the app bundle. Until Lane A adds an authenticated Gemini proxy endpoint, \(GeminiProxyService.unavailableReason()). Use local Ollama below or rely on Apple Intelligence / rule-based summaries.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.vertical, 4)
-
                 Divider()
                 
                 // Ollama Settings
@@ -535,9 +556,68 @@ struct SettingsView: View {
                     .font(.caption)
             }
         } header: {
-            Text("AI Coach")
+            Text("Coach & analysis")
         } footer: {
-            Text("AI analysis defaults to Apple Intelligence where available; otherwise rule-based summaries. Gemini via Google Cloud keys is removed from the binary — \(GeminiProxyService.unavailableReason()).")
+            Text("Coach chat uses on-device AI when your iPhone supports it. Otherwise you’ll see a short unavailable message. Optional local analysis tools are under Advanced settings.")
+        }
+    }
+
+    #if DEBUG
+    private var geminiDeveloperCoachChatSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Developer — experimental coach chat")
+                .font(.subheadline)
+                .foregroundColor(.orange)
+            Text("DEBUG builds only. Optional Gemini key for engineering; Release builds never show this section.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Toggle("Enable Gemini coach chat (debug)", isOn: $devGeminiCoachChatEnabled)
+            SecureField("Gemini API key (debug)", text: $geminiApiKeyDraft)
+                .textContentType(.password)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            HStack {
+                Button("Save key") {
+                    saveGeminiApiKeyFromDraft()
+                }
+                Button("Remove key") {
+                    removeGeminiApiKey()
+                }
+                .foregroundColor(.red)
+            }
+            .font(.subheadline)
+            if let msg = geminiKeyStatusMessage {
+                Text(msg)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    #endif
+
+    private func loadGeminiApiKeyDraft() {
+        geminiApiKeyDraft = ApiKeyStorage.shared.getKey(name: "gemini_api_key") ?? ""
+    }
+
+    private func saveGeminiApiKeyFromDraft() {
+        let trimmed = geminiApiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        do {
+            try ApiKeyStorage.shared.storeKey(name: "gemini_api_key", value: trimmed)
+            geminiKeyStatusMessage = trimmed.isEmpty ? "Key removed." : "Key saved (debug)."
+            loadGeminiApiKeyDraft()
+        } catch {
+            geminiKeyStatusMessage = error.localizedDescription
+        }
+    }
+
+    private func removeGeminiApiKey() {
+        do {
+            try ApiKeyStorage.shared.removeKey(name: "gemini_api_key")
+            geminiApiKeyDraft = ""
+            geminiKeyStatusMessage = "Key removed."
+        } catch {
+            geminiKeyStatusMessage = error.localizedDescription
         }
     }
     
@@ -561,10 +641,13 @@ struct SettingsView: View {
     }
 
     private var aiStatusDescription: String {
-        if ollamaAvailable {
-            return "Using local AI (Ollama)"
+        if appleIntelligenceService.isAppleIntelligenceAvailable() == .available {
+            return "On-device AI path available for supported summaries (iOS 26+ iPhone)"
         }
-        return "Using rule-based analysis"
+        if ollamaAvailable {
+            return "Ollama reachable — optional for run analysis"
+        }
+        return "Built-in rules when optional AI backends aren’t available"
     }
     
     private var batteryProfileSection: some View {
@@ -1086,6 +1169,7 @@ struct SettingsView: View {
         }
         summaryError = nil
         let totalDistance = recentRuns.map(\.distance).reduce(0, +) / 1000
+        let totalDuration = recentRuns.map(\.duration).reduce(0, +)
         let avgNPI = recentRuns.map(\.avgNPI).reduce(0, +) / Double(recentRuns.count)
         let bestNPI = recentRuns.map(\.avgNPI).max() ?? avgNPI
         let stabilityScore = recentRuns.compactMap { $0.formScore }.averageOrNil() ?? 0
@@ -1095,9 +1179,10 @@ struct SettingsView: View {
         let result = await appleIntelligenceService.generatePostRunSummary(
             PostRunSummaryInput(
                 distance: totalDistance * 1000,
+                duration: totalDuration,
                 pace: recentRuns.compactMap(\.avgPace).averageOrNil() ?? 0,
-                heartRateAvg: recentRuns.compactMap(\.avgHeartRate).averageOrNil(),
                 kps: avgNPI,
+                heartRateAvg: recentRuns.compactMap(\.avgHeartRate).averageOrNil(),
                 trendDirection: trendDirection
             )
         )
@@ -1186,6 +1271,18 @@ struct SettingsView: View {
     }
     
     private func connectStrava() {
+        guard !stravaImporting && !stravaExporting else {
+            saveConfirmationMessage = "Please wait for the current Strava operation to finish."
+            showingSaveConfirmation = true
+            return
+        }
+
+        if isStravaConnected {
+            saveConfirmationMessage = "Strava is already connected."
+            showingSaveConfirmation = true
+            return
+        }
+
         // Check if credentials are configured
         guard StravaService.shared.areCredentialsConfigured() else {
             saveConfirmationMessage = "Strava integration is not configured. Please contact the developer."
@@ -1235,6 +1332,12 @@ struct SettingsView: View {
     }
     
     private func exportStravaToGoogleDrive() async {
+        guard !stravaImporting else {
+            saveConfirmationMessage = "Please wait for Strava import to finish before exporting."
+            showingSaveConfirmation = true
+            return
+        }
+
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let _ = windowScene.windows.first?.rootViewController else {
             saveConfirmationMessage = "Could not find view controller"
@@ -1350,6 +1453,86 @@ struct SettingsView: View {
             showingStravaExport = false
         } catch {
             saveConfirmationMessage = "Export failed: \(error.localizedDescription)"
+            showingSaveConfirmation = true
+        }
+    }
+
+    private func importRunsFromStrava() async {
+        guard !stravaImporting else { return }
+        guard !stravaExporting else {
+            saveConfirmationMessage = "Please wait for Strava export to finish before importing."
+            showingSaveConfirmation = true
+            return
+        }
+
+        stravaImporting = true
+        defer { stravaImporting = false }
+
+        do {
+            guard let tokens = try CloudTokenStorage.shared.getTokens(provider: "strava") else {
+                throw StravaError.authenticationFailed("Not connected to Strava")
+            }
+
+            var accessToken = tokens.accessToken
+            if !CloudTokenStorage.shared.isTokenValid(provider: "strava") {
+                let refreshed = try await StravaService.shared.refreshAccessToken(refreshToken: tokens.refreshToken)
+                try CloudTokenStorage.shared.storeTokens(
+                    provider: "strava",
+                    accessToken: refreshed.accessToken,
+                    refreshToken: refreshed.refreshToken,
+                    expiresAt: refreshed.expiresAt
+                )
+                accessToken = refreshed.accessToken
+            }
+
+            let activities = try await StravaService.shared.fetchActivities(accessToken: accessToken, days: stravaDays)
+            let existingRuns = runs.filter { $0.source.hasPrefix("strava") }
+            var imported = 0
+
+            for activity in activities {
+                guard activity.type == "Run" || activity.sport_type == "Run" else { continue }
+                guard activity.distance > 0, activity.moving_time > 0 else { continue }
+                guard let activityDate = ISO8601DateFormatter().date(from: activity.start_date) else { continue }
+
+                let duplicate = existingRuns.contains { run in
+                    abs(run.date.timeIntervalSince(activityDate)) < 1 &&
+                    abs(run.distance - activity.distance) < 1 &&
+                    abs(run.duration - Double(activity.moving_time)) < 1
+                }
+                if duplicate { continue }
+
+                let distanceKm = activity.distance / 1000.0
+                let paceSecondsPerKm = Double(activity.moving_time) / distanceKm
+                let speedKmH = 3600.0 / paceSecondsPerKm
+                let factor = pow(distanceKm, 0.06)
+                let npi = speedKmH * factor * 10.0
+
+                let run = Run(
+                    date: activityDate,
+                    source: "strava:\(activity.id)",
+                    distance: activity.distance,
+                    duration: Double(activity.moving_time),
+                    avgPace: paceSecondsPerKm,
+                    avgNPI: npi,
+                    avgHeartRate: activity.average_heartrate ?? 0,
+                    avgCadence: activity.average_cadence != nil ? activity.average_cadence! * 2 : nil,
+                    avgVerticalOscillation: nil,
+                    avgGroundContactTime: nil,
+                    avgStrideLength: nil,
+                    formScore: nil,
+                    routeData: []
+                )
+                modelContext.insert(run)
+                imported += 1
+            }
+
+            try modelContext.save()
+            saveConfirmationMessage = imported > 0
+                ? "✅ Imported \(imported) new run\(imported == 1 ? "" : "s") from Strava."
+                : "No new Strava runs found to import."
+            showingSaveConfirmation = true
+        } catch {
+            saveConfirmationMessage = "Strava import failed: \(error.localizedDescription)"
             showingSaveConfirmation = true
         }
     }

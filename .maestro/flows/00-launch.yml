@@ -1,0 +1,18 @@
+appId: com.patrickduchesneau.KinetixPhone
+name: 00-launch
+tags:
+  - smoke
+---
+- launchApp:
+    appId: com.patrickduchesneau.KinetixPhone
+    clearState: true
+    stopApp: true
+    permissions:
+      all: deny
+      location: inuse
+      notifications: allow
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: ../helpers/dismiss-system-alerts.yml
+- assertVisible: "KINETIX"
+- takeScreenshot: 00-launch-home

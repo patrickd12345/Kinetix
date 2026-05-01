@@ -12,8 +12,17 @@ Read this file first for every agent prompt in this child project.
 7. For secrets and production-like operations, follow the umbrella-approved secret handling path in `../../docs/standards/02-secrets-and-config.md` and the **Infisical and secrets** section in umbrella `../../AGENTS.md`. **Default for agents is the Infisical CLI** (and product scripts like `pnpm verify:infisical` / `pnpm infisical:list-keys` where defined). Do not assume Infisical MCP is installed in Cursor; use `@infisical/mcp` only when that server is configured and tool descriptors exist under `mcps/`. Never paste secret values into the chat.
 8. Do not claim a fix is complete without evidence appropriate to the defect type (tests, runtime checks, logs, integration proof, or deployment validation as applicable).
 9. Enforce umbrella Standard 12 operational baseline for product runtime hygiene: required Sentry error capture and PR traceability template, required `/api/health` uptime endpoint, optional analytics scaffold disabled by default unless explicitly configured.
+10. For user-facing web UI claims, follow `../../docs/standards/00-index.md` -> `06-testing-and-verification.md`: run or update a Playwright user-evidence crawl with screenshots, traces/videos/logs, and artifact upload when the product has a web surface.
 <!-- END:BOOKIJI-UMBRELLA-BOOTSTRAP:BKI-043B -->
 
 ## Project-Specific Notes
 
 Add child-project-specific constraints here. They must not conflict with the mandatory bootstrap section above.
+
+### Evidence paths for UI claims
+
+- **Web:** Playwright user-evidence crawl under `apps/web` (`pnpm test:crawl` from product root, or `pnpm --filter @kinetix/web test:crawl`). Use [`docs/testing/WEB_PLAYWRIGHT_CRAWL.md`](testing/WEB_PLAYWRIGHT_CRAWL.md) before claiming a user-facing web UI fix; fall back to targeted `pnpm --filter @kinetix/web test:e2e` specs for deeper interaction proof.
+- **iOS (KinetixPhone):** Maestro user-crawl on GitHub Actions **`macos-15`** (Simulator cannot run on Windows; see [`docs/testing/IOS_MAESTRO_CRAWL.md`](testing/IOS_MAESTRO_CRAWL.md)). Trigger [`iOS Crawl (Maestro)`](../.github/workflows/ios-crawl.yml) (`workflow_dispatch` or push to `ios-crawl/**`), then read artifact screenshots, JUnit, `simulator.log`, and `xcodebuild.log` per that doc.
+- **watchOS (KinetixWatch):** `KinetixHostUITests` driven by [`.github/workflows/native-ci.yml`](../.github/workflows/native-ci.yml).
+
+When claiming a web or iOS UI fix is complete, user-evidence crawl artifacts are the required proof. Treat these crawls as product QA loops: build/start, launch, navigate like a user, then inspect screenshots, traces/videos, and logs before reporting.

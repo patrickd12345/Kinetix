@@ -5,6 +5,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import type { AuthSession } from '@supabase/supabase-js'
 import {
   isAdmlogEnabled,
   getAdmlogBlockReason,
@@ -119,7 +120,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
       },
     })
-    const { data: sessionData, error: setSessionError } = await memoryClient.auth.setSession({
+    // supabase-js v2.9x types `SupabaseAuthClient` as a thin subclass; `setSession`
+    // exists at runtime on the underlying GoTrue client but is not always surfaced
+    // on the public .d.ts. Keep a narrow cast so Vercel `tsc` matches runtime.
+    const authWithSetSession = memoryClient.auth as {
+      setSession: (tokens: { access_token: string; refresh_token: string }) => Promise<{
+        data: { session: AuthSession | null }
+        error: { message: string } | null
+      }>
+    }
+    const { data: sessionData, error: setSessionError } = await authWithSetSession.setSession({
       access_token,
       refresh_token,
     })

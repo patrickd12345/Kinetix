@@ -19,6 +19,7 @@ A revolutionary running app for Apple Watch with iPhone companion, focusing on b
 - End-user Help Center and behavior contract: [`apps/web/HELP_CENTER.md`](apps/web/HELP_CENTER.md), [`apps/web/HELP_CENTER_ARCHITECTURE.md`](apps/web/HELP_CENTER_ARCHITECTURE.md)
 - Operator runbook: [`docs/HELP_CENTER_OPERATIONS.md`](docs/HELP_CENTER_OPERATIONS.md)
 - Product roadmap and status: [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md)
+- **Go-live / Phase 4:** operator queue + evidence — [`docs/PHASE4_RELEASE_EVIDENCE.md`](docs/PHASE4_RELEASE_EVIDENCE.md); tag + promote — [`docs/PHASE4_RELEASE_RUNBOOK.md`](docs/PHASE4_RELEASE_RUNBOOK.md)
 
 ## 🚀 Core Features
 
@@ -229,6 +230,8 @@ The pnpm workspace at the repo root drives the web app and RAG service. Use this
 | `pnpm type-check` | Root TypeScript check + web `type-check` |
 | `pnpm test` | Run workspace tests (e.g. Vitest in `apps/web`) |
 | `pnpm test:e2e` | Playwright E2E for `apps/web` |
+| `pnpm test:crawl` | Playwright user-evidence crawl for `apps/web` (screenshots, traces/videos/logs; see [`docs/testing/WEB_PLAYWRIGHT_CRAWL.md`](docs/testing/WEB_PLAYWRIGHT_CRAWL.md)) |
+| `pnpm test:crawl:hard` | Deeper interaction pass: chat, settings, charts, operator/queue, help search (same doc) |
 | `pnpm verify:infisical` | Validate merged `/platform` + `/kinetix` env (see deployment docs) |
 | `pnpm run verify:vercel-parity` | Same install + check sequence as CI / Vercel (see **Platform spine compliance** below) |
 

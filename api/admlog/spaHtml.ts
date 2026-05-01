@@ -1,4 +1,4 @@
-import type { Session } from '@supabase/supabase-js'
+import type { AuthSession } from '@supabase/supabase-js'
 import type { ServerResponse } from 'http'
 import type { VercelResponse } from '@vercel/node'
 
@@ -17,7 +17,7 @@ export function getSupabaseBrowserAuthStorageKey(supabaseUrl: string): string {
  * Required for Vite SPA: cookie-only sessions from SSR helpers are not read by createClient in the browser.
  */
 export function buildAdmlogSpaSessionHtml(options: {
-  session: Session
+  session: AuthSession
   supabaseUrl: string
   redirectPath: string
 }): string {

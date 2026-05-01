@@ -27,6 +27,8 @@
     "test": "pnpm -r test",
     "test:coverage": "pnpm --filter @kinetix/web test:coverage",
     "test:e2e": "pnpm --filter @kinetix/web test:e2e",
+    "test:crawl": "pnpm --filter @kinetix/web test:crawl",
+    "test:crawl:hard": "pnpm --filter @kinetix/web test:crawl:hard",
     "lint": "pnpm -r lint",
     "type-check": "tsc --noEmit && pnpm --filter @kinetix/web type-check",
     "type-check:api": "tsc --noEmit",

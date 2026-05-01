@@ -63,8 +63,8 @@ protocol KinetixAppleIntelligenceService {
 struct KinetixWatchCoachingService: KinetixAppleIntelligenceService {
     func isAppleIntelligenceAvailable() -> KinetixAppleIntelligenceAvailability {
         guard #available(watchOS 11.0, *) else { return .unavailable }
-        let hasEligibleHardware = false // Placeholder until a production capability check is finalized.
-        return hasEligibleHardware ? .available : .unavailable
+        // Eligibility TBD: wire a real capability check when Apple documents one for watchOS.
+        return .unavailable
     }
 
     func generateReadinessExplanation(_ input: ReadinessExplanationInput) async -> ReadinessExplanationResult {

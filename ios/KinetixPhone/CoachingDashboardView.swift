@@ -13,10 +13,10 @@ struct CoachingDashboardView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 16) {
                 // 1. Omni-Intelligence Synthesis (New!)
                 if let synth = synthesis {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "brain.head.profile")
                                 .foregroundColor(.purple)
@@ -36,13 +36,13 @@ struct CoachingDashboardView: View {
                             }
                         }
 
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(synth.recommendation)
-                                .font(.system(size: 24, weight: .black, design: .rounded))
+                                .font(.system(size: 18, weight: .heavy, design: .rounded))
                                 .foregroundColor(.white)
 
                             Text(synth.reasoning)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.white.opacity(0.7))
                                 .lineLimit(3)
                         }
@@ -55,20 +55,20 @@ struct CoachingDashboardView: View {
                             }
                         }
                     }
-                    .padding(20)
+                    .padding(16)
                     .background(
                         LinearGradient(colors: [Color.purple.opacity(0.1), Color.black.opacity(0.4)], startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
-                    .cornerRadius(24)
+                    .cornerRadius(20)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 24)
+                        RoundedRectangle(cornerRadius: 20)
                             .stroke(Color.purple.opacity(0.3), lineWidth: 1)
                     )
                 }
 
                 // 2. Goal Probability Card (Glass)
                 if let prob = probability {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("GOAL PROBABILITY")
                                 .font(.system(size: 12, weight: .black))
@@ -116,17 +116,17 @@ struct CoachingDashboardView: View {
                             }
                         }
                     }
-                    .padding(20)
+                    .padding(16)
                     .background(Color.white.opacity(0.05))
-                    .cornerRadius(24)
+                    .cornerRadius(20)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 24)
+                        RoundedRectangle(cornerRadius: 20)
                             .stroke(Color.white.opacity(0.1), lineWidth: 1)
                     )
                 }
 
                 // 3. Timeline (The deterministic engine)
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("COACHING TIMELINE")
                         .font(.system(size: 12, weight: .black))
                         .tracking(2)
@@ -145,12 +145,12 @@ struct CoachingDashboardView: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(16)
                 .background(Color.white.opacity(0.05))
-                .cornerRadius(24)
+                .cornerRadius(20)
 
                 // 4. Weekly Volume / Training Calendar
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("WEEKLY ACTIVITY")
                         .font(.system(size: 12, weight: .black))
                         .tracking(2)
@@ -171,11 +171,12 @@ struct CoachingDashboardView: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(16)
                 .background(Color.white.opacity(0.05))
-                .cornerRadius(24)
+                .cornerRadius(20)
             }
-            .padding()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
         .background(Color(white: 0.05).ignoresSafeArea())
         .onAppear {

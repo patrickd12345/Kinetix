@@ -30,7 +30,11 @@ struct TechnicalInsightsView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: {
                     Task {
-                        await MultiSignalCoachingEngine.shared.applyProactiveAdaptation(modelContext: modelContext)
+                        do {
+                            try await MultiSignalCoachingEngine.shared.applyProactiveAdaptation(modelContext: modelContext)
+                        } catch {
+                            // SwiftData / fetch failures are surfaced via empty logs; avoid crashing the toolbar action.
+                        }
                     }
                 }) {
                     Label("Re-run adaptation", systemImage: "arrow.triangle.2.circlepath")

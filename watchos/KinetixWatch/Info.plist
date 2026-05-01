@@ -34,22 +34,22 @@
 	<string>Kinetix needs microphone access to hear your coaching questions.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Kinetix uses speech recognition to understand your questions.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>WKApplication</key>
 	<true/>
-	<key>WKCompanionAppBundleIdentifier</key>
-	<string>com.patrickduchesneau.KinetixPhone</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-		<string>remote-notification</string>
-	</array>
 	<key>WKBackgroundModes</key>
 	<array>
 		<string>workout-processing</string>
 	</array>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>com.patrickduchesneau.KinetixPhone</string>
 </dict>
 </plist>

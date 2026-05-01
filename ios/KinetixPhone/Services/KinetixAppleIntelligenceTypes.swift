@@ -52,3 +52,21 @@ struct RecoveryAlertResult: Codable {
     let text: String
     let usedFallback: Bool
 }
+
+// MARK: - Coach chat (KX-FEAT-008)
+
+/// Final pass on strings shown in Coach chat UI — strips third-party setup leakage.
+enum CoachChatSanitizer {
+    static func sanitizeUserFacing(_ raw: String) -> String {
+        let lower = raw.lowercased()
+        if lower.contains("gemini")
+            || lower.contains("google generative")
+            || lower.contains("generativelanguage.googleapis.com")
+            || lower.contains("api key")
+            || lower.contains("add a key")
+            || lower.contains("paste your key") {
+            return SharedAIExecutionService.coachChatUnavailableUserMessage
+        }
+        return raw
+    }
+}

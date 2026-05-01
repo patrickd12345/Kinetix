@@ -96,7 +96,7 @@ struct RunTrackingView: View {
                                 .frame(width: 180, height: 180)
 
                             Circle()
-                                .trim(from: 0, to: CGFloat(min(currentNPI / 200.0, 1.0)))
+                                .trim(from: 0, to: CGFloat(min(max(currentNPI, 0), 100) / 100.0))
                                 .stroke(
                                     LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom),
                                     style: StrokeStyle(lineWidth: 12, lineCap: .round)
@@ -105,7 +105,7 @@ struct RunTrackingView: View {
                                 .rotationEffect(.degrees(-90))
 
                             VStack(spacing: -4) {
-                                Text(String(format: "%.1f", currentNPI))
+                                Text(String(format: "%.1f", min(100, max(0, currentNPI))))
                                     .font(.system(size: 64, weight: .black, design: .rounded))
                                     .foregroundColor(.white)
                                 Text("KPS")
@@ -411,3 +411,4 @@ struct RunTrackingView: View {
         distanceSamples.removeAll { $0.timestamp < cutoff }
     }
 }
+

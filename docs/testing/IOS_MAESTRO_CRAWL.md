@@ -115,6 +115,12 @@ Best-effort exploration:
 through the tabs five times scrolling each surface. It is **non-blocking** and
 only runs when explicitly enabled (see "Running" below).
 
+## Evidence expectations (iOS 18 tab bar + contrast)
+
+- **Floating tab bar:** On iOS 18, root `TabView` tabs use a floating bar that can overlap the bottom of scrollable content. Primary surfaces apply `kinetixFloatingTabBarClearance()` (see `ios/KinetixPhone/KinetixTabBarLayout.swift`) so Home, Coach (Live + Coaching scroll), Build, History, and Settings lists keep their last rows readable above the bar. When reviewing crawl screenshots (especially `20-settings-drilldown` and exploration scrolls), confirm nothing critical sits visually under the tab chrome.
+- **History empty state:** Flow `40-history-empty` must show a readable empty state (title + description), not low-contrast text on the dark background. After changing `HistoryView` or global list styling, re-run the iOS Crawl workflow and treat **completed** CI as the proof; manually canceled runs are not sufficient verification.
+- **Real device:** Simulator crawls do not replace physical checks for HealthKit, permissions, Watch pairing, or provider OAuth. Use [`KX-SMOKE-013-real-device-smoke.md`](../kinetix/KX-SMOKE-013-real-device-smoke.md) for hardware smoke.
+
 ## Running
 
 ### In CI (the normal path)

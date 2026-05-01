@@ -99,6 +99,7 @@ struct DashboardView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                 }
+                .kinetixFloatingTabBarClearance()
                 .onChange(of: coach.conversationHistory.count) { _, _ in
                     if let lastId = coach.conversationHistory.last?.id {
                         withAnimation {

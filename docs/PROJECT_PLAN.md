@@ -12,6 +12,8 @@
 
 **Update (2026-05-01):** iPhone **Maestro crawl** CI ([`.github/workflows/ios-crawl.yml`](../.github/workflows/ios-crawl.yml), `macos-15`) plus **Native CI** on `macos-15` for Swift 6.1 / swift-crypto resolution; tab targets use `KinetixTab.*` accessibility identifiers for stable flows — see [`docs/testing/IOS_MAESTRO_CRAWL.md`](testing/IOS_MAESTRO_CRAWL.md).
 
+**Update (2026-05-01, iOS layout):** Root-tab scroll surfaces apply `kinetixFloatingTabBarClearance()` (`ios/KinetixPhone/KinetixTabBarLayout.swift`) so Home, Coach, Build, History, and Settings content stays above the iOS 18 floating tab bar in screenshots; evidence notes added to the same Maestro doc and [`KX-SMOKE-013-real-device-smoke.md`](kinetix/KX-SMOKE-013-real-device-smoke.md).
+
 **Update (2026-05-01, BKI-104):** Web UI verification now has a named user-evidence crawl path: `pnpm test:crawl`, [`.github/workflows/web-crawl.yml`](../.github/workflows/web-crawl.yml), and [`docs/testing/WEB_PLAYWRIGHT_CRAWL.md`](testing/WEB_PLAYWRIGHT_CRAWL.md). Future web UI claims should inspect screenshots, traces/videos, and logs before reporting.
 
 **Operator-owned go-live remainder (not marked complete by automation):**

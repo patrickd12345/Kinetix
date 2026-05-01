@@ -38,6 +38,7 @@ Checklist:
 - [ ] Build **KinetixPhone**.
 - [ ] Launch app.
 - [ ] Verify Home loads.
+- [ ] Scroll Home to the bottom; confirm the Watch status card (or last content) clears the floating tab bar.
 - [ ] Verify KPS Hero appears.
 - [ ] Verify no KPS display above 100.
 - [ ] Open Coach.
@@ -47,6 +48,7 @@ Checklist:
   - Else: **Coach AI is not available on this device yet.**
 - [ ] Confirm no Gemini/API-key copy.
 - [ ] Open Settings.
+- [ ] Scroll Settings to the bottom; confirm the last rows are not hidden under the floating tab bar (compare with Simulator if needed).
 - [ ] Confirm no normal user-facing Gemini setup requirement.
 - [ ] Start Run flow opens.
 - [ ] Permission prompts are understandable.

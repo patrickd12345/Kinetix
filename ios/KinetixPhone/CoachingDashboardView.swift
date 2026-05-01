@@ -178,6 +178,7 @@ struct CoachingDashboardView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
+        .kinetixFloatingTabBarClearance()
         .background(Color(white: 0.05).ignoresSafeArea())
         .onAppear {
             refreshCoaching()

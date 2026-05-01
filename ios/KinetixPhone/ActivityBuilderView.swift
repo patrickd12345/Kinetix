@@ -52,6 +52,7 @@ struct ActivityBuilderView: View {
                         .foregroundColor(.gray)
                 }
             }
+            .kinetixFloatingTabBarClearance()
             .navigationTitle("Activity Builder")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {

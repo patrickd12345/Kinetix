@@ -89,6 +89,7 @@ struct SettingsView: View {
                 trainingDistributionSection
                 diagnosticsSection
             }
+            .kinetixFloatingTabBarClearance()
             .navigationTitle("Settings")
             .sheet(isPresented: $showingLogExport) {
                 NavigationStack {

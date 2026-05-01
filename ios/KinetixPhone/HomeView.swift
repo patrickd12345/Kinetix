@@ -280,6 +280,7 @@ struct HomeView: View {
                 }
                 .padding(.vertical)
             }
+            .kinetixFloatingTabBarClearance()
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingRunTracking) {

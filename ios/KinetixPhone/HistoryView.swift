@@ -22,6 +22,7 @@ struct HistoryView: View {
                     }
                 }
             }
+            .kinetixFloatingTabBarClearance()
             .navigationTitle("History")
             .toolbarColorScheme(.dark, for: .navigationBar)
             .scrollContentBackground(.hidden)

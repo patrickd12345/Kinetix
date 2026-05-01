@@ -163,6 +163,16 @@ trap 'kill "${LOG_PID}" 2>/dev/null || true' EXIT
 # --------------------------------------------------------------------------
 # Run Maestro flows
 # --------------------------------------------------------------------------
+# Fresh Simulator boots (especially newer iOS runtimes on GitHub-hosted
+# runners) can leave SpringBoard / XCTest infrastructure slow to answer.
+# Without this, Maestro often dies with IOSDriverTimeoutException before the
+# first flow step.
+MAESTRO_DRIVER_STARTUP_TIMEOUT="${MAESTRO_DRIVER_STARTUP_TIMEOUT:-180000}"
+export MAESTRO_DRIVER_STARTUP_TIMEOUT
+STABILIZE_SEC="${MAESTRO_SIM_STABILIZE_SECONDS:-30}"
+echo "==> Waiting ${STABILIZE_SEC}s for simulator shell (MAESTRO_DRIVER_STARTUP_TIMEOUT=${MAESTRO_DRIVER_STARTUP_TIMEOUT}ms)"
+sleep "${STABILIZE_SEC}"
+
 echo "==> maestro test .maestro/flows"
 set +e
 MAESTRO_OUTPUT_DIR="${REPORTS_DIR}" \

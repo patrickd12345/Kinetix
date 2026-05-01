@@ -5,6 +5,7 @@ node_modules/
 
 # Build / cache
 crawl-artifacts/
+tmp-job.log
 dist/
 monorepo-packages/**/dist/
 

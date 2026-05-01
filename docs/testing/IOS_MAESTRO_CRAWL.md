@@ -189,6 +189,13 @@ maestro test .maestro/flows/10-tabs-smoke.yml
   `reports/simulator.log`.
 - **Cache key collision.** The CI cache key is namespaced
   (`ios-crawl-`) so it does not collide with `native-ci.yml`.
+- **Maestro XCTest driver timeout on cold Simulator.** After `simctl install`,
+  SpringBoard may still be settling; Maestro can fail with
+  `IOSDriverTimeoutException` / `iOS driver not ready in time`. The crawl script
+  waits **`MAESTRO_SIM_STABILIZE_SECONDS`** (default 30s) and sets
+  **`MAESTRO_DRIVER_STARTUP_TIMEOUT`** (default 180000ms). Override in CI via
+  [`.github/workflows/ios-crawl.yml`](../../.github/workflows/ios-crawl.yml)
+  `env` if runners get slower.
 - **Tab bar automation.** SwiftUI `TabView` does not always expose tab titles as
   plain `Text` in the accessibility tree (Maestro was unable to match `"Build"` /
   `"Settings"` on Simulator). [`MainTabView`](../../ios/KinetixPhone/MainTabView.swift)

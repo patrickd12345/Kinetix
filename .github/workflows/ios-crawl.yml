@@ -24,7 +24,7 @@ jobs:
     # transitive swift-crypto >=4.5.0 pulled in by Supabase. macos-14 only
     # has Xcode 16.2 (Swift 6.0) and fails dependency resolution.
     runs-on: macos-15
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
       REPORTS_DIR: ${{ github.workspace }}/reports/maestro
@@ -32,6 +32,9 @@ jobs:
       SIM_LOG: ${{ github.workspace }}/reports/simulator.log
       SIM_DEVICE: iPhone 15
       RUN_EXPLORATION: ${{ inputs.run_exploration && '1' || '0' }}
+      # Maestro XCTest driver often times out on cold iOS Simulator boots in CI.
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: "180000"
+      MAESTRO_SIM_STABILIZE_SECONDS: "35"
 
     steps:
       - name: Checkout

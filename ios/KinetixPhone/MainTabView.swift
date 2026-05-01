@@ -11,33 +11,43 @@ struct MainTabView: View {
     @AppStorage("stravaLastStartupSyncAt") private var stravaLastStartupSyncAt: Double = 0
     
     var body: some View {
-        // iOS 18+ `Tab` associates identifiers with the tab bar item (Maestro
-        // could not see `.accessibilityIdentifier` on root tab content).
+        // iOS 18+ `Tab` with an explicit `label:` so `accessibilityIdentifier`
+        // binds to the tab bar chrome (Maestro matches XCTest accessibility id).
         TabView(selection: $selectedTab) {
-            Tab("Home", systemImage: "house.fill", value: 0) {
+            Tab(value: 0) {
                 HomeView(selectedTab: $selectedTab)
+            } label: {
+                Label("Home", systemImage: "house.fill")
+                    .accessibilityIdentifier("KinetixTab.home")
             }
-            .accessibilityIdentifier("KinetixTab.home")
 
-            Tab("Coach", systemImage: "figure.run", value: 1) {
+            Tab(value: 1) {
                 DashboardView()
+            } label: {
+                Label("Coach", systemImage: "figure.run")
+                    .accessibilityIdentifier("KinetixTab.coach")
             }
-            .accessibilityIdentifier("KinetixTab.coach")
 
-            Tab("Build", systemImage: "hammer", value: 2) {
+            Tab(value: 2) {
                 ActivityBuilderView()
+            } label: {
+                Label("Build", systemImage: "hammer")
+                    .accessibilityIdentifier("KinetixTab.build")
             }
-            .accessibilityIdentifier("KinetixTab.build")
 
-            Tab("History", systemImage: "clock.arrow.circlepath", value: 3) {
+            Tab(value: 3) {
                 HistoryView()
+            } label: {
+                Label("History", systemImage: "clock.arrow.circlepath")
+                    .accessibilityIdentifier("KinetixTab.history")
             }
-            .accessibilityIdentifier("KinetixTab.history")
 
-            Tab("Settings", systemImage: "gear", value: 4) {
+            Tab(value: 4) {
                 SettingsView()
+            } label: {
+                Label("Settings", systemImage: "gear")
+                    .accessibilityIdentifier("KinetixTab.settings")
             }
-            .accessibilityIdentifier("KinetixTab.settings")
         }
         .onAppear {
             connectivity.bind(modelContext: modelContext)

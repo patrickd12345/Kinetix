@@ -227,9 +227,9 @@ maestro test .maestro/flows/10-tabs-smoke.yml
   `env` if runners get slower.
 - **Tab bar automation.** SwiftUI classic `.tabItem { Label }` + identifiers on
   tab *content* did not surface on the tab *bar* for Maestro. [`MainTabView`](../../ios/KinetixPhone/MainTabView.swift)
-  uses the iOS 18 **`Tab` / `TabView(selection:)`** API so each bar item can carry
-  **`accessibilityIdentifier`** `KinetixTab.home`, `.coach`, `.build`, `.history`,
-  and `.settings`; flows tap and assert with `id:`.
+  uses the iOS 18 **`Tab(value:content:label:)`** API so each **`Label`** in `label:`
+  carries **`accessibilityIdentifier`** `KinetixTab.home`, `.coach`, `.build`,
+  `.history`, and `.settings`; flows tap and assert with `id:`.
 
 ## When a flow fails
 

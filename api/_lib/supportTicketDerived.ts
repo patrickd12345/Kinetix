@@ -184,15 +184,24 @@ export function computeQueueSummary(
     if (!assigned) {
       unassigned += 1
     }
-    if (hasLabel(labels, 'overdue_first_response') || hasLabel(labels, 'overdue_resolution')) {
-      overdue += 1
+
+    let isOverdue = false
+    let isAwaitingRetry = false
+    let isReadyForKb = false
+    for (let i = 0; i < labels.length; i++) {
+      const l = labels[i]
+      if (l === 'overdue_first_response' || l === 'overdue_resolution') {
+        isOverdue = true
+      } else if (l === 'awaiting_retry') {
+        isAwaitingRetry = true
+      } else if (l === 'ready_for_kb') {
+        isReadyForKb = true
+      }
     }
-    if (hasLabel(labels, 'awaiting_retry')) {
-      awaitingRetry += 1
-    }
-    if (hasLabel(labels, 'ready_for_kb')) {
-      readyForKb += 1
-    }
+    if (isOverdue) overdue += 1
+    if (isAwaitingRetry) awaitingRetry += 1
+    if (isReadyForKb) readyForKb += 1
+
     if (operatorUserId && row.assigned_to === operatorUserId) {
       assignedToMe += 1
     }
@@ -267,12 +276,15 @@ export function getSlaMetrics(
       createdLast7Days += 1
     }
 
-    if (
-      ticket.derived &&
-      (ticket.derived.labels.includes('overdue_first_response') ||
-        ticket.derived.labels.includes('overdue_resolution'))
-    ) {
-      overdueCount += 1
+    if (ticket.derived) {
+      const labels = ticket.derived.labels
+      for (let i = 0; i < labels.length; i++) {
+        const l = labels[i]
+        if (l === 'overdue_first_response' || l === 'overdue_resolution') {
+          overdueCount += 1
+          break
+        }
+      }
     }
 
     if (createdAtMs != null) {

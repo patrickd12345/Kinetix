@@ -180,7 +180,6 @@ export function computeQueueSummary(
 
   for (const row of tickets) {
     const labels = row.derived.labels
-
     // Process labels in a single pass to avoid multiple array lookups
     let hasOverdueFirst = false;
     let hasOverdueRes = false;

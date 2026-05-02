@@ -16,6 +16,7 @@ Type: mixed platform
 | Observability | Partial | Observability helpers exist, but usage is not consistent across API and app paths. |
 | Feature Flags | Partial | Flag-related runtime and schema surfaces exist, but governance and adoption are incomplete. |
 | Error Contract | Partial | Wave 2: expanded API/app tests include error-route coverage (e.g. `apps/web/src/test/ai-route-errors.test.ts`); full uniform adoption across every `api/*` handler remains open. |
+| Provider Token Vault | Applicable | Strava and Withings OAuth tokens are server-owned in `kinetix.provider_token_vault`; client-visible state is non-secret connection/sync metadata only. |
 
 ## Architecture Intent
 

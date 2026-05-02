@@ -28,6 +28,7 @@ import { formatDistance, formatTime } from '@kinetix/core'
 import { Dialog } from '../components/a11y/Dialog'
 import { featureFlags } from '../lib/featureFlags'
 import { oauthDedupeSessionKey } from '../lib/clientStorageScope'
+import { disconnectProvider } from '../lib/providerConnections'
 
 export default function Settings() {
   const {
@@ -41,7 +42,6 @@ export default function Settings() {
     setUnitSystem,
     physioMode,
     setPhysioMode,
-    stravaToken,
     setStravaToken,
     stravaCredentials,
     setStravaCredentials,
@@ -941,7 +941,7 @@ export default function Settings() {
               </p>
             </div>
 
-            {stravaCredentials || stravaToken?.trim() ? (
+            {stravaCredentials ? (
               <>
                 <p className="text-[11px] text-green-400">✓ Connected to Strava</p>
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -1025,22 +1025,15 @@ export default function Settings() {
                 </button>
               </div>
             )}
-            {!stravaCredentials && !stravaToken?.trim() ? (
+            {!stravaCredentials ? (
               <p className="text-[11px] text-slate-500 dark:text-gray-500">
                 Use <span className="font-medium text-slate-600 dark:text-gray-400">Connect with Strava</span> first; Import stays disabled until you are connected.
               </p>
             ) : null}
-            <input
-              type="password"
-              value={stravaToken}
-              onChange={(e) => setStravaToken(e.target.value)}
-              placeholder={(stravaCredentials || stravaToken) ? 'Connected via OAuth' : 'Or paste token manually'}
-              className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-sm"
-              disabled={!!stravaCredentials}
-            />
-            {(stravaCredentials || stravaToken) && (
+            {stravaCredentials && (
               <button
                 onClick={() => {
+                  void disconnectProvider('strava').catch(() => {})
                   setStravaCredentials(null)
                   setStravaToken('')
                   setStravaSyncError(null)

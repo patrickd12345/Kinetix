@@ -4,7 +4,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 let initialized = false
 
 function getDsn(): string | undefined {
-  return process.env.SENTRY_DSN
+  const dsn = process.env.SENTRY_DSN?.trim()
+  return dsn || undefined
 }
 
 function getEnvironment(): string {

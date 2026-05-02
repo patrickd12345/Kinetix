@@ -5,19 +5,20 @@ import './index.css'
 import { AuthProvider } from './components/providers/AuthProvider'
 import AppErrorBoundary from './components/AppErrorBoundary'
 import { hydrateThemeClassFromStorage } from './store/themeStore'
-import { initWebSentry, Sentry } from './lib/sentry'
 
 hydrateThemeClassFromStorage()
-initWebSentry()
+void import('./lib/sentry')
+  .then(({ initWebSentry }) => initWebSentry())
+  .catch((error) => {
+    console.warn('[sentry] Failed to load web Sentry', error)
+  })
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Sentry.ErrorBoundary fallback={<div className="p-4 text-sm">Something went wrong.</div>}>
-      <AppErrorBoundary>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </AppErrorBoundary>
-    </Sentry.ErrorBoundary>
+    <AppErrorBoundary>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </AppErrorBoundary>
   </React.StrictMode>,
 )

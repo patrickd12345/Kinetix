@@ -2,28 +2,29 @@
 
 ## Scope
 
-This interim threat model covers browser-held Strava and Withings integration tokens used by the current Kinetix web client. It documents the risk accepted for this remediation pass and the required migration follow-up.
+This threat model covers Strava and Withings integration tokens used by the Kinetix web client and serverless API.
 
 ## Current Contract
 
-- Strava and Withings tokens must never be written to console output.
-- Integration tokens may only be sent to their intended proxy or refresh endpoints.
+- Strava and Withings access and refresh tokens are stored server-side in `kinetix.provider_token_vault`.
+- Browser-visible state is limited to non-secret connection metadata such as provider, connected status, provider user id, expiry, and sync timestamps.
+- Provider API calls use authenticated Kinetix API proxies; the browser sends the Supabase session token, not provider tokens.
+- Strava and Withings tokens must never be written to console output or serialized in browser API responses.
 - Support, RAG, AI, analytics, and operator endpoints must not receive integration tokens.
-- Full server-side token storage is deferred because it requires coordinated auth, persistence, migration, deployment secret, and rollback work.
 
 ## Risks
 
-- Browser storage can be read by script running in the same origin after an XSS compromise.
-- Client-side token refresh makes endpoint scoping and logging hygiene critical.
-- Local persistence does not provide centralized revocation or rotation auditing.
+- The vault stores token material with service-role access only; compromise of server runtime credentials remains high impact.
+- Client connection markers can become stale if the server-side vault row is manually removed; reload fetches provider connection state to repair the UI.
+- Legacy browser token material may exist in old local storage snapshots until the local scrubbing migration runs for that user/browser.
 
 ## Interim Mitigations
 
-- Keep token-bearing requests constrained to `/api/strava-refresh`, `/api/strava/*`, and intended Withings endpoints.
-- Do not log access tokens, refresh tokens, authorization headers, or credential objects.
+- Keep token-bearing requests inside server-only handlers and provider proxies.
+- Do not log access tokens, refresh tokens, authorization headers, credential objects, or vault rows.
 - Keep markdown and user-generated content sanitized before rendering.
-- Treat server-side encrypted token storage as a release-blocking design milestone before broad third-party integration rollout.
+- Use `apps/web/src/test/integration-token-security.test.ts` to guard browser token exposure and token-bearing response regressions.
 
 ## Follow-up Migration Task
 
-Move Strava and Withings refresh tokens to server-side encrypted storage keyed by authenticated user id. The browser should receive connection state and short-lived operation results, not refresh tokens. The migration needs database schema, backfill/clear flow, OAuth callback changes, revocation handling, and staging verification with dedicated test accounts.
+Provider-token-vault rollout is complete for new Strava and Withings OAuth connections. Remaining follow-up: live staging verification with dedicated Strava/Withings accounts, operator-visible revocation audit, and a one-time cleanup notice for any browsers that had pre-vault tokens before the local scrubbing migration ran.

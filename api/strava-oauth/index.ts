@@ -4,11 +4,12 @@ import { exchangeStravaCodeForToken, StravaAuthError } from '../_lib/stravaAuth.
 import { sendApiError } from '../_lib/apiError.js'
 import { logApiEvent } from '../_lib/observability.js'
 import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime.js'
+import { requireSupabaseUser, upsertProviderToken } from '../_lib/providerTokenVault.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {
     methods: ['POST', 'OPTIONS'],
-    headers: ['Content-Type'],
+    headers: ['Authorization', 'Content-Type'],
   })
 
   if (!cors.allowed) {
@@ -31,6 +32,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const runtime = resolveKinetixRuntimeEnv()
+  let user: { id: string }
+  try {
+    user = await requireSupabaseUser(req, runtime)
+  } catch {
+    return sendApiError(res, 401, 'Authentication required', { source: req.headers })
+  }
   const clientSecret = runtime.stravaClientSecret
   const clientId = runtime.stravaClientId
 
@@ -51,12 +58,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       redirectUri: redirect_uri || `${req.headers.origin}/settings`,
     })
 
-    // Return access token and refresh token
-    res.status(200).json({
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-      expires_at: data.expires_at,
+    const expiresAt = data.expires_at ? new Date(data.expires_at * 1000).toISOString() : null
+    const connection = await upsertProviderToken(runtime, {
+      userId: user.id,
+      provider: 'strava',
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt,
+      scopes: ['activity:read_all'],
     })
+    res.status(200).json(connection)
   } catch (error) {
     if (error instanceof StravaAuthError) {
       logApiEvent('error', 'kinetix_strava_oauth_exchange_failed', {

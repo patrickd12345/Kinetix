@@ -2,13 +2,14 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AdSenseScript from './components/ads/AdSenseScript'
 import Layout from './components/Layout'
-import RunDashboard from './pages/RunDashboard'
 import Login from './pages/Login'
 import EntitlementRequired from './pages/EntitlementRequired'
 import { useAuth } from './components/providers/useAuth'
 
-// Lazy: keep Garmin OAuth + PKCE crypto (Settings) and other heavy routes out of index-*.js.
+// Lazy: keep Garmin OAuth + PKCE crypto (Settings), dashboard analytics, and other heavy
+// route modules out of index-*.js.
 // See scripts/check-web-bundle-budget.mjs (900 kB cap on main chunk).
+const RunDashboard = lazy(() => import('./pages/RunDashboard'))
 const Settings = lazy(() => import('./pages/Settings'))
 const History = lazy(() => import('./pages/History'))
 const Chat = lazy(() => import('./pages/Chat'))

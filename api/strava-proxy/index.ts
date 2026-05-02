@@ -2,6 +2,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { applyCors } from '../_lib/cors.js'
 import { sendApiError } from '../_lib/apiError.js'
 import { logApiEvent } from '../_lib/observability.js'
+import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime.js'
+import { getProviderToken, requireSupabaseUser, upsertProviderToken } from '../_lib/providerTokenVault.js'
+import { refreshStravaAccessToken } from '../_lib/stravaAuth.js'
+
+const REFRESH_BUFFER_MS = 60 * 60 * 1000
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {
@@ -23,11 +28,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return sendApiError(res, 405, 'Method not allowed', { source: req.headers })
   }
 
-  // Get the authorization header from the request
-  const authHeader = req.headers.authorization || req.headers.Authorization
-
-  if (!authHeader) {
-    return sendApiError(res, 401, 'Authorization header required', { source: req.headers })
+  const runtime = resolveKinetixRuntimeEnv()
+  let user: { id: string }
+  try {
+    user = await requireSupabaseUser(req, runtime)
+  } catch {
+    return sendApiError(res, 401, 'Authentication required', { source: req.headers })
   }
 
   // Extract the path from the query string (everything after /api/strava/)
@@ -50,10 +56,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const stravaUrl = `https://www.strava.com/api/v3/${path}${queryParams.toString() ? '?' + queryParams.toString() : ''}`
 
   try {
+    let token = await getProviderToken(runtime, user.id, 'strava')
+    if (!token) return sendApiError(res, 404, 'Strava connection not found', { source: req.headers })
+
+    const expiresAtMs = token.expiresAt ? new Date(token.expiresAt).getTime() : 0
+    if (expiresAtMs > 0 && expiresAtMs - Date.now() < REFRESH_BUFFER_MS) {
+      const refreshed = await refreshStravaAccessToken({
+        refreshToken: token.refreshToken,
+        clientId: runtime.stravaClientId,
+        clientSecret: runtime.stravaClientSecret,
+      })
+      const connection = await upsertProviderToken(runtime, {
+        userId: user.id,
+        provider: 'strava',
+        accessToken: refreshed.access_token,
+        refreshToken: refreshed.refresh_token,
+        providerUserId: token.providerUserId,
+        expiresAt: refreshed.expires_at ? new Date(refreshed.expires_at * 1000).toISOString() : null,
+        scopes: ['activity:read_all'],
+      })
+      token = {
+        accessToken: refreshed.access_token,
+        refreshToken: refreshed.refresh_token,
+        providerUserId: connection.provider_user_id ?? token.providerUserId,
+        expiresAt: connection.expires_at ?? null,
+      }
+    }
+
     const response = await fetch(stravaUrl, {
       method: 'GET',
       headers: {
-        'Authorization': authHeader as string,
+        'Authorization': `Bearer ${token.accessToken}`,
         'Content-Type': 'application/json',
       },
     })

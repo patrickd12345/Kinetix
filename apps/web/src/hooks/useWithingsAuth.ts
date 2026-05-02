@@ -5,6 +5,8 @@ import {
   resolveWithingsRedirectUriForOAuth,
 } from '../../../../api/_lib/withingsRedirectUri'
 import { useSettingsStore } from '../store/settingsStore'
+import { getSessionAuthHeaders } from '../lib/apiAuth'
+import { disconnectProvider } from '../lib/providerConnections'
 
 const WITHINGS_CLIENT_ID = import.meta.env.VITE_WITHINGS_CLIENT_ID ?? ''
 const WITHINGS_STATE = 'withings'
@@ -66,7 +68,7 @@ export function useWithingsAuth() {
       }
       const response = await fetch('/api/withings-oauth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getSessionAuthHeaders()) },
         body: JSON.stringify({ code, redirect_uri: redirectUri }),
       })
       if (!response.ok) {
@@ -78,12 +80,9 @@ export function useWithingsAuth() {
         throw new Error(msg || 'Failed to exchange Withings code')
       }
       const data = await response.json()
-      const expiresIn = typeof data.expires_in === 'number' ? data.expires_in : 3 * 3600
       setWithingsCredentials({
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        userId: String(data.userid ?? ''),
-        expiresAt: Date.now() + expiresIn * 1000,
+        userId: String(data.provider_user_id ?? ''),
+        expiresAt: data.expires_at ? new Date(data.expires_at).getTime() : 0,
       })
       setWeightSource('withings')
       window.history.replaceState({}, '', '/settings')
@@ -93,6 +92,7 @@ export function useWithingsAuth() {
   )
 
   const disconnect = useCallback(() => {
+    void disconnectProvider('withings').catch(() => {})
     setWithingsCredentials(null)
     setWeightSource('profile')
     setLastWithingsWeightKg(0)

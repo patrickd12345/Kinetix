@@ -4,43 +4,15 @@ import { isMeaningfulRunForKPS } from './kpsUtils'
 import { indexRunsAfterSave } from './ragClient'
 import { resolveProfileForRunWithWeightCache } from './authState'
 import { useSettingsStore } from '../store/settingsStore'
+import { getSessionAuthHeaders } from './apiAuth'
 
-/** Refresh if token expires within 1 hour. Returns valid access token or empty string. */
+/** Returns a server-managed Strava connection marker or an empty string when disconnected. */
 export async function getValidStravaToken(): Promise<string> {
-  const { stravaCredentials, stravaToken, setStravaCredentials } = useSettingsStore.getState()
+  const { stravaCredentials } = useSettingsStore.getState()
   if (stravaCredentials) {
-    const now = Math.floor(Date.now() / 1000)
-    const bufferSec = 3600
-    if (stravaCredentials.expiresAt > now + bufferSec) {
-      return stravaCredentials.accessToken
-    }
-    try {
-      const res = await fetch('/api/strava-refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: stravaCredentials.refreshToken }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        console.warn('[Strava] Token refresh failed:', (err as { error?: string }).error)
-        setStravaCredentials(null)
-        return ''
-      }
-      const data = (await res.json()) as { access_token: string; refresh_token: string; expires_at: number }
-      const creds = {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresAt: data.expires_at,
-      }
-      setStravaCredentials(creds)
-      return creds.accessToken
-    } catch (e) {
-      console.warn('[Strava] Token refresh error:', e)
-      setStravaCredentials(null)
-      return ''
-    }
+    return 'server-managed'
   }
-  return stravaToken?.trim() ?? ''
+  return ''
 }
 
 export interface StravaActivity {
@@ -89,7 +61,7 @@ export async function fetchStravaActivities(
     const doFetch = async (): Promise<Response> => {
       const res = await fetch(apiUrl, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(await getSessionAuthHeaders()),
           'Content-Type': 'application/json',
         },
         mode: 'cors',

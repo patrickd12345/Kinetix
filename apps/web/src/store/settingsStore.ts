@@ -6,15 +6,11 @@ import { scopedSettingsStorage } from './settingsScopedStorage'
 export type WeightSource = 'profile' | 'withings'
 
 export interface WithingsCredentials {
-  accessToken: string
-  refreshToken: string
   userId: string
   expiresAt: number
 }
 
 export interface StravaCredentials {
-  accessToken: string
-  refreshToken: string
   expiresAt: number
 }
 

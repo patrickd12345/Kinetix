@@ -1,10 +1,11 @@
 import type { WithingsAuthCredentials } from './types'
+import { getSessionAuthHeaders } from '../../apiAuth'
 
-export async function refreshWithingsToken(refreshToken: string): Promise<WithingsAuthCredentials> {
+export async function refreshWithingsConnection(): Promise<WithingsAuthCredentials> {
   const res = await fetch('/api/withings-refresh', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: refreshToken }),
+    headers: { 'Content-Type': 'application/json', ...(await getSessionAuthHeaders()) },
+    body: JSON.stringify({}),
   })
 
   if (!res.ok) {
@@ -13,17 +14,14 @@ export async function refreshWithingsToken(refreshToken: string): Promise<Within
   }
 
   const data = await res.json()
-  const expiresIn = typeof data.expires_in === 'number' ? data.expires_in : 3 * 3600
   return {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    userId: String(data.userid ?? data.user_id ?? ''),
-    expiresAt: Date.now() + expiresIn * 1000,
+    userId: String(data.provider_user_id ?? ''),
+    expiresAt: data.expires_at ? new Date(data.expires_at).getTime() : 0,
   }
 }
 
 export async function ensureValidWithingsAccess(creds: WithingsAuthCredentials): Promise<WithingsAuthCredentials> {
   const bufferMs = 5 * 60 * 1000
   if (Date.now() < creds.expiresAt - bufferMs) return creds
-  return refreshWithingsToken(creds.refreshToken)
+  return refreshWithingsConnection()
 }

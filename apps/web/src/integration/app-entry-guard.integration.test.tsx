@@ -1,7 +1,14 @@
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import App from '../App'
 import { AuthContext, type AuthContextValue } from '../components/providers/useAuth'
+
+const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const appSource = readFileSync(resolve(srcDir, 'App.tsx'), 'utf8')
+const mainSource = readFileSync(resolve(srcDir, 'main.tsx'), 'utf8')
 
 function renderWithAuth(value: Partial<AuthContextValue>) {
   const base: AuthContextValue = {
@@ -42,5 +49,16 @@ describe('App entry guards', () => {
     expect(
       screen.getByText('Finalizing your platform profile. If this does not resolve, refresh the page.')
     ).toBeInTheDocument()
+  })
+
+  it('keeps the authenticated home dashboard behind the route lazy boundary', () => {
+    expect(appSource).toContain("const RunDashboard = lazy(() => import('./pages/RunDashboard'))")
+    expect(appSource).not.toContain("import RunDashboard from './pages/RunDashboard'")
+  })
+
+  it('keeps browser Sentry behind a dynamic startup import', () => {
+    expect(mainSource).toContain("import('./lib/sentry')")
+    expect(mainSource).not.toContain("from './lib/sentry'")
+    expect(mainSource).not.toContain('@sentry/react')
   })
 })

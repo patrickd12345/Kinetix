@@ -101,9 +101,9 @@ Integration Notes: `src/lib/intelligence/intelligenceEngine.test.ts`, `src/lib/i
 
 Status: Verified
 Owner: Engineering
-Closure Criteria: OAuth/sync policy/unit tests pass; startup sync test does not require IndexedDB when DB helpers are stubbed.
-Remaining: Live OAuth redirect and token refresh in staging per `FEATURES_WEB.md`.
-Integration Notes: `src/lib/withings.test.ts`, `src/lib/integrations/withings/syncPolicy.test.ts`, `src/lib/withingsOAuthServer.test.ts`, `src/store/settingsStore.withingsSync.test.ts`
+Closure Criteria: OAuth/sync policy/unit tests pass; startup sync test does not require IndexedDB when DB helpers are stubbed; provider tokens are server-owned in `kinetix.provider_token_vault`.
+Remaining: Live OAuth redirect, vault refresh, and reconnect smoke in staging per `FEATURES_WEB.md`.
+Integration Notes: `src/lib/withings.test.ts`, `src/lib/integrations/withings/syncPolicy.test.ts`, `src/lib/withingsOAuthServer.test.ts`, `src/store/settingsStore.withingsSync.test.ts`, `src/test/integration-token-security.test.ts`
 
 ## Help Center
 

@@ -15,6 +15,7 @@ import { setSettingsPersistUserId } from '../../store/settingsScopedStorage'
 import { clearSensitiveSettingsForLogout, useSettingsStore } from '../../store/settingsStore'
 import { buildAuthRedirectTarget, resolveConfiguredAuthRedirectUrl } from '../../lib/authRedirect'
 import { formatSupabaseAuthError } from '../../lib/supabaseAuthErrors'
+import { fetchProviderConnections, toStravaConnection, toWithingsConnection } from '../../lib/providerConnections'
 import { AuthContext, type AuthContextValue, type OAuthProviderAvailability } from './useAuth'
 
 type AuthStatus = 'loading' | 'unauthenticated' | 'authenticated' | 'forbidden' | 'error'
@@ -170,6 +171,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(access.profile)
       setError(access.error)
       setStatus(access.status)
+      if (access.status === 'authenticated') {
+        try {
+          const connections = await fetchProviderConnections()
+          const settings = useSettingsStore.getState()
+          const strava = connections.find((c) => c.provider === 'strava' && c.connected)
+          const withings = connections.find((c) => c.provider === 'withings' && c.connected)
+          settings.setStravaCredentials(strava ? toStravaConnection(strava) : null)
+          settings.setWithingsCredentials(withings ? toWithingsConnection(withings) : null)
+          if (withings) settings.setWeightSource('withings')
+        } catch (err) {
+          console.warn('[providers] Could not hydrate provider connection state:', err)
+        }
+      }
     } catch (err) {
       setProfile(null)
       setError(err instanceof Error ? err.message : 'Authentication failed.')

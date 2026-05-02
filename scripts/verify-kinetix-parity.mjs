@@ -48,6 +48,12 @@ function runPnpm(args) {
 console.log('[verify-kinetix-parity] check-workspace-package-layout')
 run('node', [join(scriptDir, 'check-no-local-ai-core.mjs')])
 
+console.log('[verify-kinetix-parity] check-api-health-route')
+if (!existsSync(join(root, 'api', 'health', 'index.ts'))) {
+  console.error('[verify-kinetix-parity] Missing api/health/index.ts; Vercel must expose /api/health for uptime probes')
+  process.exit(1)
+}
+
 const bash = bashPath()
 console.log('[verify-kinetix-parity] scripts/vercel-install.sh')
 const install = spawnSync(bash, [join(scriptDir, 'vercel-install.sh')], {

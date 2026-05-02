@@ -59,7 +59,6 @@ export default function Layout({ children }: LayoutProps) {
   const [ragSyncBannerOpen, setRagSyncBannerOpen] = useState(false)
   const {
     stravaCredentials,
-    stravaToken,
     targetKPS,
     setStravaSyncError,
     settingsRehydrated,
@@ -151,8 +150,8 @@ export default function Layout({ children }: LayoutProps) {
   }, [profile, authUserId])
 
   // Sync new runs from Strava on app startup (e.g. Garmin->Strava run).
-  // Uses persisted credentials (with refresh) or legacy token. Runs at 0, 500, 1500, 2500, 4000, 5000 ms
-  // so that Zustand persist rehydration (async) has time to restore stravaCredentials.
+  // Uses server-managed connection state. Runs at 0, 500, 1500, 2500, 4000, 5000 ms
+  // so that auth/provider connection hydration has time to restore stravaCredentials.
   const stravaSyncDoneRef = useRef(false)
   useEffect(() => {
     if (!profile || typeof indexedDB === 'undefined') return
@@ -166,9 +165,9 @@ export default function Layout({ children }: LayoutProps) {
         const isLastAttempt = attempt === STRAVA_STARTUP_RETRY_DELAYS_MS.length - 1
         if (
           isLastAttempt &&
-          (useSettingsStore.getState().stravaCredentials ?? useSettingsStore.getState().stravaToken?.trim())
+          useSettingsStore.getState().stravaCredentials
         ) {
-          console.log('[Strava] Startup sync skipped: no valid token yet (refresh may have failed or rehydration pending)')
+          console.log('[Strava] Startup sync skipped: no server-managed connection yet (hydration may still be pending)')
         }
         return false
       }
@@ -187,7 +186,7 @@ export default function Layout({ children }: LayoutProps) {
       return true
     }
     return scheduleStartupAttempts([...STRAVA_STARTUP_RETRY_DELAYS_MS], runSync)
-  }, [profile, stravaCredentials, stravaToken, targetKPS, setStravaSyncError, settingsRehydrated])
+  }, [profile, stravaCredentials, targetKPS, setStravaSyncError, settingsRehydrated])
 
   const withingsStartupSyncDoneRef = useRef(false)
   useEffect(() => {

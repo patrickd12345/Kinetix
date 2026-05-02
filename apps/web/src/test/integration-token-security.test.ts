@@ -31,7 +31,30 @@ describe('integration token hygiene', () => {
 
   it('keeps Strava refresh token transport scoped to the refresh proxy', () => {
     const source = read('apps/web/src/lib/strava.ts')
-    expect(source).toContain("fetch('/api/strava-refresh'")
-    expect(source).not.toMatch(/refreshToken[\s\S]{0,160}\/api\/(ai|rag|support|operator)/)
+    expect(source).not.toContain("fetch('/api/strava-refresh'")
+    expect(source).not.toMatch(/refreshToken[\s\S]{0,160}\/api\//)
+    expect(source).not.toMatch(/refresh_token/)
+  })
+
+  it('does not expose Kinetix-managed provider tokens to browser responses or state', () => {
+    const clientSources = [
+      'apps/web/src/hooks/useStravaAuth.ts',
+      'apps/web/src/hooks/useWithingsAuth.ts',
+      'apps/web/src/lib/withings.ts',
+      'apps/web/src/lib/integrations/withings/oauth.ts',
+    ]
+
+    for (const source of clientSources) {
+      expect(read(source), `${source} exposes provider token fields`).not.toMatch(
+        /\b(access_token|refresh_token|accessToken|refreshToken)\b/,
+      )
+    }
+
+    const apiSources = ['api/strava-oauth/index.ts', 'api/strava-refresh/index.ts', 'api/withings/index.ts']
+    for (const source of apiSources) {
+      expect(read(source), `${source} serializes provider tokens to the browser`).not.toMatch(
+        /json\(\s*{[\s\S]{0,300}\b(access_token|refresh_token)\b/,
+      )
+    }
   })
 })

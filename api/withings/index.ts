@@ -5,6 +5,7 @@ import { sendApiError } from '../_lib/apiError.js'
 import { logApiEvent } from '../_lib/observability.js'
 import { resolveKinetixRuntimeEnv } from '../_lib/env/runtime.js'
 import { resolveWithingsRedirectUriForTokenExchange } from '../_lib/withingsRedirectUri.js'
+import { getProviderToken, requireSupabaseUser, upsertProviderToken } from '../_lib/providerTokenVault.js'
 
 function readQueryValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value
@@ -26,7 +27,7 @@ function redirectWithingsBrowserCallbackToSettings(req: VercelRequest, res: Verc
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = applyCors(req, res, {
     methods: ['GET', 'POST', 'OPTIONS'],
-    headers: ['Content-Type'],
+    headers: ['Authorization', 'Content-Type'],
   })
 
   if (!cors.allowed) {
@@ -46,6 +47,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const runtime = resolveKinetixRuntimeEnv()
   const clientId = runtime.withingsClientId
   const clientSecret = runtime.withingsClientSecret
+  let user: { id: string } | null = null
+  if (req.method === 'POST') {
+    try {
+      user = await requireSupabaseUser(req, runtime)
+    } catch {
+      return sendApiError(res, 401, 'Authentication required', { source: req.headers })
+    }
+  }
 
   if (typeof body.code === 'string' && body.code.length > 0) {
     const originHeader = req.headers.origin
@@ -68,12 +77,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
       const result = await exchangeWithingsCode({ clientId, clientSecret, redirectUri }, body.code)
-      res.status(200).json({
-        access_token: result.access_token,
-        refresh_token: result.refresh_token,
-        userid: result.userid,
-        expires_in: result.expires_in,
+      const expiresAt = new Date(Date.now() + result.expires_in * 1000).toISOString()
+      const connection = await upsertProviderToken(runtime, {
+        userId: user!.id,
+        provider: 'withings',
+        providerUserId: String(result.userid ?? ''),
+        accessToken: result.access_token,
+        refreshToken: result.refresh_token,
+        expiresAt,
+        scopes: ['user.metrics'],
       })
+      res.status(200).json(connection)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to exchange Withings authorization code'
       logApiEvent('error', 'kinetix_withings_oauth_failed', {
@@ -91,11 +105,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return
   }
 
-  const refreshToken = body.refresh_token
-  if (typeof refreshToken !== 'string' || !refreshToken) {
-    return sendApiError(res, 400, 'Authorization code or refresh_token required', { source: req.headers })
-  }
-
   if (!clientId || !clientSecret) {
     return sendApiError(res, 500, 'Withings not configured. Set WITHINGS_CLIENT_ID and WITHINGS_CLIENT_SECRET.', {
       source: req.headers,
@@ -103,13 +112,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const result = await refreshWithingsToken({ clientId, clientSecret }, refreshToken)
-    res.status(200).json({
-      access_token: result.access_token,
-      refresh_token: result.refresh_token,
-      userid: result.userid,
-      expires_in: result.expires_in,
+    const existing = await getProviderToken(runtime, user!.id, 'withings')
+    if (!existing) return sendApiError(res, 404, 'Withings connection not found', { source: req.headers })
+    const result = await refreshWithingsToken({ clientId, clientSecret }, existing.refreshToken)
+    const expiresAt = new Date(Date.now() + result.expires_in * 1000).toISOString()
+    const connection = await upsertProviderToken(runtime, {
+      userId: user!.id,
+      provider: 'withings',
+      providerUserId: String(result.userid || existing.providerUserId || ''),
+      accessToken: result.access_token,
+      refreshToken: result.refresh_token,
+      expiresAt,
+      scopes: ['user.metrics'],
     })
+    res.status(200).json(connection)
   } catch (err) {
     logApiEvent('error', 'kinetix_withings_refresh_failed', {
       message: err instanceof Error ? err.message : 'Unknown error',

@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useSettingsStore } from '../store/settingsStore'
+import { getSessionAuthHeaders } from '../lib/apiAuth'
 
 const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID || '157217'
 
@@ -36,7 +37,7 @@ export function useStravaAuth() {
       await new Promise((r) => setTimeout(r, 500))
       const response = await fetch('/api/strava-oauth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getSessionAuthHeaders()) },
         body: JSON.stringify({ code, redirect_uri: redirectUri }),
       })
 
@@ -45,16 +46,14 @@ export function useStravaAuth() {
         throw new Error((errorData as { error?: string }).error || 'Failed to exchange authorization code for token')
       }
 
-      const data = (await response.json()) as { access_token: string; refresh_token: string; expires_at: number }
+      const data = (await response.json()) as { expires_at?: string }
       setStravaCredentials({
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresAt: data.expires_at,
+        expiresAt: data.expires_at ? Math.floor(new Date(data.expires_at).getTime() / 1000) : 0,
       })
       setStravaToken('')
       setStravaSyncError(null)
       window.history.replaceState({}, '', '/settings')
-      return data.access_token
+      return true
     } catch (error) {
       console.error('OAuth callback error:', error)
       throw error

@@ -1,7 +1,8 @@
 import type { WithingsCredentials } from '../store/settingsStore'
 import { bulkPutWeightEntries, getMaxWeightDateUnix, type WeightEntry } from './database'
+import { getSessionAuthHeaders } from './apiAuth'
 
-const WITHINGS_MEASURE_URL = 'https://wbsapi.withings.net/measure'
+const WITHINGS_PROVIDER_PROXY_URL = '/api/withings-provider'
 
 /** Measure type 1 = weight; unit -2 means value * 10^-2 = kg */
 const WEIGHT_TYPE = 1
@@ -44,7 +45,7 @@ function getMeasHasMore(body: GetMeasJson['body']): boolean {
  * @see https://developer.withings.com/api-reference/#operation/measure-getmeas
  */
 async function fetchAllWeightMeasureGroupsInRange(
-  accessToken: string,
+  _connection: WithingsCredentials,
   startUnix: number,
   endUnix: number
 ): Promise<WithingsMeasureGroup[]> {
@@ -61,13 +62,10 @@ async function fetchAllWeightMeasureGroupsInRange(
     })
     if (requestOffset > 0) body.set('offset', String(requestOffset))
 
-    const res = await fetch(WITHINGS_MEASURE_URL, {
+    const res = await fetch(WITHINGS_PROVIDER_PROXY_URL, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: body.toString(),
+      headers: { 'Content-Type': 'application/json', ...(await getSessionAuthHeaders()) },
+      body: JSON.stringify({ path: 'measure', body: body.toString() }),
     })
 
     if (!res.ok) {
@@ -102,7 +100,7 @@ async function fetchAllWeightMeasureGroupsInRange(
  * @see https://developer.withings.com/developer-guide/v3/tutorials/how-to-compute-lastupdate
  */
 async function fetchAllWeightMeasureGroupsSinceLastUpdate(
-  accessToken: string,
+  _connection: WithingsCredentials,
   lastUpdateUnix: number
 ): Promise<WithingsMeasureGroup[]> {
   const all: WithingsMeasureGroup[] = []
@@ -117,13 +115,10 @@ async function fetchAllWeightMeasureGroupsSinceLastUpdate(
     })
     if (requestOffset > 0) body.set('offset', String(requestOffset))
 
-    const res = await fetch(WITHINGS_MEASURE_URL, {
+    const res = await fetch(WITHINGS_PROVIDER_PROXY_URL, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: body.toString(),
+      headers: { 'Content-Type': 'application/json', ...(await getSessionAuthHeaders()) },
+      body: JSON.stringify({ path: 'measure', body: body.toString() }),
     })
 
     if (!res.ok) {
@@ -178,26 +173,22 @@ function measureGroupsToWeightEntries(groups: WithingsMeasureGroup[]): WeightEnt
 }
 
 /**
- * Refresh Withings access token using the backend (client secret required).
- * Returns new credentials; caller should persist them.
+ * Refresh Withings connection state using the backend vault.
  */
-export async function refreshWithingsToken(refreshToken: string): Promise<WithingsCredentials> {
+export async function refreshWithingsConnection(): Promise<WithingsCredentials> {
   const res = await fetch('/api/withings-refresh', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: refreshToken }),
+    headers: { 'Content-Type': 'application/json', ...(await getSessionAuthHeaders()) },
+    body: JSON.stringify({}),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.error ?? 'Failed to refresh Withings token')
   }
   const data = await res.json()
-  const expiresIn = typeof data.expires_in === 'number' ? data.expires_in : 3 * 3600
   return {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    userId: String(data.userid ?? data.user_id ?? ''),
-    expiresAt: Date.now() + expiresIn * 1000,
+    userId: String(data.provider_user_id ?? ''),
+    expiresAt: data.expires_at ? new Date(data.expires_at).getTime() : 0,
   }
 }
 
@@ -210,7 +201,7 @@ export async function ensureValidWithingsAccess(
 ): Promise<WithingsCredentials> {
   const bufferMs = 5 * 60 * 1000
   if (Date.now() < creds.expiresAt - bufferMs) return creds
-  return refreshWithingsToken(creds.refreshToken)
+  return refreshWithingsConnection()
 }
 
 /**
@@ -218,11 +209,11 @@ export async function ensureValidWithingsAccess(
  * Uses Bearer token; no client secret. Returns weight in kg or null.
  */
 export async function fetchLatestWeightFromWithings(
-  accessToken: string
+  connection: WithingsCredentials
 ): Promise<number | null> {
   const end = Math.floor(Date.now() / 1000)
   const start = end - 365 * 24 * 3600
-  const groups = await fetchAllWeightMeasureGroupsInRange(accessToken, start, end)
+  const groups = await fetchAllWeightMeasureGroupsInRange(connection, start, end)
   const entries = measureGroupsToWeightEntries(groups)
   return entries.length > 0 ? entries[0].kg : null
 }
@@ -237,7 +228,7 @@ export async function getWithingsWeight(
 ): Promise<number | null> {
   const valid = await ensureValidWithingsAccess(creds)
   if (valid !== creds) onNewCredentials?.(valid)
-  const kg = await fetchLatestWeightFromWithings(valid.accessToken)
+  const kg = await fetchLatestWeightFromWithings(valid)
   return kg
 }
 
@@ -247,12 +238,12 @@ export async function getWithingsWeight(
  * new weigh-ins are not missed when the window query alone is incomplete.
  */
 export async function fetchRecentWithingsWeights(
-  accessToken: string,
+  connection: WithingsCredentials,
   daysBack: number = 30
 ): Promise<WeightEntry[]> {
   const end = Math.floor(Date.now() / 1000)
   const start = end - daysBack * 24 * 3600
-  const rangeGroups = await fetchAllWeightMeasureGroupsInRange(accessToken, start, end)
+  const rangeGroups = await fetchAllWeightMeasureGroupsInRange(connection, start, end)
   const rangeEntries = measureGroupsToWeightEntries(rangeGroups)
 
   const maxLocal = await getMaxWeightDateUnix()
@@ -260,7 +251,7 @@ export async function fetchRecentWithingsWeights(
     return rangeEntries
   }
 
-  const sinceGroups = await fetchAllWeightMeasureGroupsSinceLastUpdate(accessToken, maxLocal)
+  const sinceGroups = await fetchAllWeightMeasureGroupsSinceLastUpdate(connection, maxLocal)
   const sinceEntries = measureGroupsToWeightEntries(sinceGroups)
   const merged = mergeWeightEntriesPreferLater(rangeEntries, sinceEntries)
   return merged
@@ -286,14 +277,14 @@ export async function syncWithingsWeightsAtStartup(
   if (valid !== creds) onCredentialsUpdate?.(valid)
 
   /** 120-day window + `lastupdate` merge inside `fetchRecentWithingsWeights`. */
-  const entries = await fetchRecentWithingsWeights(valid.accessToken, 120)
+  const entries = await fetchRecentWithingsWeights(valid, 120)
   if (entries.length > 0) {
     await bulkPutWeightEntries(entries)
   }
 
   /** Avoid a second full API walk when the merged batch already includes the latest weigh-in. */
   const latestKg =
-    entries.length > 0 ? entries[0].kg : await fetchLatestWeightFromWithings(valid.accessToken)
+    entries.length > 0 ? entries[0].kg : await fetchLatestWeightFromWithings(valid)
 
   return { latestKg, historyEntriesSynced: entries.length }
 }

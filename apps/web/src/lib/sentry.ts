@@ -4,7 +4,8 @@ let initialized = false
 
 function getDsn(): string | undefined {
   const env = import.meta.env as ImportMetaEnv & { readonly NEXT_PUBLIC_SENTRY_DSN?: string }
-  return env.VITE_SENTRY_DSN ?? env.NEXT_PUBLIC_SENTRY_DSN
+  const dsn = (env.VITE_SENTRY_DSN ?? env.NEXT_PUBLIC_SENTRY_DSN)?.trim()
+  return dsn || undefined
 }
 
 function getEnvironment(): string {

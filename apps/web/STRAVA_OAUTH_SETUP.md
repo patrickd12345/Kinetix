@@ -2,7 +2,7 @@
 
 ## Quick Setup
 
-The app now uses OAuth2 flow to get Strava tokens with the correct `activity:read_all` scope.
+The app uses OAuth2 with the `activity:read_all` scope. Token material is stored server-side in the Kinetix provider token vault; the browser only keeps non-secret connection state.
 
 ### 1. Configure Strava API Application
 
@@ -51,9 +51,9 @@ STRAVA_CLIENT_SECRET=your_client_secret_here
 2. Redirects to Strava authorization page
 3. User authorizes the app with `activity:read_all` scope
 4. Strava redirects back with authorization code
-5. Serverless function exchanges code for access token
-6. Token is stored and used for API calls
+5. Serverless function exchanges code, stores provider tokens in `kinetix.provider_token_vault`, and returns connection state
+6. Browser imports runs through the authenticated Kinetix Strava proxy; provider tokens are never returned to client state
 
-### Manual Token Entry (Fallback)
+### Manual Token Entry
 
-Users can still paste a token manually if they have one with the right scope, but OAuth is the recommended method.
+Manual token entry is no longer supported for Kinetix-managed Strava sync. Use OAuth connect/reconnect so refresh-token ownership stays server-side.

@@ -55,8 +55,6 @@ export interface WithingsSyncResult {
 }
 
 export interface WithingsAuthCredentials {
-  accessToken: string
-  refreshToken: string
   userId: string
   expiresAt: number
 }

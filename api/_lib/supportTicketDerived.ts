@@ -88,20 +88,20 @@ function mean(values: number[]): number | null {
  * Derived queue labels layer on top of persisted status; they do not replace status.
  */
 export function deriveSupportTicketLabels(ticket: TicketLike, now: Date = new Date()): SupportTicketDerivedLabel[] {
-  const labels = new Set<SupportTicketDerivedLabel>()
+  const labels: SupportTicketDerivedLabel[] = []
   const nowMs = now.getTime()
 
   const assigned = typeof ticket.assigned_to === 'string' && ticket.assigned_to.trim().length > 0
   if (assigned) {
-    labels.add('assigned')
+    labels.push('assigned')
   } else {
-    labels.add('unassigned')
+    labels.push('unassigned')
   }
 
   const slackFailed = ticket.notification_slack_status === 'failed'
   const emailFailed = ticket.notification_email_status === 'failed'
   if (slackFailed || emailFailed) {
-    labels.add('awaiting_retry')
+    labels.push('awaiting_retry')
   }
 
   const status = ticket.status
@@ -112,23 +112,23 @@ export function deriveSupportTicketLabels(ticket: TicketLike, now: Date = new Da
   const firstResponseComplete = lastOp != null || status === 'triaged' || status === 'in_progress' || TERMINAL.has(status)
 
   if (ACTIVE.has(status) && firstDue != null && nowMs > firstDue && !firstResponseComplete) {
-    labels.add('overdue_first_response')
+    labels.push('overdue_first_response')
   }
 
   if (!TERMINAL.has(status) && resDue != null && nowMs > resDue) {
-    labels.add('overdue_resolution')
+    labels.push('overdue_resolution')
   }
 
   const kb = ticket.kb_approval_status ?? 'none'
   if (status === 'resolved' && (kb === 'none' || kb === 'candidate')) {
-    labels.add('ready_for_kb')
+    labels.push('ready_for_kb')
   }
 
   if (status === 'resolved' && kb !== 'ingested') {
-    labels.add('resolved_not_kb')
+    labels.push('resolved_not_kb')
   }
 
-  return Array.from(labels)
+  return labels
 }
 
 export type QueueSummary = {
@@ -180,18 +180,22 @@ export function computeQueueSummary(
 
   for (const row of tickets) {
     const labels = row.derived.labels
+
+    // Process labels in a single pass to avoid multiple array lookups
+    let hasOverdueFirst = false;
+    let hasOverdueRes = false;
+    for (let i = 0; i < labels.length; i++) {
+        const l = labels[i];
+        if (l === 'overdue_first_response') hasOverdueFirst = true;
+        else if (l === 'overdue_resolution') hasOverdueRes = true;
+        else if (l === 'awaiting_retry') awaitingRetry += 1;
+        else if (l === 'ready_for_kb') readyForKb += 1;
+    }
+    if (hasOverdueFirst || hasOverdueRes) overdue += 1;
+
     const assigned = typeof row.assigned_to === 'string' && row.assigned_to.trim().length > 0
     if (!assigned) {
       unassigned += 1
-    }
-    if (hasLabel(labels, 'overdue_first_response') || hasLabel(labels, 'overdue_resolution')) {
-      overdue += 1
-    }
-    if (hasLabel(labels, 'awaiting_retry')) {
-      awaitingRetry += 1
-    }
-    if (hasLabel(labels, 'ready_for_kb')) {
-      readyForKb += 1
     }
     if (operatorUserId && row.assigned_to === operatorUserId) {
       assignedToMe += 1

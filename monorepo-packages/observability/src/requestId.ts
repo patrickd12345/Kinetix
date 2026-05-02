@@ -18,9 +18,11 @@ function readHeaderMapValue(source: Record<string, string | string[] | undefined
       return value.trim()
     }
     if (Array.isArray(value)) {
-      const match = value.find((item) => typeof item === 'string' && item.trim())
-      if (match) {
-        return match.trim()
+      for (let i = 0; i < value.length; i++) {
+        const item = value[i]
+        if (typeof item === 'string' && item.trim()) {
+          return item.trim()
+        }
       }
     }
   }

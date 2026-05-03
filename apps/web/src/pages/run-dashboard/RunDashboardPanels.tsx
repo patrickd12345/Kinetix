@@ -163,7 +163,16 @@ export function RunGaugePanel({ displayKPS: _displayKPS, displayText, displayLab
   )
 }
 
+
+function getHeartRateDisplayState(hr: number) {
+  // TODO: Native apps can distinguish sensor states like Finding HR, Enable HR, HR lost.
+  // For now in PWA, if HR is missing or at the default uninitialized 70, we display No HR.
+  if (!hr || hr === 70) return { label: 'No HR', color: 'text-slate-500' }
+  return { label: Math.floor(hr).toString(), color: hr > 170 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white' }
+}
+
 export function RunStatsPanel({
+
   averagePace,
   unitSystem,
   physioMode,
@@ -175,7 +184,7 @@ export function RunStatsPanel({
     <div className="grid grid-cols-2 gap-3 mb-4 lg:grid-cols-3">
       <div className="glass rounded-xl p-3 text-center">
         <div className="text-xs text-slate-600 dark:text-gray-400 uppercase mb-1">PACE</div>
-        <div className="text-xl font-black font-mono text-cyan-400">{formatPace(averagePace, unitSystem)}</div>
+        <div className="text-lg sm:text-xl font-black font-mono text-cyan-400 whitespace-nowrap overflow-visible">{formatPace(averagePace, unitSystem)}</div>
       </div>
       {physioMode && (
         <div className="glass rounded-xl p-3 text-center">
@@ -183,9 +192,16 @@ export function RunStatsPanel({
             <Heart size={10} />
             BPM
           </div>
-          <div className={`text-xl font-black font-mono ${heartRate > 170 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'}`}>
-            {Math.floor(heartRate)}
-          </div>
+          {
+            (() => {
+              const hrState = getHeartRateDisplayState(heartRate)
+              return (
+                <div className={`text-xl font-black font-mono ${hrState.color}`}>
+                  {hrState.label}
+                </div>
+              )
+            })()
+          }
         </div>
       )}
       <div className="glass rounded-xl p-3 text-center">

@@ -1,3 +1,4 @@
+import type { AchievementLabel } from '../../lib/achievements'
 import type { RunRecord } from '../../lib/database'
 import { KPS_SHORT } from '../../lib/branding'
 import type { IntelligenceResult } from '../../lib/intelligence/types'
@@ -12,6 +13,7 @@ export interface DirectionalHomeSummary {
   referenceKps: number | null
   intelligence: IntelligenceResult | null
   error: string | null
+  achievement: AchievementLabel | null
 }
 
 function startOfUtcDay(value: Date) {

@@ -1,3 +1,5 @@
+import { Trophy } from 'lucide-react'
+import type { AchievementLabel } from '../../lib/achievements'
 export interface DirectionalTodayCardProps {
   kps: {
     value: string
@@ -12,6 +14,7 @@ export interface DirectionalTodayCardProps {
   error?: string | null
   isRunning?: boolean
   disabled?: boolean
+  achievement?: AchievementLabel | null
 }
 
 export function DirectionalTodayCard({
@@ -25,6 +28,7 @@ export function DirectionalTodayCard({
   error = null,
   isRunning = false,
   disabled = false,
+  achievement = null,
 }: DirectionalTodayCardProps) {
   return (
     <section className="glass rounded-2xl p-6 mb-4 border border-cyan-500/20" aria-labelledby="today-heading">
@@ -59,6 +63,12 @@ export function DirectionalTodayCard({
             <div className="col-span-2 rounded-lg border border-white/10 bg-black/5 p-3 dark:bg-black/20 lg:col-span-2">
               <dt className="text-xs uppercase text-slate-500 dark:text-gray-400">Last run</dt>
               <dd className="mt-1 font-bold text-slate-900 dark:text-white">{lastRun}</dd>
+              {achievement && (
+                <div className="mt-2 flex items-center gap-1 text-xs font-bold text-amber-500">
+                  <Trophy size={12} />
+                  {achievement}
+                </div>
+              )}
             </div>
           </dl>
         </div>

@@ -14,4 +14,8 @@ enum KinetixEnvironment {
     static var stravaClientId: String {
         (Bundle.main.object(forInfoDictionaryKey: "STRAVA_CLIENT_ID") as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    static var googleClientId: String {
+        (Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_ID") as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }

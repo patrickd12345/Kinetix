@@ -47,6 +47,8 @@ export function resolveKinetixRuntimeEnvFromObject(env = getDefaultEnv()) {
     apiRequireAuthRaw: pick(env, ['KINETIX_API_REQUIRE_AUTH']),
     stravaClientId: pick(env, ['VITE_STRAVA_CLIENT_ID', 'STRAVA_CLIENT_ID'], '157217'),
     stravaClientSecret: pick(env, ['STRAVA_CLIENT_SECRET']),
+    googleClientId: pick(env, ['VITE_GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID'], '915406480058-s855cf6s4dqipjskfqh0egqq1hui6frn.apps.googleusercontent.com'),
+    googleClientSecret: pick(env, ['GOOGLE_CLIENT_SECRET']),
     withingsClientId: pick(env, ['VITE_WITHINGS_CLIENT_ID', 'WITHINGS_CLIENT_ID']),
     withingsClientSecret: pick(env, ['WITHINGS_CLIENT_SECRET']),
     /** Canonical OAuth callback; set on Vercel to https://kinetix.bookiji.com/api/withings-oauth to match Withings partner URL */

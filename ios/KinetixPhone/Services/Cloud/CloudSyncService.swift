@@ -17,24 +17,18 @@ public class CloudSyncService {
     private var lastSyncTime: Date?
     
     private init() {
-        // Get from Info.plist
-        let clientId = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_ID") as? String ?? ""
-        let clientSecret = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_SECRET") as? String ?? ""
+        // Get from KinetixEnvironment (Info.plist)
+        let clientId = KinetixEnvironment.googleClientId
         
-        // Standard Google iOS Redirect URI format:
-        // com.googleusercontent.apps.CLIENT_ID:/oauth2redirect/google
-        // We must extract the scheme part from the Client ID
-        let reversedClientId = clientId.components(separatedBy: ".").reversed().joined(separator: ".")
-        let redirectURI = "\(reversedClientId):/oauth2redirect/google"
+        // Use the backend proxy as the redirect_uri for Google
+        let redirectURI = KinetixEnvironment.webBaseURL.appendingPathComponent("api/google-oauth").absoluteString
         
         // Validate credentials are configured
-        // Note: For iOS clients, clientSecret can be empty (Google doesn't provide it)
         guard !clientId.isEmpty, 
               clientId != "YOUR_GOOGLE_CLIENT_ID" else {
             // Credentials not configured - provider will throw error on use
             self.googleDriveProvider = GoogleDriveProvider(
                 clientId: "",
-                clientSecret: "",
                 redirectURI: redirectURI
             )
             return
@@ -42,7 +36,6 @@ public class CloudSyncService {
         
         self.googleDriveProvider = GoogleDriveProvider(
             clientId: clientId,
-            clientSecret: clientSecret,
             redirectURI: redirectURI
         )
     }
@@ -51,10 +44,8 @@ public class CloudSyncService {
      * Check if Google OAuth credentials are configured
      */
     public func areCredentialsConfigured() -> Bool {
-        let clientId = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_ID") as? String ?? ""
-        // Note: For iOS clients, clientSecret can be empty (Google doesn't provide it)
-        return !clientId.isEmpty 
-            && clientId != "YOUR_GOOGLE_CLIENT_ID"
+        let clientId = KinetixEnvironment.googleClientId
+        return !clientId.isEmpty && clientId != "YOUR_GOOGLE_CLIENT_ID"
     }
     
     /**
@@ -147,8 +138,7 @@ public class CloudSyncService {
         }
         
         // Get settings (if any stored locally)
-        // Note: Settings might be stored differently in iOS, adjust as needed
-        let settings: [String: Any]? = nil // TODO: Get from UserDefaults or SwiftData
+        let settings: [String: Any]? = nil
         
         // Merge: Local is source of truth for runs
         let mergedData = CloudData(
@@ -224,9 +214,6 @@ public class CloudSyncService {
                     songArtist: cloudRunData.songArtist,
                     songBpm: cloudRunData.songBpm
                 )
-                // Note: SwiftData @Model generates id in init, so we can't set it
-                // The cloud ID is stored in the id field, but SwiftData uses its own
-                // This is acceptable - we match by date/source for conflict resolution
                 modelContext.insert(newRun)
                 downloaded += 1
             } else {
@@ -291,14 +278,14 @@ public class CloudSyncService {
      * Opens Google OAuth dialog automatically
      */
     public func authenticate(presentingViewController: UIViewController) async throws {
-        // Open Google OAuth dialog automatically - let it handle credential validation
+        // Open Google OAuth dialog automatically - let it handle credential errors gracefully
         let tokens = try await googleDriveProvider.authenticate(presentingViewController: presentingViewController)
         
         try CloudTokenStorage.shared.storeTokens(
             provider: "google",
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
-            expiresIn: tokens.expiresAt.timeIntervalSinceNow
+            expiresAt: tokens.expiresAt
         )
     }
 }
@@ -323,7 +310,6 @@ struct CloudData: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         runs = try container.decode([RunData].self, forKey: .runs)
         syncMetadata = try container.decode(SyncMetadata.self, forKey: .syncMetadata)
-        // Settings decoding handled separately if needed
         settings = nil
     }
     
@@ -331,7 +317,6 @@ struct CloudData: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(runs, forKey: .runs)
         try container.encode(syncMetadata, forKey: .syncMetadata)
-        // Settings encoding handled separately if needed
     }
 }
 
@@ -424,4 +409,3 @@ public struct SyncStatus {
         self.lastSyncTime = lastSyncTime
     }
 }
-

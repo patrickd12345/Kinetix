@@ -107,7 +107,7 @@ struct HomeView: View {
                                     .font(.system(size: 15, weight: .medium))
                                     .foregroundStyle(.white.opacity(0.95))
 
-                                    Text(homePbStatusLine(recent: recentRun, displayKPS: displayKPS, pbRun: pbRun))
+                                    Text(homePbStatusLine(recent: recentRun, displayKPS: displayKPS, pbRun: pbRun, allRuns: runs))
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundStyle(.white.opacity(0.8))
                                         .multilineTextAlignment(.center)
@@ -296,13 +296,32 @@ struct HomeView: View {
     }
 
     /// PB delta / status for the last-run hero (native NPI ratio vs lifetime best in history).
-    private func homePbStatusLine(recent: Run, displayKPS: Double, pbRun: Run?) -> String {
+    private func homePbStatusLine(recent: Run, displayKPS: Double, pbRun: Run?, allRuns: [Run]) -> String {
+        var labels: [String] = []
+
+        let previousRuns = allRuns.filter { $0.id != recent.id && $0.date < recent.date }
+        let isLongest = !previousRuns.isEmpty && previousRuns.allSatisfy { $0.distance < recent.distance }
+        let isFirstMarathon = recent.distance >= 42195 && !previousRuns.contains { $0.distance >= 42195 }
+        let isFirstHalf = recent.distance >= 21097.5 && !previousRuns.contains { $0.distance >= 21097.5 }
+
         guard let pb = pbRun else {
             return displayKPS > 0 ? "vs lifetime best" : "Build your KPS baseline"
         }
+
         if recent.id == pb.id {
-            return "Personal best · peak KPS is 100"
+            labels.append("KPS PB")
+        } else if isFirstMarathon {
+            labels.append("First marathon")
+        } else if isFirstHalf {
+            labels.append("First half marathon")
+        } else if isLongest {
+            labels.append("Longest distance")
         }
+
+        if !labels.isEmpty {
+            return labels.joined(separator: " · ")
+        }
+
         let gap = 100 - displayKPS
         if gap < 1 {
             return "Near your peak KPS"

@@ -1459,11 +1459,9 @@ struct SettingsView: View {
             }
             
             // Create a temporary GoogleDriveProvider for upload
-            let clientId = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_ID") as? String ?? ""
-            let clientSecret = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_SECRET") as? String ?? ""
-            let reversedClientId = clientId.components(separatedBy: ".").reversed().joined(separator: ".")
-            let redirectURI = "\(reversedClientId):/oauth2redirect/google"
-            let provider = GoogleDriveProvider(clientId: clientId, clientSecret: clientSecret, redirectURI: redirectURI)
+            let clientId = KinetixEnvironment.googleClientId
+            let redirectURI = KinetixEnvironment.webBaseURL.appendingPathComponent("api/google-oauth").absoluteString
+            let provider = GoogleDriveProvider(clientId: clientId, redirectURI: redirectURI)
             
             // Ensure folder exists and upload
             let _ = try await provider.ensureFolderExists(accessToken: googleTokens.accessToken)

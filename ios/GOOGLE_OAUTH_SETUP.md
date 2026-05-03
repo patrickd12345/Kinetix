@@ -1,133 +1,51 @@
-# Google OAuth Setup for iOS
+# Google OAuth Setup for Kinetix
 
-## ⚠️ IMPORTANT: This is Developer Setup Only
+## End-User Experience
+End users don't need to do any technical setup. They just tap "Connect Google Drive" in Settings and sign in with their Google account.
 
-**You (the developer) do this ONCE.** End users don't need to do any of this - they just tap "Connect Google Drive" and sign in with their Google account.
+## Developer Setup (Once)
 
-## Quick Setup Guide (Developer Only)
+Kinetix uses a secure OAuth proxy architecture. The Google Client Secret is stored on the backend (Vercel) and is never shipped in the iOS application bundle.
 
 ### 1. Create OAuth Credentials in Google Cloud Console
 
 **⚠️ IMPORTANT: Use "Web application" type, NOT "iOS"**
 
-For OAuth flows with ASWebAuthenticationSession, you need a **Web application** client because:
-- iOS clients don't support custom redirect URIs in Google Cloud Console
-- Web clients support HTTP redirect URIs (required by Google)
-- ASWebAuthenticationSession handles the actual callback via custom URL scheme
+For OAuth flows with ASWebAuthenticationSession using a backend proxy, you need a **Web application** client.
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Select your project (or create a new one)
-3. Navigate to **APIs & Services** > **Credentials**
-4. Click **+ CREATE CREDENTIALS** > **OAuth client ID**
-5. Select **Web application** as the application type (NOT iOS)
-6. Enter a **Name**: "Kinetix iOS OAuth" (or any name)
-7. Under **Authorized redirect URIs**, click **+ ADD URI**
-8. Add: `http://localhost/oauth/google/callback` (Google requires HTTP/HTTPS)
-9. Click **Create**
-10. **Copy the Client ID and Client Secret** (you'll need both!)
+2. Select your project.
+3. Navigate to **APIs & Services** > **Credentials**.
+4. Click **+ CREATE CREDENTIALS** > **OAuth client ID**.
+5. Select **Web application** as the application type.
+6. Enter a **Name**: "Kinetix Backend Proxy".
+7. Under **Authorized redirect URIs**, add:
+   - `https://kinetix.bookiji.com/api/google-oauth` (Production)
+   - `http://localhost:3000/api/google-oauth` (Local development)
+8. Click **Create**.
+9. **Copy the Client ID and Client Secret**.
 
-### 2. Configure OAuth Consent Screen
+### 2. Configure Backend Environment Variables
 
-1. Go to **APIs & Services** > **OAuth consent screen**
-2. Fill in required fields:
-   - **App name**: Kinetix
-   - **User support email**: Your email
-   - **Developer contact information**: Your email
-3. Click **Save and Continue**
-4. On **Scopes** page, click **Save and Continue** (we'll add scopes via API)
-5. On **Test users** page:
-   - **Add your Google account email** as a test user
-   - This is required if app is in "Testing" mode
-6. Click **Save and Continue**
+Add the following to your Vercel project environment variables (or `.env` for local API development):
 
-### 3. Add Redirect URI
+- `GOOGLE_CLIENT_ID`: Your Google Client ID
+- `GOOGLE_CLIENT_SECRET`: Your Google Client Secret
 
-1. Go back to **APIs & Services** > **Credentials**
-2. Click on your **iOS OAuth 2.0 Client ID**
-3. Under **Authorized redirect URIs**, click **+ ADD URI**
-4. Add: `com.kinetix.phone://oauth/google/callback`
-5. Click **Save**
+### 3. Update iOS App Configuration
+
+1. Open `ios/KinetixPhone/Config/KinetixPublic.xcconfig`.
+2. Update `GOOGLE_CLIENT_ID` with your actual Client ID.
+3. Ensure `KINETIX_WEB_BASE_URL` points to your backend.
+
+The iOS app uses `kinetix://oauth/google/callback` as the `redirect_uri` in its internal flow, which is handled by the backend proxy to match Google's requirements.
 
 ### 4. Enable Google Drive API
 
-1. Go to **APIs & Services** > **Library**
-2. Search for "Google Drive API"
-3. Click on it and click **Enable**
+1. Go to **APIs & Services** > **Library**.
+2. Search for "Google Drive API" and click **Enable**.
 
-### 5. Update Info.plist
+## Security Notes
 
-1. Open `ios/KinetixPhone/Info.plist`
-2. Replace `YOUR_GOOGLE_CLIENT_ID` with your actual Client ID
-3. Replace `YOUR_GOOGLE_CLIENT_SECRET` with your actual Client Secret
-
-### 6. Verify URL Scheme
-
-The URL scheme is already configured in `Info.plist`:
-```xml
-<key>CFBundleURLTypes</key>
-<array>
-    <dict>
-        <key>CFBundleURLSchemes</key>
-        <array>
-            <string>com.kinetix.phone</string>
-        </array>
-    </dict>
-</array>
-```
-
-## Common Issues
-
-### "Access blocked: authorization error"
-
-**Causes:**
-1. Redirect URI not added in Google Cloud Console
-2. App is in "Testing" mode and your email isn't added as a test user
-3. Client ID/Secret mismatch
-
-**Solutions:**
-- Verify redirect URI: `com.kinetix.phone://oauth/google/callback` is in Authorized redirect URIs
-- Add your email as a test user in OAuth consent screen
-- Double-check Client ID and Secret in Info.plist match Google Cloud Console
-
-### "Invalid client" error
-
-- Verify Client ID and Secret are correct in Info.plist
-- Make sure you're using the **iOS** OAuth client (not Web or Android)
-
-### OAuth dialog doesn't open
-
-- Check that `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set in Info.plist
-- Verify they're not still set to placeholder values
-
-## Testing
-
-After setup:
-1. Build and run the app
-2. Go to Settings
-3. Tap "Connect Google Drive"
-4. You should see Google's OAuth dialog
-5. Sign in with your Google account (must be a test user if app is in Testing mode)
-6. Grant permissions
-7. You should be redirected back to the app
-
-## Production
-
-When ready for production:
-1. Change OAuth consent screen to **Published**
-2. Submit app for verification (if using sensitive scopes)
-3. Remove test user restrictions
-
-**Once published, ANY user can connect their Google Drive - no setup required on their end!**
-
-## What End Users Experience
-
-1. User opens Kinetix app
-2. Goes to Settings → Cloud Storage
-3. Taps "Connect Google Drive"
-4. Google OAuth dialog appears
-5. User signs in with their Google account
-6. Grants permissions
-7. Done! Their runs sync to their Google Drive automatically
-
-**That's it - no technical setup, no credentials, no configuration. Just sign in and go.**
-
+- **Never** add `GOOGLE_CLIENT_SECRET` to `Info.plist` or any `.xcconfig` file that is bundled with the app.
+- The iOS app communicates with `/api/google-oauth` and `/api/google-refresh` to exchange and refresh tokens securely.

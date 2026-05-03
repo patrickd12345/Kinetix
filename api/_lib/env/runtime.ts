@@ -20,6 +20,8 @@ export type KinetixRuntimeEnv = {
   apiRequireAuth: boolean;
   stravaClientId: string;
   stravaClientSecret: string;
+  googleClientId: string;
+  googleClientSecret: string;
   withingsClientId: string;
   withingsClientSecret: string;
   /** Optional; must match Withings partner callback URL (e.g. https://kinetix.bookiji.com/api/withings-oauth) */

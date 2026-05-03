@@ -5,10 +5,10 @@ import UIKit
 /**
  * Google Drive cloud storage provider for iOS
  * Implements OAuth 2.0 and Google Drive API v3
+ * OAuth token exchange and refresh go through Kinetix web proxy so secrets never ship in binary.
  */
 public class GoogleDriveProvider: NSObject {
     private let clientId: String
-    private let clientSecret: String
     private let redirectURI: String
     private let scope = "https://www.googleapis.com/auth/drive.file"
     private let apiBase = "https://www.googleapis.com/drive/v3"
@@ -17,9 +17,8 @@ public class GoogleDriveProvider: NSObject {
     private var authSession: ASWebAuthenticationSession?
     private var authContinuation: CheckedContinuation<CloudTokens, Error>?
     
-    init(clientId: String, clientSecret: String, redirectURI: String) {
+    init(clientId: String, redirectURI: String) {
         self.clientId = clientId
-        self.clientSecret = clientSecret
         self.redirectURI = redirectURI
         super.init()
     }
@@ -37,9 +36,7 @@ public class GoogleDriveProvider: NSObject {
             URLQueryItem(name: "prompt", value: "consent")
         ]
         
-        // Always include redirect_uri - required for OAuth flow
-        // For ASWebAuthenticationSession, we use http://localhost (Google requirement)
-        // but ASWebAuthenticationSession intercepts via callbackURLScheme
+        // Use the backend proxy as the redirect_uri for Google
         queryItems.append(URLQueryItem(name: "redirect_uri", value: redirectURI))
         
         components.queryItems = queryItems
@@ -51,17 +48,13 @@ public class GoogleDriveProvider: NSObject {
      * Automatically opens Google OAuth dialog - user just needs to sign in
      */
     func authenticate(presentingViewController: UIViewController) async throws -> CloudTokens {
-        // Open OAuth dialog - validation will happen when exchanging the code
-        // This allows the dialog to open even with placeholder credentials
         return try await withCheckedThrowingContinuation { continuation in
             self.authContinuation = continuation
             
             let authURL = getAuthorizationURL()
             
-            // This automatically opens Google's OAuth dialog
-            // Calculate the callback scheme from the redirectURI
-            // Format: com.googleusercontent.apps.CLIENT_ID:/oauth2redirect/google -> com.googleusercontent.apps.CLIENT_ID
-            let scheme = redirectURI.components(separatedBy: ":").first ?? "com.kinetix.phone"
+            // The backend will redirect back to this custom scheme
+            let scheme = "kinetix"
             
             self.authSession = ASWebAuthenticationSession(
                 url: authURL,
@@ -98,38 +91,25 @@ public class GoogleDriveProvider: NSObject {
     }
     
     /**
-     * Exchange authorization code for tokens
+     * Exchange authorization code for tokens via Kinetix server
      */
     private func exchangeCodeForToken(code: String) async throws -> CloudTokens {
-        // Validate credentials at token exchange time (after OAuth dialog)
-        // Note: For iOS clients, clientSecret can be empty (Google doesn't provide it)
         guard !clientId.isEmpty,
               clientId != "YOUR_GOOGLE_CLIENT_ID" else {
             throw CloudStorageError.authenticationFailed("Google OAuth credentials not configured. Please add GOOGLE_CLIENT_ID to Info.plist")
         }
         
-        var request = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
+        let url = KinetixEnvironment.webBaseURL.appendingPathComponent("api/google-oauth")
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        var components = URLComponents()
-        var queryItems: [URLQueryItem] = [
-            URLQueryItem(name: "client_id", value: clientId),
-            URLQueryItem(name: "code", value: code),
-            URLQueryItem(name: "grant_type", value: "authorization_code")
+        // Pass the same redirect_uri used in the initial request
+        let payload: [String: String] = [
+            "code": code,
+            "redirect_uri": redirectURI
         ]
-        
-        // Always include redirect_uri in token exchange - must match authorization request
-        queryItems.append(URLQueryItem(name: "redirect_uri", value: redirectURI))
-        
-        // Only include client_secret if it's provided (for Web clients)
-        // iOS clients don't have a client secret
-        if !clientSecret.isEmpty && clientSecret != "YOUR_GOOGLE_CLIENT_SECRET" {
-            queryItems.append(URLQueryItem(name: "client_secret", value: clientSecret))
-        }
-        
-        components.queryItems = queryItems
-        request.httpBody = components.query?.data(using: .utf8)
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -139,10 +119,7 @@ public class GoogleDriveProvider: NSObject {
         
         guard httpResponse.statusCode == 200 else {
             let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
-            if errorMsg.contains("invalid_client") || errorMsg.contains("client_id") {
-                throw CloudStorageError.authenticationFailed("Google OAuth credentials not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to Info.plist")
-            }
-            throw CloudStorageError.authenticationFailed("Token exchange failed: \(errorMsg)")
+            throw CloudStorageError.authenticationFailed("Token exchange failed (\(httpResponse.statusCode)): \(errorMsg)")
         }
         
         let tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data)
@@ -150,47 +127,39 @@ public class GoogleDriveProvider: NSObject {
         return CloudTokens(
             accessToken: tokenResponse.access_token,
             refreshToken: tokenResponse.refresh_token ?? "",
-            expiresAt: Date().addingTimeInterval(TimeInterval(tokenResponse.expires_in)),
+            expiresAt: Date(timeIntervalSince1970: tokenResponse.expires_at),
             tokenType: tokenResponse.token_type ?? "Bearer"
         )
     }
     
     /**
-     * Refresh access token
+     * Refresh access token via Kinetix server
      */
     func refreshAccessToken(refreshToken: String) async throws -> (accessToken: String, expiresIn: TimeInterval) {
-        var request = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
+        let url = KinetixEnvironment.webBaseURL.appendingPathComponent("api/google-refresh")
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        var components = URLComponents()
-        var queryItems: [URLQueryItem] = [
-            URLQueryItem(name: "client_id", value: clientId),
-            URLQueryItem(name: "refresh_token", value: refreshToken),
-            URLQueryItem(name: "grant_type", value: "refresh_token")
+        let payload: [String: String] = [
+            "refresh_token": refreshToken
         ]
-        
-        // Only include client_secret if it's provided (for Web clients)
-        // iOS clients don't have a client secret
-        if !clientSecret.isEmpty && clientSecret != "YOUR_GOOGLE_CLIENT_SECRET" {
-            queryItems.append(URLQueryItem(name: "client_secret", value: clientSecret))
-        }
-        
-        components.queryItems = queryItems
-        request.httpBody = components.query?.data(using: .utf8)
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
-            throw CloudStorageError.authenticationFailed("Token refresh failed")
+            let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw CloudStorageError.authenticationFailed("Token refresh failed (\((response as? HTTPURLResponse)?.statusCode ?? 0)): \(errorMsg)")
         }
         
         let tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data)
         
+        let expiresAt = Date(timeIntervalSince1970: tokenResponse.expires_at)
         return (
             accessToken: tokenResponse.access_token,
-            expiresIn: TimeInterval(tokenResponse.expires_in)
+            expiresIn: expiresAt.timeIntervalSinceNow
         )
     }
     
@@ -410,7 +379,7 @@ extension GoogleDriveProvider: ASWebAuthenticationPresentationContextProviding {
 private struct TokenResponse: Codable {
     let access_token: String
     let refresh_token: String?
-    let expires_in: Int
+    let expires_at: Double
     let token_type: String?
 }
 
@@ -431,4 +400,3 @@ private struct GoogleError: Codable {
     let code: Int
     let message: String
 }
-

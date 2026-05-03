@@ -1,3 +1,4 @@
+import type { AchievementLabel } from '../lib/achievements'
 import { RunRecord } from '../lib/database'
 import { KPS_SHORT } from '../lib/branding'
 import { formatTime, formatDistance, formatPace } from '@kinetix/core'
@@ -17,6 +18,7 @@ interface RunDetailsProps {
   isReferenceRun?: boolean
   /** When set, HR zones use estimated max HR = 220 − age (Tanaka-style common default). */
   runnerAgeYears?: number | null
+  achievements?: AchievementLabel[]
 }
 
 export function RunDetails({
@@ -26,6 +28,7 @@ export function RunDetails({
   displayWeightKg,
   isReferenceRun,
   runnerAgeYears,
+  achievements = [],
 }: RunDetailsProps) {
   const weightUnit = useSettingsStore((s) => s.weightUnit)
   const hasSplits = run.splits && run.splits.length > 0
@@ -96,6 +99,16 @@ export function RunDetails({
           </div>
         )}
       </div>
+
+      {achievements.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {achievements.map((ach) => (
+            <span key={ach} className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-2 py-1 text-xs font-bold text-amber-500">
+              <Trophy size={12} /> {ach}
+            </span>
+          ))}
+        </div>
+      )}
 
       {isReferenceRun && run.id && (
         <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">

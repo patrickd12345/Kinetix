@@ -22,6 +22,7 @@ import {
   getSmoothedLiveKps,
   type LiveKpsDisplayState,
 } from '../lib/liveKpsDisplay'
+import { calculateAchievementsSync, getPrimaryAchievement, type AchievementLabel } from '../lib/achievements'
 import { DirectionalTodayCard } from '../components/directional/DirectionalTodayCard'
 import {
   type DirectionalHomeSummary,
@@ -69,6 +70,7 @@ export default function RunDashboard() {
     referenceKps: null,
     intelligence: null,
     error: null,
+    achievement: null,
   })
   useLocationTracking()
 
@@ -234,6 +236,21 @@ export default function RunDashboard() {
 
         const lastRun = items[0] ?? null
         const runs7d = items.filter((run) => new Date(run.date).getTime() >= sevenDaysAgo)
+        let achievement: AchievementLabel | null = null
+        if (lastRun && meaningful.length > 0) {
+          const previousRuns = meaningful.filter(r => r.id !== lastRun.id && new Date(r.date) < new Date(lastRun.date))
+          const lastRunProfile = resolveProfileForRunWithWeightCache(weightMap, lastRun)
+          const lastRunAbs = calculateAbsoluteKPS(lastRun, lastRunProfile)
+          const prevMap = new Map<number, number>()
+          for (const pr of previousRuns) {
+             if (pr.id) {
+               prevMap.set(pr.id, calculateAbsoluteKPS(pr, resolveProfileForRunWithWeightCache(weightMap, pr)))
+             }
+          }
+          const labels = calculateAchievementsSync(lastRun, previousRuns, lastRunAbs, prevMap)
+          achievement = getPrimaryAchievement(labels)
+        }
+
         const nextSummary: DirectionalHomeSummary = {
           loading: false,
           lastRun,
@@ -243,6 +260,7 @@ export default function RunDashboard() {
           referenceKps: bestRecentRelative > 0 ? bestRecentRelative : (samples.length > 0 ? samples[samples.length - 1].kps : null),
           intelligence: samples.length > 0 ? computeIntelligence(samples) : null,
           error: null,
+          achievement,
         }
         if (!cancelled) setHomeSummary(nextSummary)
       } catch (err) {
@@ -256,6 +274,7 @@ export default function RunDashboard() {
             referenceKps: null,
             intelligence: null,
             error: err instanceof Error ? err.message : 'Unable to load today summary',
+            achievement: null,
           })
         }
       }
@@ -547,6 +566,7 @@ export default function RunDashboard() {
           error={homeSummary.error}
           isRunning={isRunning}
           disabled={isActionLocked}
+          achievement={homeSummary.achievement}
         />
 
         <section className="glass rounded-2xl p-6 mb-4" aria-labelledby="progress-heading">

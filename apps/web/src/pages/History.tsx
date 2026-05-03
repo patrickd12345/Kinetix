@@ -1,3 +1,4 @@
+import { calculateAchievementsSync, type AchievementLabel } from '../lib/achievements'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   db,
@@ -17,6 +18,7 @@ import {
   getPB,
   ensurePBInitialized,
   calculateRelativeKPSSync,
+  calculateAbsoluteKPS,
   isMeaningfulRunForKPS,
   filterRunsByRelativeKpsBounds,
 } from '../lib/kpsUtils'
@@ -35,6 +37,7 @@ import {
   Calendar,
   MapPin,
   Clock,
+  Trophy,
   TrendingUp,
   Sparkles,
   X,
@@ -96,6 +99,7 @@ export default function History() {
   const [chartEndDate, setChartEndDate] = useState<string | null>(null)
   const [chartRuns, setChartRuns] = useState<RunRecord[]>([])
   const [chartKPSMap, setChartKPSMap] = useState<Map<number, number>>(new Map())
+  const [achievementsMap, setAchievementsMap] = useState<Map<number, AchievementLabel[]>>(new Map())
   const [chartLoading, setChartLoading] = useState(false)
   const runRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const scrollToDateRef = useRef<string | null>(null)
@@ -196,6 +200,14 @@ export default function History() {
         const itemIds = new Set(items.map((run) => run.id).filter((id): id is number => id != null))
         const weightByRunDateLocal = await getWeightsForDates(medalSourceRuns.map((r) => r.date))
         if (cancelled) return
+
+        const absoluteKpsMapLocal = new Map<number, number>()
+        for (const r of medalSourceRuns) {
+          if (r.id) {
+            absoluteKpsMapLocal.set(r.id, calculateAbsoluteKPS(r, resolveProfileForRunWithWeightCache(weightByRunDateLocal, r)))
+          }
+        }
+
         const tierKey = buildHistoryKpsTierKey({
           pb,
           weightSource,
@@ -298,13 +310,28 @@ export default function History() {
       if (pbRun && (pbRun.deleted ?? 0) !== RUN_VISIBLE) pbRun = null
       const weightMap = await getWeightsForDates(meaningfulRuns.map((r) => r.date))
       const kpsMap = new Map<number, number>()
+      const achievementsMap = new Map<number, AchievementLabel[]>()
+
+      const allVisible = await getAllVisibleRunsOrdered()
+      const globalWeightMap = await getWeightsForDates(allVisible.map((r) => r.date))
+      const absoluteKpsMapGlobal = new Map<number, number>()
+      for (const r of allVisible) {
+        if (r.id) {
+          absoluteKpsMapGlobal.set(r.id, calculateAbsoluteKPS(r, resolveProfileForRunWithWeightCache(globalWeightMap, r)))
+        }
+      }
+
       for (const run of meaningfulRuns) {
         if (run.id) {
           const resolved = resolveProfileForRunWithWeightCache(weightMap, run)
           kpsMap.set(run.id, calculateRelativeKPSSync(run, resolved, pb ?? null, pbRun ?? null))
+          const previousRuns = allVisible.filter(r => r.id !== run.id && new Date(r.date) < new Date(run.date))
+          const runAbs = calculateAbsoluteKPS(run, resolved)
+          achievementsMap.set(run.id, calculateAchievementsSync(run, previousRuns, runAbs, absoluteKpsMapGlobal))
         }
       }
       setChartKPSMap(kpsMap)
+      setAchievementsMap(achievementsMap)
     } catch (err) {
       console.error('Chart load error:', err)
     } finally {
@@ -870,6 +897,7 @@ export default function History() {
                 const dateKey = run.date.split('T')[0]
                 const displayWeightKg = weightByRunDate.get(run.date) ?? run.weightKg
                 const title = runDisplayTitle(run)
+                const runAchievements = run.id ? (achievementsMap.get(run.id) ?? []) : []
 
                 return (
                   <div 
@@ -896,6 +924,15 @@ export default function History() {
                         <p className="mb-1.5 truncate text-sm font-medium text-slate-800 dark:text-gray-100" title={title}>
                           {title}
                         </p>
+                        {runAchievements.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {runAchievements.map((ach) => (
+                              <span key={ach} className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-500">
+                                <Trophy size={10} /> {ach}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-gray-400">
                           <div className="flex items-center gap-1">
                             <MapPin size={12} />
@@ -993,6 +1030,7 @@ export default function History() {
                               displayWeightKg={displayWeightKg}
                               isReferenceRun={pbRunId != null && run.id === pbRunId}
                               runnerAgeYears={userProfile?.age ?? undefined}
+                              achievements={runAchievements}
                             />
                           </>
                         )}

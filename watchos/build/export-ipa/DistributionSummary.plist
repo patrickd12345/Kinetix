@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>KinetixPhone.ipa</key>
+	<array>
+		<dict>
+			<key>architectures</key>
+			<array>
+				<string>arm64</string>
+			</array>
+			<key>buildNumber</key>
+			<string>1</string>
+			<key>certificate</key>
+			<dict>
+				<key>SHA1</key>
+				<string>D07B1C0D815F269AFF82F50C649D44736F0E55B6</string>
+				<key>dateExpires</key>
+				<string>2027-05-03</string>
+				<key>type</key>
+				<string>Cloud Managed Apple Distribution</string>
+			</dict>
+			<key>embeddedBinaries</key>
+			<array>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>buildNumber</key>
+					<string>8.58.2</string>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>D07B1C0D815F269AFF82F50C649D44736F0E55B6</string>
+						<key>dateExpires</key>
+						<string>2027-05-03</string>
+						<key>type</key>
+						<string>Cloud Managed Apple Distribution</string>
+					</dict>
+					<key>name</key>
+					<string>Sentry.framework</string>
+					<key>symbols</key>
+					<true/>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>AWJBX83Y4X</string>
+						<key>name</key>
+						<string></string>
+					</dict>
+					<key>versionNumber</key>
+					<string>8.58.2</string>
+				</dict>
+			</array>
+			<key>entitlements</key>
+			<dict>
+				<key>application-identifier</key>
+				<string>AWJBX83Y4X.com.patrickduchesneau.KinetixPhone</string>
+				<key>beta-reports-active</key>
+				<true/>
+				<key>com.apple.developer.team-identifier</key>
+				<string>AWJBX83Y4X</string>
+				<key>get-task-allow</key>
+				<false/>
+			</dict>
+			<key>name</key>
+			<string>KinetixPhone.app</string>
+			<key>profile</key>
+			<dict>
+				<key>UUID</key>
+				<string>331a0bec-0acf-4d12-bdd7-4c0b36304203</string>
+				<key>dateExpires</key>
+				<string>2027-05-03</string>
+				<key>name</key>
+				<string>iOS Team Store Provisioning Profile: com.patrickduchesneau.KinetixPhone</string>
+			</dict>
+			<key>symbols</key>
+			<true/>
+			<key>team</key>
+			<dict>
+				<key>id</key>
+				<string>AWJBX83Y4X</string>
+				<key>name</key>
+				<string></string>
+			</dict>
+			<key>versionNumber</key>
+			<string>1.0</string>
+		</dict>
+	</array>
+</dict>
+</plist>

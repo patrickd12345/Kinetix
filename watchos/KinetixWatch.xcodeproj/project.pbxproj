@@ -118,6 +118,7 @@
 		CC50472692F34FA2282A64FB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD3DEAACA5A3422A37BE8F4 /* SettingsView.swift */; };
 		CCF5EA3E88DE6D84C787376D /* ManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88A6625E1273DD7333057CC8 /* ManualView.swift */; };
 		D0B8DFDF2287F6A46D6A536E /* KinetixHostUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32707151FEC10B5A9B144254 /* KinetixHostUITests.swift */; };
+		D14439ECC2414300CE9AF6A6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 99CBC591A1C2F7B0691BAF3A /* Assets.xcassets */; };
 		D500842DFA8EDE932FC1B71F /* GPSManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C637BB2BE19F32A00E24EFCF /* GPSManager.swift */; };
 		D8717A58DBBD93589FBC090B /* UnitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07D661928CB58228F18D536E /* UnitTests.swift */; };
 		D8DC006573C6AB83934A7429 /* RunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3DA4C0B64FB7E52B19005 /* RunView.swift */; };
@@ -258,6 +259,7 @@
 		938F108DBA35FB7322DE372C /* KinetixWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KinetixWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		986C8B329EE85F9BD41ABDEF /* KpsRelativeDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KpsRelativeDisplayTests.swift; sourceTree = "<group>"; };
 		986F6EDE17844149A2905C69 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		99CBC591A1C2F7B0691BAF3A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9A1CE68D2B20B08237570256 /* FIT_SDK_INTEGRATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FIT_SDK_INTEGRATION.md; sourceTree = "<group>"; };
 		9B2E4A22FB531FE68AA26EF7 /* RunDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunDetailView.swift; sourceTree = "<group>"; };
 		9C63D91A26A6AE87CC482BD0 /* UI_AUDIT_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_AUDIT_SUMMARY.md; sourceTree = "<group>"; };
@@ -332,6 +334,7 @@
 			children = (
 				D647A317159FF9821654B504 /* ActivityBuilderView.swift */,
 				2143CA1D4365185A673B8940 /* ActivityEditorView.swift */,
+				99CBC591A1C2F7B0691BAF3A /* Assets.xcassets */,
 				1CF52A3913553661C034316B /* BatteryProfileEditorView.swift */,
 				DC2F814465291AF0CF79D20E /* CoachingDashboardView.swift */,
 				F6F0132AF8F52774A2098339 /* ConnectivityManager.swift */,
@@ -764,6 +767,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D14439ECC2414300CE9AF6A6 /* Assets.xcassets in Resources */,
 				700A26932A5569EF6BCFA0E0 /* FIT_SDK_INTEGRATION.md in Resources */,
 				83600E589CB8B78C6D3D6AF4 /* INTEGRATE_NOW.md in Resources */,
 				C05D72BE78D27F4E0739ABEB /* PrivacyInfo.xcprivacy in Resources */,

@@ -47,6 +47,7 @@ targets:
       - path: ../ios/KinetixPhone/Services/ApiKeyStorage.swift
       - path: ../ios/KinetixPhone/Services/SupabaseRunSyncService.swift
     resources:
+      - path: ../ios/KinetixPhone/Assets.xcassets
       - path: ../ios/KinetixPhone/PrivacyInfo.xcprivacy
     dependencies:
       - target: KinetixWatch
